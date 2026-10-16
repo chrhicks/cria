@@ -126,6 +126,12 @@ type Reading<T> =
 does not have this" (`unsupported`) apart from "this read failed" (`failed`).
 Times are epoch milliseconds.
 
+`Reading.required(reading, what)` is the fresh-or-fail step a command starts
+with. It returns `Effect<T, Failed>`: the value of a fresh Reading, `failed:
+unsupported` for `unavailable: unsupported`, and `failed: unavailable` for every
+other Reading that is not fresh (stale, not read, failed). `what` names the fact
+in the message. Cria's capabilities and a consumer's commands use the same one.
+
 **What fresh means on INDI.** INDI drivers poll their own hardware and push
 changes. They do not send an unchanged value again, so Cria cannot wait for a push
 to call a value fresh. A value is fresh when, within its freshness window, the INDI
@@ -206,13 +212,19 @@ device liveness loop and `confirm` use it.
 ### Run
 
 ```ts
-makeRun<Input, Progress, A, Id>({ initial, work: (input, report) => Effect<A, Failed | Stopped | Uncertain> })
-// → { changes, start(runId, input), stop(runId) }
+makeRun<Input, Progress, A, Id>({ initial: (input) => Progress, work: (input, report) => Effect<A, Failed | Stopped | Uncertain> })
+// → { changes, view, start(runId, input), stop(runId), await(runId) }
 ```
 
 A Run is an ephemeral, observable, cancellable execution with single flight.
-`start` while a run is active fails `busy`. `stop` interrupts the execution and
-returns its settled view, so "stopped" is reported only after cleanup. `changes`
+`start` while a run is active fails `busy`. `initial` computes the progress an
+execution starts with from its input. `view` is the current view. `stop(runId)`
+interrupts that execution and returns `some` of its settled view, so "stopped" is
+reported only after cleanup. It returns `none` when the run ID is not the latest
+execution, and never another execution's view. `await(runId)` waits until that
+execution settles and returns `some` of its settled view without stopping it. It
+returns `none` when the run ID is neither the latest execution nor the one before
+it. Any number of callers may await the same execution. `changes`
 streams every view (`idle`, `running` with progress, `settled` with the outcome),
 each with its run ID. Work runs uninterruptibly except inside `stoppable`'s wait,
 and the outcome comes from the body's own exit. So a cancel during a setting, or
@@ -298,6 +310,13 @@ says what happened. A halt, waiting or running, is returned unchanged and still
 runs. A stop is never cancelled. Cancelling a settled operation returns it
 unchanged.
 
+Cancel of an operation ID Cria does not hold answers an error and cancels
+nothing: `404 not-found` for an ID it never held, `410 result-expired` for one it
+pruned (its request ID is still known). Both mean there is nothing to cancel, and
+`GET /v2/operations/{id}` answers the same two. The first is pinned by the golden
+scenario "refused: unknown operation, request and device"; the second by the
+ledger test for a pruned operation.
+
 ### Recovery
 
 `POST /v2/devices/{id}/recover` with `{ instanceId, bindingId,
@@ -307,6 +326,38 @@ open operation belongs to the current binding. Otherwise it records the recovery
 mints a new `bindingId` for the whole domain, and returns the device (`200`). The
 domain is no longer held. Vela must read the new `bindingId` before it commands
 again.
+
+The recovery does not need the domain to be held. On an idle domain that is not
+held it is still accepted (`200`), still records `{ at, note }` under the binding
+it ends, and still mints a new `bindingId`. So a request still in flight with the
+old binding is refused `409 binding-changed`, and a person's recovery is a fence:
+once it has answered, a request carrying the old binding can never be admitted,
+and a `GET /v2/requests/{instance}/{request}` that is missing afterwards proves
+the request never ran. The recovery is refused only for the reasons above:
+`device-busy` while an operation is open, `binding-changed` for a binding that is
+not current. The test "a recovery on a domain that is not held is accepted, mints
+a new binding, and refuses a request still carrying the old one"
+(`ts/apps/cria/test/operation-lifecycle.test.ts`) pins it, and the golden
+scenario "recover refused while a mount-stop runs" shows its second recover
+answering `200` with a new binding after a confirmed stop.
+
+### Settle bounds
+
+Every running operation settles in bounded time. The bound is in Cria's
+configuration and in the code of its kind, and the wire does not carry it: an
+operation has no deadline field, and Vela cannot read the configured values.
+
+| Operation | Bound |
+|---|---|
+| Capture | The exposure plus `readoutAllowanceMs`. With no frame by then Cria aborts, and with the abort confirmed it settles `failed: unavailable`. |
+| Motion (slew, park, home, focuser move) | `operationTimeoutMs` for the driver to finish the motion, then `failed: unavailable`. |
+| Setting | `acknowledgeMs` for the driver to answer, then up to the confirm deadline (15 s unless the kind sets its own) for the new state; `uncertain` if either passes. |
+| Stop (`mount-stop`, `focuser-halt`) and a Run's stop | `stopWithin`: 20 s for the mount and focuser, 15 s for the camera abort. |
+| `device-connect` | `initializeTimeoutMs` for the driver to acknowledge the connect and again for the device to read connected, then `uncertain`. Device setup follows under its own writes' bounds. |
+
+These bounds are per kind, not one guarantee stated in code: nothing enforces a
+single limit across kinds, and a kind added later needs its own. A person's Stop
+is available whatever the bound.
 
 ### What the ledger keeps
 
@@ -324,7 +375,7 @@ the same tag in their doc comment.
 | Module | Primitive | Built from, notes |
 |---|---|---|
 | `packages/primitives/src/outcome.ts` | Outcome | Tagged errors `Failed`, `Stopped`, `Uncertain`; `settle`, `fromExit`; the reason lists |
-| `packages/primitives/src/reading.ts` | Reading | `fresh`, `stale`, `unavailable`, `map`, `both`; `unavailableReasons` |
+| `packages/primitives/src/reading.ts` | Reading | `fresh`, `stale`, `unavailable`, `map`, `both`, `required`; `unavailableReasons` |
 | `packages/primitives/src/discipline/write-once.ts` | Discipline: writeOnce | Outcome |
 | `packages/primitives/src/discipline/confirm.ts` | Discipline: confirm | `confirm`, `writeConfirmed`; Outcome |
 | `packages/primitives/src/discipline/stoppable.ts` | Discipline: stoppable | writeOnce, Outcome |
@@ -658,7 +709,16 @@ defines it), the position's own maximum and `travel.max`; `minStep` is the
 larger of the position's own minimum and `travel.min`. Without a window they are
 the driver's range, and `maxStep` no longer reports a `FOCUS_MAX` above what the
 position accepts. Vela's autofocus builds its search window from these two, so
-they are the usable window. The limits come from the property's definition, so
+they are the usable window.
+
+**Without a window, or with a window as high as the driver's top**, `maxStep` is
+the driver's top itself, and that value is not a usable target: the first refusal
+below (`approaches the mechanical limit`) refuses a target at or past the
+driver's top, so the highest target that is allowed is one step below it. "Both
+ends allowed" holds for a configured `travel.max` below the driver's top, such as
+errai's 38000, and for `minStep` always. A focuser with no window and a
+consumer that targets `maxStep` is refused `failed: invalid`; keep one step of
+margin below `maxStep` when no window is configured. The limits come from the property's definition, so
 an `Alert` on the position (a refused move) does not make them, or `absolute`,
 stale. Before, `absolute` went stale on that `Alert`, and every later move
 failed `unavailable` until another move cleared it.
@@ -711,7 +771,7 @@ signal, and Vela refuses any value but 5.
 | `POST /v2/operations` | `OperationRequest`, answered `202` with the `Operation` (see "Admission"). |
 | `GET /v2/operations/{id}` | `Operation`, `404 not-found`, or `410 result-expired`. |
 | `GET /v2/requests/{instance}/{request}` | The operation for a request ID, for a lost POST response. `404 not-found` if unknown. |
-| `POST /v2/operations/{id}/cancel` | `202` with the `Operation` (see "Halts, stops and cancel"). |
+| `POST /v2/operations/{id}/cancel` | `202` with the `Operation`; `404 not-found` for an unknown ID, `410 result-expired` for a pruned one (see "Halts, stops and cancel"). |
 | `POST /v2/devices/{id}/recover` | `RecoveryRequest`, answered `200` with the `Device` (see "Recovery"). |
 | `GET /v2/images/{id}/original` | ImageBytes v1 with an exact `content-length` and `ETag` = SHA-256. `410 image-gone` for an image ID Cria no longer holds or never held. `404 not-found` for a path segment that is not an image ID. |
 
@@ -816,7 +876,7 @@ Readings per kind. Values are named, not ASCOM integers:
 | all | `connected` boolean, `name` string |
 | camera | `activity` `'idle' \| 'exposing'`; `temperatureC`, `setpointC` (unsupported), `coolerOn`, `coolerPowerPercent`; `sensorWidthPixels`, `sensorHeightPixels`, `pixelWidthMicrons`, `pixelHeightMicrons`, `binX`, `binY`, `width`, `height`, `startX`, `startY` (binned), `maxBinX`, `maxBinY`; `bayerPattern` `'mono' \| 'rggb' \| 'grbg' \| 'gbrg' \| 'bggr'`; `canAbortExposure`, `canSetTemperature`, `canGetCoolerPower`; `exposureMinimum`, `exposureMaximum`; `gain`, `gainMinimum`, `gainMaximum`, `offset`, `offsetMinimum`, `offsetMaximum` |
 | mount | `rightAscensionHours`, `declinationDegrees`, `siderealTimeHours`; `slewing`, `tracking`, `parked`; `trackingRate` `'sidereal' \| 'lunar' \| 'solar'`; `rightAscensionRateSecondsPerSiderealSecond`, `declinationRateArcsecondsPerSecond`; `pierSide` `'east' \| 'west' \| 'unknown'`; `coordinateSystem` `'topocentric' \| 'j2000'`; `latitudeDegrees`, `longitudeDegrees` (east positive), `elevationMeters`; `canSlew`, `canSetTracking`, `canFindHome`, `canPark`, `canUnpark`, `canMovePrimaryAxis`; `primaryAxisRates` `Array<{ name, degreesPerSecond }>` |
-| focuser | `position`, `moving`, `temperatureC`, `absolute`, `minStep`, `maxStep` (the usable window, both ends allowed; see "The focuser travel window") |
+| focuser | `position`, `moving`, `temperatureC`, `absolute`, `minStep`, `maxStep` (the usable window; both ends allowed except `maxStep` at the driver's top; see "The focuser travel window") |
 | weather | `temperatureC`, `humidityPercent`, `dewPointC`, `pressureHpa`, `skyTemperatureC`, `cloudCoverPercent`, `rainRateMmPerHour`, `windSpeedMps`, `windGustMps` |
 | switch | `channelCount`; per channel `id`, `name`, `writable`, `minimum`, `maximum`, `step`, `on`, `value` |
 
@@ -923,8 +983,9 @@ pinned to a commit (Chris, 2026-10-15). Cria produces the wire and Vela consumes
 it, so the contract lives with the producer. There is no third repo and no
 package registry.
 
-- `ts/packages/primitives` is `@cria/primitives`: Outcome, Reading, the
-  disciplines, Run, Quarantine. No Cria or INDI imports.
+- `ts/packages/primitives` is `@cria/primitives`: Outcome, Reading
+  (`Reading.required` included), the disciplines, Run (`makeRun`: `changes`,
+  `view`, `start`, `stop`, `await`), Quarantine. No Cria or INDI imports.
 - `ts/packages/cria-wire` is `@cria/wire`: the protocol 5 schemas.
 - `ts/packages/indi` (`@cria/indi`) and `ts/apps/cria` are Cria only.
 

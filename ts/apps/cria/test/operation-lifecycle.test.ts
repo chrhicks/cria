@@ -203,6 +203,21 @@ describe('one mount', () => {
     expect(first.body).toMatchObject({ recovery: { note: 'first check' } })
     expect(second.body).toMatchObject({ recovery: null })
   })
+
+  it('a recovery on a domain that is not held is accepted, mints a new binding, and refuses a request still carrying the old one', async () => {
+    const before = await cria.state()
+    const idle = before.devices.find(device => device.id === 'mount')!
+    const old = { instanceId: before.instanceId, requestId: crypto.randomUUID(), deviceId: 'mount', bindingId: idle.bindingId, expectedName: idle.name, kind: 'mount-tracking', parameters: { tracking: true } }
+    const recovered = await cria.client.recover('mount', { instanceId: before.instanceId, bindingId: idle.bindingId, externalRecoveryConfirmed: true, note: 'nothing was wrong' })
+    const late = await cria.client.submit(old as unknown as Parameters<typeof cria.client.submit>[0])
+    const lookup = await cria.client.byRequest(before.instanceId, old.requestId)
+
+    expect(idle.quarantine.held).toBe(false)
+    expect(recovered).toMatchObject({ status: 200, body: { quarantine: { held: false } } })
+    expect(recovered.ok && recovered.body.bindingId).not.toBe(idle.bindingId)
+    expect(late).toMatchObject({ status: 409, body: { error: { code: 'binding-changed' } } })
+    expect(lookup).toMatchObject({ status: 404, body: { error: { code: 'not-found' } } })
+  })
 })
 
 describe('two failure domains', () => {

@@ -34,14 +34,7 @@ export function liveSnapshot(context: CapabilityContext): Effect.Effect<DeviceSn
   })
 }
 
-/** A fact a command needs: fresh, or the command fails before sending. */
-export function required<T>(reading: Reading.Reading<T>, what: string): Effect.Effect<T, Failed> {
-  if (reading.status === 'fresh') return Effect.succeed(reading.value)
-  if (reading.status === 'unavailable' && reading.reason === 'unsupported')
-    return Effect.fail(new Failed({ reason: 'unsupported', message: `${what} is not supported by this device` }))
-
-  return Effect.fail(new Failed({ reason: 'unavailable', message: `${what} is not currently known` }))
-}
+export const required = Reading.required
 
 export function invalid(message: string) {
   return new Failed({ reason: 'invalid', message })
