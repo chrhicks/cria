@@ -22,7 +22,7 @@ const forkUntilWaiting = <A, E>(effect: Effect.Effect<A, E>) =>
 describe('Run', () => {
   const exposure = (cleanup: string[], stop: 'confirms' | 'fails' = 'confirms') =>
     makeRun({
-      initial: { phase: 'preparing' },
+      initial: () => ({ phase: 'preparing' }),
       work: (seconds: number, report) =>
         stoppable({
           command: 'EXPOSE',
@@ -72,7 +72,7 @@ describe('Run', () => {
 
       expect(cleanup).toEqual([])
       yield* TestClock.adjust('20 millis')
-      const settled = yield* Fiber.join(stopping)
+      const settled = Option.getOrThrow(yield* Fiber.join(stopping))
 
       expect(cleanup).toEqual(['aborted'])
       expect(settled).toMatchObject({ state: 'settled', outcome: { kind: 'stopped' } })
@@ -88,7 +88,7 @@ describe('Run', () => {
 
       yield* TestClock.adjust('1 second')
 
-      expect(yield* Fiber.join(stopping)).toMatchObject({
+      expect(Option.getOrThrow(yield* Fiber.join(stopping))).toMatchObject({
         outcome: { kind: 'uncertain', reason: 'stop-not-confirmed', message: 'EXPOSE: stop was not confirmed within 1s' },
       })
     }))
@@ -101,9 +101,66 @@ describe('Run', () => {
       yield* TestClock.adjust('1 millis')
       yield* viewWhere(run, view => view.state === 'settled')
       yield* run.start('b', 10)
-      yield* run.stop('a')
+      const stale = yield* run.stop('a')
 
+      expect(stale).toEqual(Option.none())
       expect(yield* viewWhere(run, () => true)).toMatchObject({ state: 'running', runId: 'b' })
+    }))
+
+  it.effect('view is the current view, and await returns the settled view of that run without stopping it', () =>
+    Effect.gen(function* () {
+      const run = yield* exposure([])
+
+      expect(yield* run.view).toEqual({ state: 'idle' })
+      yield* run.start('a', 0.02)
+      expect(yield* run.view).toMatchObject({ state: 'running', runId: 'a' })
+
+      const waiting = yield* forkUntilWaiting(run.await('a'))
+
+      yield* TestClock.adjust('20 millis')
+      const settled = Option.getOrThrow(yield* Fiber.join(waiting))
+
+      expect(settled).toMatchObject({ state: 'settled', runId: 'a', outcome: { kind: 'confirmed', value: 'frame' } })
+      expect(yield* run.view).toEqual(settled)
+    }))
+
+  it.effect('await knows the active execution and the one before it, and no other', () =>
+    Effect.gen(function* () {
+      const run = yield* exposure([])
+
+      yield* run.start('a', 0.001)
+      yield* TestClock.adjust('1 millis')
+      yield* run.start('b', 0.001)
+      yield* TestClock.adjust('1 millis')
+
+      expect(Option.getOrThrow(yield* run.await('a'))).toMatchObject({ runId: 'a', outcome: { kind: 'confirmed' } })
+      expect(Option.getOrThrow(yield* run.await('b'))).toMatchObject({ runId: 'b', outcome: { kind: 'confirmed' } })
+      yield* run.start('c', 0.001)
+      yield* TestClock.adjust('1 millis')
+      expect(yield* run.await('a')).toEqual(Option.none())
+      expect(Option.getOrThrow(yield* run.await('b'))).toMatchObject({ runId: 'b' })
+      expect(yield* run.await('never-started')).toEqual(Option.none())
+    }))
+
+  it.effect('stop never returns another execution: the view of an unknown or earlier run ID is none', () =>
+    Effect.gen(function* () {
+      const run = yield* exposure([])
+
+      yield* run.start('a', 10)
+      expect(yield* run.stop('other')).toEqual(Option.none())
+      expect(yield* run.view).toMatchObject({ state: 'running', runId: 'a' })
+    }))
+
+  it.effect('initial computes the progress at the start of an execution from its input', () =>
+    Effect.gen(function* () {
+      const run = yield* makeRun<number, { seconds: number }, string>({
+        initial: seconds => ({ seconds }),
+        work: () => Effect.sleep('1 second').pipe(Effect.as('done')),
+      })
+
+      yield* run.start('a', 7)
+
+      expect(yield* run.view).toMatchObject({ state: 'running', progress: { seconds: 7 } })
     }))
 })
 
@@ -112,7 +169,7 @@ describe('Run: a body that settled wins over a late stop (review R1-#1)', () => 
     Effect.gen(function* () {
       let sent = 0
       const run = yield* makeRun({
-        initial: {},
+        initial: () => ({}),
         work: () =>
           writeConfirmed(
             {
@@ -135,13 +192,13 @@ describe('Run: a body that settled wins over a late stop (review R1-#1)', () => 
       yield* TestClock.adjust('40 millis')
 
       expect(sent).toBe(1)
-      expect(yield* Fiber.join(stopping)).toMatchObject({ outcome: { kind: 'confirmed', value: true } })
+      expect(Option.getOrThrow(yield* Fiber.join(stopping))).toMatchObject({ outcome: { kind: 'confirmed', value: true } })
     }))
 
   it.effect('a stop after the motion finished, while the body completes, reports confirmed', () =>
     Effect.gen(function* () {
       const run = yield* makeRun({
-        initial: {},
+        initial: () => ({}),
         work: () =>
           stoppable({
             command: 'MOVE',
@@ -158,7 +215,7 @@ describe('Run: a body that settled wins over a late stop (review R1-#1)', () => 
 
       yield* TestClock.adjust('40 millis')
 
-      expect(yield* Fiber.join(stopping)).toMatchObject({ outcome: { kind: 'confirmed', value: 'kept' } })
+      expect(Option.getOrThrow(yield* Fiber.join(stopping))).toMatchObject({ outcome: { kind: 'confirmed', value: 'kept' } })
     }))
 })
 
@@ -167,7 +224,7 @@ describe('Run: a stop before the motion starts (review R2 P1-B)', () => {
     Effect.gen(function* () {
       const events: string[] = []
       const run = yield* makeRun({
-        initial: {},
+        initial: () => ({}),
         work: () =>
           Effect.sleep('50 millis').pipe(
             Effect.andThen(
@@ -189,6 +246,6 @@ describe('Run: a stop before the motion starts (review R2 P1-B)', () => {
       yield* TestClock.adjust('40 millis')
 
       expect(events).toEqual([])
-      expect(yield* Fiber.join(stopping)).toMatchObject({ outcome: { kind: 'stopped' } })
+      expect(Option.getOrThrow(yield* Fiber.join(stopping))).toMatchObject({ outcome: { kind: 'stopped' } })
     }))
 })
