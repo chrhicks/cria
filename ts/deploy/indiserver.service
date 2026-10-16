@@ -1,14 +1,18 @@
-# Example only: not installed anywhere. One indiserver for every rig driver.
-# -r 0: a crashed driver is not restarted behind Cria's back; a person decides
-# (Cria AGENTS.md: never restart a driver automatically).
+# One indiserver for every rig driver, started at login (linger) and restarted if
+# it dies. User unit: install to ~/.config/systemd/user/ (docs/runtime.md).
+#
+# -r 0: indiserver never restarts a crashed driver by itself. The rig supervisor
+#       does that, and only when nothing is running on the device.
+# -f:   the FIFO the rig supervisor writes `stop <driver>` / `start <driver>` to,
+#       so one driver can be restarted without touching the others. %t is
+#       $XDG_RUNTIME_DIR; the supervisor's default FIFO path is the same.
 [Unit]
 Description=INDI server for the rig drivers
-After=network.target
 
 [Service]
-User=chicks
-ExecStart=/usr/bin/indiserver -r 0 -p 7624 indi_asi_ccd indi_asi_focuser indi_lx200am5 indi_pegasus_ppba
-Restart=no
+ExecStart=/usr/bin/indiserver -v -r 0 -p 7624 -f %t/indi.fifo indi_asi_ccd indi_asi_focuser indi_lx200am5 indi_pegasus_ppba
+Restart=always
+RestartSec=3
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=default.target

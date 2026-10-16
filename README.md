@@ -27,7 +27,7 @@ pnpm verify
 | Path | Contents |
 | --- | --- |
 | `ts/` | The TypeScript Cria: the shared packages, the service, its tests and tools. See [ts/README.md](ts/README.md) |
-| `ts/deploy/` | The systemd units for `indiserver` and Cria, and errai's configuration |
+| `ts/deploy/` | The systemd user units for `indiserver`, Cria and the rig supervisor, and errai's configuration |
 | `docs/` | [Architecture](docs/architecture.md), [runtime](docs/runtime.md), [testing](docs/testing.md) and the [legacy Windows notes](docs/legacy-windows.md) |
 | `docs/ts/` | [SPEC.md](docs/ts/SPEC.md) and [the Vela migration checklist](docs/ts/vela-migration.md) |
 | `src/` | Legacy. The .NET API, driver contracts, worker logic, Windows worker and desktop launcher |
