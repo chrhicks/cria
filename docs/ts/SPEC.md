@@ -1104,8 +1104,9 @@ not a focuser.
 - **A driver crashes.** `indiserver` deletes its properties. Cria marks the device
   unavailable. An operation in flight ends `uncertain: driver-lost` and
   quarantines the device. When the driver is back and the device connected, it
-  is set up again. Run `indiserver -r 0` so a crashed driver is not
-  restarted behind Cria's back (AGENTS.md: never restart a driver automatically).
+  is set up again. Run `indiserver -r 0` so indiserver does not restart a crashed
+  driver by itself. Cria never restarts a driver; the outside rig supervisor may,
+  in the one narrow case AGENTS.md and docs/runtime.md describe.
 - **`indiserver` goes away.** Every device is unavailable, in-flight work is
   uncertain, and the reconnect is paced. No command is resent after reconnecting.
 - **SIGTERM.** Closing the process scope interrupts every Run. Their `stoppable`

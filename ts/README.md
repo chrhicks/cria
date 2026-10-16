@@ -23,12 +23,13 @@ legacy ([docs/legacy-windows.md](../docs/legacy-windows.md)).
 | `apps/cria/test` | scenario tests, fake INDI server | — |
 | `testing/indiserver.ts` | runs a real indiserver with simulators for tests | — |
 | `testing/cria-client.ts` | a typed protocol 5 client for tests; decodes every response strictly | — |
+| `testing/rig-supervisor.test.ts` | the rig supervisor against a fake Cria, a temp FIFO and a fake clock | — |
 | `testing/lint.test.ts` | source rules: catches, `try`, `.catch(`, `Date.now()` and timers only at reasoned sites; `verify.sh` strict | — |
 | `testing/source-hook.mjs` | lets `node` run `main.ts` from source, for the shutdown test | — |
 | `testing/mutate.mjs` | breaks one line, runs the given tests, restores it: shows a test guards that line | — |
 | `testing/golden/` | the wire golden: scenarios, normalizer and the committed `wire.golden.json` | — |
 | `verify.sh` | every check, in order (`pnpm verify`) | — |
-| `deploy/` | example config and systemd units (not installed anywhere) | — |
+| `deploy/` | errai's config, the systemd user units and the rig supervisor (install steps in `docs/runtime.md`) | — |
 
 ## Commands
 

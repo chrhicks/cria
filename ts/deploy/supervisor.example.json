@@ -1,0 +1,10 @@
+{
+  "criaUrl": "http://127.0.0.1:4319",
+  "devices": [
+    { "id": "primary", "usb": "03c3:260a", "driver": "indi_asi_ccd" },
+    { "id": "guide", "usb": "03c3:2209", "driver": "indi_asi_ccd" },
+    { "id": "focuser", "usb": "03c3:1f10", "driver": "indi_asi_focuser" },
+    { "id": "mount", "serial": "/dev/serial/by-id/usb-ZWO_Systems_ZWO_Device_123456-if00" },
+    { "id": "weather", "serial": "/dev/serial/by-id/usb-Pegasus_Astro_PPBMicro_revB_PPBMA00000-if00-port0" }
+  ]
+}
