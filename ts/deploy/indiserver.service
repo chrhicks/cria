@@ -7,6 +7,7 @@
 #       so one driver can be restarted without touching the others. %t is
 #       $XDG_RUNTIME_DIR; the supervisor's default FIFO path is the same.
 [Unit]
+StartLimitIntervalSec=0
 Description=INDI server for the rig drivers
 
 [Service]
