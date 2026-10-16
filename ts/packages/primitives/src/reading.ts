@@ -6,6 +6,9 @@
  * deciding what to do when the Reading is not fresh.
  */
 
+import { Effect } from 'effect'
+import { Failed } from './outcome.js'
+
 export const unavailableReasons = ['not-read', 'unsupported', 'failed'] as const
 
 export type UnavailableReason = (typeof unavailableReasons)[number]
@@ -46,4 +49,17 @@ export function both<A, B, C>(a: Reading<A>, b: Reading<B>, f: (a: A, b: B) => C
   const observedAt = Math.min(a.observedAt, b.observedAt)
 
   return a.status === 'fresh' && b.status === 'fresh' ? fresh(value, observedAt) : stale(value, observedAt)
+}
+
+/**
+ * A fact a command needs: fresh, or the command fails before sending. A stale
+ * or not-read Reading fails `unavailable`; one the device does not support fails
+ * `unsupported`. `what` names the fact in the message.
+ */
+export function required<T>(reading: Reading<T>, what: string): Effect.Effect<T, Failed> {
+  if (reading.status === 'fresh') return Effect.succeed(reading.value)
+  if (reading.status === 'unavailable' && reading.reason === 'unsupported')
+    return Effect.fail(new Failed({ reason: 'unsupported', message: `${what} is not supported by this device` }))
+
+  return Effect.fail(new Failed({ reason: 'unavailable', message: `${what} is not currently known` }))
 }

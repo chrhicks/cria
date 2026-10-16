@@ -12,13 +12,15 @@
  * A stop that arrives anywhere else lets the body finish and reports what it
  * actually did; a body that completed is never reported as stopped.
  */
-import { Deferred, Effect, Fiber, Ref, Scope, Semaphore, Stream, SubscriptionRef } from 'effect';
+import { Deferred, Effect, Fiber, Option, Ref, Scope, Semaphore, Stream, SubscriptionRef } from 'effect';
 import { Failed, fromExit } from './outcome.js';
 export function makeRun(definition) {
     return Effect.gen(function* () {
         const scope = yield* Effect.scope;
         const view = yield* SubscriptionRef.make({ state: 'idle' });
         const active = yield* Ref.make(undefined);
+        // The execution before the active one, which has settled: start fails busy until it has.
+        const previous = yield* Ref.make(undefined);
         const transition = yield* Semaphore.make(1);
         const report = (runId) => patch => SubscriptionRef.update(view, current => current.state === 'running' && current.runId === runId
             ? { ...current, progress: { ...current.progress, ...patch } }
@@ -26,11 +28,12 @@ export function makeRun(definition) {
         const finish = (runId, done, outcome) => Effect.gen(function* () {
             const settled = yield* SubscriptionRef.modify(view, current => {
                 if (current.state !== 'running' || current.runId !== runId)
-                    return [current, current];
+                    return [undefined, current];
                 const next = { ...current, state: 'settled', settledAt: Date.now(), outcome };
                 return [next, next];
             });
-            yield* Deferred.succeed(done, settled);
+            if (settled)
+                yield* Deferred.succeed(done, settled);
         });
         const start = (runId, input) => transition.withPermit(Effect.gen(function* () {
             const current = yield* SubscriptionRef.get(view);
@@ -40,7 +43,7 @@ export function makeRun(definition) {
                 state: 'running',
                 runId,
                 startedAt: Date.now(),
-                progress: definition.initial,
+                progress: definition.initial(input),
             });
             const done = yield* Deferred.make();
             // The work runs uninterruptibly: a stop only acts where a discipline
@@ -50,22 +53,29 @@ export function makeRun(definition) {
             // "interrupted" and lose it.
             const execution = Effect.exit(definition.work(input, report(runId))).pipe(Effect.flatMap(exit => finish(runId, done, fromExit(exit))));
             const fiber = yield* Effect.forkIn(execution, scope, { uninterruptible: true });
+            yield* Ref.set(previous, yield* Ref.get(active));
             yield* Ref.set(active, { runId, fiber, done });
         }));
         const stop = (runId) => Effect.gen(function* () {
             const running = yield* Ref.get(active);
             if (running?.runId !== runId)
-                return yield* SubscriptionRef.get(view);
+                return Option.none();
             yield* Fiber.interrupt(running.fiber);
             // Interrupted before its body began: nothing ran, so it stopped.
             if (!(yield* Deferred.isDone(running.done)))
                 yield* finish(runId, running.done, { kind: 'stopped' });
-            return yield* Deferred.await(running.done);
+            return Option.some(yield* Deferred.await(running.done));
+        });
+        const settledView = (runId) => Effect.gen(function* () {
+            const known = [yield* Ref.get(active), yield* Ref.get(previous)].find(execution => execution?.runId === runId);
+            return known ? Option.some(yield* Deferred.await(known.done)) : Option.none();
         });
         return {
             changes: SubscriptionRef.changes(view),
+            view: SubscriptionRef.get(view),
             start,
             stop,
+            await: settledView,
         };
     });
 }

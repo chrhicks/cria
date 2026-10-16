@@ -7,5 +7,5 @@ export { confirm, writeConfirmed, type Confirm } from './discipline/confirm.js';
 export { stoppable, type Stoppable } from './discipline/stoppable.js';
 export { retryReads, type ReadResult, type RetryReads } from './discipline/retry-reads.js';
 export { quarantineOf, type ExternalRecovery, type QuarantineState } from './quarantine.js';
-export { makeRun, type Report, type Run, type RunDefinition, type RunView } from './run.js';
+export { makeRun, type Report, type Run, type RunDefinition, type RunView, type SettledView } from './run.js';
 //# sourceMappingURL=index.d.ts.map

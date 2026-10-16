@@ -396,7 +396,7 @@ export function makeLedger(options: LedgerOptions): Effect.Effect<Ledger, never,
       yield* Effect.forEach(domainIds, id =>
         Effect.map(
           makeRun<Running, Progress, OperationResult, OperationId>({
-            initial: initialProgress,
+            initial: () => initialProgress,
             work: (operation, report) => Effect.suspend(() => known(devices, operation.deviceId).work(operation, report)),
           }),
           run => [id, run] as const,
