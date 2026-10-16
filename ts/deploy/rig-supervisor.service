@@ -1,0 +1,17 @@
+# User unit: install to ~/.config/systemd/user/ (docs/runtime.md). Disable with
+# `systemctl --user disable --now rig-supervisor`. It reads
+# ~/.config/cria/supervisor.json (see supervisor.example.json). If Cria has
+# CRIA_TOKEN set, give the supervisor the same value (a drop-in with Environment=).
+[Unit]
+Description=Rig supervisor (restart a driver for a device that appeared, connect a device that is disconnected)
+After=cria.service
+
+[Service]
+ExecStart=/usr/bin/node %h/dev/personal/cria-ts/ts/deploy/rig-supervisor.mjs
+Restart=always
+RestartSec=5
+# Exit 2 is a bad config file: restarting cannot fix it.
+RestartPreventExitStatus=2
+
+[Install]
+WantedBy=default.target
