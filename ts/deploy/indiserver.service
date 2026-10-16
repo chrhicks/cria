@@ -10,6 +10,8 @@
 Description=INDI server for the rig drivers
 
 [Service]
+# indiserver opens the FIFO but does not create it, and exits 1 if it is missing.
+ExecStartPre=-/usr/bin/mkfifo %t/indi.fifo
 ExecStart=/usr/bin/indiserver -v -r 0 -p 7624 -f %t/indi.fifo indi_asi_ccd indi_asi_focuser indi_lx200am5 indi_pegasus_ppba
 Restart=always
 RestartSec=3
