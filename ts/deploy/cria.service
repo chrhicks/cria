@@ -6,6 +6,9 @@
 # optional.
 [Unit]
 Description=Cria (INDI to Vela)
+# Retry forever: at boot the tailnet address Cria listens on (EADDRNOTAVAIL) does not exist until
+# tailscale is up, and the default start limit would give up after 5 tries in 10 s.
+StartLimitIntervalSec=0
 After=indiserver.service
 Wants=indiserver.service
 
@@ -13,6 +16,7 @@ Wants=indiserver.service
 # Adjust to where Cria is checked out and built, and to the config in use.
 ExecStart=/usr/bin/node %h/dev/personal/cria-ts/ts/apps/cria/dist/main.js %h/.config/cria/rig.json
 Restart=always
+RestartSec=3
 # Longer than the longest uninterruptible step: a start-up connect may take up to
 # initializeTimeoutMs (120 s), then stops get stopWithin (20 s). Review R2 P3b.
 TimeoutStopSec=180

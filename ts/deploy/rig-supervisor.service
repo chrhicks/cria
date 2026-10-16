@@ -3,6 +3,7 @@
 # ~/.config/cria/supervisor.json (see supervisor.example.json). If Cria has
 # CRIA_TOKEN set, give the supervisor the same value (a drop-in with Environment=).
 [Unit]
+StartLimitIntervalSec=0
 Description=Rig supervisor (restart a driver for a device that appeared, connect a device that is disconnected)
 After=cria.service
 

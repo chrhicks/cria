@@ -129,3 +129,8 @@ A capture writes its frame to `imageDirectory` as ImageBytes. The folder is a ro
 ## Before Cria commands the rig
 
 The checks on errai so far were read-only. [ts/README.md, "Before trying it on the rig"](../ts/README.md#before-trying-it-on-the-rig) lists what has to happen first, and the first session is with Chris present.
+
+
+## Boot order
+
+Cria listens on errai's tailnet address, which does not exist until tailscale is up, so the first starts at boot fail with `EADDRNOTAVAIL`. The three units set `StartLimitIntervalSec=0` (and `RestartSec=3`), so systemd keeps retrying until the address is there instead of giving up after five tries. Found on errai's first reboot, 2026-10-16.
