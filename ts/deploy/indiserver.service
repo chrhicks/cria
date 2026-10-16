@@ -1,0 +1,14 @@
+# Example only: not installed anywhere. One indiserver for every rig driver.
+# -r 0: a crashed driver is not restarted behind Cria's back; a person decides
+# (Cria AGENTS.md: never restart a driver automatically).
+[Unit]
+Description=INDI server for the rig drivers
+After=network.target
+
+[Service]
+User=chicks
+ExecStart=/usr/bin/indiserver -r 0 -p 7624 indi_asi_ccd indi_asi_focuser indi_lx200am5 indi_pegasus_ppba
+Restart=no
+
+[Install]
+WantedBy=multi-user.target

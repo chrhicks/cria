@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><TargetFramework>net48</TargetFramework><OutputType>Exe</OutputType><PlatformTarget>x64</PlatformTarget><AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects><GenerateBindingRedirectsOutputType>true</GenerateBindingRedirectsOutputType></PropertyGroup>
+  <ItemGroup><Reference Include="System.Windows.Forms" />
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+    <PackageReference Include="ASCOM.Com.Components" Version="4.0.0" /><PackageReference Include="ASCOM.Common.Components" Version="4.0.0" />
+    <PackageReference Include="StreamJsonRpc" Version="2.25.29" />
+    <ProjectReference Include="../Cria.Driver.Core/Cria.Driver.Core.csproj" />
+  </ItemGroup>
+</Project>

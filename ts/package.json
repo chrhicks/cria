@@ -1,0 +1,26 @@
+{
+  "name": "cria-ts",
+  "private": true,
+  "type": "module",
+  "description": "Cria on Linux: a TypeScript INDI client that serves Vela",
+  "scripts": {
+    "build": "pnpm -r build",
+    "test": "vitest run",
+    "typecheck": "pnpm -r typecheck",
+    "golden": "vitest run --config testing/golden/vitest.config.ts",
+    "golden:update": "GOLDEN_UPDATE=1 vitest run --config testing/golden/vitest.config.ts",
+    "verify": "./verify.sh"
+  },
+  "devDependencies": {
+    "@cria/wire": "workspace:*",
+    "@effect/vitest": "4.0.3",
+    "@types/node": "24.19.1",
+    "effect": "4.0.3",
+    "typescript": "7.0.2",
+    "vitest": "5.0.4"
+  },
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "packageManager": "pnpm@11.22.0"
+}

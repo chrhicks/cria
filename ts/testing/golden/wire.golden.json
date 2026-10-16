@@ -1,0 +1,6084 @@
+[
+  {
+    "scenario": "health",
+    "step": 1,
+    "request": "GET /health",
+    "status": 200,
+    "body": {
+      "protocolVersion": 5,
+      "status": "ok"
+    }
+  },
+  {
+    "scenario": "state at rest, every device kind",
+    "step": 1,
+    "request": "GET /v2/state",
+    "status": 200,
+    "body": {
+      "commandsEnabled": true,
+      "devices": [
+        {
+          "afterOperation": null,
+          "availability": {
+            "ready": true
+          },
+          "bindingId": "<binding-1>",
+          "failureDomain": "fake-ccd",
+          "id": "camera",
+          "kind": "camera",
+          "lastCommandedSetpointC": null,
+          "name": "Fake CCD",
+          "quarantine": {
+            "held": false
+          },
+          "readings": {
+            "activity": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": "idle"
+            },
+            "bayerPattern": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": "grbg"
+            },
+            "binX": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 1
+            },
+            "binY": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 1
+            },
+            "canAbortExposure": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": true
+            },
+            "canGetCoolerPower": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": false
+            },
+            "canSetTemperature": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": true
+            },
+            "connected": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": true
+            },
+            "coolerOn": {
+              "reason": "not-read",
+              "status": "unavailable"
+            },
+            "coolerPowerPercent": {
+              "reason": "not-read",
+              "status": "unavailable"
+            },
+            "exposureMaximum": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 3600
+            },
+            "exposureMinimum": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 0.001
+            },
+            "gain": {
+              "reason": "not-read",
+              "status": "unavailable"
+            },
+            "gainMaximum": {
+              "reason": "not-read",
+              "status": "unavailable"
+            },
+            "gainMinimum": {
+              "reason": "not-read",
+              "status": "unavailable"
+            },
+            "height": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 6
+            },
+            "maxBinX": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 4
+            },
+            "maxBinY": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 4
+            },
+            "name": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": "Fake CCD"
+            },
+            "offset": {
+              "reason": "not-read",
+              "status": "unavailable"
+            },
+            "offsetMaximum": {
+              "reason": "not-read",
+              "status": "unavailable"
+            },
+            "offsetMinimum": {
+              "reason": "not-read",
+              "status": "unavailable"
+            },
+            "pixelHeightMicrons": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 3.76
+            },
+            "pixelWidthMicrons": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 3.76
+            },
+            "sensorHeightPixels": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 6
+            },
+            "sensorWidthPixels": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 8
+            },
+            "setpointC": {
+              "reason": "unsupported",
+              "status": "unavailable"
+            },
+            "startX": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 0
+            },
+            "startY": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 0
+            },
+            "temperatureC": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 20
+            },
+            "width": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 8
+            }
+          }
+        },
+        {
+          "afterOperation": "<operation-1>",
+          "availability": {
+            "ready": true
+          },
+          "bindingId": "<binding-2>",
+          "failureDomain": "zwo-am5",
+          "id": "mount",
+          "kind": "mount",
+          "name": "ZWO AM5",
+          "quarantine": {
+            "held": false
+          },
+          "readings": {
+            "canFindHome": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": true
+            },
+            "canMovePrimaryAxis": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": true
+            },
+            "canPark": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": true
+            },
+            "canSetTracking": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": true
+            },
+            "canSlew": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": true
+            },
+            "canUnpark": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": true
+            },
+            "connected": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": true
+            },
+            "coordinateSystem": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": "topocentric"
+            },
+            "declinationDegrees": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 40
+            },
+            "declinationRateArcsecondsPerSecond": {
+              "reason": "not-read",
+              "status": "unavailable"
+            },
+            "elevationMeters": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 0
+            },
+            "latitudeDegrees": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 40
+            },
+            "longitudeDegrees": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": -75
+            },
+            "name": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": "ZWO AM5"
+            },
+            "parked": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": false
+            },
+            "pierSide": {
+              "reason": "not-read",
+              "status": "unavailable"
+            },
+            "primaryAxisRates": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": [
+                {
+                  "degreesPerSecond": 0.0010445185416666667,
+                  "name": "1x"
+                },
+                {
+                  "degreesPerSecond": 0.0020890370833333335,
+                  "name": "2x"
+                },
+                {
+                  "degreesPerSecond": 0.004178074166666667,
+                  "name": "3x"
+                },
+                {
+                  "degreesPerSecond": 0.008356148333333334,
+                  "name": "4x"
+                },
+                {
+                  "degreesPerSecond": 0.016712296666666668,
+                  "name": "5x"
+                },
+                {
+                  "degreesPerSecond": 0.033424593333333336,
+                  "name": "6x"
+                },
+                {
+                  "degreesPerSecond": 0.08356148333333334,
+                  "name": "7x"
+                },
+                {
+                  "degreesPerSecond": 0.25068445,
+                  "name": "8x"
+                },
+                {
+                  "degreesPerSecond": 3.0082134000000003,
+                  "name": "9x"
+                },
+                {
+                  "degreesPerSecond": 6.0164268000000005,
+                  "name": "10x"
+                }
+              ]
+            },
+            "rightAscensionHours": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 2
+            },
+            "rightAscensionRateSecondsPerSiderealSecond": {
+              "reason": "not-read",
+              "status": "unavailable"
+            },
+            "siderealTimeHours": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 6.5
+            },
+            "slewing": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": false
+            },
+            "tracking": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": false
+            },
+            "trackingRate": {
+              "reason": "not-read",
+              "status": "unavailable"
+            }
+          }
+        },
+        {
+          "afterOperation": null,
+          "availability": {
+            "ready": true
+          },
+          "bindingId": "<binding-3>",
+          "failureDomain": "fake-focuser",
+          "id": "focuser",
+          "kind": "focuser",
+          "name": "Fake Focuser",
+          "quarantine": {
+            "held": false
+          },
+          "readings": {
+            "absolute": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": true
+            },
+            "connected": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": true
+            },
+            "maxStep": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 50000
+            },
+            "minStep": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 0
+            },
+            "moving": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": false
+            },
+            "name": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": "Fake Focuser"
+            },
+            "position": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 1000
+            },
+            "temperatureC": {
+              "reason": "not-read",
+              "status": "unavailable"
+            }
+          }
+        },
+        {
+          "afterOperation": null,
+          "availability": {
+            "ready": true
+          },
+          "bindingId": "<binding-4>",
+          "failureDomain": "fake-ppb",
+          "id": "weather",
+          "kind": "weather",
+          "name": "Fake PPB",
+          "quarantine": {
+            "held": false
+          },
+          "readings": {
+            "cloudCoverPercent": {
+              "reason": "unsupported",
+              "status": "unavailable"
+            },
+            "connected": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": true
+            },
+            "dewPointC": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 8.1
+            },
+            "humidityPercent": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 80
+            },
+            "name": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": "Fake PPB"
+            },
+            "pressureHpa": {
+              "reason": "unsupported",
+              "status": "unavailable"
+            },
+            "rainRateMmPerHour": {
+              "reason": "unsupported",
+              "status": "unavailable"
+            },
+            "skyTemperatureC": {
+              "reason": "unsupported",
+              "status": "unavailable"
+            },
+            "temperatureC": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 11.5
+            },
+            "windGustMps": {
+              "reason": "unsupported",
+              "status": "unavailable"
+            },
+            "windSpeedMps": {
+              "reason": "unsupported",
+              "status": "unavailable"
+            }
+          }
+        },
+        {
+          "afterOperation": null,
+          "availability": {
+            "ready": true
+          },
+          "bindingId": "<binding-4>",
+          "channels": [
+            {
+              "id": {
+                "observedAt": "<time>",
+                "status": "fresh",
+                "value": 0
+              },
+              "maximum": {
+                "observedAt": "<time>",
+                "status": "fresh",
+                "value": 1
+              },
+              "minimum": {
+                "observedAt": "<time>",
+                "status": "fresh",
+                "value": 0
+              },
+              "name": {
+                "observedAt": "<time>",
+                "status": "fresh",
+                "value": "12V"
+              },
+              "on": {
+                "observedAt": "<time>",
+                "status": "fresh",
+                "value": true
+              },
+              "step": {
+                "observedAt": "<time>",
+                "status": "fresh",
+                "value": 1
+              },
+              "value": {
+                "observedAt": "<time>",
+                "status": "fresh",
+                "value": 1
+              },
+              "writable": {
+                "observedAt": "<time>",
+                "status": "fresh",
+                "value": true
+              }
+            },
+            {
+              "id": {
+                "observedAt": "<time>",
+                "status": "fresh",
+                "value": 1
+              },
+              "maximum": {
+                "observedAt": "<time>",
+                "status": "fresh",
+                "value": 100
+              },
+              "minimum": {
+                "observedAt": "<time>",
+                "status": "fresh",
+                "value": 0
+              },
+              "name": {
+                "observedAt": "<time>",
+                "status": "fresh",
+                "value": "Dew A"
+              },
+              "on": {
+                "observedAt": "<time>",
+                "status": "fresh",
+                "value": false
+              },
+              "step": {
+                "observedAt": "<time>",
+                "status": "fresh",
+                "value": 1
+              },
+              "value": {
+                "observedAt": "<time>",
+                "status": "fresh",
+                "value": 0
+              },
+              "writable": {
+                "observedAt": "<time>",
+                "status": "fresh",
+                "value": true
+              }
+            },
+            {
+              "id": {
+                "observedAt": "<time>",
+                "status": "fresh",
+                "value": 2
+              },
+              "maximum": {
+                "observedAt": "<time>",
+                "status": "fresh",
+                "value": 1
+              },
+              "minimum": {
+                "observedAt": "<time>",
+                "status": "fresh",
+                "value": 0
+              },
+              "name": {
+                "observedAt": "<time>",
+                "status": "fresh",
+                "value": "Auto dew"
+              },
+              "on": {
+                "observedAt": "<time>",
+                "status": "fresh",
+                "value": false
+              },
+              "step": {
+                "observedAt": "<time>",
+                "status": "fresh",
+                "value": 1
+              },
+              "value": {
+                "observedAt": "<time>",
+                "status": "fresh",
+                "value": 0
+              },
+              "writable": {
+                "observedAt": "<time>",
+                "status": "fresh",
+                "value": true
+              }
+            }
+          ],
+          "failureDomain": "fake-ppb",
+          "id": "switch",
+          "kind": "switch",
+          "name": "Fake PPB",
+          "quarantine": {
+            "held": false
+          },
+          "readings": {
+            "channelCount": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 3
+            },
+            "connected": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": true
+            },
+            "name": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": "Fake PPB"
+            }
+          }
+        }
+      ],
+      "generatedAt": "<time>",
+      "instanceId": "<instance-1>",
+      "operations": [
+        {
+          "acceptedAt": "<time>",
+          "bindingId": "<binding-2>",
+          "deviceId": "mount",
+          "expectedName": "ZWO AM5",
+          "failureDomain": "zwo-am5",
+          "id": "<operation-1>",
+          "instanceId": "<instance-1>",
+          "kind": "device-connect",
+          "outcome": {
+            "kind": "confirmed",
+            "value": {
+              "image": null,
+              "values": {
+                "connected": true,
+                "setup": "GEOGRAPHIC_COORD not sent: no site is configured for this mount; sent TIME_UTC UTC=<utc> OFFSET=0.00"
+              }
+            }
+          },
+          "parameters": {
+            "connected": true
+          },
+          "recovery": null,
+          "requestId": "startup-<request-1>",
+          "settledAt": "<time>",
+          "startedAt": "<time>",
+          "state": "settled"
+        }
+      ],
+      "protocolVersion": 5,
+      "sequence": "<sequence>"
+    }
+  },
+  {
+    "scenario": "first SSE state event",
+    "step": 1,
+    "request": "GET /v2/events",
+    "status": 200,
+    "body": {
+      "commandsEnabled": true,
+      "devices": [
+        {
+          "afterOperation": null,
+          "availability": {
+            "ready": true
+          },
+          "bindingId": "<binding-1>",
+          "failureDomain": "fake-ccd",
+          "id": "camera",
+          "kind": "camera",
+          "lastCommandedSetpointC": null,
+          "name": "Fake CCD",
+          "quarantine": {
+            "held": false
+          },
+          "readings": {
+            "activity": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": "idle"
+            },
+            "bayerPattern": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": "grbg"
+            },
+            "binX": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 1
+            },
+            "binY": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 1
+            },
+            "canAbortExposure": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": true
+            },
+            "canGetCoolerPower": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": false
+            },
+            "canSetTemperature": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": true
+            },
+            "connected": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": true
+            },
+            "coolerOn": {
+              "reason": "not-read",
+              "status": "unavailable"
+            },
+            "coolerPowerPercent": {
+              "reason": "not-read",
+              "status": "unavailable"
+            },
+            "exposureMaximum": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 3600
+            },
+            "exposureMinimum": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 0.001
+            },
+            "gain": {
+              "reason": "not-read",
+              "status": "unavailable"
+            },
+            "gainMaximum": {
+              "reason": "not-read",
+              "status": "unavailable"
+            },
+            "gainMinimum": {
+              "reason": "not-read",
+              "status": "unavailable"
+            },
+            "height": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 6
+            },
+            "maxBinX": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 4
+            },
+            "maxBinY": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 4
+            },
+            "name": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": "Fake CCD"
+            },
+            "offset": {
+              "reason": "not-read",
+              "status": "unavailable"
+            },
+            "offsetMaximum": {
+              "reason": "not-read",
+              "status": "unavailable"
+            },
+            "offsetMinimum": {
+              "reason": "not-read",
+              "status": "unavailable"
+            },
+            "pixelHeightMicrons": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 3.76
+            },
+            "pixelWidthMicrons": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 3.76
+            },
+            "sensorHeightPixels": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 6
+            },
+            "sensorWidthPixels": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 8
+            },
+            "setpointC": {
+              "reason": "unsupported",
+              "status": "unavailable"
+            },
+            "startX": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 0
+            },
+            "startY": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 0
+            },
+            "temperatureC": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 20
+            },
+            "width": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 8
+            }
+          }
+        },
+        {
+          "afterOperation": "<operation-1>",
+          "availability": {
+            "ready": true
+          },
+          "bindingId": "<binding-2>",
+          "failureDomain": "zwo-am5",
+          "id": "mount",
+          "kind": "mount",
+          "name": "ZWO AM5",
+          "quarantine": {
+            "held": false
+          },
+          "readings": {
+            "canFindHome": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": true
+            },
+            "canMovePrimaryAxis": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": true
+            },
+            "canPark": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": true
+            },
+            "canSetTracking": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": true
+            },
+            "canSlew": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": true
+            },
+            "canUnpark": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": true
+            },
+            "connected": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": true
+            },
+            "coordinateSystem": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": "topocentric"
+            },
+            "declinationDegrees": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 40
+            },
+            "declinationRateArcsecondsPerSecond": {
+              "reason": "not-read",
+              "status": "unavailable"
+            },
+            "elevationMeters": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 0
+            },
+            "latitudeDegrees": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 40
+            },
+            "longitudeDegrees": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": -75
+            },
+            "name": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": "ZWO AM5"
+            },
+            "parked": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": false
+            },
+            "pierSide": {
+              "reason": "not-read",
+              "status": "unavailable"
+            },
+            "primaryAxisRates": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": [
+                {
+                  "degreesPerSecond": 0.0010445185416666667,
+                  "name": "1x"
+                },
+                {
+                  "degreesPerSecond": 0.0020890370833333335,
+                  "name": "2x"
+                },
+                {
+                  "degreesPerSecond": 0.004178074166666667,
+                  "name": "3x"
+                },
+                {
+                  "degreesPerSecond": 0.008356148333333334,
+                  "name": "4x"
+                },
+                {
+                  "degreesPerSecond": 0.016712296666666668,
+                  "name": "5x"
+                },
+                {
+                  "degreesPerSecond": 0.033424593333333336,
+                  "name": "6x"
+                },
+                {
+                  "degreesPerSecond": 0.08356148333333334,
+                  "name": "7x"
+                },
+                {
+                  "degreesPerSecond": 0.25068445,
+                  "name": "8x"
+                },
+                {
+                  "degreesPerSecond": 3.0082134000000003,
+                  "name": "9x"
+                },
+                {
+                  "degreesPerSecond": 6.0164268000000005,
+                  "name": "10x"
+                }
+              ]
+            },
+            "rightAscensionHours": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 2
+            },
+            "rightAscensionRateSecondsPerSiderealSecond": {
+              "reason": "not-read",
+              "status": "unavailable"
+            },
+            "siderealTimeHours": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 6.5
+            },
+            "slewing": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": false
+            },
+            "tracking": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": false
+            },
+            "trackingRate": {
+              "reason": "not-read",
+              "status": "unavailable"
+            }
+          }
+        },
+        {
+          "afterOperation": null,
+          "availability": {
+            "ready": true
+          },
+          "bindingId": "<binding-3>",
+          "failureDomain": "fake-focuser",
+          "id": "focuser",
+          "kind": "focuser",
+          "name": "Fake Focuser",
+          "quarantine": {
+            "held": false
+          },
+          "readings": {
+            "absolute": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": true
+            },
+            "connected": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": true
+            },
+            "maxStep": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 50000
+            },
+            "minStep": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 0
+            },
+            "moving": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": false
+            },
+            "name": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": "Fake Focuser"
+            },
+            "position": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 1000
+            },
+            "temperatureC": {
+              "reason": "not-read",
+              "status": "unavailable"
+            }
+          }
+        },
+        {
+          "afterOperation": null,
+          "availability": {
+            "ready": true
+          },
+          "bindingId": "<binding-4>",
+          "failureDomain": "fake-ppb",
+          "id": "weather",
+          "kind": "weather",
+          "name": "Fake PPB",
+          "quarantine": {
+            "held": false
+          },
+          "readings": {
+            "cloudCoverPercent": {
+              "reason": "unsupported",
+              "status": "unavailable"
+            },
+            "connected": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": true
+            },
+            "dewPointC": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 8.1
+            },
+            "humidityPercent": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 80
+            },
+            "name": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": "Fake PPB"
+            },
+            "pressureHpa": {
+              "reason": "unsupported",
+              "status": "unavailable"
+            },
+            "rainRateMmPerHour": {
+              "reason": "unsupported",
+              "status": "unavailable"
+            },
+            "skyTemperatureC": {
+              "reason": "unsupported",
+              "status": "unavailable"
+            },
+            "temperatureC": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 11.5
+            },
+            "windGustMps": {
+              "reason": "unsupported",
+              "status": "unavailable"
+            },
+            "windSpeedMps": {
+              "reason": "unsupported",
+              "status": "unavailable"
+            }
+          }
+        },
+        {
+          "afterOperation": null,
+          "availability": {
+            "ready": true
+          },
+          "bindingId": "<binding-4>",
+          "channels": [
+            {
+              "id": {
+                "observedAt": "<time>",
+                "status": "fresh",
+                "value": 0
+              },
+              "maximum": {
+                "observedAt": "<time>",
+                "status": "fresh",
+                "value": 1
+              },
+              "minimum": {
+                "observedAt": "<time>",
+                "status": "fresh",
+                "value": 0
+              },
+              "name": {
+                "observedAt": "<time>",
+                "status": "fresh",
+                "value": "12V"
+              },
+              "on": {
+                "observedAt": "<time>",
+                "status": "fresh",
+                "value": true
+              },
+              "step": {
+                "observedAt": "<time>",
+                "status": "fresh",
+                "value": 1
+              },
+              "value": {
+                "observedAt": "<time>",
+                "status": "fresh",
+                "value": 1
+              },
+              "writable": {
+                "observedAt": "<time>",
+                "status": "fresh",
+                "value": true
+              }
+            },
+            {
+              "id": {
+                "observedAt": "<time>",
+                "status": "fresh",
+                "value": 1
+              },
+              "maximum": {
+                "observedAt": "<time>",
+                "status": "fresh",
+                "value": 100
+              },
+              "minimum": {
+                "observedAt": "<time>",
+                "status": "fresh",
+                "value": 0
+              },
+              "name": {
+                "observedAt": "<time>",
+                "status": "fresh",
+                "value": "Dew A"
+              },
+              "on": {
+                "observedAt": "<time>",
+                "status": "fresh",
+                "value": false
+              },
+              "step": {
+                "observedAt": "<time>",
+                "status": "fresh",
+                "value": 1
+              },
+              "value": {
+                "observedAt": "<time>",
+                "status": "fresh",
+                "value": 0
+              },
+              "writable": {
+                "observedAt": "<time>",
+                "status": "fresh",
+                "value": true
+              }
+            },
+            {
+              "id": {
+                "observedAt": "<time>",
+                "status": "fresh",
+                "value": 2
+              },
+              "maximum": {
+                "observedAt": "<time>",
+                "status": "fresh",
+                "value": 1
+              },
+              "minimum": {
+                "observedAt": "<time>",
+                "status": "fresh",
+                "value": 0
+              },
+              "name": {
+                "observedAt": "<time>",
+                "status": "fresh",
+                "value": "Auto dew"
+              },
+              "on": {
+                "observedAt": "<time>",
+                "status": "fresh",
+                "value": false
+              },
+              "step": {
+                "observedAt": "<time>",
+                "status": "fresh",
+                "value": 1
+              },
+              "value": {
+                "observedAt": "<time>",
+                "status": "fresh",
+                "value": 0
+              },
+              "writable": {
+                "observedAt": "<time>",
+                "status": "fresh",
+                "value": true
+              }
+            }
+          ],
+          "failureDomain": "fake-ppb",
+          "id": "switch",
+          "kind": "switch",
+          "name": "Fake PPB",
+          "quarantine": {
+            "held": false
+          },
+          "readings": {
+            "channelCount": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 3
+            },
+            "connected": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": true
+            },
+            "name": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": "Fake PPB"
+            }
+          }
+        }
+      ],
+      "generatedAt": "<time>",
+      "instanceId": "<instance-1>",
+      "operations": [
+        {
+          "acceptedAt": "<time>",
+          "bindingId": "<binding-2>",
+          "deviceId": "mount",
+          "expectedName": "ZWO AM5",
+          "failureDomain": "zwo-am5",
+          "id": "<operation-1>",
+          "instanceId": "<instance-1>",
+          "kind": "device-connect",
+          "outcome": {
+            "kind": "confirmed",
+            "value": {
+              "image": null,
+              "values": {
+                "connected": true,
+                "setup": "GEOGRAPHIC_COORD not sent: no site is configured for this mount; sent TIME_UTC UTC=<utc> OFFSET=0.00"
+              }
+            }
+          },
+          "parameters": {
+            "connected": true
+          },
+          "recovery": null,
+          "requestId": "startup-<request-1>",
+          "settledAt": "<time>",
+          "startedAt": "<time>",
+          "state": "settled"
+        }
+      ],
+      "protocolVersion": 5,
+      "sequence": "<sequence>"
+    }
+  },
+  {
+    "scenario": "capture, then download the original",
+    "step": 1,
+    "request": "POST /v2/operations",
+    "sent": {
+      "bindingId": "<binding-1>",
+      "deviceId": "camera",
+      "expectedName": "Fake CCD",
+      "instanceId": "<instance-1>",
+      "kind": "capture",
+      "parameters": {
+        "exposureSeconds": 0.1,
+        "light": true
+      },
+      "requestId": "<request-1>"
+    },
+    "status": 202,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "camera",
+      "expectedName": "Fake CCD",
+      "failureDomain": "fake-ccd",
+      "id": "<operation-1>",
+      "instanceId": "<instance-1>",
+      "kind": "capture",
+      "parameters": {
+        "exposureSeconds": 0.1,
+        "light": true
+      },
+      "progress": {
+        "elapsedSeconds": null,
+        "phase": "preparing"
+      },
+      "requestId": "<request-1>",
+      "startedAt": "<time>",
+      "state": "running"
+    }
+  },
+  {
+    "scenario": "capture, then download the original",
+    "step": 2,
+    "request": "GET /v2/operations/<operation-1>",
+    "status": 200,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "camera",
+      "expectedName": "Fake CCD",
+      "failureDomain": "fake-ccd",
+      "id": "<operation-1>",
+      "instanceId": "<instance-1>",
+      "kind": "capture",
+      "outcome": {
+        "kind": "confirmed",
+        "value": {
+          "image": {
+            "binX": 1,
+            "binY": 1,
+            "bindingId": "<binding-1>",
+            "cameraName": "Fake CCD",
+            "capturedAt": "<time>",
+            "capturedAtSource": "camera",
+            "color": "grbg",
+            "deviceId": "camera",
+            "exposureSeconds": 0.1,
+            "height": 6,
+            "id": "<image-1>",
+            "instanceId": "<instance-1>",
+            "operationId": "<operation-1>",
+            "original": {
+              "bytes": 140,
+              "mediaType": "application/imagebytes",
+              "url": "/v2/images/<image-1>/original"
+            },
+            "retainedAt": "<time>",
+            "sha256": "146f86c57bfa413cc92866d35a539fffafee4212e14f8892afa27133b469255d",
+            "startX": 0,
+            "startY": 0,
+            "width": 8
+          },
+          "values": {}
+        }
+      },
+      "parameters": {
+        "exposureSeconds": 0.1,
+        "light": true
+      },
+      "recovery": null,
+      "requestId": "<request-1>",
+      "settledAt": "<time>",
+      "startedAt": "<time>",
+      "state": "settled"
+    }
+  },
+  {
+    "scenario": "capture, then download the original",
+    "step": 3,
+    "request": "GET /v2/images/<image-1>/original",
+    "status": 200,
+    "body": {
+      "bytes": 140,
+      "contentLength": "140",
+      "contentType": "application/imagebytes",
+      "etag": "\"146f86c57bfa413cc92866d35a539fffafee4212e14f8892afa27133b469255d\"",
+      "sha256": "146f86c57bfa413cc92866d35a539fffafee4212e14f8892afa27133b469255d"
+    }
+  },
+  {
+    "scenario": "camera-configure",
+    "step": 1,
+    "request": "POST /v2/operations",
+    "sent": {
+      "bindingId": "<binding-1>",
+      "deviceId": "camera",
+      "expectedName": "Fake CCD",
+      "instanceId": "<instance-1>",
+      "kind": "camera-configure",
+      "parameters": {
+        "binX": 2,
+        "binY": 2,
+        "height": 3,
+        "width": 4
+      },
+      "requestId": "<request-1>"
+    },
+    "status": 202,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "camera",
+      "expectedName": "Fake CCD",
+      "failureDomain": "fake-ccd",
+      "id": "<operation-1>",
+      "instanceId": "<instance-1>",
+      "kind": "camera-configure",
+      "parameters": {
+        "binX": 2,
+        "binY": 2,
+        "height": 3,
+        "width": 4
+      },
+      "progress": {
+        "elapsedSeconds": null,
+        "phase": "preparing"
+      },
+      "requestId": "<request-1>",
+      "startedAt": "<time>",
+      "state": "running"
+    }
+  },
+  {
+    "scenario": "camera-configure",
+    "step": 2,
+    "request": "GET /v2/operations/<operation-1>",
+    "status": 200,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "camera",
+      "expectedName": "Fake CCD",
+      "failureDomain": "fake-ccd",
+      "id": "<operation-1>",
+      "instanceId": "<instance-1>",
+      "kind": "camera-configure",
+      "outcome": {
+        "kind": "confirmed",
+        "value": {
+          "image": null,
+          "values": {
+            "binX": 2,
+            "binY": 2,
+            "height": 3,
+            "startX": 0,
+            "startY": 0,
+            "width": 4
+          }
+        }
+      },
+      "parameters": {
+        "binX": 2,
+        "binY": 2,
+        "height": 3,
+        "width": 4
+      },
+      "recovery": null,
+      "requestId": "<request-1>",
+      "settledAt": "<time>",
+      "startedAt": "<time>",
+      "state": "settled"
+    }
+  },
+  {
+    "scenario": "camera-configure, binning only: the applied frame in binned pixels",
+    "step": 1,
+    "request": "POST /v2/operations",
+    "sent": {
+      "bindingId": "<binding-1>",
+      "deviceId": "camera",
+      "expectedName": "Fake CCD",
+      "instanceId": "<instance-1>",
+      "kind": "camera-configure",
+      "parameters": {
+        "binX": 2,
+        "binY": 2
+      },
+      "requestId": "<request-1>"
+    },
+    "status": 202,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "camera",
+      "expectedName": "Fake CCD",
+      "failureDomain": "fake-ccd",
+      "id": "<operation-1>",
+      "instanceId": "<instance-1>",
+      "kind": "camera-configure",
+      "parameters": {
+        "binX": 2,
+        "binY": 2
+      },
+      "progress": {
+        "elapsedSeconds": null,
+        "phase": "preparing"
+      },
+      "requestId": "<request-1>",
+      "startedAt": "<time>",
+      "state": "running"
+    }
+  },
+  {
+    "scenario": "camera-configure, binning only: the applied frame in binned pixels",
+    "step": 2,
+    "request": "GET /v2/operations/<operation-1>",
+    "status": 200,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "camera",
+      "expectedName": "Fake CCD",
+      "failureDomain": "fake-ccd",
+      "id": "<operation-1>",
+      "instanceId": "<instance-1>",
+      "kind": "camera-configure",
+      "outcome": {
+        "kind": "confirmed",
+        "value": {
+          "image": null,
+          "values": {
+            "binX": 2,
+            "binY": 2,
+            "height": 3,
+            "startX": 0,
+            "startY": 0,
+            "width": 4
+          }
+        }
+      },
+      "parameters": {
+        "binX": 2,
+        "binY": 2
+      },
+      "recovery": null,
+      "requestId": "<request-1>",
+      "settledAt": "<time>",
+      "startedAt": "<time>",
+      "state": "settled"
+    }
+  },
+  {
+    "scenario": "camera-configure refused: a width off the frame grid",
+    "step": 1,
+    "request": "POST /v2/operations",
+    "sent": {
+      "bindingId": "<binding-1>",
+      "deviceId": "camera",
+      "expectedName": "Fake CCD",
+      "instanceId": "<instance-1>",
+      "kind": "camera-configure",
+      "parameters": {
+        "width": 3
+      },
+      "requestId": "<request-1>"
+    },
+    "status": 202,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "camera",
+      "expectedName": "Fake CCD",
+      "failureDomain": "fake-ccd",
+      "id": "<operation-1>",
+      "instanceId": "<instance-1>",
+      "kind": "camera-configure",
+      "parameters": {
+        "width": 3
+      },
+      "progress": {
+        "elapsedSeconds": null,
+        "phase": "preparing"
+      },
+      "requestId": "<request-1>",
+      "startedAt": "<time>",
+      "state": "running"
+    }
+  },
+  {
+    "scenario": "camera-configure refused: a width off the frame grid",
+    "step": 2,
+    "request": "GET /v2/operations/<operation-1>",
+    "status": 200,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "camera",
+      "expectedName": "Fake CCD",
+      "failureDomain": "fake-ccd",
+      "id": "<operation-1>",
+      "instanceId": "<instance-1>",
+      "kind": "camera-configure",
+      "outcome": {
+        "kind": "failed",
+        "message": "width 3 binned pixels; the camera needs a multiple of 4 binned pixels; nearest 4",
+        "reason": "invalid"
+      },
+      "parameters": {
+        "width": 3
+      },
+      "recovery": null,
+      "requestId": "<request-1>",
+      "settledAt": "<time>",
+      "startedAt": "<time>",
+      "state": "settled"
+    }
+  },
+  {
+    "scenario": "cooling, then the commanded setpoint in state",
+    "step": 1,
+    "request": "POST /v2/operations",
+    "sent": {
+      "bindingId": "<binding-1>",
+      "deviceId": "camera",
+      "expectedName": "Fake CCD",
+      "instanceId": "<instance-1>",
+      "kind": "cooling",
+      "parameters": {
+        "setpointC": -10
+      },
+      "requestId": "<request-1>"
+    },
+    "status": 202,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "camera",
+      "expectedName": "Fake CCD",
+      "failureDomain": "fake-ccd",
+      "id": "<operation-1>",
+      "instanceId": "<instance-1>",
+      "kind": "cooling",
+      "parameters": {
+        "setpointC": -10
+      },
+      "progress": {
+        "elapsedSeconds": null,
+        "phase": "preparing"
+      },
+      "requestId": "<request-1>",
+      "startedAt": "<time>",
+      "state": "running"
+    }
+  },
+  {
+    "scenario": "cooling, then the commanded setpoint in state",
+    "step": 2,
+    "request": "GET /v2/operations/<operation-1>",
+    "status": 200,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "camera",
+      "expectedName": "Fake CCD",
+      "failureDomain": "fake-ccd",
+      "id": "<operation-1>",
+      "instanceId": "<instance-1>",
+      "kind": "cooling",
+      "outcome": {
+        "kind": "confirmed",
+        "value": {
+          "image": null,
+          "values": {
+            "setpointC": -10
+          }
+        }
+      },
+      "parameters": {
+        "setpointC": -10
+      },
+      "recovery": null,
+      "requestId": "<request-1>",
+      "settledAt": "<time>",
+      "startedAt": "<time>",
+      "state": "settled"
+    }
+  },
+  {
+    "scenario": "cooling, then the commanded setpoint in state",
+    "step": 3,
+    "request": "GET /v2/state",
+    "status": 200,
+    "body": {
+      "commandsEnabled": true,
+      "devices": [
+        {
+          "afterOperation": "<operation-1>",
+          "availability": {
+            "ready": true
+          },
+          "bindingId": "<binding-1>",
+          "failureDomain": "fake-ccd",
+          "id": "camera",
+          "kind": "camera",
+          "lastCommandedSetpointC": {
+            "commandedAt": "<time>",
+            "value": -10
+          },
+          "name": "Fake CCD",
+          "quarantine": {
+            "held": false
+          },
+          "readings": {
+            "activity": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": "idle"
+            },
+            "bayerPattern": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": "grbg"
+            },
+            "binX": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 1
+            },
+            "binY": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 1
+            },
+            "canAbortExposure": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": true
+            },
+            "canGetCoolerPower": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": false
+            },
+            "canSetTemperature": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": true
+            },
+            "connected": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": true
+            },
+            "coolerOn": {
+              "reason": "not-read",
+              "status": "unavailable"
+            },
+            "coolerPowerPercent": {
+              "reason": "not-read",
+              "status": "unavailable"
+            },
+            "exposureMaximum": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 3600
+            },
+            "exposureMinimum": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 0.001
+            },
+            "gain": {
+              "reason": "not-read",
+              "status": "unavailable"
+            },
+            "gainMaximum": {
+              "reason": "not-read",
+              "status": "unavailable"
+            },
+            "gainMinimum": {
+              "reason": "not-read",
+              "status": "unavailable"
+            },
+            "height": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 6
+            },
+            "maxBinX": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 4
+            },
+            "maxBinY": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 4
+            },
+            "name": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": "Fake CCD"
+            },
+            "offset": {
+              "reason": "not-read",
+              "status": "unavailable"
+            },
+            "offsetMaximum": {
+              "reason": "not-read",
+              "status": "unavailable"
+            },
+            "offsetMinimum": {
+              "reason": "not-read",
+              "status": "unavailable"
+            },
+            "pixelHeightMicrons": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 3.76
+            },
+            "pixelWidthMicrons": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 3.76
+            },
+            "sensorHeightPixels": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 6
+            },
+            "sensorWidthPixels": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 8
+            },
+            "setpointC": {
+              "reason": "unsupported",
+              "status": "unavailable"
+            },
+            "startX": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 0
+            },
+            "startY": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 0
+            },
+            "temperatureC": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 20
+            },
+            "width": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 8
+            }
+          }
+        }
+      ],
+      "generatedAt": "<time>",
+      "instanceId": "<instance-1>",
+      "operations": [
+        {
+          "acceptedAt": "<time>",
+          "bindingId": "<binding-1>",
+          "deviceId": "camera",
+          "expectedName": "Fake CCD",
+          "failureDomain": "fake-ccd",
+          "id": "<operation-1>",
+          "instanceId": "<instance-1>",
+          "kind": "cooling",
+          "outcome": {
+            "kind": "confirmed",
+            "value": {
+              "image": null,
+              "values": {
+                "setpointC": -10
+              }
+            }
+          },
+          "parameters": {
+            "setpointC": -10
+          },
+          "recovery": null,
+          "requestId": "<request-1>",
+          "settledAt": "<time>",
+          "startedAt": "<time>",
+          "state": "settled"
+        }
+      ],
+      "protocolVersion": 5,
+      "sequence": "<sequence>"
+    }
+  },
+  {
+    "scenario": "focuser-move",
+    "step": 1,
+    "request": "POST /v2/operations",
+    "sent": {
+      "bindingId": "<binding-1>",
+      "deviceId": "focuser",
+      "expectedName": "Fake Focuser",
+      "instanceId": "<instance-1>",
+      "kind": "focuser-move",
+      "parameters": {
+        "maxPosition": 40000,
+        "minPosition": 1,
+        "position": 1500
+      },
+      "requestId": "<request-1>"
+    },
+    "status": 202,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "focuser",
+      "expectedName": "Fake Focuser",
+      "failureDomain": "fake-focuser",
+      "id": "<operation-1>",
+      "instanceId": "<instance-1>",
+      "kind": "focuser-move",
+      "parameters": {
+        "maxPosition": 40000,
+        "minPosition": 1,
+        "position": 1500
+      },
+      "progress": {
+        "elapsedSeconds": null,
+        "phase": "preparing"
+      },
+      "requestId": "<request-1>",
+      "startedAt": "<time>",
+      "state": "running"
+    }
+  },
+  {
+    "scenario": "focuser-move",
+    "step": 2,
+    "request": "GET /v2/operations/<operation-1>",
+    "status": 200,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "focuser",
+      "expectedName": "Fake Focuser",
+      "failureDomain": "fake-focuser",
+      "id": "<operation-1>",
+      "instanceId": "<instance-1>",
+      "kind": "focuser-move",
+      "outcome": {
+        "kind": "confirmed",
+        "value": {
+          "image": null,
+          "values": {
+            "position": 1500
+          }
+        }
+      },
+      "parameters": {
+        "maxPosition": 40000,
+        "minPosition": 1,
+        "position": 1500
+      },
+      "recovery": null,
+      "requestId": "<request-1>",
+      "settledAt": "<time>",
+      "startedAt": "<time>",
+      "state": "settled"
+    }
+  },
+  {
+    "scenario": "focuser-halt, idle focuser",
+    "step": 1,
+    "request": "POST /v2/operations",
+    "sent": {
+      "bindingId": "<binding-1>",
+      "deviceId": "focuser",
+      "expectedName": "Fake Focuser",
+      "instanceId": "<instance-1>",
+      "kind": "focuser-halt",
+      "parameters": {},
+      "requestId": "<request-1>"
+    },
+    "status": 202,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "focuser",
+      "expectedName": "Fake Focuser",
+      "failureDomain": "fake-focuser",
+      "id": "<operation-1>",
+      "instanceId": "<instance-1>",
+      "kind": "focuser-halt",
+      "parameters": {},
+      "progress": {
+        "elapsedSeconds": null,
+        "phase": "preparing"
+      },
+      "requestId": "<request-1>",
+      "startedAt": "<time>",
+      "state": "running"
+    }
+  },
+  {
+    "scenario": "focuser-halt, idle focuser",
+    "step": 2,
+    "request": "GET /v2/operations/<operation-1>",
+    "status": 200,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "focuser",
+      "expectedName": "Fake Focuser",
+      "failureDomain": "fake-focuser",
+      "id": "<operation-1>",
+      "instanceId": "<instance-1>",
+      "kind": "focuser-halt",
+      "outcome": {
+        "kind": "confirmed",
+        "value": {
+          "image": null,
+          "values": {
+            "position": 1000
+          }
+        }
+      },
+      "parameters": {},
+      "recovery": null,
+      "requestId": "<request-1>",
+      "settledAt": "<time>",
+      "startedAt": "<time>",
+      "state": "settled"
+    }
+  },
+  {
+    "scenario": "focuser-halt pre-empts a running move",
+    "step": 1,
+    "request": "POST /v2/operations",
+    "sent": {
+      "bindingId": "<binding-1>",
+      "deviceId": "focuser",
+      "expectedName": "Fake Focuser",
+      "instanceId": "<instance-1>",
+      "kind": "focuser-move",
+      "parameters": {
+        "maxPosition": 40000,
+        "minPosition": 1,
+        "position": 1500
+      },
+      "requestId": "<request-1>"
+    },
+    "status": 202,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "focuser",
+      "expectedName": "Fake Focuser",
+      "failureDomain": "fake-focuser",
+      "id": "<operation-1>",
+      "instanceId": "<instance-1>",
+      "kind": "focuser-move",
+      "parameters": {
+        "maxPosition": 40000,
+        "minPosition": 1,
+        "position": 1500
+      },
+      "progress": {
+        "elapsedSeconds": null,
+        "phase": "preparing"
+      },
+      "requestId": "<request-1>",
+      "startedAt": "<time>",
+      "state": "running"
+    }
+  },
+  {
+    "scenario": "focuser-halt pre-empts a running move",
+    "step": 2,
+    "request": "POST /v2/operations",
+    "sent": {
+      "bindingId": "<binding-1>",
+      "deviceId": "focuser",
+      "expectedName": "Fake Focuser",
+      "instanceId": "<instance-1>",
+      "kind": "focuser-halt",
+      "parameters": {},
+      "requestId": "<request-2>"
+    },
+    "status": 202,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "focuser",
+      "expectedName": "Fake Focuser",
+      "failureDomain": "fake-focuser",
+      "id": "<operation-2>",
+      "instanceId": "<instance-1>",
+      "kind": "focuser-halt",
+      "parameters": {},
+      "requestId": "<request-2>",
+      "state": "waiting"
+    }
+  },
+  {
+    "scenario": "focuser-halt pre-empts a running move",
+    "step": 3,
+    "request": "GET /v2/operations/<operation-2>",
+    "status": 200,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "focuser",
+      "expectedName": "Fake Focuser",
+      "failureDomain": "fake-focuser",
+      "id": "<operation-2>",
+      "instanceId": "<instance-1>",
+      "kind": "focuser-halt",
+      "outcome": {
+        "kind": "confirmed",
+        "value": {
+          "image": null,
+          "values": {
+            "position": 1000
+          }
+        }
+      },
+      "parameters": {},
+      "recovery": null,
+      "requestId": "<request-2>",
+      "settledAt": "<time>",
+      "startedAt": "<time>",
+      "state": "settled"
+    }
+  },
+  {
+    "scenario": "focuser-halt pre-empts a running move",
+    "step": 4,
+    "request": "GET /v2/operations/<operation-1>",
+    "status": 200,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "focuser",
+      "expectedName": "Fake Focuser",
+      "failureDomain": "fake-focuser",
+      "id": "<operation-1>",
+      "instanceId": "<instance-1>",
+      "kind": "focuser-move",
+      "outcome": {
+        "kind": "stopped"
+      },
+      "parameters": {
+        "maxPosition": 40000,
+        "minPosition": 1,
+        "position": 1500
+      },
+      "recovery": null,
+      "requestId": "<request-1>",
+      "settledAt": "<time>",
+      "startedAt": "<time>",
+      "state": "settled"
+    }
+  },
+  {
+    "scenario": "mount-slew",
+    "step": 1,
+    "request": "POST /v2/operations",
+    "sent": {
+      "bindingId": "<binding-1>",
+      "deviceId": "mount",
+      "expectedName": "ZWO AM5",
+      "instanceId": "<instance-1>",
+      "kind": "mount-slew",
+      "parameters": {
+        "coordinateSystem": "topocentric",
+        "declinationDegrees": 10,
+        "rightAscensionDegrees": 120
+      },
+      "requestId": "<request-1>"
+    },
+    "status": 202,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "mount",
+      "expectedName": "ZWO AM5",
+      "failureDomain": "zwo-am5",
+      "id": "<operation-1>",
+      "instanceId": "<instance-1>",
+      "kind": "mount-slew",
+      "parameters": {
+        "coordinateSystem": "topocentric",
+        "declinationDegrees": 10,
+        "rightAscensionDegrees": 120
+      },
+      "progress": {
+        "elapsedSeconds": null,
+        "phase": "preparing"
+      },
+      "requestId": "<request-1>",
+      "startedAt": "<time>",
+      "state": "running"
+    }
+  },
+  {
+    "scenario": "mount-slew",
+    "step": 2,
+    "request": "GET /v2/operations/<operation-1>",
+    "status": 200,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "mount",
+      "expectedName": "ZWO AM5",
+      "failureDomain": "zwo-am5",
+      "id": "<operation-1>",
+      "instanceId": "<instance-1>",
+      "kind": "mount-slew",
+      "outcome": {
+        "kind": "confirmed",
+        "value": {
+          "image": null,
+          "values": {
+            "declinationDegrees": 10,
+            "rightAscensionDegrees": 120
+          }
+        }
+      },
+      "parameters": {
+        "coordinateSystem": "topocentric",
+        "declinationDegrees": 10,
+        "rightAscensionDegrees": 120
+      },
+      "recovery": null,
+      "requestId": "<request-1>",
+      "settledAt": "<time>",
+      "startedAt": "<time>",
+      "state": "settled"
+    }
+  },
+  {
+    "scenario": "mount-tracking",
+    "step": 1,
+    "request": "POST /v2/operations",
+    "sent": {
+      "bindingId": "<binding-1>",
+      "deviceId": "mount",
+      "expectedName": "ZWO AM5",
+      "instanceId": "<instance-1>",
+      "kind": "mount-tracking",
+      "parameters": {
+        "tracking": true
+      },
+      "requestId": "<request-1>"
+    },
+    "status": 202,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "mount",
+      "expectedName": "ZWO AM5",
+      "failureDomain": "zwo-am5",
+      "id": "<operation-1>",
+      "instanceId": "<instance-1>",
+      "kind": "mount-tracking",
+      "parameters": {
+        "tracking": true
+      },
+      "progress": {
+        "elapsedSeconds": null,
+        "phase": "preparing"
+      },
+      "requestId": "<request-1>",
+      "startedAt": "<time>",
+      "state": "running"
+    }
+  },
+  {
+    "scenario": "mount-tracking",
+    "step": 2,
+    "request": "GET /v2/operations/<operation-1>",
+    "status": 200,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "mount",
+      "expectedName": "ZWO AM5",
+      "failureDomain": "zwo-am5",
+      "id": "<operation-1>",
+      "instanceId": "<instance-1>",
+      "kind": "mount-tracking",
+      "outcome": {
+        "kind": "confirmed",
+        "value": {
+          "image": null,
+          "values": {
+            "tracking": true
+          }
+        }
+      },
+      "parameters": {
+        "tracking": true
+      },
+      "recovery": null,
+      "requestId": "<request-1>",
+      "settledAt": "<time>",
+      "startedAt": "<time>",
+      "state": "settled"
+    }
+  },
+  {
+    "scenario": "mount-axis",
+    "step": 1,
+    "request": "POST /v2/operations",
+    "sent": {
+      "bindingId": "<binding-1>",
+      "deviceId": "mount",
+      "expectedName": "ZWO AM5",
+      "instanceId": "<instance-1>",
+      "kind": "mount-axis",
+      "parameters": {
+        "durationSeconds": 0.2,
+        "rateDegreesPerSecond": 0.008356148333333334
+      },
+      "requestId": "<request-1>"
+    },
+    "status": 202,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "mount",
+      "expectedName": "ZWO AM5",
+      "failureDomain": "zwo-am5",
+      "id": "<operation-1>",
+      "instanceId": "<instance-1>",
+      "kind": "mount-axis",
+      "parameters": {
+        "durationSeconds": 0.2,
+        "rateDegreesPerSecond": 0.008356148333333334
+      },
+      "progress": {
+        "elapsedSeconds": null,
+        "phase": "preparing"
+      },
+      "requestId": "<request-1>",
+      "startedAt": "<time>",
+      "state": "running"
+    }
+  },
+  {
+    "scenario": "mount-axis",
+    "step": 2,
+    "request": "GET /v2/operations/<operation-1>",
+    "status": 200,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "mount",
+      "expectedName": "ZWO AM5",
+      "failureDomain": "zwo-am5",
+      "id": "<operation-1>",
+      "instanceId": "<instance-1>",
+      "kind": "mount-axis",
+      "outcome": {
+        "kind": "confirmed",
+        "value": {
+          "image": null,
+          "values": {
+            "rate": "4x",
+            "rightAscensionDegrees": 30,
+            "travelledDegrees": 0
+          }
+        }
+      },
+      "parameters": {
+        "durationSeconds": 0.2,
+        "rateDegreesPerSecond": 0.008356148333333334
+      },
+      "recovery": null,
+      "requestId": "<request-1>",
+      "settledAt": "<time>",
+      "startedAt": "<time>",
+      "state": "settled"
+    }
+  },
+  {
+    "scenario": "mount-axis at a rate the mount does not offer: failed before moving",
+    "step": 1,
+    "request": "POST /v2/operations",
+    "sent": {
+      "bindingId": "<binding-1>",
+      "deviceId": "mount",
+      "expectedName": "ZWO AM5",
+      "instanceId": "<instance-1>",
+      "kind": "mount-axis",
+      "parameters": {
+        "durationSeconds": 0.2,
+        "rateDegreesPerSecond": 0.05
+      },
+      "requestId": "<request-1>"
+    },
+    "status": 202,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "mount",
+      "expectedName": "ZWO AM5",
+      "failureDomain": "zwo-am5",
+      "id": "<operation-1>",
+      "instanceId": "<instance-1>",
+      "kind": "mount-axis",
+      "parameters": {
+        "durationSeconds": 0.2,
+        "rateDegreesPerSecond": 0.05
+      },
+      "progress": {
+        "elapsedSeconds": null,
+        "phase": "preparing"
+      },
+      "requestId": "<request-1>",
+      "startedAt": "<time>",
+      "state": "running"
+    }
+  },
+  {
+    "scenario": "mount-axis at a rate the mount does not offer: failed before moving",
+    "step": 2,
+    "request": "GET /v2/operations/<operation-1>",
+    "status": 200,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "mount",
+      "expectedName": "ZWO AM5",
+      "failureDomain": "zwo-am5",
+      "id": "<operation-1>",
+      "instanceId": "<instance-1>",
+      "kind": "mount-axis",
+      "outcome": {
+        "kind": "failed",
+        "message": "The mount does not offer 0.05°/s; it offers 0.001045, 0.002089, 0.004178, 0.008356, 0.01671, 0.03342, 0.08356, 0.2507, 3.008, 6.016°/s",
+        "reason": "invalid"
+      },
+      "parameters": {
+        "durationSeconds": 0.2,
+        "rateDegreesPerSecond": 0.05
+      },
+      "recovery": null,
+      "requestId": "<request-1>",
+      "settledAt": "<time>",
+      "startedAt": "<time>",
+      "state": "settled"
+    }
+  },
+  {
+    "scenario": "mount-rotate",
+    "step": 1,
+    "request": "POST /v2/operations",
+    "sent": {
+      "bindingId": "<binding-1>",
+      "deviceId": "mount",
+      "expectedName": "ZWO AM5",
+      "instanceId": "<instance-1>",
+      "kind": "mount-rotate",
+      "parameters": {
+        "distanceDegrees": 1,
+        "rateDegreesPerSecond": 0.25068445
+      },
+      "requestId": "<request-1>"
+    },
+    "status": 202,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "mount",
+      "expectedName": "ZWO AM5",
+      "failureDomain": "zwo-am5",
+      "id": "<operation-1>",
+      "instanceId": "<instance-1>",
+      "kind": "mount-rotate",
+      "parameters": {
+        "distanceDegrees": 1,
+        "rateDegreesPerSecond": 0.25068445
+      },
+      "progress": {
+        "elapsedSeconds": null,
+        "phase": "preparing"
+      },
+      "requestId": "<request-1>",
+      "startedAt": "<time>",
+      "state": "running"
+    }
+  },
+  {
+    "scenario": "mount-rotate",
+    "step": 2,
+    "request": "GET /v2/operations/<operation-1>",
+    "status": 200,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "mount",
+      "expectedName": "ZWO AM5",
+      "failureDomain": "zwo-am5",
+      "id": "<operation-1>",
+      "instanceId": "<instance-1>",
+      "kind": "mount-rotate",
+      "outcome": {
+        "kind": "confirmed",
+        "value": {
+          "image": null,
+          "values": {
+            "rate": "8x",
+            "rightAscensionDegrees": 31.5,
+            "travelledDegrees": 1.5
+          }
+        }
+      },
+      "parameters": {
+        "distanceDegrees": 1,
+        "rateDegreesPerSecond": 0.25068445
+      },
+      "recovery": null,
+      "requestId": "<request-1>",
+      "settledAt": "<time>",
+      "startedAt": "<time>",
+      "state": "settled"
+    }
+  },
+  {
+    "scenario": "mount-rotate refused: the stop lead is more than half the distance",
+    "step": 1,
+    "request": "POST /v2/operations",
+    "sent": {
+      "bindingId": "<binding-1>",
+      "deviceId": "mount",
+      "expectedName": "ZWO AM5",
+      "instanceId": "<instance-1>",
+      "kind": "mount-rotate",
+      "parameters": {
+        "distanceDegrees": 1,
+        "rateDegreesPerSecond": 6.0164268000000005
+      },
+      "requestId": "<request-1>"
+    },
+    "status": 202,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "mount",
+      "expectedName": "ZWO AM5",
+      "failureDomain": "zwo-am5",
+      "id": "<operation-1>",
+      "instanceId": "<instance-1>",
+      "kind": "mount-rotate",
+      "parameters": {
+        "distanceDegrees": 1,
+        "rateDegreesPerSecond": 6.0164268000000005
+      },
+      "progress": {
+        "elapsedSeconds": null,
+        "phase": "preparing"
+      },
+      "requestId": "<request-1>",
+      "startedAt": "<time>",
+      "state": "running"
+    }
+  },
+  {
+    "scenario": "mount-rotate refused: the stop lead is more than half the distance",
+    "step": 2,
+    "request": "GET /v2/operations/<operation-1>",
+    "status": 200,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "mount",
+      "expectedName": "ZWO AM5",
+      "failureDomain": "zwo-am5",
+      "id": "<operation-1>",
+      "instanceId": "<instance-1>",
+      "kind": "mount-rotate",
+      "outcome": {
+        "kind": "failed",
+        "message": "At 6.016°/s the mount travels about 5.41° after Cria sees the target (900 ms), more than 50 % of the 1° asked; use a slower rate or a longer rotate",
+        "reason": "invalid"
+      },
+      "parameters": {
+        "distanceDegrees": 1,
+        "rateDegreesPerSecond": 6.0164268000000005
+      },
+      "recovery": null,
+      "requestId": "<request-1>",
+      "settledAt": "<time>",
+      "startedAt": "<time>",
+      "state": "settled"
+    }
+  },
+  {
+    "scenario": "mount-home",
+    "step": 1,
+    "request": "POST /v2/operations",
+    "sent": {
+      "bindingId": "<binding-1>",
+      "deviceId": "mount",
+      "expectedName": "ZWO AM5",
+      "instanceId": "<instance-1>",
+      "kind": "mount-home",
+      "parameters": {},
+      "requestId": "<request-1>"
+    },
+    "status": 202,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "mount",
+      "expectedName": "ZWO AM5",
+      "failureDomain": "zwo-am5",
+      "id": "<operation-1>",
+      "instanceId": "<instance-1>",
+      "kind": "mount-home",
+      "parameters": {},
+      "progress": {
+        "elapsedSeconds": null,
+        "phase": "preparing"
+      },
+      "requestId": "<request-1>",
+      "startedAt": "<time>",
+      "state": "running"
+    }
+  },
+  {
+    "scenario": "mount-home",
+    "step": 2,
+    "request": "GET /v2/operations/<operation-1>",
+    "status": 200,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "mount",
+      "expectedName": "ZWO AM5",
+      "failureDomain": "zwo-am5",
+      "id": "<operation-1>",
+      "instanceId": "<instance-1>",
+      "kind": "mount-home",
+      "outcome": {
+        "kind": "confirmed",
+        "value": {
+          "image": null,
+          "values": {}
+        }
+      },
+      "parameters": {},
+      "recovery": null,
+      "requestId": "<request-1>",
+      "settledAt": "<time>",
+      "startedAt": "<time>",
+      "state": "settled"
+    }
+  },
+  {
+    "scenario": "mount-park, then mount-unpark",
+    "step": 1,
+    "request": "POST /v2/operations",
+    "sent": {
+      "bindingId": "<binding-1>",
+      "deviceId": "mount",
+      "expectedName": "ZWO AM5",
+      "instanceId": "<instance-1>",
+      "kind": "mount-park",
+      "parameters": {},
+      "requestId": "<request-1>"
+    },
+    "status": 202,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "mount",
+      "expectedName": "ZWO AM5",
+      "failureDomain": "zwo-am5",
+      "id": "<operation-1>",
+      "instanceId": "<instance-1>",
+      "kind": "mount-park",
+      "parameters": {},
+      "progress": {
+        "elapsedSeconds": null,
+        "phase": "preparing"
+      },
+      "requestId": "<request-1>",
+      "startedAt": "<time>",
+      "state": "running"
+    }
+  },
+  {
+    "scenario": "mount-park, then mount-unpark",
+    "step": 2,
+    "request": "GET /v2/operations/<operation-1>",
+    "status": 200,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "mount",
+      "expectedName": "ZWO AM5",
+      "failureDomain": "zwo-am5",
+      "id": "<operation-1>",
+      "instanceId": "<instance-1>",
+      "kind": "mount-park",
+      "outcome": {
+        "kind": "confirmed",
+        "value": {
+          "image": null,
+          "values": {}
+        }
+      },
+      "parameters": {},
+      "recovery": null,
+      "requestId": "<request-1>",
+      "settledAt": "<time>",
+      "startedAt": "<time>",
+      "state": "settled"
+    }
+  },
+  {
+    "scenario": "mount-park, then mount-unpark",
+    "step": 3,
+    "request": "POST /v2/operations",
+    "sent": {
+      "bindingId": "<binding-1>",
+      "deviceId": "mount",
+      "expectedName": "ZWO AM5",
+      "instanceId": "<instance-1>",
+      "kind": "mount-unpark",
+      "parameters": {},
+      "requestId": "<request-2>"
+    },
+    "status": 202,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "mount",
+      "expectedName": "ZWO AM5",
+      "failureDomain": "zwo-am5",
+      "id": "<operation-2>",
+      "instanceId": "<instance-1>",
+      "kind": "mount-unpark",
+      "parameters": {},
+      "progress": {
+        "elapsedSeconds": null,
+        "phase": "preparing"
+      },
+      "requestId": "<request-2>",
+      "startedAt": "<time>",
+      "state": "running"
+    }
+  },
+  {
+    "scenario": "mount-park, then mount-unpark",
+    "step": 4,
+    "request": "GET /v2/operations/<operation-2>",
+    "status": 200,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "mount",
+      "expectedName": "ZWO AM5",
+      "failureDomain": "zwo-am5",
+      "id": "<operation-2>",
+      "instanceId": "<instance-1>",
+      "kind": "mount-unpark",
+      "outcome": {
+        "kind": "confirmed",
+        "value": {
+          "image": null,
+          "values": {}
+        }
+      },
+      "parameters": {},
+      "recovery": null,
+      "requestId": "<request-2>",
+      "settledAt": "<time>",
+      "startedAt": "<time>",
+      "state": "settled"
+    }
+  },
+  {
+    "scenario": "mount-stop, repeated",
+    "step": 1,
+    "request": "POST /v2/operations",
+    "sent": {
+      "bindingId": "<binding-1>",
+      "deviceId": "mount",
+      "expectedName": "ZWO AM5",
+      "instanceId": "<instance-1>",
+      "kind": "mount-stop",
+      "parameters": {},
+      "requestId": "<request-1>"
+    },
+    "status": 202,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "mount",
+      "expectedName": "ZWO AM5",
+      "failureDomain": "zwo-am5",
+      "id": "<operation-1>",
+      "instanceId": "<instance-1>",
+      "kind": "mount-stop",
+      "parameters": {},
+      "progress": {
+        "elapsedSeconds": null,
+        "phase": "preparing"
+      },
+      "requestId": "<request-1>",
+      "startedAt": "<time>",
+      "state": "running"
+    }
+  },
+  {
+    "scenario": "mount-stop, repeated",
+    "step": 2,
+    "request": "GET /v2/operations/<operation-1>",
+    "status": 200,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "mount",
+      "expectedName": "ZWO AM5",
+      "failureDomain": "zwo-am5",
+      "id": "<operation-1>",
+      "instanceId": "<instance-1>",
+      "kind": "mount-stop",
+      "outcome": {
+        "kind": "confirmed",
+        "value": {
+          "image": null,
+          "values": {}
+        }
+      },
+      "parameters": {},
+      "recovery": null,
+      "requestId": "<request-1>",
+      "settledAt": "<time>",
+      "startedAt": "<time>",
+      "state": "settled"
+    }
+  },
+  {
+    "scenario": "mount-stop, repeated",
+    "step": 3,
+    "request": "POST /v2/operations",
+    "sent": {
+      "bindingId": "<binding-1>",
+      "deviceId": "mount",
+      "expectedName": "ZWO AM5",
+      "instanceId": "<instance-1>",
+      "kind": "mount-stop",
+      "parameters": {},
+      "requestId": "<request-2>"
+    },
+    "status": 202,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "mount",
+      "expectedName": "ZWO AM5",
+      "failureDomain": "zwo-am5",
+      "id": "<operation-2>",
+      "instanceId": "<instance-1>",
+      "kind": "mount-stop",
+      "parameters": {},
+      "progress": {
+        "elapsedSeconds": null,
+        "phase": "preparing"
+      },
+      "requestId": "<request-2>",
+      "startedAt": "<time>",
+      "state": "running"
+    }
+  },
+  {
+    "scenario": "mount-stop, repeated",
+    "step": 4,
+    "request": "GET /v2/operations/<operation-2>",
+    "status": 200,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "mount",
+      "expectedName": "ZWO AM5",
+      "failureDomain": "zwo-am5",
+      "id": "<operation-2>",
+      "instanceId": "<instance-1>",
+      "kind": "mount-stop",
+      "outcome": {
+        "kind": "confirmed",
+        "value": {
+          "image": null,
+          "values": {}
+        }
+      },
+      "parameters": {},
+      "recovery": null,
+      "requestId": "<request-2>",
+      "settledAt": "<time>",
+      "startedAt": "<time>",
+      "state": "settled"
+    }
+  },
+  {
+    "scenario": "mount-stop pre-empts a running slew",
+    "step": 1,
+    "request": "POST /v2/operations",
+    "sent": {
+      "bindingId": "<binding-1>",
+      "deviceId": "mount",
+      "expectedName": "ZWO AM5",
+      "instanceId": "<instance-1>",
+      "kind": "mount-slew",
+      "parameters": {
+        "coordinateSystem": "topocentric",
+        "declinationDegrees": 10,
+        "rightAscensionDegrees": 120
+      },
+      "requestId": "<request-1>"
+    },
+    "status": 202,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "mount",
+      "expectedName": "ZWO AM5",
+      "failureDomain": "zwo-am5",
+      "id": "<operation-1>",
+      "instanceId": "<instance-1>",
+      "kind": "mount-slew",
+      "parameters": {
+        "coordinateSystem": "topocentric",
+        "declinationDegrees": 10,
+        "rightAscensionDegrees": 120
+      },
+      "progress": {
+        "elapsedSeconds": null,
+        "phase": "preparing"
+      },
+      "requestId": "<request-1>",
+      "startedAt": "<time>",
+      "state": "running"
+    }
+  },
+  {
+    "scenario": "mount-stop pre-empts a running slew",
+    "step": 2,
+    "request": "POST /v2/operations",
+    "sent": {
+      "bindingId": "<binding-1>",
+      "deviceId": "mount",
+      "expectedName": "ZWO AM5",
+      "instanceId": "<instance-1>",
+      "kind": "mount-stop",
+      "parameters": {},
+      "requestId": "<request-2>"
+    },
+    "status": 202,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "mount",
+      "expectedName": "ZWO AM5",
+      "failureDomain": "zwo-am5",
+      "id": "<operation-2>",
+      "instanceId": "<instance-1>",
+      "kind": "mount-stop",
+      "parameters": {},
+      "requestId": "<request-2>",
+      "state": "waiting"
+    }
+  },
+  {
+    "scenario": "mount-stop pre-empts a running slew",
+    "step": 3,
+    "request": "GET /v2/operations/<operation-2>",
+    "status": 200,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "mount",
+      "expectedName": "ZWO AM5",
+      "failureDomain": "zwo-am5",
+      "id": "<operation-2>",
+      "instanceId": "<instance-1>",
+      "kind": "mount-stop",
+      "outcome": {
+        "kind": "confirmed",
+        "value": {
+          "image": null,
+          "values": {}
+        }
+      },
+      "parameters": {},
+      "recovery": null,
+      "requestId": "<request-2>",
+      "settledAt": "<time>",
+      "startedAt": "<time>",
+      "state": "settled"
+    }
+  },
+  {
+    "scenario": "mount-stop pre-empts a running slew",
+    "step": 4,
+    "request": "GET /v2/operations/<operation-1>",
+    "status": 200,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "mount",
+      "expectedName": "ZWO AM5",
+      "failureDomain": "zwo-am5",
+      "id": "<operation-1>",
+      "instanceId": "<instance-1>",
+      "kind": "mount-slew",
+      "outcome": {
+        "kind": "stopped"
+      },
+      "parameters": {
+        "coordinateSystem": "topocentric",
+        "declinationDegrees": 10,
+        "rightAscensionDegrees": 120
+      },
+      "recovery": null,
+      "requestId": "<request-1>",
+      "settledAt": "<time>",
+      "startedAt": "<time>",
+      "state": "settled"
+    }
+  },
+  {
+    "scenario": "mount-slew on an AM5 without a configured site: refused, naming what the mount needs and what Cria sent",
+    "step": 1,
+    "request": "POST /v2/operations",
+    "sent": {
+      "bindingId": "<binding-1>",
+      "deviceId": "mount",
+      "expectedName": "ZWO AM5",
+      "instanceId": "<instance-1>",
+      "kind": "mount-slew",
+      "parameters": {
+        "coordinateSystem": "topocentric",
+        "declinationDegrees": 10,
+        "rightAscensionDegrees": 120
+      },
+      "requestId": "<request-1>"
+    },
+    "status": 202,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "mount",
+      "expectedName": "ZWO AM5",
+      "failureDomain": "zwo-am5",
+      "id": "<operation-1>",
+      "instanceId": "<instance-1>",
+      "kind": "mount-slew",
+      "parameters": {
+        "coordinateSystem": "topocentric",
+        "declinationDegrees": 10,
+        "rightAscensionDegrees": 120
+      },
+      "progress": {
+        "elapsedSeconds": null,
+        "phase": "preparing"
+      },
+      "requestId": "<request-1>",
+      "startedAt": "<time>",
+      "state": "running"
+    }
+  },
+  {
+    "scenario": "mount-slew on an AM5 without a configured site: refused, naming what the mount needs and what Cria sent",
+    "step": 2,
+    "request": "GET /v2/operations/<operation-1>",
+    "status": 200,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "mount",
+      "expectedName": "ZWO AM5",
+      "failureDomain": "zwo-am5",
+      "id": "<operation-1>",
+      "instanceId": "<instance-1>",
+      "kind": "mount-slew",
+      "outcome": {
+        "kind": "failed",
+        "message": "The mount refused the goto (Alert on EQUATORIAL_EOD_COORD). An AM5 refuses every goto until its site and time are set after it powers on. Setup since it connected: GEOGRAPHIC_COORD not sent: no site is configured for this mount; sent TIME_UTC UTC=<utc> OFFSET=0.00",
+        "reason": "rejected"
+      },
+      "parameters": {
+        "coordinateSystem": "topocentric",
+        "declinationDegrees": 10,
+        "rightAscensionDegrees": 120
+      },
+      "recovery": null,
+      "requestId": "<request-1>",
+      "settledAt": "<time>",
+      "startedAt": "<time>",
+      "state": "settled"
+    }
+  },
+  {
+    "scenario": "mount-slew on an AM5 set up at start: the site, then the time, then the goto",
+    "step": 1,
+    "request": "GET /v2/operations/<id-1>",
+    "status": 200,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "mount",
+      "expectedName": "ZWO AM5",
+      "failureDomain": "zwo-am5",
+      "id": "<id-1>",
+      "instanceId": "<instance-1>",
+      "kind": "device-connect",
+      "outcome": {
+        "kind": "confirmed",
+        "value": {
+          "image": null,
+          "values": {
+            "connected": true,
+            "setup": "sent GEOGRAPHIC_COORD LAT=40 LONG=285 ELEV=0; sent TIME_UTC UTC=<utc> OFFSET=0.00"
+          }
+        }
+      },
+      "parameters": {
+        "connected": true
+      },
+      "recovery": null,
+      "requestId": "startup-<request-1>",
+      "settledAt": "<time>",
+      "startedAt": "<time>",
+      "state": "settled"
+    }
+  },
+  {
+    "scenario": "mount-slew on an AM5 set up at start: the site, then the time, then the goto",
+    "step": 2,
+    "request": "POST /v2/operations",
+    "sent": {
+      "bindingId": "<binding-1>",
+      "deviceId": "mount",
+      "expectedName": "ZWO AM5",
+      "instanceId": "<instance-1>",
+      "kind": "mount-slew",
+      "parameters": {
+        "coordinateSystem": "topocentric",
+        "declinationDegrees": 10,
+        "rightAscensionDegrees": 120
+      },
+      "requestId": "<request-2>"
+    },
+    "status": 202,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "mount",
+      "expectedName": "ZWO AM5",
+      "failureDomain": "zwo-am5",
+      "id": "<operation-1>",
+      "instanceId": "<instance-1>",
+      "kind": "mount-slew",
+      "parameters": {
+        "coordinateSystem": "topocentric",
+        "declinationDegrees": 10,
+        "rightAscensionDegrees": 120
+      },
+      "progress": {
+        "elapsedSeconds": null,
+        "phase": "preparing"
+      },
+      "requestId": "<request-2>",
+      "startedAt": "<time>",
+      "state": "running"
+    }
+  },
+  {
+    "scenario": "mount-slew on an AM5 set up at start: the site, then the time, then the goto",
+    "step": 3,
+    "request": "GET /v2/operations/<operation-1>",
+    "status": 200,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "mount",
+      "expectedName": "ZWO AM5",
+      "failureDomain": "zwo-am5",
+      "id": "<operation-1>",
+      "instanceId": "<instance-1>",
+      "kind": "mount-slew",
+      "outcome": {
+        "kind": "confirmed",
+        "value": {
+          "image": null,
+          "values": {
+            "declinationDegrees": 10,
+            "rightAscensionDegrees": 120
+          }
+        }
+      },
+      "parameters": {
+        "coordinateSystem": "topocentric",
+        "declinationDegrees": 10,
+        "rightAscensionDegrees": 120
+      },
+      "recovery": null,
+      "requestId": "<request-2>",
+      "settledAt": "<time>",
+      "startedAt": "<time>",
+      "state": "settled"
+    }
+  },
+  {
+    "scenario": "mount-stop on an AM5 that coasts after the abort: confirmed once the mount stands still",
+    "step": 1,
+    "request": "POST /v2/operations",
+    "sent": {
+      "bindingId": "<binding-1>",
+      "deviceId": "mount",
+      "expectedName": "ZWO AM5",
+      "instanceId": "<instance-1>",
+      "kind": "mount-slew",
+      "parameters": {
+        "coordinateSystem": "topocentric",
+        "declinationDegrees": 10,
+        "rightAscensionDegrees": 120
+      },
+      "requestId": "<request-1>"
+    },
+    "status": 202,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "mount",
+      "expectedName": "ZWO AM5",
+      "failureDomain": "zwo-am5",
+      "id": "<operation-1>",
+      "instanceId": "<instance-1>",
+      "kind": "mount-slew",
+      "parameters": {
+        "coordinateSystem": "topocentric",
+        "declinationDegrees": 10,
+        "rightAscensionDegrees": 120
+      },
+      "progress": {
+        "elapsedSeconds": null,
+        "phase": "preparing"
+      },
+      "requestId": "<request-1>",
+      "startedAt": "<time>",
+      "state": "running"
+    }
+  },
+  {
+    "scenario": "mount-stop on an AM5 that coasts after the abort: confirmed once the mount stands still",
+    "step": 2,
+    "request": "POST /v2/operations",
+    "sent": {
+      "bindingId": "<binding-1>",
+      "deviceId": "mount",
+      "expectedName": "ZWO AM5",
+      "instanceId": "<instance-1>",
+      "kind": "mount-stop",
+      "parameters": {},
+      "requestId": "<request-2>"
+    },
+    "status": 202,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "mount",
+      "expectedName": "ZWO AM5",
+      "failureDomain": "zwo-am5",
+      "id": "<operation-2>",
+      "instanceId": "<instance-1>",
+      "kind": "mount-stop",
+      "parameters": {},
+      "requestId": "<request-2>",
+      "state": "waiting"
+    }
+  },
+  {
+    "scenario": "mount-stop on an AM5 that coasts after the abort: confirmed once the mount stands still",
+    "step": 3,
+    "request": "GET /v2/operations/<operation-2>",
+    "status": 200,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "mount",
+      "expectedName": "ZWO AM5",
+      "failureDomain": "zwo-am5",
+      "id": "<operation-2>",
+      "instanceId": "<instance-1>",
+      "kind": "mount-stop",
+      "outcome": {
+        "kind": "confirmed",
+        "value": {
+          "image": null,
+          "values": {}
+        }
+      },
+      "parameters": {},
+      "recovery": null,
+      "requestId": "<request-2>",
+      "settledAt": "<time>",
+      "startedAt": "<time>",
+      "state": "settled"
+    }
+  },
+  {
+    "scenario": "mount-stop on an AM5 that coasts after the abort: confirmed once the mount stands still",
+    "step": 4,
+    "request": "GET /v2/operations/<operation-1>",
+    "status": 200,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "mount",
+      "expectedName": "ZWO AM5",
+      "failureDomain": "zwo-am5",
+      "id": "<operation-1>",
+      "instanceId": "<instance-1>",
+      "kind": "mount-slew",
+      "outcome": {
+        "kind": "stopped"
+      },
+      "parameters": {
+        "coordinateSystem": "topocentric",
+        "declinationDegrees": 10,
+        "rightAscensionDegrees": 120
+      },
+      "recovery": null,
+      "requestId": "<request-1>",
+      "settledAt": "<time>",
+      "startedAt": "<time>",
+      "state": "settled"
+    }
+  },
+  {
+    "scenario": "two mount-stops queued behind a running slew both run",
+    "step": 1,
+    "request": "POST /v2/operations",
+    "sent": {
+      "bindingId": "<binding-1>",
+      "deviceId": "mount",
+      "expectedName": "ZWO AM5",
+      "instanceId": "<instance-1>",
+      "kind": "mount-slew",
+      "parameters": {
+        "coordinateSystem": "topocentric",
+        "declinationDegrees": 10,
+        "rightAscensionDegrees": 120
+      },
+      "requestId": "<request-1>"
+    },
+    "status": 202,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "mount",
+      "expectedName": "ZWO AM5",
+      "failureDomain": "zwo-am5",
+      "id": "<operation-1>",
+      "instanceId": "<instance-1>",
+      "kind": "mount-slew",
+      "parameters": {
+        "coordinateSystem": "topocentric",
+        "declinationDegrees": 10,
+        "rightAscensionDegrees": 120
+      },
+      "progress": {
+        "elapsedSeconds": null,
+        "phase": "preparing"
+      },
+      "requestId": "<request-1>",
+      "startedAt": "<time>",
+      "state": "running"
+    }
+  },
+  {
+    "scenario": "two mount-stops queued behind a running slew both run",
+    "step": 2,
+    "request": "POST /v2/operations",
+    "sent": {
+      "bindingId": "<binding-1>",
+      "deviceId": "mount",
+      "expectedName": "ZWO AM5",
+      "instanceId": "<instance-1>",
+      "kind": "mount-stop",
+      "parameters": {},
+      "requestId": "<request-2>"
+    },
+    "status": 202,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "mount",
+      "expectedName": "ZWO AM5",
+      "failureDomain": "zwo-am5",
+      "id": "<operation-2>",
+      "instanceId": "<instance-1>",
+      "kind": "mount-stop",
+      "parameters": {},
+      "requestId": "<request-2>",
+      "state": "waiting"
+    }
+  },
+  {
+    "scenario": "two mount-stops queued behind a running slew both run",
+    "step": 3,
+    "request": "POST /v2/operations",
+    "sent": {
+      "bindingId": "<binding-1>",
+      "deviceId": "mount",
+      "expectedName": "ZWO AM5",
+      "instanceId": "<instance-1>",
+      "kind": "mount-stop",
+      "parameters": {},
+      "requestId": "<request-3>"
+    },
+    "status": 202,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "mount",
+      "expectedName": "ZWO AM5",
+      "failureDomain": "zwo-am5",
+      "id": "<operation-3>",
+      "instanceId": "<instance-1>",
+      "kind": "mount-stop",
+      "parameters": {},
+      "requestId": "<request-3>",
+      "state": "waiting"
+    }
+  },
+  {
+    "scenario": "two mount-stops queued behind a running slew both run",
+    "step": 4,
+    "request": "GET /v2/operations/<operation-1>",
+    "status": 200,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "mount",
+      "expectedName": "ZWO AM5",
+      "failureDomain": "zwo-am5",
+      "id": "<operation-1>",
+      "instanceId": "<instance-1>",
+      "kind": "mount-slew",
+      "outcome": {
+        "kind": "stopped"
+      },
+      "parameters": {
+        "coordinateSystem": "topocentric",
+        "declinationDegrees": 10,
+        "rightAscensionDegrees": 120
+      },
+      "recovery": null,
+      "requestId": "<request-1>",
+      "settledAt": "<time>",
+      "startedAt": "<time>",
+      "state": "settled"
+    }
+  },
+  {
+    "scenario": "two mount-stops queued behind a running slew both run",
+    "step": 5,
+    "request": "GET /v2/operations/<operation-2>",
+    "status": 200,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "mount",
+      "expectedName": "ZWO AM5",
+      "failureDomain": "zwo-am5",
+      "id": "<operation-2>",
+      "instanceId": "<instance-1>",
+      "kind": "mount-stop",
+      "outcome": {
+        "kind": "confirmed",
+        "value": {
+          "image": null,
+          "values": {}
+        }
+      },
+      "parameters": {},
+      "recovery": null,
+      "requestId": "<request-2>",
+      "settledAt": "<time>",
+      "startedAt": "<time>",
+      "state": "settled"
+    }
+  },
+  {
+    "scenario": "two mount-stops queued behind a running slew both run",
+    "step": 6,
+    "request": "GET /v2/operations/<operation-3>",
+    "status": 200,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "mount",
+      "expectedName": "ZWO AM5",
+      "failureDomain": "zwo-am5",
+      "id": "<operation-3>",
+      "instanceId": "<instance-1>",
+      "kind": "mount-stop",
+      "outcome": {
+        "kind": "confirmed",
+        "value": {
+          "image": null,
+          "values": {}
+        }
+      },
+      "parameters": {},
+      "recovery": null,
+      "requestId": "<request-3>",
+      "settledAt": "<time>",
+      "startedAt": "<time>",
+      "state": "settled"
+    }
+  },
+  {
+    "scenario": "recover refused while a mount-stop runs",
+    "step": 1,
+    "request": "POST /v2/operations",
+    "sent": {
+      "bindingId": "<binding-1>",
+      "deviceId": "mount",
+      "expectedName": "ZWO AM5",
+      "instanceId": "<instance-1>",
+      "kind": "mount-stop",
+      "parameters": {},
+      "requestId": "<request-1>"
+    },
+    "status": 202,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "mount",
+      "expectedName": "ZWO AM5",
+      "failureDomain": "zwo-am5",
+      "id": "<operation-1>",
+      "instanceId": "<instance-1>",
+      "kind": "mount-stop",
+      "parameters": {},
+      "progress": {
+        "elapsedSeconds": null,
+        "phase": "preparing"
+      },
+      "requestId": "<request-1>",
+      "startedAt": "<time>",
+      "state": "running"
+    }
+  },
+  {
+    "scenario": "recover refused while a mount-stop runs",
+    "step": 2,
+    "request": "POST /v2/devices/mount/recover",
+    "sent": {
+      "bindingId": "<binding-1>",
+      "externalRecoveryConfirmed": true,
+      "instanceId": "<instance-1>",
+      "note": "checked"
+    },
+    "status": 409,
+    "body": {
+      "error": {
+        "code": "device-busy",
+        "message": "An operation is still open on this device; recover it once that settles"
+      },
+      "instanceId": "<instance-1>"
+    }
+  },
+  {
+    "scenario": "recover refused while a mount-stop runs",
+    "step": 3,
+    "request": "GET /v2/operations/<operation-1>",
+    "status": 200,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "mount",
+      "expectedName": "ZWO AM5",
+      "failureDomain": "zwo-am5",
+      "id": "<operation-1>",
+      "instanceId": "<instance-1>",
+      "kind": "mount-stop",
+      "outcome": {
+        "kind": "confirmed",
+        "value": {
+          "image": null,
+          "values": {}
+        }
+      },
+      "parameters": {},
+      "recovery": null,
+      "requestId": "<request-1>",
+      "settledAt": "<time>",
+      "startedAt": "<time>",
+      "state": "settled"
+    }
+  },
+  {
+    "scenario": "recover refused while a mount-stop runs",
+    "step": 4,
+    "request": "POST /v2/devices/mount/recover",
+    "sent": {
+      "bindingId": "<binding-1>",
+      "externalRecoveryConfirmed": true,
+      "instanceId": "<instance-1>",
+      "note": "checked"
+    },
+    "status": 200,
+    "body": {
+      "afterOperation": "<operation-1>",
+      "availability": {
+        "ready": true
+      },
+      "bindingId": "<binding-2>",
+      "failureDomain": "zwo-am5",
+      "id": "mount",
+      "kind": "mount",
+      "name": "ZWO AM5",
+      "quarantine": {
+        "held": false
+      },
+      "readings": {
+        "canFindHome": {
+          "observedAt": "<time>",
+          "status": "stale",
+          "value": true
+        },
+        "canMovePrimaryAxis": {
+          "observedAt": "<time>",
+          "status": "stale",
+          "value": true
+        },
+        "canPark": {
+          "observedAt": "<time>",
+          "status": "stale",
+          "value": true
+        },
+        "canSetTracking": {
+          "observedAt": "<time>",
+          "status": "stale",
+          "value": true
+        },
+        "canSlew": {
+          "observedAt": "<time>",
+          "status": "stale",
+          "value": true
+        },
+        "canUnpark": {
+          "observedAt": "<time>",
+          "status": "stale",
+          "value": true
+        },
+        "connected": {
+          "observedAt": "<time>",
+          "status": "fresh",
+          "value": true
+        },
+        "coordinateSystem": {
+          "observedAt": "<time>",
+          "status": "stale",
+          "value": "topocentric"
+        },
+        "declinationDegrees": {
+          "observedAt": "<time>",
+          "status": "fresh",
+          "value": 40
+        },
+        "declinationRateArcsecondsPerSecond": {
+          "reason": "not-read",
+          "status": "unavailable"
+        },
+        "elevationMeters": {
+          "observedAt": "<time>",
+          "status": "fresh",
+          "value": 0
+        },
+        "latitudeDegrees": {
+          "observedAt": "<time>",
+          "status": "fresh",
+          "value": 40
+        },
+        "longitudeDegrees": {
+          "observedAt": "<time>",
+          "status": "fresh",
+          "value": -75
+        },
+        "name": {
+          "observedAt": "<time>",
+          "status": "fresh",
+          "value": "ZWO AM5"
+        },
+        "parked": {
+          "observedAt": "<time>",
+          "status": "fresh",
+          "value": false
+        },
+        "pierSide": {
+          "reason": "not-read",
+          "status": "unavailable"
+        },
+        "primaryAxisRates": {
+          "observedAt": "<time>",
+          "status": "fresh",
+          "value": [
+            {
+              "degreesPerSecond": 0.0010445185416666667,
+              "name": "1x"
+            },
+            {
+              "degreesPerSecond": 0.0020890370833333335,
+              "name": "2x"
+            },
+            {
+              "degreesPerSecond": 0.004178074166666667,
+              "name": "3x"
+            },
+            {
+              "degreesPerSecond": 0.008356148333333334,
+              "name": "4x"
+            },
+            {
+              "degreesPerSecond": 0.016712296666666668,
+              "name": "5x"
+            },
+            {
+              "degreesPerSecond": 0.033424593333333336,
+              "name": "6x"
+            },
+            {
+              "degreesPerSecond": 0.08356148333333334,
+              "name": "7x"
+            },
+            {
+              "degreesPerSecond": 0.25068445,
+              "name": "8x"
+            },
+            {
+              "degreesPerSecond": 3.0082134000000003,
+              "name": "9x"
+            },
+            {
+              "degreesPerSecond": 6.0164268000000005,
+              "name": "10x"
+            }
+          ]
+        },
+        "rightAscensionHours": {
+          "observedAt": "<time>",
+          "status": "fresh",
+          "value": 2
+        },
+        "rightAscensionRateSecondsPerSiderealSecond": {
+          "reason": "not-read",
+          "status": "unavailable"
+        },
+        "siderealTimeHours": {
+          "observedAt": "<time>",
+          "status": "fresh",
+          "value": 6.5
+        },
+        "slewing": {
+          "observedAt": "<time>",
+          "status": "fresh",
+          "value": false
+        },
+        "tracking": {
+          "observedAt": "<time>",
+          "status": "fresh",
+          "value": false
+        },
+        "trackingRate": {
+          "reason": "not-read",
+          "status": "unavailable"
+        }
+      }
+    }
+  },
+  {
+    "scenario": "switch-set",
+    "step": 1,
+    "request": "POST /v2/operations",
+    "sent": {
+      "bindingId": "<binding-1>",
+      "deviceId": "switch",
+      "expectedName": "Fake PPB",
+      "instanceId": "<instance-1>",
+      "kind": "switch-set",
+      "parameters": {
+        "channelId": 0,
+        "value": 0
+      },
+      "requestId": "<request-1>"
+    },
+    "status": 202,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "switch",
+      "expectedName": "Fake PPB",
+      "failureDomain": "fake-ppb",
+      "id": "<operation-1>",
+      "instanceId": "<instance-1>",
+      "kind": "switch-set",
+      "parameters": {
+        "channelId": 0,
+        "value": 0
+      },
+      "progress": {
+        "elapsedSeconds": null,
+        "phase": "preparing"
+      },
+      "requestId": "<request-1>",
+      "startedAt": "<time>",
+      "state": "running"
+    }
+  },
+  {
+    "scenario": "switch-set",
+    "step": 2,
+    "request": "GET /v2/operations/<operation-1>",
+    "status": 200,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "switch",
+      "expectedName": "Fake PPB",
+      "failureDomain": "fake-ppb",
+      "id": "<operation-1>",
+      "instanceId": "<instance-1>",
+      "kind": "switch-set",
+      "outcome": {
+        "kind": "confirmed",
+        "value": {
+          "image": null,
+          "values": {
+            "value": 0
+          }
+        }
+      },
+      "parameters": {
+        "channelId": 0,
+        "value": 0
+      },
+      "recovery": null,
+      "requestId": "<request-1>",
+      "settledAt": "<time>",
+      "startedAt": "<time>",
+      "state": "settled"
+    }
+  },
+  {
+    "scenario": "switch-set",
+    "step": 3,
+    "request": "POST /v2/operations",
+    "sent": {
+      "bindingId": "<binding-1>",
+      "deviceId": "switch",
+      "expectedName": "Fake PPB",
+      "instanceId": "<instance-1>",
+      "kind": "switch-set",
+      "parameters": {
+        "channelId": 1,
+        "value": 40
+      },
+      "requestId": "<request-2>"
+    },
+    "status": 202,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "switch",
+      "expectedName": "Fake PPB",
+      "failureDomain": "fake-ppb",
+      "id": "<operation-2>",
+      "instanceId": "<instance-1>",
+      "kind": "switch-set",
+      "parameters": {
+        "channelId": 1,
+        "value": 40
+      },
+      "progress": {
+        "elapsedSeconds": null,
+        "phase": "preparing"
+      },
+      "requestId": "<request-2>",
+      "startedAt": "<time>",
+      "state": "running"
+    }
+  },
+  {
+    "scenario": "switch-set",
+    "step": 4,
+    "request": "GET /v2/operations/<operation-2>",
+    "status": 200,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "switch",
+      "expectedName": "Fake PPB",
+      "failureDomain": "fake-ppb",
+      "id": "<operation-2>",
+      "instanceId": "<instance-1>",
+      "kind": "switch-set",
+      "outcome": {
+        "kind": "confirmed",
+        "value": {
+          "image": null,
+          "values": {
+            "value": 40
+          }
+        }
+      },
+      "parameters": {
+        "channelId": 1,
+        "value": 40
+      },
+      "recovery": null,
+      "requestId": "<request-2>",
+      "settledAt": "<time>",
+      "startedAt": "<time>",
+      "state": "settled"
+    }
+  },
+  {
+    "scenario": "switch-set refused: a dew duty while auto dew is on",
+    "step": 1,
+    "request": "POST /v2/operations",
+    "sent": {
+      "bindingId": "<binding-1>",
+      "deviceId": "switch",
+      "expectedName": "Fake PPB",
+      "instanceId": "<instance-1>",
+      "kind": "switch-set",
+      "parameters": {
+        "channelId": 1,
+        "value": 40
+      },
+      "requestId": "<request-1>"
+    },
+    "status": 202,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "switch",
+      "expectedName": "Fake PPB",
+      "failureDomain": "fake-ppb",
+      "id": "<operation-1>",
+      "instanceId": "<instance-1>",
+      "kind": "switch-set",
+      "parameters": {
+        "channelId": 1,
+        "value": 40
+      },
+      "progress": {
+        "elapsedSeconds": null,
+        "phase": "preparing"
+      },
+      "requestId": "<request-1>",
+      "startedAt": "<time>",
+      "state": "running"
+    }
+  },
+  {
+    "scenario": "switch-set refused: a dew duty while auto dew is on",
+    "step": 2,
+    "request": "GET /v2/operations/<operation-1>",
+    "status": 200,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "switch",
+      "expectedName": "Fake PPB",
+      "failureDomain": "fake-ppb",
+      "id": "<operation-1>",
+      "instanceId": "<instance-1>",
+      "kind": "switch-set",
+      "outcome": {
+        "kind": "failed",
+        "message": "Dew A is set automatically while Auto dew is on; switch Auto dew (channel 2) off first",
+        "reason": "invalid"
+      },
+      "parameters": {
+        "channelId": 1,
+        "value": 40
+      },
+      "recovery": null,
+      "requestId": "<request-1>",
+      "settledAt": "<time>",
+      "startedAt": "<time>",
+      "state": "settled"
+    }
+  },
+  {
+    "scenario": "device-connect, off then on",
+    "step": 1,
+    "request": "POST /v2/operations",
+    "sent": {
+      "bindingId": "<binding-1>",
+      "deviceId": "weather",
+      "expectedName": "Fake PPB",
+      "instanceId": "<instance-1>",
+      "kind": "device-connect",
+      "parameters": {
+        "connected": false
+      },
+      "requestId": "<request-1>"
+    },
+    "status": 202,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "weather",
+      "expectedName": "Fake PPB",
+      "failureDomain": "fake-ppb",
+      "id": "<operation-1>",
+      "instanceId": "<instance-1>",
+      "kind": "device-connect",
+      "parameters": {
+        "connected": false
+      },
+      "progress": {
+        "elapsedSeconds": null,
+        "phase": "preparing"
+      },
+      "requestId": "<request-1>",
+      "startedAt": "<time>",
+      "state": "running"
+    }
+  },
+  {
+    "scenario": "device-connect, off then on",
+    "step": 2,
+    "request": "GET /v2/operations/<operation-1>",
+    "status": 200,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "weather",
+      "expectedName": "Fake PPB",
+      "failureDomain": "fake-ppb",
+      "id": "<operation-1>",
+      "instanceId": "<instance-1>",
+      "kind": "device-connect",
+      "outcome": {
+        "kind": "confirmed",
+        "value": {
+          "image": null,
+          "values": {
+            "connected": false
+          }
+        }
+      },
+      "parameters": {
+        "connected": false
+      },
+      "recovery": null,
+      "requestId": "<request-1>",
+      "settledAt": "<time>",
+      "startedAt": "<time>",
+      "state": "settled"
+    }
+  },
+  {
+    "scenario": "device-connect, off then on",
+    "step": 3,
+    "request": "POST /v2/operations",
+    "sent": {
+      "bindingId": "<binding-1>",
+      "deviceId": "weather",
+      "expectedName": "Fake PPB",
+      "instanceId": "<instance-1>",
+      "kind": "device-connect",
+      "parameters": {
+        "connected": true
+      },
+      "requestId": "<request-2>"
+    },
+    "status": 202,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "weather",
+      "expectedName": "Fake PPB",
+      "failureDomain": "fake-ppb",
+      "id": "<operation-2>",
+      "instanceId": "<instance-1>",
+      "kind": "device-connect",
+      "parameters": {
+        "connected": true
+      },
+      "progress": {
+        "elapsedSeconds": null,
+        "phase": "preparing"
+      },
+      "requestId": "<request-2>",
+      "startedAt": "<time>",
+      "state": "running"
+    }
+  },
+  {
+    "scenario": "device-connect, off then on",
+    "step": 4,
+    "request": "GET /v2/operations/<operation-2>",
+    "status": 200,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "weather",
+      "expectedName": "Fake PPB",
+      "failureDomain": "fake-ppb",
+      "id": "<operation-2>",
+      "instanceId": "<instance-1>",
+      "kind": "device-connect",
+      "outcome": {
+        "kind": "confirmed",
+        "value": {
+          "image": null,
+          "values": {
+            "connected": true
+          }
+        }
+      },
+      "parameters": {
+        "connected": true
+      },
+      "recovery": null,
+      "requestId": "<request-2>",
+      "settledAt": "<time>",
+      "startedAt": "<time>",
+      "state": "settled"
+    }
+  },
+  {
+    "scenario": "cancel a running capture, then cancel it again",
+    "step": 1,
+    "request": "POST /v2/operations",
+    "sent": {
+      "bindingId": "<binding-1>",
+      "deviceId": "camera",
+      "expectedName": "Fake CCD",
+      "instanceId": "<instance-1>",
+      "kind": "capture",
+      "parameters": {
+        "exposureSeconds": 60,
+        "light": true
+      },
+      "requestId": "<request-1>"
+    },
+    "status": 202,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "camera",
+      "expectedName": "Fake CCD",
+      "failureDomain": "fake-ccd",
+      "id": "<operation-1>",
+      "instanceId": "<instance-1>",
+      "kind": "capture",
+      "parameters": {
+        "exposureSeconds": 60,
+        "light": true
+      },
+      "progress": {
+        "elapsedSeconds": null,
+        "phase": "preparing"
+      },
+      "requestId": "<request-1>",
+      "startedAt": "<time>",
+      "state": "running"
+    }
+  },
+  {
+    "scenario": "cancel a running capture, then cancel it again",
+    "step": 2,
+    "request": "POST /v2/operations/<operation-1>/cancel",
+    "status": 202,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "camera",
+      "expectedName": "Fake CCD",
+      "failureDomain": "fake-ccd",
+      "id": "<operation-1>",
+      "instanceId": "<instance-1>",
+      "kind": "capture",
+      "parameters": {
+        "exposureSeconds": 60,
+        "light": true
+      },
+      "progress": {
+        "elapsedSeconds": "<elapsed>",
+        "phase": "exposing"
+      },
+      "requestId": "<request-1>",
+      "startedAt": "<time>",
+      "state": "running"
+    }
+  },
+  {
+    "scenario": "cancel a running capture, then cancel it again",
+    "step": 3,
+    "request": "GET /v2/operations/<operation-1>",
+    "status": 200,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "camera",
+      "expectedName": "Fake CCD",
+      "failureDomain": "fake-ccd",
+      "id": "<operation-1>",
+      "instanceId": "<instance-1>",
+      "kind": "capture",
+      "outcome": {
+        "kind": "stopped"
+      },
+      "parameters": {
+        "exposureSeconds": 60,
+        "light": true
+      },
+      "recovery": null,
+      "requestId": "<request-1>",
+      "settledAt": "<time>",
+      "startedAt": "<time>",
+      "state": "settled"
+    }
+  },
+  {
+    "scenario": "cancel a running capture, then cancel it again",
+    "step": 4,
+    "request": "POST /v2/operations/<operation-1>/cancel",
+    "status": 202,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "camera",
+      "expectedName": "Fake CCD",
+      "failureDomain": "fake-ccd",
+      "id": "<operation-1>",
+      "instanceId": "<instance-1>",
+      "kind": "capture",
+      "outcome": {
+        "kind": "stopped"
+      },
+      "parameters": {
+        "exposureSeconds": 60,
+        "light": true
+      },
+      "recovery": null,
+      "requestId": "<request-1>",
+      "settledAt": "<time>",
+      "startedAt": "<time>",
+      "state": "settled"
+    }
+  },
+  {
+    "scenario": "refused: device busy",
+    "step": 1,
+    "request": "POST /v2/operations",
+    "sent": {
+      "bindingId": "<binding-1>",
+      "deviceId": "camera",
+      "expectedName": "Fake CCD",
+      "instanceId": "<instance-1>",
+      "kind": "capture",
+      "parameters": {
+        "exposureSeconds": 60,
+        "light": true
+      },
+      "requestId": "<request-1>"
+    },
+    "status": 202,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "camera",
+      "expectedName": "Fake CCD",
+      "failureDomain": "fake-ccd",
+      "id": "<operation-1>",
+      "instanceId": "<instance-1>",
+      "kind": "capture",
+      "parameters": {
+        "exposureSeconds": 60,
+        "light": true
+      },
+      "progress": {
+        "elapsedSeconds": null,
+        "phase": "preparing"
+      },
+      "requestId": "<request-1>",
+      "startedAt": "<time>",
+      "state": "running"
+    }
+  },
+  {
+    "scenario": "refused: device busy",
+    "step": 2,
+    "request": "POST /v2/operations",
+    "sent": {
+      "bindingId": "<binding-1>",
+      "deviceId": "camera",
+      "expectedName": "Fake CCD",
+      "instanceId": "<instance-1>",
+      "kind": "camera-configure",
+      "parameters": {
+        "binX": 2
+      },
+      "requestId": "<request-2>"
+    },
+    "status": 409,
+    "body": {
+      "error": {
+        "code": "device-busy",
+        "message": "The device is running another operation"
+      },
+      "instanceId": "<instance-1>"
+    }
+  },
+  {
+    "scenario": "refused: wrong device kind",
+    "step": 1,
+    "request": "POST /v2/operations",
+    "sent": {
+      "bindingId": "<binding-1>",
+      "deviceId": "mount",
+      "expectedName": "ZWO AM5",
+      "instanceId": "<instance-1>",
+      "kind": "capture",
+      "parameters": {
+        "exposureSeconds": 1,
+        "light": true
+      },
+      "requestId": "<request-1>"
+    },
+    "status": 400,
+    "body": {
+      "error": {
+        "code": "request-error",
+        "message": "A mount cannot run capture"
+      },
+      "instanceId": "<instance-1>"
+    }
+  },
+  {
+    "scenario": "refused: commands disabled",
+    "step": 1,
+    "request": "GET /v2/state",
+    "status": 200,
+    "body": {
+      "commandsEnabled": false,
+      "devices": [
+        {
+          "afterOperation": null,
+          "availability": {
+            "message": "Commands are disabled in the Cria configuration",
+            "ready": false,
+            "reason": "commands-disabled"
+          },
+          "bindingId": "<binding-1>",
+          "failureDomain": "fake-ccd",
+          "id": "camera",
+          "kind": "camera",
+          "lastCommandedSetpointC": null,
+          "name": "Fake CCD",
+          "quarantine": {
+            "held": false
+          },
+          "readings": {
+            "activity": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": "idle"
+            },
+            "bayerPattern": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": "grbg"
+            },
+            "binX": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 1
+            },
+            "binY": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 1
+            },
+            "canAbortExposure": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": true
+            },
+            "canGetCoolerPower": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": false
+            },
+            "canSetTemperature": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": true
+            },
+            "connected": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": true
+            },
+            "coolerOn": {
+              "reason": "not-read",
+              "status": "unavailable"
+            },
+            "coolerPowerPercent": {
+              "reason": "not-read",
+              "status": "unavailable"
+            },
+            "exposureMaximum": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 3600
+            },
+            "exposureMinimum": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 0.001
+            },
+            "gain": {
+              "reason": "not-read",
+              "status": "unavailable"
+            },
+            "gainMaximum": {
+              "reason": "not-read",
+              "status": "unavailable"
+            },
+            "gainMinimum": {
+              "reason": "not-read",
+              "status": "unavailable"
+            },
+            "height": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 6
+            },
+            "maxBinX": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 4
+            },
+            "maxBinY": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 4
+            },
+            "name": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": "Fake CCD"
+            },
+            "offset": {
+              "reason": "not-read",
+              "status": "unavailable"
+            },
+            "offsetMaximum": {
+              "reason": "not-read",
+              "status": "unavailable"
+            },
+            "offsetMinimum": {
+              "reason": "not-read",
+              "status": "unavailable"
+            },
+            "pixelHeightMicrons": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 3.76
+            },
+            "pixelWidthMicrons": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 3.76
+            },
+            "sensorHeightPixels": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 6
+            },
+            "sensorWidthPixels": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 8
+            },
+            "setpointC": {
+              "reason": "unsupported",
+              "status": "unavailable"
+            },
+            "startX": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 0
+            },
+            "startY": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 0
+            },
+            "temperatureC": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 20
+            },
+            "width": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 8
+            }
+          }
+        }
+      ],
+      "generatedAt": "<time>",
+      "instanceId": "<instance-1>",
+      "operations": [],
+      "protocolVersion": 5,
+      "sequence": "<sequence>"
+    }
+  },
+  {
+    "scenario": "refused: commands disabled",
+    "step": 2,
+    "request": "POST /v2/operations",
+    "sent": {
+      "bindingId": "<binding-1>",
+      "deviceId": "camera",
+      "expectedName": "Fake CCD",
+      "instanceId": "<instance-1>",
+      "kind": "capture",
+      "parameters": {
+        "exposureSeconds": 1,
+        "light": true
+      },
+      "requestId": "<request-1>"
+    },
+    "status": 403,
+    "body": {
+      "error": {
+        "code": "commands-disabled",
+        "message": "Commands are disabled"
+      },
+      "instanceId": "<instance-1>"
+    }
+  },
+  {
+    "scenario": "refused: instance changed",
+    "step": 1,
+    "request": "POST /v2/operations",
+    "sent": {
+      "bindingId": "<binding-1>",
+      "deviceId": "camera",
+      "expectedName": "Fake CCD",
+      "instanceId": "<instance-1>",
+      "kind": "capture",
+      "parameters": {
+        "exposureSeconds": 1,
+        "light": true
+      },
+      "requestId": "<request-1>"
+    },
+    "status": 409,
+    "body": {
+      "error": {
+        "code": "instance-changed",
+        "message": "Cria restarted: this request was for an earlier instance"
+      },
+      "instanceId": "<instance-2>"
+    }
+  },
+  {
+    "scenario": "refused: binding changed",
+    "step": 1,
+    "request": "POST /v2/operations",
+    "sent": {
+      "bindingId": "<binding-1>",
+      "deviceId": "camera",
+      "expectedName": "Fake CCD",
+      "instanceId": "<instance-1>",
+      "kind": "capture",
+      "parameters": {
+        "exposureSeconds": 1,
+        "light": true
+      },
+      "requestId": "<request-1>"
+    },
+    "status": 409,
+    "body": {
+      "error": {
+        "code": "binding-changed",
+        "message": "The device binding changed; read the state again"
+      },
+      "instanceId": "<instance-1>"
+    }
+  },
+  {
+    "scenario": "refused: binding changed",
+    "step": 2,
+    "request": "POST /v2/operations",
+    "sent": {
+      "bindingId": "<binding-2>",
+      "deviceId": "camera",
+      "expectedName": "Another CCD",
+      "instanceId": "<instance-1>",
+      "kind": "capture",
+      "parameters": {
+        "exposureSeconds": 1,
+        "light": true
+      },
+      "requestId": "<request-2>"
+    },
+    "status": 409,
+    "body": {
+      "error": {
+        "code": "binding-changed",
+        "message": "This device is Fake CCD"
+      },
+      "instanceId": "<instance-1>"
+    }
+  },
+  {
+    "scenario": "refused: invalid request",
+    "step": 1,
+    "request": "POST /v2/operations",
+    "sent": {
+      "bindingId": "<binding-1>",
+      "deviceId": "camera",
+      "expectedName": "Fake CCD",
+      "instanceId": "<instance-1>",
+      "kind": "capture",
+      "parameters": {
+        "exposureSeconds": 0,
+        "light": true
+      },
+      "requestId": "<request-1>"
+    },
+    "status": 400,
+    "body": {
+      "error": {
+        "code": "request-error",
+        "message": "Expected a value between 0.000001 and 3600\n  at [\"parameters\"][\"exposureSeconds\"]"
+      },
+      "instanceId": "<instance-1>"
+    }
+  },
+  {
+    "scenario": "refused: invalid request",
+    "step": 2,
+    "request": "POST /v2/operations",
+    "sent": {
+      "bindingId": "<binding-1>",
+      "deviceId": "camera",
+      "expectedName": "Fake CCD",
+      "instanceId": "<instance-1>",
+      "kind": "capture",
+      "parameters": {
+        "exposureSeconds": 1
+      },
+      "requestId": "<request-2>"
+    },
+    "status": 400,
+    "body": {
+      "error": {
+        "code": "request-error",
+        "message": "Missing key\n  at [\"parameters\"][\"light\"]"
+      },
+      "instanceId": "<instance-1>"
+    }
+  },
+  {
+    "scenario": "refused: invalid request",
+    "step": 3,
+    "request": "POST /v2/operations",
+    "sent": {
+      "bindingId": "<binding-1>",
+      "deviceId": "camera",
+      "expectedName": "Fake CCD",
+      "instanceId": "<instance-1>",
+      "kind": "teleport",
+      "parameters": {},
+      "requestId": "<request-3>"
+    },
+    "status": 400,
+    "body": {
+      "error": {
+        "code": "request-error",
+        "message": "Expected { readonly \"kind\": \"capture\", ... } | { readonly \"kind\": \"camera-configure\", ... } | { readonly \"kind\": \"cooling\", ... } | { readonly \"kind\": \"focuser-move\", ... } | { readonly \"kind\": \"focuser-halt\", ... } | { readonly \"kind\": \"mount-slew\", ... } | { readonly \"kind\": \"mount-tracking\", ... } | { readonly \"kind\": \"mount-axis\", ... } | { readonly \"kind\": \"mount-rotate\", ... } | { readonly \"kind\": \"mount-home\", ... } | { readonly \"kind\": \"mount-stop\", ... } | { readonly \"kind\": \"mount-park\", ... } | { readonly \"kind\": \"mount-unpark\", ... } | { readonly \"kind\": \"switch-set\", ... } | { readonly \"kind\": \"device-connect\", ... }"
+      },
+      "instanceId": "<instance-1>"
+    }
+  },
+  {
+    "scenario": "refused: invalid request",
+    "step": 4,
+    "request": "POST /v2/operations",
+    "sent": {
+      "bindingId": "<binding-2>",
+      "deviceId": "nowhere",
+      "expectedName": "nowhere",
+      "instanceId": "<instance-1>",
+      "kind": "capture",
+      "parameters": {
+        "exposureSeconds": 1,
+        "light": true
+      },
+      "requestId": "<request-4>"
+    },
+    "status": 400,
+    "body": {
+      "error": {
+        "code": "request-error",
+        "message": "Unknown device nowhere"
+      },
+      "instanceId": "<instance-1>"
+    }
+  },
+  {
+    "scenario": "refused: invalid request",
+    "step": 5,
+    "request": "POST /v2/operations",
+    "sent": {
+      "bindingId": "<binding-1>",
+      "deviceId": "camera",
+      "expectedName": "Fake CCD",
+      "instanceId": "<instance-1>",
+      "kind": "capture",
+      "parameters": {
+        "exposureSeconds": 1,
+        "light": true,
+        "padding": "<17408 characters>"
+      },
+      "requestId": "<request-5>"
+    },
+    "status": 413,
+    "body": {
+      "error": {
+        "code": "request-too-large",
+        "message": "Request body too large"
+      },
+      "instanceId": "<instance-1>"
+    }
+  },
+  {
+    "scenario": "refused: unknown operation, request and device",
+    "step": 1,
+    "request": "GET /v2/operations/<id-1>",
+    "status": 404,
+    "body": {
+      "error": {
+        "code": "not-found",
+        "message": "No such operation"
+      },
+      "instanceId": "<instance-1>"
+    }
+  },
+  {
+    "scenario": "refused: unknown operation, request and device",
+    "step": 2,
+    "request": "POST /v2/operations/<id-2>/cancel",
+    "status": 404,
+    "body": {
+      "error": {
+        "code": "not-found",
+        "message": "No such operation"
+      },
+      "instanceId": "<instance-1>"
+    }
+  },
+  {
+    "scenario": "refused: unknown operation, request and device",
+    "step": 3,
+    "request": "GET /v2/requests/<instance-1>/never-sent",
+    "status": 404,
+    "body": {
+      "error": {
+        "code": "not-found",
+        "message": "No such request"
+      },
+      "instanceId": "<instance-1>"
+    }
+  },
+  {
+    "scenario": "refused: unknown operation, request and device",
+    "step": 4,
+    "request": "POST /v2/devices/nowhere/recover",
+    "sent": {
+      "bindingId": "<binding-1>",
+      "externalRecoveryConfirmed": true,
+      "instanceId": "<instance-1>",
+      "note": "checked"
+    },
+    "status": 404,
+    "body": {
+      "error": {
+        "code": "not-found",
+        "message": "No device nowhere"
+      },
+      "instanceId": "<instance-1>"
+    }
+  },
+  {
+    "scenario": "duplicate request ID: same content returns the operation, changed content is refused",
+    "step": 1,
+    "request": "POST /v2/operations",
+    "sent": {
+      "bindingId": "<binding-1>",
+      "deviceId": "camera",
+      "expectedName": "Fake CCD",
+      "instanceId": "<instance-1>",
+      "kind": "camera-configure",
+      "parameters": {
+        "binX": 2,
+        "binY": 2,
+        "height": 3,
+        "width": 4
+      },
+      "requestId": "<request-1>"
+    },
+    "status": 202,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "camera",
+      "expectedName": "Fake CCD",
+      "failureDomain": "fake-ccd",
+      "id": "<operation-1>",
+      "instanceId": "<instance-1>",
+      "kind": "camera-configure",
+      "parameters": {
+        "binX": 2,
+        "binY": 2,
+        "height": 3,
+        "width": 4
+      },
+      "progress": {
+        "elapsedSeconds": null,
+        "phase": "preparing"
+      },
+      "requestId": "<request-1>",
+      "startedAt": "<time>",
+      "state": "running"
+    }
+  },
+  {
+    "scenario": "duplicate request ID: same content returns the operation, changed content is refused",
+    "step": 2,
+    "request": "GET /v2/operations/<operation-1>",
+    "status": 200,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "camera",
+      "expectedName": "Fake CCD",
+      "failureDomain": "fake-ccd",
+      "id": "<operation-1>",
+      "instanceId": "<instance-1>",
+      "kind": "camera-configure",
+      "outcome": {
+        "kind": "confirmed",
+        "value": {
+          "image": null,
+          "values": {
+            "binX": 2,
+            "binY": 2,
+            "height": 3,
+            "startX": 0,
+            "startY": 0,
+            "width": 4
+          }
+        }
+      },
+      "parameters": {
+        "binX": 2,
+        "binY": 2,
+        "height": 3,
+        "width": 4
+      },
+      "recovery": null,
+      "requestId": "<request-1>",
+      "settledAt": "<time>",
+      "startedAt": "<time>",
+      "state": "settled"
+    }
+  },
+  {
+    "scenario": "duplicate request ID: same content returns the operation, changed content is refused",
+    "step": 3,
+    "request": "POST /v2/operations",
+    "sent": {
+      "bindingId": "<binding-1>",
+      "deviceId": "camera",
+      "expectedName": "Fake CCD",
+      "instanceId": "<instance-1>",
+      "kind": "camera-configure",
+      "parameters": {
+        "binX": 2,
+        "binY": 2,
+        "height": 3,
+        "width": 4
+      },
+      "requestId": "<request-1>"
+    },
+    "status": 202,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "camera",
+      "expectedName": "Fake CCD",
+      "failureDomain": "fake-ccd",
+      "id": "<operation-1>",
+      "instanceId": "<instance-1>",
+      "kind": "camera-configure",
+      "outcome": {
+        "kind": "confirmed",
+        "value": {
+          "image": null,
+          "values": {
+            "binX": 2,
+            "binY": 2,
+            "height": 3,
+            "startX": 0,
+            "startY": 0,
+            "width": 4
+          }
+        }
+      },
+      "parameters": {
+        "binX": 2,
+        "binY": 2,
+        "height": 3,
+        "width": 4
+      },
+      "recovery": null,
+      "requestId": "<request-1>",
+      "settledAt": "<time>",
+      "startedAt": "<time>",
+      "state": "settled"
+    }
+  },
+  {
+    "scenario": "duplicate request ID: same content returns the operation, changed content is refused",
+    "step": 4,
+    "request": "POST /v2/operations",
+    "sent": {
+      "bindingId": "<binding-1>",
+      "deviceId": "camera",
+      "expectedName": "Fake CCD",
+      "instanceId": "<instance-1>",
+      "kind": "camera-configure",
+      "parameters": {
+        "binX": 1,
+        "binY": 1,
+        "height": 3,
+        "width": 4
+      },
+      "requestId": "<request-1>"
+    },
+    "status": 409,
+    "body": {
+      "error": {
+        "code": "request-conflict",
+        "message": "This request ID was used with different content"
+      },
+      "instanceId": "<instance-1>"
+    }
+  },
+  {
+    "scenario": "duplicate request ID: same content returns the operation, changed content is refused",
+    "step": 5,
+    "request": "GET /v2/requests/<instance-1>/<request-1>",
+    "status": 200,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "camera",
+      "expectedName": "Fake CCD",
+      "failureDomain": "fake-ccd",
+      "id": "<operation-1>",
+      "instanceId": "<instance-1>",
+      "kind": "camera-configure",
+      "outcome": {
+        "kind": "confirmed",
+        "value": {
+          "image": null,
+          "values": {
+            "binX": 2,
+            "binY": 2,
+            "height": 3,
+            "startX": 0,
+            "startY": 0,
+            "width": 4
+          }
+        }
+      },
+      "parameters": {
+        "binX": 2,
+        "binY": 2,
+        "height": 3,
+        "width": 4
+      },
+      "recovery": null,
+      "requestId": "<request-1>",
+      "settledAt": "<time>",
+      "startedAt": "<time>",
+      "state": "settled"
+    }
+  },
+  {
+    "scenario": "refused: result expired",
+    "step": 1,
+    "request": "POST /v2/operations",
+    "sent": {
+      "bindingId": "<binding-1>",
+      "deviceId": "switch",
+      "expectedName": "Fake PPB",
+      "instanceId": "<instance-1>",
+      "kind": "switch-set",
+      "parameters": {
+        "channelId": 1,
+        "value": 1
+      },
+      "requestId": "<request-1>"
+    },
+    "status": 202,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "switch",
+      "expectedName": "Fake PPB",
+      "failureDomain": "fake-ppb",
+      "id": "<operation-1>",
+      "instanceId": "<instance-1>",
+      "kind": "switch-set",
+      "parameters": {
+        "channelId": 1,
+        "value": 1
+      },
+      "progress": {
+        "elapsedSeconds": null,
+        "phase": "preparing"
+      },
+      "requestId": "<request-1>",
+      "startedAt": "<time>",
+      "state": "running"
+    }
+  },
+  {
+    "scenario": "refused: result expired",
+    "step": 2,
+    "request": "GET /v2/operations/<operation-1>",
+    "status": 200,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "switch",
+      "expectedName": "Fake PPB",
+      "failureDomain": "fake-ppb",
+      "id": "<operation-1>",
+      "instanceId": "<instance-1>",
+      "kind": "switch-set",
+      "outcome": {
+        "kind": "confirmed",
+        "value": {
+          "image": null,
+          "values": {
+            "value": 1
+          }
+        }
+      },
+      "parameters": {
+        "channelId": 1,
+        "value": 1
+      },
+      "recovery": null,
+      "requestId": "<request-1>",
+      "settledAt": "<time>",
+      "startedAt": "<time>",
+      "state": "settled"
+    }
+  },
+  {
+    "scenario": "refused: result expired",
+    "step": 3,
+    "request": "GET /v2/operations/<operation-1>",
+    "status": 410,
+    "body": {
+      "error": {
+        "code": "result-expired",
+        "message": "The operation is no longer kept"
+      },
+      "instanceId": "<instance-1>"
+    }
+  },
+  {
+    "scenario": "refused: result expired",
+    "step": 4,
+    "request": "POST /v2/operations",
+    "sent": {
+      "bindingId": "<binding-1>",
+      "deviceId": "switch",
+      "expectedName": "Fake PPB",
+      "instanceId": "<instance-1>",
+      "kind": "switch-set",
+      "parameters": {
+        "channelId": 1,
+        "value": 1
+      },
+      "requestId": "<request-1>"
+    },
+    "status": 410,
+    "body": {
+      "error": {
+        "code": "result-expired",
+        "message": "The operation for this request is no longer kept"
+      },
+      "instanceId": "<instance-1>"
+    }
+  },
+  {
+    "scenario": "refused: result expired",
+    "step": 5,
+    "request": "GET /v2/requests/<instance-1>/<request-1>",
+    "status": 410,
+    "body": {
+      "error": {
+        "code": "result-expired",
+        "message": "The operation is no longer kept"
+      },
+      "instanceId": "<instance-1>"
+    }
+  },
+  {
+    "scenario": "refused: image gone",
+    "step": 1,
+    "request": "POST /v2/operations",
+    "sent": {
+      "bindingId": "<binding-1>",
+      "deviceId": "camera",
+      "expectedName": "Fake CCD",
+      "instanceId": "<instance-1>",
+      "kind": "capture",
+      "parameters": {
+        "exposureSeconds": 0.05,
+        "light": true
+      },
+      "requestId": "<request-1>"
+    },
+    "status": 202,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "camera",
+      "expectedName": "Fake CCD",
+      "failureDomain": "fake-ccd",
+      "id": "<operation-1>",
+      "instanceId": "<instance-1>",
+      "kind": "capture",
+      "parameters": {
+        "exposureSeconds": 0.05,
+        "light": true
+      },
+      "progress": {
+        "elapsedSeconds": null,
+        "phase": "preparing"
+      },
+      "requestId": "<request-1>",
+      "startedAt": "<time>",
+      "state": "running"
+    }
+  },
+  {
+    "scenario": "refused: image gone",
+    "step": 2,
+    "request": "GET /v2/operations/<operation-1>",
+    "status": 200,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "camera",
+      "expectedName": "Fake CCD",
+      "failureDomain": "fake-ccd",
+      "id": "<operation-1>",
+      "instanceId": "<instance-1>",
+      "kind": "capture",
+      "outcome": {
+        "kind": "confirmed",
+        "value": {
+          "image": {
+            "binX": 1,
+            "binY": 1,
+            "bindingId": "<binding-1>",
+            "cameraName": "Fake CCD",
+            "capturedAt": "<time>",
+            "capturedAtSource": "camera",
+            "color": "grbg",
+            "deviceId": "camera",
+            "exposureSeconds": 0.05,
+            "height": 6,
+            "id": "<image-1>",
+            "instanceId": "<instance-1>",
+            "operationId": "<operation-1>",
+            "original": {
+              "bytes": 140,
+              "mediaType": "application/imagebytes",
+              "url": "/v2/images/<image-1>/original"
+            },
+            "retainedAt": "<time>",
+            "sha256": "146f86c57bfa413cc92866d35a539fffafee4212e14f8892afa27133b469255d",
+            "startX": 0,
+            "startY": 0,
+            "width": 8
+          },
+          "values": {}
+        }
+      },
+      "parameters": {
+        "exposureSeconds": 0.05,
+        "light": true
+      },
+      "recovery": null,
+      "requestId": "<request-1>",
+      "settledAt": "<time>",
+      "startedAt": "<time>",
+      "state": "settled"
+    }
+  },
+  {
+    "scenario": "refused: image gone",
+    "step": 3,
+    "request": "POST /v2/operations",
+    "sent": {
+      "bindingId": "<binding-1>",
+      "deviceId": "camera",
+      "expectedName": "Fake CCD",
+      "instanceId": "<instance-1>",
+      "kind": "capture",
+      "parameters": {
+        "exposureSeconds": 0.05,
+        "light": false
+      },
+      "requestId": "<request-2>"
+    },
+    "status": 202,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "camera",
+      "expectedName": "Fake CCD",
+      "failureDomain": "fake-ccd",
+      "id": "<operation-2>",
+      "instanceId": "<instance-1>",
+      "kind": "capture",
+      "parameters": {
+        "exposureSeconds": 0.05,
+        "light": false
+      },
+      "progress": {
+        "elapsedSeconds": null,
+        "phase": "preparing"
+      },
+      "requestId": "<request-2>",
+      "startedAt": "<time>",
+      "state": "running"
+    }
+  },
+  {
+    "scenario": "refused: image gone",
+    "step": 4,
+    "request": "GET /v2/operations/<operation-2>",
+    "status": 200,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "camera",
+      "expectedName": "Fake CCD",
+      "failureDomain": "fake-ccd",
+      "id": "<operation-2>",
+      "instanceId": "<instance-1>",
+      "kind": "capture",
+      "outcome": {
+        "kind": "confirmed",
+        "value": {
+          "image": {
+            "binX": 1,
+            "binY": 1,
+            "bindingId": "<binding-1>",
+            "cameraName": "Fake CCD",
+            "capturedAt": "<time>",
+            "capturedAtSource": "camera",
+            "color": "grbg",
+            "deviceId": "camera",
+            "exposureSeconds": 0.05,
+            "height": 6,
+            "id": "<image-2>",
+            "instanceId": "<instance-1>",
+            "operationId": "<operation-2>",
+            "original": {
+              "bytes": 140,
+              "mediaType": "application/imagebytes",
+              "url": "/v2/images/<image-2>/original"
+            },
+            "retainedAt": "<time>",
+            "sha256": "146f86c57bfa413cc92866d35a539fffafee4212e14f8892afa27133b469255d",
+            "startX": 0,
+            "startY": 0,
+            "width": 8
+          },
+          "values": {}
+        }
+      },
+      "parameters": {
+        "exposureSeconds": 0.05,
+        "light": false
+      },
+      "recovery": null,
+      "requestId": "<request-2>",
+      "settledAt": "<time>",
+      "startedAt": "<time>",
+      "state": "settled"
+    }
+  },
+  {
+    "scenario": "refused: image gone",
+    "step": 5,
+    "request": "GET /v2/images/<image-1>/original",
+    "status": 410,
+    "body": {
+      "error": {
+        "code": "image-gone",
+        "message": "This image is no longer kept"
+      },
+      "instanceId": "<instance-1>"
+    }
+  },
+  {
+    "scenario": "refused: image gone",
+    "step": 6,
+    "request": "GET /v2/images/<image-2>/original",
+    "status": 200,
+    "body": {
+      "bytes": 140,
+      "contentLength": "140",
+      "contentType": "application/imagebytes",
+      "etag": "\"146f86c57bfa413cc92866d35a539fffafee4212e14f8892afa27133b469255d\"",
+      "sha256": "146f86c57bfa413cc92866d35a539fffafee4212e14f8892afa27133b469255d"
+    }
+  },
+  {
+    "scenario": "refused: image gone",
+    "step": 7,
+    "request": "GET /v2/images/not-an-image-id/original",
+    "status": 404,
+    "body": {
+      "error": {
+        "code": "not-found",
+        "message": "No such image"
+      },
+      "instanceId": "<instance-1>"
+    }
+  },
+  {
+    "scenario": "no acknowledgement: uncertain, held by quarantine, then recovered",
+    "step": 1,
+    "request": "POST /v2/operations",
+    "sent": {
+      "bindingId": "<binding-1>",
+      "deviceId": "camera",
+      "expectedName": "Fake CCD",
+      "instanceId": "<instance-1>",
+      "kind": "capture",
+      "parameters": {
+        "exposureSeconds": 1,
+        "light": true
+      },
+      "requestId": "<request-1>"
+    },
+    "status": 202,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "camera",
+      "expectedName": "Fake CCD",
+      "failureDomain": "fake-ccd",
+      "id": "<operation-1>",
+      "instanceId": "<instance-1>",
+      "kind": "capture",
+      "parameters": {
+        "exposureSeconds": 1,
+        "light": true
+      },
+      "progress": {
+        "elapsedSeconds": null,
+        "phase": "preparing"
+      },
+      "requestId": "<request-1>",
+      "startedAt": "<time>",
+      "state": "running"
+    }
+  },
+  {
+    "scenario": "no acknowledgement: uncertain, held by quarantine, then recovered",
+    "step": 2,
+    "request": "GET /v2/operations/<operation-1>",
+    "status": 200,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "camera",
+      "expectedName": "Fake CCD",
+      "failureDomain": "fake-ccd",
+      "id": "<operation-1>",
+      "instanceId": "<instance-1>",
+      "kind": "capture",
+      "outcome": {
+        "kind": "uncertain",
+        "message": "CCD_EXPOSURE on Fake CCD: no answer within 600ms",
+        "reason": "no-acknowledgement"
+      },
+      "parameters": {
+        "exposureSeconds": 1,
+        "light": true
+      },
+      "recovery": null,
+      "requestId": "<request-1>",
+      "settledAt": "<time>",
+      "startedAt": "<time>",
+      "state": "settled"
+    }
+  },
+  {
+    "scenario": "no acknowledgement: uncertain, held by quarantine, then recovered",
+    "step": 3,
+    "request": "GET /v2/state",
+    "status": 200,
+    "body": {
+      "commandsEnabled": true,
+      "devices": [
+        {
+          "afterOperation": null,
+          "availability": {
+            "message": "Blocked until a person recovers it: CCD_EXPOSURE on Fake CCD: no answer within 600ms",
+            "ready": false,
+            "reason": "blocked"
+          },
+          "bindingId": "<binding-1>",
+          "failureDomain": "fake-ccd",
+          "id": "camera",
+          "kind": "camera",
+          "lastCommandedSetpointC": null,
+          "name": "Fake CCD",
+          "quarantine": {
+            "held": true,
+            "reason": "CCD_EXPOSURE on Fake CCD: no answer within 600ms",
+            "since": "<time>"
+          },
+          "readings": {
+            "activity": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": "idle"
+            },
+            "bayerPattern": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": "grbg"
+            },
+            "binX": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 1
+            },
+            "binY": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 1
+            },
+            "canAbortExposure": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": true
+            },
+            "canGetCoolerPower": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": false
+            },
+            "canSetTemperature": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": true
+            },
+            "connected": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": true
+            },
+            "coolerOn": {
+              "reason": "not-read",
+              "status": "unavailable"
+            },
+            "coolerPowerPercent": {
+              "reason": "not-read",
+              "status": "unavailable"
+            },
+            "exposureMaximum": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 3600
+            },
+            "exposureMinimum": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 0.001
+            },
+            "gain": {
+              "reason": "not-read",
+              "status": "unavailable"
+            },
+            "gainMaximum": {
+              "reason": "not-read",
+              "status": "unavailable"
+            },
+            "gainMinimum": {
+              "reason": "not-read",
+              "status": "unavailable"
+            },
+            "height": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 6
+            },
+            "maxBinX": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 4
+            },
+            "maxBinY": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 4
+            },
+            "name": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": "Fake CCD"
+            },
+            "offset": {
+              "reason": "not-read",
+              "status": "unavailable"
+            },
+            "offsetMaximum": {
+              "reason": "not-read",
+              "status": "unavailable"
+            },
+            "offsetMinimum": {
+              "reason": "not-read",
+              "status": "unavailable"
+            },
+            "pixelHeightMicrons": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 3.76
+            },
+            "pixelWidthMicrons": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 3.76
+            },
+            "sensorHeightPixels": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 6
+            },
+            "sensorWidthPixels": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 8
+            },
+            "setpointC": {
+              "reason": "unsupported",
+              "status": "unavailable"
+            },
+            "startX": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 0
+            },
+            "startY": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 0
+            },
+            "temperatureC": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 20
+            },
+            "width": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 8
+            }
+          }
+        }
+      ],
+      "generatedAt": "<time>",
+      "instanceId": "<instance-1>",
+      "operations": [
+        {
+          "acceptedAt": "<time>",
+          "bindingId": "<binding-1>",
+          "deviceId": "camera",
+          "expectedName": "Fake CCD",
+          "failureDomain": "fake-ccd",
+          "id": "<operation-1>",
+          "instanceId": "<instance-1>",
+          "kind": "capture",
+          "outcome": {
+            "kind": "uncertain",
+            "message": "CCD_EXPOSURE on Fake CCD: no answer within 600ms",
+            "reason": "no-acknowledgement"
+          },
+          "parameters": {
+            "exposureSeconds": 1,
+            "light": true
+          },
+          "recovery": null,
+          "requestId": "<request-1>",
+          "settledAt": "<time>",
+          "startedAt": "<time>",
+          "state": "settled"
+        }
+      ],
+      "protocolVersion": 5,
+      "sequence": "<sequence>"
+    }
+  },
+  {
+    "scenario": "no acknowledgement: uncertain, held by quarantine, then recovered",
+    "step": 4,
+    "request": "POST /v2/operations",
+    "sent": {
+      "bindingId": "<binding-1>",
+      "deviceId": "camera",
+      "expectedName": "Fake CCD",
+      "instanceId": "<instance-1>",
+      "kind": "capture",
+      "parameters": {
+        "exposureSeconds": 1,
+        "light": true
+      },
+      "requestId": "<request-2>"
+    },
+    "status": 409,
+    "body": {
+      "error": {
+        "code": "device-blocked",
+        "message": "Blocked until recovered: CCD_EXPOSURE on Fake CCD: no answer within 600ms"
+      },
+      "instanceId": "<instance-1>"
+    }
+  },
+  {
+    "scenario": "no acknowledgement: uncertain, held by quarantine, then recovered",
+    "step": 5,
+    "request": "POST /v2/devices/camera/recover",
+    "sent": {
+      "bindingId": "<binding-2>",
+      "externalRecoveryConfirmed": true,
+      "instanceId": "<instance-1>",
+      "note": "checked"
+    },
+    "status": 409,
+    "body": {
+      "error": {
+        "code": "binding-changed",
+        "message": "The device binding changed"
+      },
+      "instanceId": "<instance-1>"
+    }
+  },
+  {
+    "scenario": "no acknowledgement: uncertain, held by quarantine, then recovered",
+    "step": 6,
+    "request": "POST /v2/devices/camera/recover",
+    "sent": {
+      "bindingId": "<binding-1>",
+      "externalRecoveryConfirmed": true,
+      "instanceId": "<instance-2>",
+      "note": "checked"
+    },
+    "status": 409,
+    "body": {
+      "error": {
+        "code": "instance-changed",
+        "message": "Cria restarted"
+      },
+      "instanceId": "<instance-1>"
+    }
+  },
+  {
+    "scenario": "no acknowledgement: uncertain, held by quarantine, then recovered",
+    "step": 7,
+    "request": "POST /v2/devices/camera/recover",
+    "sent": {
+      "bindingId": "<binding-1>",
+      "externalRecoveryConfirmed": false,
+      "instanceId": "<instance-1>",
+      "note": "checked"
+    },
+    "status": 400,
+    "body": {
+      "error": {
+        "code": "request-error",
+        "message": "Expected true\n  at [\"externalRecoveryConfirmed\"]"
+      },
+      "instanceId": "<instance-1>"
+    }
+  },
+  {
+    "scenario": "no acknowledgement: uncertain, held by quarantine, then recovered",
+    "step": 8,
+    "request": "POST /v2/devices/camera/recover",
+    "sent": {
+      "bindingId": "<binding-1>",
+      "externalRecoveryConfirmed": true,
+      "instanceId": "<instance-1>",
+      "note": "Chris checked the camera: idle"
+    },
+    "status": 200,
+    "body": {
+      "afterOperation": null,
+      "availability": {
+        "message": "Waiting for a reading after the last operation",
+        "ready": false,
+        "reason": "refreshing"
+      },
+      "bindingId": "<binding-3>",
+      "failureDomain": "fake-ccd",
+      "id": "camera",
+      "kind": "camera",
+      "lastCommandedSetpointC": null,
+      "name": "Fake CCD",
+      "quarantine": {
+        "held": false
+      },
+      "readings": {
+        "activity": {
+          "observedAt": "<time>",
+          "status": "fresh",
+          "value": "idle"
+        },
+        "bayerPattern": {
+          "observedAt": "<time>",
+          "status": "fresh",
+          "value": "grbg"
+        },
+        "binX": {
+          "observedAt": "<time>",
+          "status": "fresh",
+          "value": 1
+        },
+        "binY": {
+          "observedAt": "<time>",
+          "status": "fresh",
+          "value": 1
+        },
+        "canAbortExposure": {
+          "observedAt": "<time>",
+          "status": "fresh",
+          "value": true
+        },
+        "canGetCoolerPower": {
+          "observedAt": "<time>",
+          "status": "fresh",
+          "value": false
+        },
+        "canSetTemperature": {
+          "observedAt": "<time>",
+          "status": "fresh",
+          "value": true
+        },
+        "connected": {
+          "observedAt": "<time>",
+          "status": "fresh",
+          "value": true
+        },
+        "coolerOn": {
+          "reason": "not-read",
+          "status": "unavailable"
+        },
+        "coolerPowerPercent": {
+          "reason": "not-read",
+          "status": "unavailable"
+        },
+        "exposureMaximum": {
+          "observedAt": "<time>",
+          "status": "fresh",
+          "value": 3600
+        },
+        "exposureMinimum": {
+          "observedAt": "<time>",
+          "status": "fresh",
+          "value": 0.001
+        },
+        "gain": {
+          "reason": "not-read",
+          "status": "unavailable"
+        },
+        "gainMaximum": {
+          "reason": "not-read",
+          "status": "unavailable"
+        },
+        "gainMinimum": {
+          "reason": "not-read",
+          "status": "unavailable"
+        },
+        "height": {
+          "observedAt": "<time>",
+          "status": "fresh",
+          "value": 6
+        },
+        "maxBinX": {
+          "observedAt": "<time>",
+          "status": "fresh",
+          "value": 4
+        },
+        "maxBinY": {
+          "observedAt": "<time>",
+          "status": "fresh",
+          "value": 4
+        },
+        "name": {
+          "observedAt": "<time>",
+          "status": "fresh",
+          "value": "Fake CCD"
+        },
+        "offset": {
+          "reason": "not-read",
+          "status": "unavailable"
+        },
+        "offsetMaximum": {
+          "reason": "not-read",
+          "status": "unavailable"
+        },
+        "offsetMinimum": {
+          "reason": "not-read",
+          "status": "unavailable"
+        },
+        "pixelHeightMicrons": {
+          "observedAt": "<time>",
+          "status": "fresh",
+          "value": 3.76
+        },
+        "pixelWidthMicrons": {
+          "observedAt": "<time>",
+          "status": "fresh",
+          "value": 3.76
+        },
+        "sensorHeightPixels": {
+          "observedAt": "<time>",
+          "status": "fresh",
+          "value": 6
+        },
+        "sensorWidthPixels": {
+          "observedAt": "<time>",
+          "status": "fresh",
+          "value": 8
+        },
+        "setpointC": {
+          "reason": "unsupported",
+          "status": "unavailable"
+        },
+        "startX": {
+          "observedAt": "<time>",
+          "status": "fresh",
+          "value": 0
+        },
+        "startY": {
+          "observedAt": "<time>",
+          "status": "fresh",
+          "value": 0
+        },
+        "temperatureC": {
+          "observedAt": "<time>",
+          "status": "fresh",
+          "value": 20
+        },
+        "width": {
+          "observedAt": "<time>",
+          "status": "fresh",
+          "value": 8
+        }
+      }
+    }
+  },
+  {
+    "scenario": "no acknowledgement: uncertain, held by quarantine, then recovered",
+    "step": 9,
+    "request": "GET /v2/operations/<operation-1>",
+    "status": 200,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "camera",
+      "expectedName": "Fake CCD",
+      "failureDomain": "fake-ccd",
+      "id": "<operation-1>",
+      "instanceId": "<instance-1>",
+      "kind": "capture",
+      "outcome": {
+        "kind": "uncertain",
+        "message": "CCD_EXPOSURE on Fake CCD: no answer within 600ms",
+        "reason": "no-acknowledgement"
+      },
+      "parameters": {
+        "exposureSeconds": 1,
+        "light": true
+      },
+      "recovery": {
+        "at": "<time>",
+        "note": "Chris checked the camera: idle"
+      },
+      "requestId": "<request-1>",
+      "settledAt": "<time>",
+      "startedAt": "<time>",
+      "state": "settled"
+    }
+  },
+  {
+    "scenario": "no acknowledgement: uncertain, held by quarantine, then recovered",
+    "step": 10,
+    "request": "POST /v2/operations",
+    "sent": {
+      "bindingId": "<binding-3>",
+      "deviceId": "camera",
+      "expectedName": "Fake CCD",
+      "instanceId": "<instance-1>",
+      "kind": "capture",
+      "parameters": {
+        "exposureSeconds": 0.05,
+        "light": true
+      },
+      "requestId": "<request-3>"
+    },
+    "status": 202,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-3>",
+      "deviceId": "camera",
+      "expectedName": "Fake CCD",
+      "failureDomain": "fake-ccd",
+      "id": "<operation-2>",
+      "instanceId": "<instance-1>",
+      "kind": "capture",
+      "parameters": {
+        "exposureSeconds": 0.05,
+        "light": true
+      },
+      "progress": {
+        "elapsedSeconds": null,
+        "phase": "preparing"
+      },
+      "requestId": "<request-3>",
+      "startedAt": "<time>",
+      "state": "running"
+    }
+  },
+  {
+    "scenario": "no acknowledgement: uncertain, held by quarantine, then recovered",
+    "step": 11,
+    "request": "GET /v2/operations/<operation-2>",
+    "status": 200,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-3>",
+      "deviceId": "camera",
+      "expectedName": "Fake CCD",
+      "failureDomain": "fake-ccd",
+      "id": "<operation-2>",
+      "instanceId": "<instance-1>",
+      "kind": "capture",
+      "outcome": {
+        "kind": "confirmed",
+        "value": {
+          "image": {
+            "binX": 1,
+            "binY": 1,
+            "bindingId": "<binding-3>",
+            "cameraName": "Fake CCD",
+            "capturedAt": "<time>",
+            "capturedAtSource": "camera",
+            "color": "grbg",
+            "deviceId": "camera",
+            "exposureSeconds": 0.05,
+            "height": 6,
+            "id": "<image-1>",
+            "instanceId": "<instance-1>",
+            "operationId": "<operation-2>",
+            "original": {
+              "bytes": 140,
+              "mediaType": "application/imagebytes",
+              "url": "/v2/images/<image-1>/original"
+            },
+            "retainedAt": "<time>",
+            "sha256": "146f86c57bfa413cc92866d35a539fffafee4212e14f8892afa27133b469255d",
+            "startX": 0,
+            "startY": 0,
+            "width": 8
+          },
+          "values": {}
+        }
+      },
+      "parameters": {
+        "exposureSeconds": 0.05,
+        "light": true
+      },
+      "recovery": null,
+      "requestId": "<request-3>",
+      "settledAt": "<time>",
+      "startedAt": "<time>",
+      "state": "settled"
+    }
+  }
+]

@@ -1,0 +1,29 @@
+{
+  "name": "@cria/primitives",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Outcome, Reading, the disciplines and Run: the strong primitives shared by Cria and (later) Vela",
+  "exports": {
+    ".": {
+      "@cria/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "files": [
+    "dist",
+    "src",
+    "!src/**/*.test.ts"
+  ],
+  "peerDependencies": {
+    "effect": "4.0.3"
+  },
+  "devDependencies": {
+    "effect": "4.0.3"
+  }
+}

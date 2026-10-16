@@ -1,0 +1,21 @@
+{
+  "name": "@cria/service",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Cria on Linux: serves Vela's protocol 5 from INDI devices",
+  "bin": {
+    "cria": "./dist/main.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test.json",
+    "start": "node dist/main.js"
+  },
+  "dependencies": {
+    "@cria/indi": "workspace:*",
+    "@cria/primitives": "workspace:*",
+    "@cria/wire": "workspace:*",
+    "effect": "4.0.3"
+  }
+}

@@ -1,0 +1,40 @@
+# Local research and collaboration history. Approved final documents can be tracked later.
+/docs/planning/*
+!/docs/planning/final/
+/archive/
+/work/
+/.agents/
+/tools/prototypes/
+
+# Build outputs, dependencies, generated reports, and local runtime data.
+node_modules/
+dist/
+release/
+artifacts/
+coverage/
+data/
+**/bin/
+**/obj/
+**/__pycache__/
+*.py[cod]
+/tests/results/
+/tests/.vela
+/tests/.v2-baseline/
+
+# Credentials and machine-specific configuration.
+.env
+.env.*
+!.env.example
+/config/local.json
+/config/local.json.*
+*.log
+.DS_Store
+Thumbs.db
+ascom-devices.json
+*.ownership.json
+
+# The shared packages ship their build: Vela installs them as git subfolder
+# dependencies, which get no build step (docs/ts/SPEC.md, "Where the code lives").
+!/ts/packages/primitives/dist/
+!/ts/packages/cria-wire/dist/
+/ts/packages/*/.dist-check/

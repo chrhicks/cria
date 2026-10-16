@@ -1,0 +1,4 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><TargetFramework>net10.0</TargetFramework><OutputType>Exe</OutputType></PropertyGroup>
+  <ItemGroup><PackageReference Include="StreamJsonRpc" Version="2.25.29" /><ProjectReference Include="../../src/Cria.Driver.Core/Cria.Driver.Core.csproj" /></ItemGroup>
+</Project>

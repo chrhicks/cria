@@ -1,0 +1,18 @@
+# Example only: not installed anywhere. SIGTERM stops Cria cleanly: running
+# operations are interrupted and their stop steps abort exposures and halt
+# motion before the process exits. CRIA_TOKEN is optional.
+[Unit]
+Description=Cria (INDI to Vela)
+After=indiserver.service
+Wants=indiserver.service
+
+[Service]
+User=chicks
+ExecStart=/usr/bin/node /opt/cria/apps/cria/dist/main.js /etc/cria/rig.json
+Restart=on-failure
+# Longer than the longest uninterruptible step: a start-up connect may take up to
+# initializeTimeoutMs (120 s), then stops get stopWithin (20 s). Review R2 P3b.
+TimeoutStopSec=180
+
+[Install]
+WantedBy=multi-user.target

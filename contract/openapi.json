@@ -1,0 +1,3802 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Cria equipment API",
+    "version": "4.0.0",
+    "description": "Drivers \u2192 isolated compatible Cria workers \u2192 .NET API \u2192 clients. Windows rig target. Vela owns repetitions, focus decisions, solving, previews and scientific archives. Unix millisecond timestamps; RA/sidereal observations are hours; RA commands are degrees. No automatic driver restart or equipment command replay. Protocol 4 keeps the /v2 route family; protocolVersion is the compatibility signal. The service remembers only recent operations and images; a new instanceId means everything in flight before it is unknown. Images are a rolling set: the oldest are dropped when the size limit is reached, and a dropped image returns 410 image-gone."
+  },
+  "servers": [
+    {
+      "url": "http://127.0.0.1:4319"
+    }
+  ],
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Process liveness, independent of driver availability",
+        "operationId": "get__health",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "starting",
+                        "online"
+                      ]
+                    },
+                    "protocolVersion": {
+                      "const": 3
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "protocolVersion"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Writes disabled or origin rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown or forgotten resource",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Identity, admission or cursor conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Known result expired or image no longer held",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Concurrency limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Driver unavailable or bounded service capacity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/v2/schema": {
+      "get": {
+        "summary": "This OpenAPI document",
+        "operationId": "get__v2_schema",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Writes disabled or origin rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown or forgotten resource",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Identity, admission or cursor conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Known result expired or image no longer held",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Concurrency limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Driver unavailable or bounded service capacity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/v2/state": {
+      "get": {
+        "summary": "Current state with independent per-field freshness",
+        "operationId": "get__v2_state",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/State"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Writes disabled or origin rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown or forgotten resource",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Identity, admission or cursor conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Known result expired or image no longer held",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Concurrency limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Driver unavailable or bounded service capacity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/v2/service": {
+      "get": {
+        "summary": "Service identity for the local desktop supervisor",
+        "operationId": "get__v2_service",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "instanceId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "pid": {
+                      "type": "integer"
+                    },
+                    "dataDirectory": {
+                      "type": "string"
+                    },
+                    "stopping": {
+                      "type": "boolean"
+                    },
+                    "activeOperations": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "instanceId",
+                    "pid",
+                    "dataDirectory",
+                    "stopping",
+                    "activeOperations"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Writes disabled or origin rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown or forgotten resource",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Identity, admission or cursor conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Known result expired or image no longer held",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Concurrency limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Driver unavailable or bounded service capacity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/v2/service/stop": {
+      "post": {
+        "summary": "Stop an idle service and release its driver owners",
+        "operationId": "post__v2_service_stop",
+        "responses": {
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "instanceId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "stopping": {
+                      "const": true
+                    }
+                  },
+                  "required": [
+                    "instanceId",
+                    "stopping"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Writes disabled or origin rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown or forgotten resource",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Identity, admission or cursor conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Known result expired or image no longer held",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Concurrency limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Driver unavailable or bounded service capacity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "instanceId": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                },
+                "required": [
+                  "instanceId"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "description": "Authenticated loopback callers only. Atomically stops new admission; rejects while operations are active. Ends state/telemetry streams and attempts driver release. Acceptance is not proof of release: the local supervisor must inspect process exit and the matching service-exit.json receipt. Never kills unresolved owners or replays operations."
+      }
+    },
+    "/v2/events": {
+      "get": {
+        "summary": "Latest-state SSE stream; slow consumers receive the newest snapshot",
+        "operationId": "get__v2_events",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Writes disabled or origin rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown or forgotten resource",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Identity, admission or cursor conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Known result expired or image no longer held",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Concurrency limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Driver unavailable or bounded service capacity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "description": "event: state contains a full State. This is a snapshot stream, not a lossless event journal. Reconnect with GET state. Maximum 16 streams."
+      }
+    },
+    "/v2/devices/{id}/refresh": {
+      "post": {
+        "summary": "Request observations begun in a new generation",
+        "operationId": "post__v2_devices_id_refresh",
+        "responses": {
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "deviceId": {
+                      "type": "string"
+                    },
+                    "generation": {
+                      "type": "integer"
+                    },
+                    "pending": {
+                      "const": true
+                    }
+                  },
+                  "required": [
+                    "deviceId",
+                    "generation",
+                    "pending"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Writes disabled or origin rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown or forgotten resource",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Identity, admission or cursor conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Known result expired or image no longer held",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Concurrency limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Driver unavailable or bounded service capacity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/v2/devices/{id}/recover": {
+      "post": {
+        "summary": "Confirm external recovery after stopping previous driver owners",
+        "operationId": "post__v2_devices_id_recover",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/State"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Writes disabled or origin rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown or forgotten resource",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Identity, admission or cursor conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Known result expired or image no longer held",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Concurrency limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Driver unavailable or bounded service capacity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecoveryRequest"
+              }
+            }
+          }
+        },
+        "description": "Never replays work or declares an old operation successful. Live previous driver processes block recovery. Restarts compatible isolated owners with new binding IDs only after explicit operator attestation.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/v2/operations": {
+      "post": {
+        "summary": "Accept one bounded equipment action",
+        "operationId": "post__v2_operations",
+        "responses": {
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Operation"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Writes disabled or origin rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown or forgotten resource",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Identity, admission or cursor conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Known result expired or image no longer held",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Concurrency limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Driver unavailable or bounded service capacity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OperationRequest"
+              }
+            }
+          }
+        },
+        "description": "The complete request identity is remembered for this service instance before anything is sent. An identical instanceId/requestId returns its existing operation; changed content returns 409 and a request whose details were dropped returns 410. No accepted request is dispatched twice within an instance; a new instanceId means earlier requests are unknown. HTTP cancellation does not cancel equipment."
+      },
+      "get": {
+        "summary": "Page operation history and expired-result markers",
+        "operationId": "get__v2_operations",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "operations": {
+                      "type": "array",
+                      "items": {
+                        "oneOf": [
+                          {
+                            "$ref": "#/components/schemas/Operation"
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "status": {
+                                "type": "string"
+                              },
+                              "expired": {
+                                "const": true
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "status",
+                              "expired"
+                            ],
+                            "additionalProperties": false
+                          }
+                        ]
+                      }
+                    },
+                    "next": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "operations",
+                    "next"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Writes disabled or origin rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown or forgotten resource",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Identity, admission or cursor conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Known result expired or image no longer held",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Concurrency limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Driver unavailable or bounded service capacity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "after",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 500
+            }
+          }
+        ]
+      }
+    },
+    "/v2/operations/{id}": {
+      "get": {
+        "summary": "Query progress or the final outcome",
+        "operationId": "get__v2_operations_id",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Operation"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Writes disabled or origin rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown or forgotten resource",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Identity, admission or cursor conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Known result expired or image no longer held",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Concurrency limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Driver unavailable or bounded service capacity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/v2/requests/{instance}/{request}": {
+      "get": {
+        "summary": "Recover an admission result after a lost HTTP response",
+        "operationId": "get__v2_requests_instance_request",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Operation"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Writes disabled or origin rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown or forgotten resource",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Identity, admission or cursor conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Known result expired or image no longer held",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Concurrency limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Driver unavailable or bounded service capacity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "instance",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "request",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/v2/operations/{id}/cancel": {
+      "post": {
+        "summary": "Request local cleanup; follow the operation to its observed outcome",
+        "operationId": "post__v2_operations_id_cancel",
+        "responses": {
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Operation"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Writes disabled or origin rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown or forgotten resource",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Identity, admission or cursor conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Known result expired or image no longer held",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Concurrency limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Driver unavailable or bounded service capacity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/v2/images/{id}/original": {
+      "get": {
+        "summary": "Stream complete checksum-verified ASCOM ImageBytes",
+        "operationId": "get__v2_images_id_original",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/imagebytes": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Writes disabled or origin rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown or forgotten resource",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Identity, admission or cursor conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Known result expired or image no longer held",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Concurrency limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Driver unavailable or bounded service capacity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "description": "Rank-2 Int32 logical pixels, first dimension outermost. No preview or processing. Served for a succeeded capture whatever the device interlock. Cria keeps only the newest images up to a size limit: an image that was dropped, or that this service instance never held, returns 410 image-gone, and the frame is lost. Never expose again to repair it. Fetch right after the capture succeeds; the file can be fetched more than once while it is held.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/v2/telemetry/status": {
+      "get": {
+        "summary": "Recorder health, queue drops and actual retained history",
+        "operationId": "get__v2_telemetry_status",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Writes disabled or origin rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown or forgotten resource",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Identity, admission or cursor conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Known result expired or image no longer held",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Concurrency limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Driver unavailable or bounded service capacity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/v2/telemetry/events": {
+      "get": {
+        "summary": "Page diagnostic events with explicit retention gaps",
+        "operationId": "get__v2_telemetry_events",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelemetryPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Writes disabled or origin rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown or forgotten resource",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Identity, admission or cursor conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Known result expired or image no longer held",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Concurrency limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Driver unavailable or bounded service capacity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "after",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "through",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 500
+            }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "device",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "since",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "until",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        ]
+      }
+    },
+    "/v2/telemetry/export": {
+      "get": {
+        "summary": "Bounded NDJSON export with a fixed high-water cursor and retention gaps",
+        "operationId": "get__v2_telemetry_export",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/x-ndjson": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Writes disabled or origin rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown or forgotten resource",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Identity, admission or cursor conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Known result expired or image no longer held",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Concurrency limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Driver unavailable or bounded service capacity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "description": "At most 100,000 events or 30 seconds. export-end records the next cursor and whether more remain. Supports after, through, type, device, since and until filters."
+      }
+    },
+    "/v2/telemetry/follow": {
+      "get": {
+        "summary": "Cursor-based diagnostic SSE with explicit retention gaps",
+        "operationId": "get__v2_telemetry_follow",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Writes disabled or origin rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown or forgotten resource",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Identity, admission or cursor conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Known result expired or image no longer held",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Concurrency limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Driver unavailable or bounded service capacity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "description": "Events contain durable cursors; reconnect with after. Supports event filters. Maximum four telemetry streams including exports."
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "Bearer": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    },
+    "schemas": {
+      "OperationRequest": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "instanceId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "requestId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f]+$"
+              },
+              "deviceId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64
+              },
+              "bindingId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "expectedName": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "kind": {
+                "const": "capture"
+              },
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "exposureSeconds": {
+                    "type": "number",
+                    "minimum": 1e-06,
+                    "maximum": 3600
+                  },
+                  "light": {
+                    "type": "boolean"
+                  },
+                  "monochromeOnly": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "exposureSeconds",
+                  "light"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "instanceId",
+              "requestId",
+              "deviceId",
+              "bindingId",
+              "expectedName",
+              "kind",
+              "parameters"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "instanceId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "requestId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f]+$"
+              },
+              "deviceId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64
+              },
+              "bindingId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "expectedName": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "kind": {
+                "const": "camera-configure"
+              },
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "binX": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 1000000
+                  },
+                  "binY": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 1000000
+                  },
+                  "startX": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 1000000
+                  },
+                  "startY": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 1000000
+                  },
+                  "width": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 1000000
+                  },
+                  "height": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 1000000
+                  },
+                  "gain": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 1000000
+                  },
+                  "offset": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 1000000
+                  }
+                },
+                "required": [],
+                "additionalProperties": false,
+                "minProperties": 1
+              }
+            },
+            "required": [
+              "instanceId",
+              "requestId",
+              "deviceId",
+              "bindingId",
+              "expectedName",
+              "kind",
+              "parameters"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "instanceId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "requestId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f]+$"
+              },
+              "deviceId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64
+              },
+              "bindingId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "expectedName": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "kind": {
+                "const": "cooling"
+              },
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "coolerOn": {
+                    "type": "boolean"
+                  },
+                  "setpointC": {
+                    "type": "number",
+                    "minimum": -100,
+                    "maximum": 100
+                  }
+                },
+                "required": [],
+                "additionalProperties": false,
+                "minProperties": 1
+              }
+            },
+            "required": [
+              "instanceId",
+              "requestId",
+              "deviceId",
+              "bindingId",
+              "expectedName",
+              "kind",
+              "parameters"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "instanceId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "requestId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f]+$"
+              },
+              "deviceId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64
+              },
+              "bindingId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "expectedName": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "kind": {
+                "const": "focuser-move"
+              },
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "position": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 2147483646
+                  },
+                  "minPosition": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 2147483646
+                  },
+                  "maxPosition": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 2147483646
+                  }
+                },
+                "required": [
+                  "position",
+                  "minPosition",
+                  "maxPosition"
+                ],
+                "additionalProperties": false,
+                "description": "Target must lie inside the client travel window and below driver MaxStep. Zero is deliberately excluded."
+              }
+            },
+            "required": [
+              "instanceId",
+              "requestId",
+              "deviceId",
+              "bindingId",
+              "expectedName",
+              "kind",
+              "parameters"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "instanceId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "requestId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f]+$"
+              },
+              "deviceId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64
+              },
+              "bindingId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "expectedName": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "kind": {
+                "const": "mount-slew"
+              },
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "rightAscensionDegrees": {
+                    "type": "number",
+                    "minimum": 0,
+                    "exclusiveMaximum": 360
+                  },
+                  "declinationDegrees": {
+                    "type": "number",
+                    "minimum": -90,
+                    "maximum": 90
+                  },
+                  "coordinateSystem": {
+                    "type": "string",
+                    "enum": [
+                      "topocentric",
+                      "j2000",
+                      "j2050",
+                      "b1950"
+                    ]
+                  }
+                },
+                "required": [
+                  "rightAscensionDegrees",
+                  "declinationDegrees",
+                  "coordinateSystem"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "instanceId",
+              "requestId",
+              "deviceId",
+              "bindingId",
+              "expectedName",
+              "kind",
+              "parameters"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "instanceId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "requestId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f]+$"
+              },
+              "deviceId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64
+              },
+              "bindingId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "expectedName": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "kind": {
+                "const": "mount-tracking"
+              },
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "tracking": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "tracking"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "instanceId",
+              "requestId",
+              "deviceId",
+              "bindingId",
+              "expectedName",
+              "kind",
+              "parameters"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "instanceId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "requestId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f]+$"
+              },
+              "deviceId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64
+              },
+              "bindingId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "expectedName": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "kind": {
+                "const": "mount-axis"
+              },
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "rateDegreesPerSecond": {
+                    "type": "number",
+                    "minimum": -10,
+                    "maximum": 10,
+                    "not": {
+                      "const": 0
+                    }
+                  },
+                  "durationSeconds": {
+                    "type": "number",
+                    "minimum": 0.001,
+                    "maximum": 120
+                  }
+                },
+                "required": [
+                  "rateDegreesPerSecond",
+                  "durationSeconds"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "instanceId",
+              "requestId",
+              "deviceId",
+              "bindingId",
+              "expectedName",
+              "kind",
+              "parameters"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "instanceId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "requestId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f]+$"
+              },
+              "deviceId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64
+              },
+              "bindingId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "expectedName": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "kind": {
+                "const": "mount-rotate"
+              },
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "rateDegreesPerSecond": {
+                    "type": "number",
+                    "minimum": -10,
+                    "maximum": 10,
+                    "not": {
+                      "const": 0
+                    }
+                  },
+                  "distanceDegrees": {
+                    "type": "number",
+                    "minimum": -120,
+                    "maximum": 120,
+                    "not": {
+                      "const": 0
+                    }
+                  }
+                },
+                "required": [
+                  "rateDegreesPerSecond",
+                  "distanceDegrees"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "instanceId",
+              "requestId",
+              "deviceId",
+              "bindingId",
+              "expectedName",
+              "kind",
+              "parameters"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "instanceId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "requestId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f]+$"
+              },
+              "deviceId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64
+              },
+              "bindingId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "expectedName": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "kind": {
+                "const": "switch-set"
+              },
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "channelId": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 63
+                  },
+                  "value": {
+                    "type": "number",
+                    "minimum": -1000000000000.0,
+                    "maximum": 1000000000000.0
+                  }
+                },
+                "required": [
+                  "channelId",
+                  "value"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "instanceId",
+              "requestId",
+              "deviceId",
+              "bindingId",
+              "expectedName",
+              "kind",
+              "parameters"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "instanceId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "requestId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f]+$"
+              },
+              "deviceId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64
+              },
+              "bindingId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "expectedName": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "kind": {
+                "const": "device-connect"
+              },
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "connected": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "connected"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "instanceId",
+              "requestId",
+              "deviceId",
+              "bindingId",
+              "expectedName",
+              "kind",
+              "parameters"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "instanceId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "requestId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f]+$"
+              },
+              "deviceId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64
+              },
+              "bindingId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "expectedName": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "kind": {
+                "const": "focuser-halt"
+              },
+              "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "instanceId",
+              "requestId",
+              "deviceId",
+              "bindingId",
+              "expectedName",
+              "kind",
+              "parameters"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "instanceId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "requestId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f]+$"
+              },
+              "deviceId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64
+              },
+              "bindingId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "expectedName": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "kind": {
+                "const": "mount-home"
+              },
+              "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "instanceId",
+              "requestId",
+              "deviceId",
+              "bindingId",
+              "expectedName",
+              "kind",
+              "parameters"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "instanceId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "requestId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f]+$"
+              },
+              "deviceId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64
+              },
+              "bindingId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "expectedName": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "kind": {
+                "const": "mount-stop"
+              },
+              "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "instanceId",
+              "requestId",
+              "deviceId",
+              "bindingId",
+              "expectedName",
+              "kind",
+              "parameters"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "instanceId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "requestId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f]+$"
+              },
+              "deviceId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64
+              },
+              "bindingId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "expectedName": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "kind": {
+                "const": "mount-park"
+              },
+              "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "instanceId",
+              "requestId",
+              "deviceId",
+              "bindingId",
+              "expectedName",
+              "kind",
+              "parameters"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "instanceId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "requestId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f]+$"
+              },
+              "deviceId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64
+              },
+              "bindingId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "expectedName": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "kind": {
+                "const": "mount-unpark"
+              },
+              "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "instanceId",
+              "requestId",
+              "deviceId",
+              "bindingId",
+              "expectedName",
+              "kind",
+              "parameters"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "Reading": {
+        "type": "object",
+        "properties": {
+          "value": {},
+          "observedAt": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "checkedAt": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "readStartedAt": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "generation": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "current",
+              "unsupported",
+              "error",
+              "stale"
+            ]
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "value",
+          "observedAt",
+          "checkedAt",
+          "readStartedAt",
+          "generation",
+          "status",
+          "message"
+        ],
+        "additionalProperties": false
+      },
+      "Original": {
+        "type": "object",
+        "properties": {
+          "mediaType": {
+            "const": "application/imagebytes"
+          },
+          "bytes": {
+            "type": "integer",
+            "minimum": 44
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "mediaType",
+          "bytes",
+          "url"
+        ],
+        "additionalProperties": false
+      },
+      "Image": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "operationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "instanceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "deviceId": {
+            "type": "string"
+          },
+          "cameraName": {
+            "type": "string"
+          },
+          "bindingId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "width": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100000000
+          },
+          "height": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100000000
+          },
+          "binX": {
+            "type": "integer"
+          },
+          "binY": {
+            "type": "integer"
+          },
+          "startX": {
+            "type": "integer"
+          },
+          "startY": {
+            "type": "integer"
+          },
+          "exposureSeconds": {
+            "type": "number"
+          },
+          "color": {
+            "type": "string",
+            "enum": [
+              "mono",
+              "rggb",
+              "grbg",
+              "gbrg",
+              "bggr"
+            ]
+          },
+          "capturedAt": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "capturedAtSource": {
+            "type": "string",
+            "enum": [
+              "camera",
+              "server-estimate"
+            ]
+          },
+          "retainedAt": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "original": {
+            "$ref": "#/components/schemas/Original"
+          },
+          "preview": {
+            "type": "null"
+          }
+        },
+        "required": [
+          "id",
+          "operationId",
+          "instanceId",
+          "deviceId",
+          "cameraName",
+          "bindingId",
+          "width",
+          "height",
+          "binX",
+          "binY",
+          "startX",
+          "startY",
+          "exposureSeconds",
+          "color",
+          "capturedAt",
+          "capturedAtSource",
+          "retainedAt",
+          "sha256",
+          "original",
+          "preview"
+        ],
+        "additionalProperties": false
+      },
+      "Operation": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "instanceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "requestId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f]+$"
+          },
+          "deviceId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "bindingId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "expectedName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "failureDomain": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "capture",
+              "camera-configure",
+              "cooling",
+              "focuser-move",
+              "mount-slew",
+              "mount-tracking",
+              "mount-axis",
+              "mount-rotate",
+              "switch-set",
+              "device-connect",
+              "focuser-halt",
+              "mount-home",
+              "mount-stop",
+              "mount-park",
+              "mount-unpark"
+            ]
+          },
+          "parameters": {
+            "type": "object"
+          },
+          "acceptedAt": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "startedAt": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "completedAt": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "accepted",
+              "running",
+              "succeeded",
+              "failed",
+              "cancelled",
+              "uncertain"
+            ]
+          },
+          "phase": {
+            "type": "string"
+          },
+          "elapsedSeconds": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Latest worker elapsed-time sample since capture start, including completion/cleanup wait; null when no sample exists. Not measured shutter-open duration."
+          },
+          "acknowledged": {
+            "type": "boolean"
+          },
+          "cancelRequested": {
+            "type": "boolean"
+          },
+          "blocksDevice": {
+            "type": "boolean"
+          },
+          "settled": {
+            "type": "boolean"
+          },
+          "observation": {
+            "type": "string",
+            "enum": [
+              "current",
+              "retrying"
+            ]
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "result": {
+            "type": "object"
+          },
+          "reservedImageId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "image": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Image"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reconciliation": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "at": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "note": {
+                    "type": "string"
+                  },
+                  "externalRecoveryConfirmed": {
+                    "const": true
+                  }
+                },
+                "required": [
+                  "at",
+                  "note",
+                  "externalRecoveryConfirmed"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "instanceId",
+          "requestId",
+          "deviceId",
+          "bindingId",
+          "expectedName",
+          "failureDomain",
+          "kind",
+          "parameters",
+          "acceptedAt",
+          "startedAt",
+          "completedAt",
+          "status",
+          "phase",
+          "elapsedSeconds",
+          "acknowledged",
+          "cancelRequested",
+          "blocksDevice",
+          "settled",
+          "observation",
+          "message",
+          "result",
+          "reservedImageId",
+          "image",
+          "reconciliation"
+        ],
+        "additionalProperties": false
+      },
+      "Device": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "camera",
+              "mount",
+              "focuser",
+              "weather",
+              "switch"
+            ]
+          },
+          "bindingId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "expectedName": {
+            "type": "string"
+          },
+          "failureDomain": {
+            "type": "string"
+          },
+          "health": {
+            "type": "string",
+            "enum": [
+              "starting",
+              "ready",
+              "refreshing",
+              "degraded",
+              "disconnected",
+              "unavailable"
+            ]
+          },
+          "blocked": {
+            "type": "boolean"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "observationGeneration": {
+            "type": "integer"
+          },
+          "refreshPending": {
+            "type": "boolean"
+          },
+          "fields": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Reading"
+            }
+          },
+          "channels": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": {
+                "$ref": "#/components/schemas/Reading"
+              }
+            }
+          },
+          "commandReady": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "bindingId",
+          "expectedName",
+          "failureDomain",
+          "health",
+          "blocked",
+          "reason",
+          "observationGeneration",
+          "refreshPending",
+          "fields",
+          "channels",
+          "commandReady"
+        ],
+        "additionalProperties": false
+      },
+      "State": {
+        "type": "object",
+        "properties": {
+          "protocolVersion": {
+            "const": 4
+          },
+          "instanceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sequence": {
+            "type": "integer"
+          },
+          "generatedAt": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "commandsEnabled": {
+            "type": "boolean"
+          },
+          "devices": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Device"
+            }
+          },
+          "operations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Operation"
+            }
+          }
+        },
+        "required": [
+          "protocolVersion",
+          "instanceId",
+          "sequence",
+          "generatedAt",
+          "commandsEnabled",
+          "devices",
+          "operations"
+        ],
+        "additionalProperties": false
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "message"
+            ],
+            "additionalProperties": false
+          },
+          "instanceId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "additionalProperties": false
+      },
+      "RecoveryRequest": {
+        "type": "object",
+        "properties": {
+          "instanceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "bindingId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "externalRecoveryConfirmed": {
+            "const": true
+          },
+          "note": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024
+          }
+        },
+        "required": [
+          "instanceId",
+          "bindingId",
+          "externalRecoveryConfirmed",
+          "note"
+        ],
+        "additionalProperties": false
+      },
+      "TelemetryEvent": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "const": 2
+          },
+          "eventId": {
+            "type": "string"
+          },
+          "instanceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sequence": {
+            "type": "integer"
+          },
+          "timestamp": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "type": {
+            "type": "string"
+          },
+          "deviceId": {
+            "type": "string"
+          },
+          "severity": {
+            "type": "string"
+          },
+          "traceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "details": {},
+          "cursor": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "version",
+          "eventId",
+          "instanceId",
+          "sequence",
+          "timestamp",
+          "type",
+          "deviceId",
+          "severity",
+          "traceId",
+          "details",
+          "cursor"
+        ],
+        "additionalProperties": false
+      },
+      "TelemetryPage": {
+        "type": "object",
+        "properties": {
+          "events": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TelemetryEvent"
+            }
+          },
+          "hasMore": {
+            "type": "boolean"
+          },
+          "nextCursor": {
+            "type": "string"
+          },
+          "highWaterCursor": {
+            "type": "string"
+          },
+          "prunedThrough": {
+            "type": "string"
+          },
+          "gap": {
+            "anyOf": [
+              {
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "events",
+          "hasMore",
+          "nextCursor",
+          "highWaterCursor",
+          "prunedThrough",
+          "gap"
+        ],
+        "additionalProperties": false
+      }
+    }
+  }
+}
