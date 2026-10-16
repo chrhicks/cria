@@ -1,0 +1,46 @@
+{
+  "listen": { "host": "127.0.0.1", "port": 4319 },
+  "indi": { "host": "127.0.0.1", "port": 7624 },
+  "imageDirectory": "/var/lib/cria/images",
+  "imageBudgetBytes": 10737418240,
+  "commandsEnabled": true,
+  "livenessMs": 1000,
+  "acknowledgeMs": 5000,
+  "operationTimeoutMs": 180000,
+  "readoutAllowanceMs": 30000,
+  "initializeTimeoutMs": 120000,
+  "operationHistory": 1000,
+  "devices": [
+    { "id": "primary", "kind": "camera", "indiDevice": "ZWO CCD ASI2600MC Pro", "connect": false, "frameGrid": { "width": 8, "height": 2 } },
+    { "id": "guide", "kind": "camera", "indiDevice": "ZWO CCD ASI220MM Mini", "connect": false, "frameGrid": { "width": 8, "height": 2 } },
+    { "id": "focuser", "kind": "focuser", "indiDevice": "ZWO EAF", "connect": false, "travel": { "min": 15500, "max": 38000 } },
+    {
+      "id": "mount",
+      "kind": "mount",
+      "indiDevice": "ZWO AM5",
+      "connect": false,
+      "port": "/dev/serial/by-id/usb-ZWO_Systems_ZWO_Device_123456-if00",
+      "site": { "latitudeDegrees": 40.0, "longitudeDegrees": -75, "elevationMeters": 0 }
+    },
+    {
+      "id": "weather",
+      "kind": "weather",
+      "indiDevice": "Pegasus PPBA",
+      "connect": false,
+      "port": "/dev/serial/by-id/usb-Pegasus_Astro_PPBMicro_revB_PPBMA00000-if00-port0"
+    },
+    {
+      "id": "switch",
+      "kind": "switch",
+      "indiDevice": "Pegasus PPBA",
+      "channels": [
+        { "name": "12V ports", "property": "POWER_CHANNELS", "element": "POWER_CHANNEL_1" },
+        { "name": "Dew A", "property": "DEW_CHANNELS", "element": "DEW_CHANNEL_1" },
+        { "name": "Dew B", "property": "DEW_CHANNELS", "element": "DEW_CHANNEL_2" },
+        { "name": "Dew A duty (%)", "property": "DEW_DUTY_CYCLES", "element": "DEW_CHANNEL_1", "automaticWhileOn": "Auto dew" },
+        { "name": "Dew B duty (%)", "property": "DEW_DUTY_CYCLES", "element": "DEW_CHANNEL_2", "automaticWhileOn": "Auto dew" },
+        { "name": "Auto dew", "property": "AUTO_DEW_CONTROL", "element": "DEW_CHANNEL_1" }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "name": "@cria/indi",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "INDI client: XML over TCP to indiserver, behind a narrow boundary",
+  "exports": {
+    ".": {
+      "@cria/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "effect": "4.0.3"
+  }
+}

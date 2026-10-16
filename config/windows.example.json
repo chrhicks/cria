@@ -1,0 +1,20 @@
+{
+  "version": 2,
+  "listen": "http://127.0.0.1:4319",
+  "dataDirectory": "../data",
+  "workerExecutable": "../worker/Cria.Driver.Windows.exe",
+  "fixture": false,
+  "ownershipConfirmed": false,
+  "commandsEnabled": false,
+  "devices": [
+    {
+      "id": "primary",
+      "kind": "camera",
+      "progId": "ASCOM.ASICamera2.Camera",
+      "expectedName": "REPLACE WITH VERIFIED OPERATIONAL CAMERA NAME",
+      "failureDomain": "primary",
+      "connect": false,
+      "setupBeforeConnect": false
+    }
+  ]
+}

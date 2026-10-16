@@ -1,0 +1,38 @@
+{
+  "dotnet-LICENSE": {
+    "source": "NuGet package: microsoft.netcore.app.runtime.win-x64/10.0.12/LICENSE.TXT",
+    "sha256": "d7a68596ab69b06f51ca278a6545148e4269a9381c26d597c13df5d88e08cf5b"
+  },
+  "dotnet-THIRD-PARTY-NOTICES": {
+    "source": "NuGet package: microsoft.netcore.app.runtime.win-x64/10.0.12/THIRD-PARTY-NOTICES.TXT",
+    "sha256": "6d15e10a101c6bfff2ab4429ed061bf76c456fc4b23ad6b03e0d0f8377148a21"
+  },
+  "aspnetcore-LICENSE": {
+    "source": "NuGet package: microsoft.aspnetcore.app.runtime.win-x64/10.0.12/LICENSE.txt",
+    "sha256": "d7a68596ab69b06f51ca278a6545148e4269a9381c26d597c13df5d88e08cf5b"
+  },
+  "aspnetcore-THIRD-PARTY-NOTICES": {
+    "source": "NuGet package: microsoft.aspnetcore.app.runtime.win-x64/10.0.12/THIRD-PARTY-NOTICES.TXT",
+    "sha256": "307d014f65d8482314f1400ddeae7a0cbabb96c2207bcc77f6233cc10588e5d9"
+  },
+  "ASCOMLibrary-LICENSE": {
+    "source": "Copied unchanged from root driver-host/licenses/ASCOMLibrary-LICENSE",
+    "sha256": "4afe373b0fa701614f4c9dae2791707ef8613cd7ceb35d32d79d9d0ce28d41d7"
+  },
+  "ASCOM-Exceptions-LICENSE": {
+    "source": "Copied unchanged from root driver-host/licenses/ASCOM-Exceptions-LICENSE",
+    "sha256": "4065df0796356dbd51c5c59f03a3a44975829c11cf6508a473fa5ccc5f38ac56"
+  },
+  "SQLitePCLRaw-LICENSE": {
+    "source": "https://raw.githubusercontent.com/ericsink/SQLitePCL.raw/v2.1.12/LICENSE.TXT",
+    "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+  },
+  "SQLitePCLRaw-NOTICE": {
+    "source": "https://raw.githubusercontent.com/ericsink/SQLitePCL.raw/v2.1.12/NOTICE.TXT",
+    "sha256": "485b276b3d2bfaa26df348e1e5c84df3648981e09b88531a6a53006f0705c24b"
+  },
+  "SQLite-LICENSE": {
+    "source": "NuGet package: sqlitepclraw.lib.e_sqlite3/3.53.3/LICENSE.txt",
+    "sha256": "99464c3a88df7b708ce59e462cdcb85f72dfc9b1335b4fcc68be56131b634b95"
+  }
+}

@@ -1,0 +1,8 @@
+<Solution>
+  <Project Path="src/Cria.Api/Cria.Api.csproj" />
+  <Project Path="src/Cria.Contracts/Cria.Contracts.csproj" />
+  <Project Path="src/Cria.Driver.Core/Cria.Driver.Core.csproj" />
+  <Project Path="tests/Cria.Driver.Fixture/Cria.Driver.Fixture.csproj" />
+  <Project Path="src/Cria.Driver.Windows/Cria.Driver.Windows.csproj" />
+  <Project Path="src/Cria.Desktop/Cria.Desktop.csproj" />
+</Solution>

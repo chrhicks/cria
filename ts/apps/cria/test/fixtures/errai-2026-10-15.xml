@@ -1,0 +1,2278 @@
+<defSwitchVector device="ZWO EAF" name="CONNECTION" label="Connection" group="Main Control" state="Ok" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-10-15T12:11:44">
+    <defSwitch name="CONNECT" label="Connect">
+On
+    </defSwitch>
+    <defSwitch name="DISCONNECT" label="Disconnect">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defTextVector device="ZWO EAF" name="DRIVER_INFO" label="Driver Info" group="General Info" state="Idle" perm="ro" timeout="60" timestamp="2026-10-15T12:11:44">
+    <defText name="DRIVER_NAME" label="Name">
+ZWO EAF
+    </defText>
+    <defText name="DRIVER_EXEC" label="Exec">
+indi_asi_focuser
+    </defText>
+    <defText name="DRIVER_VERSION" label="Version">
+1.2
+    </defText>
+    <defText name="DRIVER_INTERFACE" label="Interface">
+8
+    </defText>
+</defTextVector>
+<defSwitchVector device="ZWO EAF" name="DEBUG" label="Debug" group="Options" state="Idle" perm="rw" rule="OneOfMany" timeout="0" timestamp="2026-10-15T12:11:44">
+    <defSwitch name="ENABLE" label="Enable">
+Off
+    </defSwitch>
+    <defSwitch name="DISABLE" label="Disable">
+On
+    </defSwitch>
+</defSwitchVector>
+<defNumberVector device="ZWO EAF" name="POLLING_PERIOD" label="Polling" group="Options" state="Idle" perm="rw" timeout="0" timestamp="2026-10-15T12:11:44">
+    <defNumber name="PERIOD_MS" label="Period (ms)" format="%.f" min="10" max="600000" step="1000">
+500
+    </defNumber>
+</defNumberVector>
+<defTextVector device="ZWO EAF" name="NICKNAME" label="Nickname" group="General Info" state="Idle" perm="rw" timeout="60" timestamp="2026-10-15T12:11:44">
+    <defText name="nickname" label="nickname"/>
+</defTextVector>
+<defSwitchVector device="ZWO EAF" name="CONFIG_PROCESS" label="Configuration" group="Options" state="Idle" perm="rw" rule="AtMostOne" timeout="0" timestamp="2026-10-15T12:11:44">
+    <defSwitch name="CONFIG_LOAD" label="Load">
+Off
+    </defSwitch>
+    <defSwitch name="CONFIG_SAVE" label="Save">
+Off
+    </defSwitch>
+    <defSwitch name="CONFIG_DEFAULT" label="Default">
+Off
+    </defSwitch>
+    <defSwitch name="CONFIG_PURGE" label="Purge">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defNumberVector device="ZWO EAF" name="FOCUS_TEMPERATURE" label="Temperature" group="Main Control" state="Ok" perm="ro" timeout="0" timestamp="2026-10-15T12:11:44">
+    <defNumber name="TEMPERATURE" label="Celsius" format="%.2f" min="-50" max="70" step="0">
+24
+    </defNumber>
+</defNumberVector>
+<defSwitchVector device="ZWO EAF" name="FOCUS_BEEP" label="Beep" group="Options" state="Ok" perm="rw" rule="OneOfMany" timeout="0" timestamp="2026-10-15T12:11:44">
+    <defSwitch name="ON" label="On">
+On
+    </defSwitch>
+    <defSwitch name="OFF" label="Off">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defTextVector device="ZWO EAF" name="VERSION" label="Version" group="General Info" state="Idle" perm="ro" timeout="60" timestamp="2026-10-15T12:11:44">
+    <defText name="VERSION_FIRMWARE" label="Firmware">
+3.8.1
+    </defText>
+    <defText name="VERSION_SDK" label="SDK">
+1, 7, 7, 0
+    </defText>
+</defTextVector>
+<defTextVector device="ZWO EAF" name="Serial Number" label="Serial Number" group="General Info" state="Idle" perm="ro" timeout="60" timestamp="2026-10-15T12:11:44">
+    <defText name="SN" label="SN">
+600068EE8F6C831C
+    </defText>
+</defTextVector>
+<defSwitchVector device="ZWO EAF" name="TEMPC_SWITCH" label="Temperature Compensation" group="Temperature compensation" state="Idle" perm="rw" rule="OneOfMany" timeout="0" timestamp="2026-10-15T12:11:44">
+    <defSwitch name="ON" label="On">
+Off
+    </defSwitch>
+    <defSwitch name="OFF" label="Off">
+On
+    </defSwitch>
+</defSwitchVector>
+<defNumberVector device="ZWO EAF" name="TEMP_COMPENSATION" label="Temperature compensation" group="Temperature compensation" state="Idle" perm="rw" timeout="0" timestamp="2026-10-15T12:11:44">
+    <defNumber name="STEPS" label="Steps per Celsius" format="%.f" min="-200" max="200" step="1">
+0
+    </defNumber>
+    <defNumber name="HYSTERESIS" label="Delta in Celsius" format="%.1f" min="0" max="10" step="0.10000000000000000555">
+1
+    </defNumber>
+    <defNumber name="SAMPLES" label="Number of samples" format="%.f" min="1" max="120" step="1">
+5
+    </defNumber>
+    <defNumber name="MEAN" label="Celsius" format="%.2f" min="-274" max="100" step="0.10000000000000000555">
+0
+    </defNumber>
+</defNumberVector>
+<defSwitchVector device="ZWO EAF" name="FOCUS_MOTION" label="Direction" group="Main Control" state="Ok" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-10-15T12:11:44">
+    <defSwitch name="FOCUS_INWARD" label="Focus In">
+On
+    </defSwitch>
+    <defSwitch name="FOCUS_OUTWARD" label="Focus Out">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defNumberVector device="ZWO EAF" name="REL_FOCUS_POSITION" label="Relative Position" group="Main Control" state="Ok" perm="rw" timeout="60" timestamp="2026-10-15T12:11:44">
+    <defNumber name="FOCUS_RELATIVE_POSITION" label="Steps" format="%.f" min="0" max="300000" step="15000">
+0
+    </defNumber>
+</defNumberVector>
+<defNumberVector device="ZWO EAF" name="ABS_FOCUS_POSITION" label="Absolute Position" group="Main Control" state="Ok" perm="rw" timeout="60" timestamp="2026-10-15T12:11:44">
+    <defNumber name="FOCUS_ABSOLUTE_POSITION" label="Steps" format="%.f" min="0" max="60000" step="30000">
+32749
+    </defNumber>
+</defNumberVector>
+<defNumberVector device="ZWO EAF" name="FOCUS_MAX" label="Max. Position" group="Main Control" state="Ok" perm="rw" timeout="60" timestamp="2026-10-15T12:11:44">
+    <defNumber name="FOCUS_MAX_VALUE" label="Steps" format="%.f" min="1000" max="600000" step="10000">
+100000
+    </defNumber>
+</defNumberVector>
+<defSwitchVector device="ZWO EAF" name="FOCUS_ABORT_MOTION" label="Abort Motion" group="Main Control" state="Idle" perm="rw" rule="AtMostOne" timeout="60" timestamp="2026-10-15T12:11:44">
+    <defSwitch name="ABORT" label="Abort">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defNumberVector device="ZWO EAF" name="FOCUS_SYNC" label="Sync" group="Main Control" state="Ok" perm="rw" timeout="60" timestamp="2026-10-15T12:11:44">
+    <defNumber name="FOCUS_SYNC_VALUE" label="Steps" format="%.f" min="0" max="100000" step="1000">
+0
+    </defNumber>
+</defNumberVector>
+<defSwitchVector device="ZWO EAF" name="FOCUS_REVERSE_MOTION" label="Reverse Motion" group="Main Control" state="Ok" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-10-15T12:11:44">
+    <defSwitch name="INDI_ENABLED" label="Enabled">
+Off
+    </defSwitch>
+    <defSwitch name="INDI_DISABLED" label="Disabled">
+On
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="ZWO EAF" name="FOCUS_BACKLASH_TOGGLE" label="Backlash" group="Main Control" state="Idle" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-10-15T12:11:44">
+    <defSwitch name="INDI_ENABLED" label="Enabled">
+Off
+    </defSwitch>
+    <defSwitch name="INDI_DISABLED" label="Disabled">
+On
+    </defSwitch>
+</defSwitchVector>
+<defNumberVector device="ZWO EAF" name="FOCUS_BACKLASH_STEPS" label="Backlash" group="Main Control" state="Ok" perm="rw" timeout="60" timestamp="2026-10-15T12:11:44">
+    <defNumber name="FOCUS_BACKLASH_VALUE" label="Steps" format="%.f" min="0" max="9999" step="100">
+0
+    </defNumber>
+</defNumberVector>
+<defNumberVector device="ZWO EAF" name="Presets" label="Presets" group="Presets" state="Idle" perm="rw" timeout="0" timestamp="2026-10-15T12:11:44">
+    <defNumber name="PRESET_1" label="Preset 1" format="%.f" min="0" max="600000" step="30000">
+0
+    </defNumber>
+    <defNumber name="PRESET_2" label="Preset 2" format="%.f" min="0" max="600000" step="30000">
+0
+    </defNumber>
+    <defNumber name="PRESET_3" label="Preset 3" format="%.f" min="0" max="600000" step="30000">
+0
+    </defNumber>
+</defNumberVector>
+<defSwitchVector device="ZWO EAF" name="Goto" label="Goto" group="Presets" state="Idle" perm="rw" rule="OneOfMany" timeout="0" timestamp="2026-10-15T12:11:44">
+    <defSwitch name="Preset 1" label="Preset 1">
+Off
+    </defSwitch>
+    <defSwitch name="Preset 2" label="Preset 2">
+Off
+    </defSwitch>
+    <defSwitch name="Preset 3" label="Preset 3">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="ZWO EAF" name="USEJOYSTICK" label="Joystick" group="Options" state="Idle" perm="rw" rule="OneOfMany" timeout="0" timestamp="2026-10-15T12:11:44">
+    <defSwitch name="ENABLE" label="Enable">
+Off
+    </defSwitch>
+    <defSwitch name="DISABLE" label="Disable">
+On
+    </defSwitch>
+</defSwitchVector>
+<defTextVector device="ZWO EAF" name="SNOOP_JOYSTICK" label="Snoop Joystick" group="Options" state="Idle" perm="rw" timeout="60" timestamp="2026-10-15T12:11:44">
+    <defText name="SNOOP_JOYSTICK_DEVICE" label="Device">
+Joystick
+    </defText>
+</defTextVector>
+<defSwitchVector device="ZWO EAF" name="USEJOYSTICK" label="Joystick" group="Options" state="Idle" perm="rw" rule="OneOfMany" timeout="0" timestamp="2026-10-15T12:11:44">
+    <defSwitch name="ENABLE" label="Enable">
+Off
+    </defSwitch>
+    <defSwitch name="DISABLE" label="Disable">
+On
+    </defSwitch>
+</defSwitchVector>
+<defTextVector device="ZWO EAF" name="SNOOP_JOYSTICK" label="Snoop Joystick" group="Options" state="Idle" perm="rw" timeout="60" timestamp="2026-10-15T12:11:44">
+    <defText name="SNOOP_JOYSTICK_DEVICE" label="Device">
+Joystick
+    </defText>
+</defTextVector>
+<defSwitchVector device="Pegasus PPBA" name="CONNECTION" label="Connection" group="Main Control" state="Ok" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-10-15T12:11:44">
+    <defSwitch name="CONNECT" label="Connect">
+On
+    </defSwitch>
+    <defSwitch name="DISCONNECT" label="Disconnect">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defTextVector device="Pegasus PPBA" name="DRIVER_INFO" label="Driver Info" group="Connection" state="Idle" perm="ro" timeout="60" timestamp="2026-10-15T12:11:44">
+    <defText name="DRIVER_NAME" label="Name">
+Pegasus PPBA
+    </defText>
+    <defText name="DRIVER_EXEC" label="Exec">
+indi_pegasus_ppba
+    </defText>
+    <defText name="DRIVER_VERSION" label="Version">
+1.4
+    </defText>
+    <defText name="DRIVER_INTERFACE" label="Interface">
+295040
+    </defText>
+</defTextVector>
+<defSwitchVector device="Pegasus PPBA" name="DEBUG" label="Debug" group="Options" state="Idle" perm="rw" rule="OneOfMany" timeout="0" timestamp="2026-10-15T12:11:44">
+    <defSwitch name="ENABLE" label="Enable">
+Off
+    </defSwitch>
+    <defSwitch name="DISABLE" label="Disable">
+On
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="Pegasus PPBA" name="SIMULATION" label="Simulation" group="Options" state="Idle" perm="rw" rule="OneOfMany" timeout="0" timestamp="2026-10-15T12:11:44">
+    <defSwitch name="ENABLE" label="Enable">
+Off
+    </defSwitch>
+    <defSwitch name="DISABLE" label="Disable">
+On
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="Pegasus PPBA" name="CONFIG_PROCESS" label="Configuration" group="Options" state="Idle" perm="rw" rule="AtMostOne" timeout="0" timestamp="2026-10-15T12:11:44">
+    <defSwitch name="CONFIG_LOAD" label="Load">
+Off
+    </defSwitch>
+    <defSwitch name="CONFIG_SAVE" label="Save">
+Off
+    </defSwitch>
+    <defSwitch name="CONFIG_DEFAULT" label="Default">
+Off
+    </defSwitch>
+    <defSwitch name="CONFIG_PURGE" label="Purge">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defNumberVector device="Pegasus PPBA" name="POLLING_PERIOD" label="Polling" group="Options" state="Idle" perm="rw" timeout="0" timestamp="2026-10-15T12:11:44">
+    <defNumber name="PERIOD_MS" label="Period (ms)" format="%.f" min="10" max="600000" step="1000">
+1000
+    </defNumber>
+</defNumberVector>
+<defSwitchVector device="Pegasus PPBA" name="CONNECTION_MODE" label="Connection Mode" group="Connection" state="Idle" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-10-15T12:11:44">
+    <defSwitch name="CONNECTION_SERIAL" label="Serial">
+On
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="Pegasus PPBA" name="SYSTEM_PORTS" label="System Ports" group="Connection" state="Idle" perm="rw" rule="AtMostOne" timeout="60" timestamp="2026-10-15T12:11:44">
+    <defSwitch name="ZWO_Systems_ZWO_Device_123456" label="ZWO_Systems_ZWO_Device_123456">
+Off
+    </defSwitch>
+    <defSwitch name="Pegasus_Astro_PPBMicro_revB_PPBMA00000" label="Pegasus_Astro_PPBMicro_revB_PPBMA00000">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defTextVector device="Pegasus PPBA" name="DEVICE_PORT" label="Ports" group="Connection" state="Idle" perm="rw" timeout="60" timestamp="2026-10-15T12:11:44">
+    <defText name="PORT" label="Port">
+/dev/serial/by-id/usb-Pegasus_Astro_PPBMicro_revB_PPBMA00000-if00-port0
+    </defText>
+</defTextVector>
+<defSwitchVector device="Pegasus PPBA" name="DEVICE_BAUD_RATE" label="Baud Rate" group="Connection" state="Idle" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-10-15T12:11:44">
+    <defSwitch name="9600" label="9600">
+On
+    </defSwitch>
+    <defSwitch name="19200" label="19200">
+Off
+    </defSwitch>
+    <defSwitch name="38400" label="38400">
+Off
+    </defSwitch>
+    <defSwitch name="57600" label="57600">
+Off
+    </defSwitch>
+    <defSwitch name="115200" label="115200">
+Off
+    </defSwitch>
+    <defSwitch name="230400" label="230400">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="Pegasus PPBA" name="DEVICE_AUTO_SEARCH" label="Auto Search" group="Connection" state="Idle" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-10-15T12:11:44">
+    <defSwitch name="INDI_ENABLED" label="Enabled">
+Off
+    </defSwitch>
+    <defSwitch name="INDI_DISABLED" label="Disabled">
+On
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="Pegasus PPBA" name="DEVICE_PORT_SCAN" label="Refresh" group="Connection" state="Idle" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-10-15T12:11:44">
+    <defSwitch name="Scan Ports" label="Scan Ports">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="Pegasus PPBA" name="REBOOT_DEVICE" label="Device" group="Main Control" state="Idle" perm="rw" rule="AtMostOne" timeout="60" timestamp="2026-10-15T12:11:44">
+    <defSwitch name="REBOOT" label="Reboot Device">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defLightVector device="" name="" label="" group="" state="Ok" timestamp="2026-10-15T12:11:44">
+    <defLight name="" label="">
+Ok
+    </defLight>
+</defLightVector>
+<defSwitchVector device="Pegasus PPBA" name="POWER_ON_BOOT" label="Power On Boot" group="Main Control" state="Idle" perm="rw" rule="AnyOfMany" timeout="60" timestamp="2026-10-15T12:11:44">
+    <defSwitch name="POWER_PORT_1" label="Quad Out">
+On
+    </defSwitch>
+    <defSwitch name="POWER_PORT_2" label="Adj Out">
+On
+    </defSwitch>
+    <defSwitch name="POWER_PORT_3" label="Dew A">
+On
+    </defSwitch>
+    <defSwitch name="POWER_PORT_4" label="Dew B">
+On
+    </defSwitch>
+</defSwitchVector>
+<defNumberVector device="Pegasus PPBA" name="AUTO_DEW_SETTINGS" label="Auto Dew Settings" group="Dew" state="Idle" perm="rw" timeout="60" timestamp="2026-10-15T12:11:44">
+    <defNumber name="AGGRESSION" label="Aggresiveness (%)" format="%.2f" min="0" max="100" step="10">
+82
+    </defNumber>
+</defNumberVector>
+<defNumberVector device="Pegasus PPBA" name="POWER_SENSORS" label="Sensors" group="Power" state="Ok" perm="ro" timeout="60" timestamp="2026-10-15T12:11:44">
+    <defNumber name="SENSOR_VOLTAGE" label="Voltage (V)" format="%.2f" min="0" max="999" step="0">
+12.900000000000000355
+    </defNumber>
+    <defNumber name="SENSOR_CURRENT" label="Current (A)" format="%.2f" min="0" max="999" step="0">
+0.76923076923076927347
+    </defNumber>
+    <defNumber name="SENSOR_POWER" label="Power (W)" format="%.2f" min="0" max="999" step="0">
+9.9230769230769233502
+    </defNumber>
+</defNumberVector>
+<defSwitchVector device="Pegasus PPBA" name="LED_CONTROL" label="LEDs" group="Power" state="Idle" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-10-15T12:11:44">
+    <defSwitch name="INDI_ENABLED" label="On">
+On
+    </defSwitch>
+    <defSwitch name="INDI_DISABLED" label="Off">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="Pegasus PPBA" name="AUTO_DEW_CONTROL" label="Dew Control" group="Dew" state="Idle" perm="rw" rule="AnyOfMany" timeout="60" timestamp="2026-10-15T12:11:44">
+    <defSwitch name="DEW_CHANNEL_1" label="Auto Dew Control">
+On
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="Pegasus PPBA" name="POWER_CHANNELS" label="Quad Output" group="Power" state="Idle" perm="rw" rule="AnyOfMany" timeout="60" timestamp="2026-10-15T12:11:44">
+    <defSwitch name="POWER_CHANNEL_1" label="Enable 12V ports">
+On
+    </defSwitch>
+</defSwitchVector>
+<defNumberVector device="Pegasus PPBA" name="POWER_CURRENTS" label="Currents" group="Power" state="Ok" perm="ro" timeout="60" timestamp="2026-10-15T12:11:44">
+    <defNumber name="POWER_CHANNEL_1" label="12 V current (A)" format="%.2f" min="0" max="999" step="0">
+0.5999999999999999778
+    </defNumber>
+</defNumberVector>
+<defTextVector device="Pegasus PPBA" name="POWER_LABELS" label="Labels" group="Power" state="Idle" perm="rw" timeout="60" timestamp="2026-10-15T12:11:44">
+    <defText name="POWER_CHANNEL_1" label="Quad Output">
+Enable 12V ports
+    </defText>
+</defTextVector>
+<defSwitchVector device="Pegasus PPBA" name="DEW_CHANNELS" label="Dew Heater" group="Dew" state="Idle" perm="rw" rule="AnyOfMany" timeout="60" timestamp="2026-10-15T12:11:44">
+    <defSwitch name="DEW_CHANNEL_1" label="Dew A">
+On
+    </defSwitch>
+    <defSwitch name="DEW_CHANNEL_2" label="Dew B">
+On
+    </defSwitch>
+</defSwitchVector>
+<defNumberVector device="Pegasus PPBA" name="DEW_DUTY_CYCLES" label="Duty Cycles" group="Dew" state="Idle" perm="rw" timeout="60" timestamp="2026-10-15T12:11:44">
+    <defNumber name="DEW_CHANNEL_1" label="Dew A (%)" format="%.0f" min="0" max="100" step="10">
+0
+    </defNumber>
+    <defNumber name="DEW_CHANNEL_2" label="Dew B (%)" format="%.0f" min="0" max="100" step="10">
+0
+    </defNumber>
+</defNumberVector>
+<defNumberVector device="Pegasus PPBA" name="DEW_CURRENTS" label="Currents" group="Dew" state="Idle" perm="ro" timeout="60" timestamp="2026-10-15T12:11:44">
+    <defNumber name="DEW_CHANNEL_1" label="Dew A (A)" format="%.2f" min="0" max="999" step="0">
+0
+    </defNumber>
+    <defNumber name="DEW_CHANNEL_2" label="Dew B (A)" format="%.2f" min="0" max="999" step="0">
+0
+    </defNumber>
+</defNumberVector>
+<defTextVector device="Pegasus PPBA" name="DEW_LABELS" label="Labels" group="Dew" state="Idle" perm="rw" timeout="60" timestamp="2026-10-15T12:11:44">
+    <defText name="DEW_CHANNEL_1" label="Dew A">
+Dew A
+    </defText>
+    <defText name="DEW_CHANNEL_2" label="Dew B">
+Dew B
+    </defText>
+</defTextVector>
+<defSwitchVector device="" name="" label="" group="" state="Idle" perm="ro" rule="OneOfMany" timeout="0" timestamp="2026-10-15T12:11:44"/>
+<defNumberVector device="" name="" label="" group="" state="Idle" perm="ro" timeout="0" timestamp="2026-10-15T12:11:44"/>
+<defTextVector device="" name="" label="" group="" state="Idle" perm="ro" timeout="0" timestamp="2026-10-15T12:11:44"/>
+<defSwitchVector device="Pegasus PPBA" name="ADJOUT_VOLTAGE" label="Adj voltage" group="Power" state="Idle" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-10-15T12:11:44">
+    <defSwitch name="ADJOUT_OFF" label="Off">
+Off
+    </defSwitch>
+    <defSwitch name="ADJOUT_3V" label="3V">
+Off
+    </defSwitch>
+    <defSwitch name="ADJOUT_5V" label="5V">
+Off
+    </defSwitch>
+    <defSwitch name="ADJOUT_8V" label="8V">
+Off
+    </defSwitch>
+    <defSwitch name="ADJOUT_9V" label="9V">
+Off
+    </defSwitch>
+    <defSwitch name="ADJOUT_12V" label="12V">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defNumberVector device="Pegasus PPBA" name="POWER_STATISTICS" label="Power Statistics" group="Power" state="Ok" perm="ro" timeout="60" timestamp="2026-10-15T12:11:44">
+    <defNumber name="STATS_AVG_AMPS" label="Average Current (A)" format="%4.2f" min="0" max="999" step="100">
+0.95999999999999996447
+    </defNumber>
+    <defNumber name="STATS_AMP_HOURS" label="Amp hours (Ah)" format="%4.2f" min="0" max="999" step="100">
+111.12999999999999545
+    </defNumber>
+    <defNumber name="STATS_WATT_HOURS" label="Watt hours (Wh)" format="%4.2f" min="0" max="999" step="100">
+1435.4100000000000819
+    </defNumber>
+    <defNumber name="STATS_TOTAL_CURRENT" label="Total current (A)" format="%4.2f" min="0" max="999" step="100">
+0.69999999999999995559
+    </defNumber>
+</defNumberVector>
+<defNumberVector device="Pegasus PPBA" name="WEATHER_UPDATE" label="Update" group="Environment" state="Idle" perm="rw" timeout="60" timestamp="2026-10-15T12:11:44">
+    <defNumber name="PERIOD" label="Period (s)" format="%.f" min="0" max="3600" step="60">
+60
+    </defNumber>
+</defNumberVector>
+<defSwitchVector device="Pegasus PPBA" name="WEATHER_REFRESH" label="Weather" group="Environment" state="Idle" perm="rw" rule="AtMostOne" timeout="0" timestamp="2026-10-15T12:11:44">
+    <defSwitch name="REFRESH" label="Refresh">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="Pegasus PPBA" name="WEATHER_OVERRIDE" label="Safety" group="Environment" state="Idle" perm="rw" rule="AnyOfMany" timeout="0" timestamp="2026-10-15T12:11:44">
+    <defSwitch name="OVERRIDE" label="Override Status">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defLightVector device="Pegasus PPBA" name="WEATHER_STATUS" label="Status" group="Environment" state="Ok" timestamp="2026-10-15T12:11:44">
+    <defLight name="WEATHER_TEMPERATURE" label="Temperature (C)">
+Ok
+    </defLight>
+</defLightVector>
+<defLightVector device="Pegasus PPBA" name="SAFETY_STATUS" label="Safety" group="Environment" state="Ok" timestamp="2026-10-15T12:11:44">
+    <defLight name="SAFETY" label="Safety">
+Idle
+    </defLight>
+</defLightVector>
+<defNumberVector device="Pegasus PPBA" name="WEATHER_PARAMETERS" label="Parameters" group="Environment" state="Ok" perm="ro" timeout="60" timestamp="2026-10-15T12:11:44">
+    <defNumber name="WEATHER_TEMPERATURE" label="Temperature (C)" format="%.2f" min="-15" max="35" step="0">
+21.600000000000001421
+    </defNumber>
+    <defNumber name="WEATHER_HUMIDITY" label="Humidity %" format="%.2f" min="0" max="100" step="0">
+53
+    </defNumber>
+    <defNumber name="WEATHER_DEWPOINT" label="Dew Point (C)" format="%.2f" min="0" max="100" step="0">
+11.599999999999999645
+    </defNumber>
+</defNumberVector>
+<defNumberVector device="Pegasus PPBA" name="WEATHER_TEMPERATURE" label="Temperature (C)" group="Environment" state="Idle" perm="rw" timeout="60" timestamp="2026-10-15T12:11:44">
+    <defNumber name="MIN_OK" label="OK range min" format="%.2f" min="-1000000" max="1000000" step="0">
+-15
+    </defNumber>
+    <defNumber name="MAX_OK" label="OK range max" format="%.2f" min="-1000000" max="1000000" step="0">
+35
+    </defNumber>
+    <defNumber name="PERC_WARN" label="% for Warning" format="%.f" min="0" max="100" step="5">
+15
+    </defNumber>
+    <defNumber name="ALERT_TYPE" label="Flip alerting to in-bounds" format="%.f" min="0" max="1" step="1">
+0
+    </defNumber>
+</defNumberVector>
+<defNumberVector device="Pegasus PPBA" name="WEATHER_HUMIDITY" label="Humidity %" group="Environment" state="Idle" perm="rw" timeout="60" timestamp="2026-10-15T12:11:44">
+    <defNumber name="MIN_OK" label="OK range min" format="%.2f" min="-1000000" max="1000000" step="0">
+0
+    </defNumber>
+    <defNumber name="MAX_OK" label="OK range max" format="%.2f" min="-1000000" max="1000000" step="0">
+100
+    </defNumber>
+    <defNumber name="PERC_WARN" label="% for Warning" format="%.f" min="0" max="100" step="5">
+15
+    </defNumber>
+    <defNumber name="ALERT_TYPE" label="Flip alerting to in-bounds" format="%.f" min="0" max="1" step="1">
+0
+    </defNumber>
+</defNumberVector>
+<defNumberVector device="Pegasus PPBA" name="WEATHER_DEWPOINT" label="Dew Point (C)" group="Environment" state="Idle" perm="rw" timeout="60" timestamp="2026-10-15T12:11:44">
+    <defNumber name="MIN_OK" label="OK range min" format="%.2f" min="-1000000" max="1000000" step="0">
+0
+    </defNumber>
+    <defNumber name="MAX_OK" label="OK range max" format="%.2f" min="-1000000" max="1000000" step="0">
+100
+    </defNumber>
+    <defNumber name="PERC_WARN" label="% for Warning" format="%.f" min="0" max="100" step="5">
+15
+    </defNumber>
+    <defNumber name="ALERT_TYPE" label="Flip alerting to in-bounds" format="%.f" min="0" max="1" step="1">
+0
+    </defNumber>
+</defNumberVector>
+<defTextVector device="Pegasus PPBA" name="FIRMWARE_INFO" label="Firmware" group="Firmware" state="Idle" perm="ro" timeout="60" timestamp="2026-10-15T12:11:44">
+    <defText name="VERSION" label="Version">
+2.7
+    </defText>
+    <defText name="UPTIME" label="Uptime (h)">
+115.972
+    </defText>
+</defTextVector>
+<defSwitchVector device="ZWO AM5" name="CONNECTION" label="Connection" group="Main Control" state="Ok" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-10-15T12:11:44">
+    <defSwitch name="CONNECT" label="Connect">
+On
+    </defSwitch>
+    <defSwitch name="DISCONNECT" label="Disconnect">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defTextVector device="ZWO AM5" name="DRIVER_INFO" label="Driver Info" group="Connection" state="Idle" perm="ro" timeout="60" timestamp="2026-10-15T12:11:44">
+    <defText name="DRIVER_NAME" label="Name">
+ZWO AM5
+    </defText>
+    <defText name="DRIVER_EXEC" label="Exec">
+indi_lx200am5
+    </defText>
+    <defText name="DRIVER_VERSION" label="Version">
+1.4
+    </defText>
+    <defText name="DRIVER_INTERFACE" label="Interface">
+5
+    </defText>
+</defTextVector>
+<defNumberVector device="ZWO AM5" name="POLLING_PERIOD" label="Polling" group="Options" state="Idle" perm="rw" timeout="0" timestamp="2026-10-15T12:11:44">
+    <defNumber name="PERIOD_MS" label="Period (ms)" format="%.f" min="10" max="600000" step="1000">
+1000
+    </defNumber>
+</defNumberVector>
+<defSwitchVector device="ZWO AM5" name="DEBUG" label="Debug" group="Options" state="Idle" perm="rw" rule="OneOfMany" timeout="0" timestamp="2026-10-15T12:11:44">
+    <defSwitch name="ENABLE" label="Enable">
+Off
+    </defSwitch>
+    <defSwitch name="DISABLE" label="Disable">
+On
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="ZWO AM5" name="SIMULATION" label="Simulation" group="Options" state="Idle" perm="rw" rule="OneOfMany" timeout="0" timestamp="2026-10-15T12:11:44">
+    <defSwitch name="ENABLE" label="Enable">
+Off
+    </defSwitch>
+    <defSwitch name="DISABLE" label="Disable">
+On
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="ZWO AM5" name="CONFIG_PROCESS" label="Configuration" group="Options" state="Idle" perm="rw" rule="AtMostOne" timeout="0" timestamp="2026-10-15T12:11:44">
+    <defSwitch name="CONFIG_LOAD" label="Load">
+Off
+    </defSwitch>
+    <defSwitch name="CONFIG_SAVE" label="Save">
+Off
+    </defSwitch>
+    <defSwitch name="CONFIG_DEFAULT" label="Default">
+Off
+    </defSwitch>
+    <defSwitch name="CONFIG_PURGE" label="Purge">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="ZWO AM5" name="CONNECTION_MODE" label="Connection Mode" group="Connection" state="Idle" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-10-15T12:11:44">
+    <defSwitch name="CONNECTION_SERIAL" label="Serial">
+On
+    </defSwitch>
+    <defSwitch name="CONNECTION_TCP" label="Network">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="ZWO AM5" name="SYSTEM_PORTS" label="System Ports" group="Connection" state="Idle" perm="rw" rule="AtMostOne" timeout="60" timestamp="2026-10-15T12:11:44">
+    <defSwitch name="ZWO_Systems_ZWO_Device_123456" label="ZWO_Systems_ZWO_Device_123456">
+Off
+    </defSwitch>
+    <defSwitch name="Pegasus_Astro_PPBMicro_revB_PPBMA00000" label="Pegasus_Astro_PPBMicro_revB_PPBMA00000">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defTextVector device="ZWO AM5" name="DEVICE_PORT" label="Ports" group="Connection" state="Idle" perm="rw" timeout="60" timestamp="2026-10-15T12:11:44">
+    <defText name="PORT" label="Port">
+/dev/serial/by-id/usb-ZWO_Systems_ZWO_Device_123456-if00
+    </defText>
+</defTextVector>
+<defSwitchVector device="ZWO AM5" name="DEVICE_BAUD_RATE" label="Baud Rate" group="Connection" state="Idle" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-10-15T12:11:44">
+    <defSwitch name="9600" label="9600">
+On
+    </defSwitch>
+    <defSwitch name="19200" label="19200">
+Off
+    </defSwitch>
+    <defSwitch name="38400" label="38400">
+Off
+    </defSwitch>
+    <defSwitch name="57600" label="57600">
+Off
+    </defSwitch>
+    <defSwitch name="115200" label="115200">
+Off
+    </defSwitch>
+    <defSwitch name="230400" label="230400">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="ZWO AM5" name="DEVICE_AUTO_SEARCH" label="Auto Search" group="Connection" state="Idle" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-10-15T12:11:44">
+    <defSwitch name="INDI_ENABLED" label="Enabled">
+Off
+    </defSwitch>
+    <defSwitch name="INDI_DISABLED" label="Disabled">
+On
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="ZWO AM5" name="DEVICE_PORT_SCAN" label="Refresh" group="Connection" state="Idle" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-10-15T12:11:44">
+    <defSwitch name="Scan Ports" label="Scan Ports">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defTextVector device="ZWO AM5" name="ACTIVE_DEVICES" label="Snoop devices" group="Options" state="Idle" perm="rw" timeout="60" timestamp="2026-10-15T12:11:44">
+    <defText name="ACTIVE_GPS" label="GPS">
+GPS Simulator
+    </defText>
+    <defText name="ACTIVE_DOME" label="DOME">
+Dome Simulator
+    </defText>
+</defTextVector>
+<defSwitchVector device="ZWO AM5" name="DOME_POLICY" label="Dome Policy" group="Options" state="Idle" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-10-15T12:11:44">
+    <defSwitch name="DOME_IGNORED" label="Dome ignored">
+On
+    </defSwitch>
+    <defSwitch name="DOME_LOCKS" label="Dome locks">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="ZWO AM5" name="ON_COORD_SET" label="On Set" group="Main Control" state="Idle" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-10-15T12:11:44">
+    <defSwitch name="TRACK" label="Track">
+On
+    </defSwitch>
+    <defSwitch name="SLEW" label="Slew">
+Off
+    </defSwitch>
+    <defSwitch name="SYNC" label="Sync">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defNumberVector device="ZWO AM5" name="EQUATORIAL_EOD_COORD" label="Eq. Coordinates" group="Main Control" state="Idle" perm="rw" timeout="60" timestamp="2026-10-15T12:11:44">
+    <defNumber name="RA" label="RA (hh:mm:ss)" format="%010.6m" min="0" max="24" step="0">
+15.286111111111111427
+    </defNumber>
+    <defNumber name="DEC" label="DEC (dd:mm:ss)" format="%010.6m" min="-90" max="90" step="0">
+90
+    </defNumber>
+</defNumberVector>
+<defSwitchVector device="ZWO AM5" name="TELESCOPE_ABORT_MOTION" label="Abort Motion" group="Main Control" state="Idle" perm="rw" rule="AtMostOne" timeout="60" timestamp="2026-10-15T12:11:44">
+    <defSwitch name="ABORT" label="Abort">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="ZWO AM5" name="TELESCOPE_TRACK_MODE" label="Track Mode" group="Main Control" state="Idle" perm="rw" rule="OneOfMany" timeout="0" timestamp="2026-10-15T12:11:44">
+    <defSwitch name="TRACK_SIDEREAL" label="Sidereal">
+On
+    </defSwitch>
+    <defSwitch name="TRACK_SOLAR" label="Solar">
+Off
+    </defSwitch>
+    <defSwitch name="TRACK_LUNAR" label="Lunar">
+Off
+    </defSwitch>
+    <defSwitch name="TRACK_CUSTOM" label="Custom">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="ZWO AM5" name="TELESCOPE_TRACK_STATE" label="Tracking" group="Main Control" state="Idle" perm="rw" rule="OneOfMany" timeout="0" timestamp="2026-10-15T12:11:44">
+    <defSwitch name="TRACK_ON" label="On">
+Off
+    </defSwitch>
+    <defSwitch name="TRACK_OFF" label="Off">
+On
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="ZWO AM5" name="TELESCOPE_HOME" label="Home" group="Main Control" state="Idle" perm="rw" rule="AtMostOne" timeout="60" timestamp="2026-10-15T12:11:44">
+    <defSwitch name="GO" label="Go">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="ZWO AM5" name="TELESCOPE_MOTION_NS" label="Motion N/S" group="Motion Control" state="Idle" perm="rw" rule="AtMostOne" timeout="60" timestamp="2026-10-15T12:11:44">
+    <defSwitch name="MOTION_NORTH" label="North">
+Off
+    </defSwitch>
+    <defSwitch name="MOTION_SOUTH" label="South">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="ZWO AM5" name="TELESCOPE_MOTION_WE" label="Motion W/E" group="Motion Control" state="Idle" perm="rw" rule="AtMostOne" timeout="60" timestamp="2026-10-15T12:11:44">
+    <defSwitch name="MOTION_WEST" label="West">
+Off
+    </defSwitch>
+    <defSwitch name="MOTION_EAST" label="East">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="ZWO AM5" name="TELESCOPE_REVERSE_MOTION" label="Reverse" group="Motion Control" state="Idle" perm="rw" rule="AnyOfMany" timeout="60" timestamp="2026-10-15T12:11:44">
+    <defSwitch name="REVERSE_NS" label="North/South">
+Off
+    </defSwitch>
+    <defSwitch name="REVERSE_WE" label="West/East">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="ZWO AM5" name="TELESCOPE_SLEW_RATE" label="Slew Rate" group="Motion Control" state="Idle" perm="rw" rule="OneOfMany" timeout="0" timestamp="2026-10-15T12:11:44">
+    <defSwitch name="1x" label="0.25x">
+Off
+    </defSwitch>
+    <defSwitch name="2x" label="0.5x">
+Off
+    </defSwitch>
+    <defSwitch name="3x" label="1x">
+Off
+    </defSwitch>
+    <defSwitch name="4x" label="2x">
+Off
+    </defSwitch>
+    <defSwitch name="5x" label="4x">
+Off
+    </defSwitch>
+    <defSwitch name="6x" label="8x">
+Off
+    </defSwitch>
+    <defSwitch name="7x" label="20x">
+Off
+    </defSwitch>
+    <defSwitch name="8x" label="60x">
+Off
+    </defSwitch>
+    <defSwitch name="9x" label="720x">
+Off
+    </defSwitch>
+    <defSwitch name="10x" label="1440x">
+On
+    </defSwitch>
+</defSwitchVector>
+<defNumberVector device="ZWO AM5" name="TARGET_EOD_COORD" label="Slew Target" group="Motion Control" state="Idle" perm="ro" timeout="60" timestamp="2026-10-15T12:11:44">
+    <defNumber name="RA" label="RA (hh:mm:ss)" format="%010.6m" min="0" max="24" step="0">
+0
+    </defNumber>
+    <defNumber name="DEC" label="DEC (dd:mm:ss)" format="%010.6m" min="-90" max="90" step="0">
+0
+    </defNumber>
+</defNumberVector>
+<defSwitchVector device="ZWO AM5" name="TELESCOPE_MOUNT_TYPE" label="Mount Type" group="Motion Control" state="Idle" perm="ro" rule="OneOfMany" timeout="60" timestamp="2026-10-15T12:11:44">
+    <defSwitch name="ALTAZ" label="ALTAZ">
+Off
+    </defSwitch>
+    <defSwitch name="EQ_FORK" label="Fork (Eq)">
+Off
+    </defSwitch>
+    <defSwitch name="EQ_GEM" label="GEM">
+On
+    </defSwitch>
+</defSwitchVector>
+<defTextVector device="ZWO AM5" name="TIME_UTC" label="UTC" group="Site Management" state="Ok" perm="rw" timeout="60" timestamp="2026-10-15T12:11:44">
+    <defText name="UTC" label="UTC Time">
+2000-01-01T00:56:31
+    </defText>
+    <defText name="OFFSET" label="UTC Offset">
+0.00
+    </defText>
+</defTextVector>
+<defNumberVector device="ZWO AM5" name="GEOGRAPHIC_COORD" label="Scope Location" group="Site Management" state="Idle" perm="rw" timeout="60" timestamp="2026-10-15T12:11:44">
+    <defNumber name="LAT" label="Lat (dd:mm:ss.s)" format="%012.8m" min="-90" max="90" step="0">
+0
+    </defNumber>
+    <defNumber name="LONG" label="Lon (dd:mm:ss.s)" format="%012.8m" min="0" max="360" step="0">
+0
+    </defNumber>
+    <defNumber name="ELEV" label="Elevation (m)" format="%g" min="-200" max="10000" step="0">
+0
+    </defNumber>
+</defNumberVector>
+<defSwitchVector device="ZWO AM5" name="TELESCOPE_PARK" label="Parking" group="Main Control" state="Ok" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-10-15T12:11:44">
+    <defSwitch name="PARK" label="Park(ed)">
+Off
+    </defSwitch>
+    <defSwitch name="UNPARK" label="UnPark(ed)">
+On
+    </defSwitch>
+</defSwitchVector>
+<defNumberVector device="" name="" label="" group="" state="Idle" perm="ro" timeout="0" timestamp="2026-10-15T12:11:44">
+    <defNumber name="" label="" format="" min="0" max="0" step="0">
+0
+    </defNumber>
+    <defNumber name="" label="" format="" min="0" max="0" step="0">
+0
+    </defNumber>
+</defNumberVector>
+<defSwitchVector device="ZWO AM5" name="TELESCOPE_PARK_OPTION" label="Park Options" group="Site Management" state="Idle" perm="rw" rule="AtMostOne" timeout="60" timestamp="2026-10-15T12:11:44">
+    <defSwitch name="PARK_CURRENT" label="Current">
+Off
+    </defSwitch>
+    <defSwitch name="PARK_DEFAULT" label="Default">
+Off
+    </defSwitch>
+    <defSwitch name="PARK_WRITE_DATA" label="Write Data">
+Off
+    </defSwitch>
+    <defSwitch name="PARK_PURGE_DATA" label="Purge Data">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="ZWO AM5" name="TELESCOPE_PIER_SIDE" label="Pier Side" group="Main Control" state="Idle" perm="ro" rule="AtMostOne" timeout="60" timestamp="2026-10-15T12:11:44">
+    <defSwitch name="PIER_WEST" label="West (pointing east)">
+Off
+    </defSwitch>
+    <defSwitch name="PIER_EAST" label="East (pointing west)">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="ZWO AM5" name="USEJOYSTICK" label="Joystick" group="Options" state="Idle" perm="rw" rule="OneOfMany" timeout="0" timestamp="2026-10-15T12:11:44">
+    <defSwitch name="ENABLE" label="Enable">
+Off
+    </defSwitch>
+    <defSwitch name="DISABLE" label="Disable">
+On
+    </defSwitch>
+</defSwitchVector>
+<defTextVector device="ZWO AM5" name="SNOOP_JOYSTICK" label="Snoop Joystick" group="Options" state="Idle" perm="rw" timeout="60" timestamp="2026-10-15T12:11:44">
+    <defText name="SNOOP_JOYSTICK_DEVICE" label="Device">
+Joystick
+    </defText>
+</defTextVector>
+<defSwitchVector device="ZWO AM5" name="Use Pulse Cmd" label="Use Pulse Cmd" group="Main Control" state="Idle" perm="rw" rule="OneOfMany" timeout="0" timestamp="2026-10-15T12:11:44">
+    <defSwitch name="Off" label="Off">
+Off
+    </defSwitch>
+    <defSwitch name="On" label="On">
+On
+    </defSwitch>
+</defSwitchVector>
+<defNumberVector device="ZWO AM5" name="TELESCOPE_TIMED_GUIDE_NS" label="Guide N/S" group="Guide" state="Idle" perm="rw" timeout="60" timestamp="2026-10-15T12:11:44">
+    <defNumber name="TIMED_GUIDE_N" label="North (ms)" format="%.f" min="0" max="60000" step="100">
+0
+    </defNumber>
+    <defNumber name="TIMED_GUIDE_S" label="South (ms)" format="%.f" min="0" max="60000" step="100">
+0
+    </defNumber>
+</defNumberVector>
+<defNumberVector device="ZWO AM5" name="TELESCOPE_TIMED_GUIDE_WE" label="Guide E/W" group="Guide" state="Idle" perm="rw" timeout="60" timestamp="2026-10-15T12:11:44">
+    <defNumber name="TIMED_GUIDE_W" label="West (ms)" format="%.f" min="0" max="60000" step="100">
+0
+    </defNumber>
+    <defNumber name="TIMED_GUIDE_E" label="East (ms)" format="%.f" min="0" max="60000" step="100">
+0
+    </defNumber>
+</defNumberVector>
+<defNumberVector device="ZWO AM5" name="GUIDE_RATE" label="Guiding Rate" group="Motion Control" state="Idle" perm="rw" timeout="60" timestamp="2026-10-15T12:11:44">
+    <defNumber name="RATE" label="Rate" format="%.2f" min="0.10000000000000000555" max="0.9000000000000000222" step="0.10000000000000000555">
+0.5
+    </defNumber>
+</defNumberVector>
+<defSwitchVector device="ZWO AM5" name="BUZZER" label="Buzzer" group="Options" state="Ok" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-10-15T12:11:44">
+    <defSwitch name="OFF" label="Off">
+Off
+    </defSwitch>
+    <defSwitch name="LOW" label="Low">
+Off
+    </defSwitch>
+    <defSwitch name="HIGH" label="High">
+On
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="ZWO AM5" name="HEAVY_DUTY_MODE" label="Heavy Duty Mode" group="Motion Control" state="Ok" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-10-15T12:11:44">
+    <defSwitch name="INDI_ENABLED" label="Enabled">
+Off
+    </defSwitch>
+    <defSwitch name="INDI_DISABLED" label="Disabled">
+On
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="ZWO AM5" name="MERIDIAN_FLIP" label="Meridian Flip" group="Meridian Flip" state="Ok" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-10-15T12:11:44">
+    <defSwitch name="INDI_ENABLED" label="Enabled">
+Off
+    </defSwitch>
+    <defSwitch name="INDI_DISABLED" label="Disabled">
+On
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="ZWO AM5" name="POST_MERIDIAN_TRACK" label="After Meridian" group="Meridian Flip" state="Ok" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-10-15T12:11:44">
+    <defSwitch name="TRACK" label="Track">
+Off
+    </defSwitch>
+    <defSwitch name="STOP" label="Stop">
+On
+    </defSwitch>
+</defSwitchVector>
+<defNumberVector device="ZWO AM5" name="MERIDIAN_LIMIT" label="Meridian Limit" group="Meridian Flip" state="Ok" perm="rw" timeout="60" timestamp="2026-10-15T12:11:44">
+    <defNumber name="LIMIT" label="Limit (deg)" format="%.f" min="-15" max="15" step="1">
+0
+    </defNumber>
+</defNumberVector>
+<defSwitchVector device="ZWO AM5" name="ALTITUDE_LIMIT_CONTROL" label="Altitude Limit Control" group="Altitude Limits" state="Ok" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-10-15T12:11:44">
+    <defSwitch name="ENABLE" label="Enable">
+Off
+    </defSwitch>
+    <defSwitch name="DISABLE" label="Disable">
+On
+    </defSwitch>
+    <defSwitch name="" label="">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defNumberVector device="ZWO AM5" name="ALTITUDE_UPPER_LIMIT" label="Altitude Upper Limit" group="Altitude Limits" state="Ok" perm="rw" timeout="60" timestamp="2026-10-15T12:11:44">
+    <defNumber name="UPPER_LIMIT" label="Upper Limit (deg)" format="%.f" min="60" max="90" step="1">
+90
+    </defNumber>
+</defNumberVector>
+<defNumberVector device="ZWO AM5" name="ALTITUDE_LOWER_LIMIT" label="Altitude Lower Limit" group="Altitude Limits" state="Ok" perm="rw" timeout="60" timestamp="2026-10-15T12:11:44">
+    <defNumber name="LOWER_LIMIT" label="Lower Limit (deg)" format="%.f" min="0" max="30" step="1">
+0
+    </defNumber>
+</defNumberVector>
+<defSwitchVector device="ZWO AM5" name="MULTI_STAR_ALIGNMENT" label="Multi-Star Alignment" group="Alignment" state="Idle" perm="rw" rule="AtMostOne" timeout="60" timestamp="2026-10-15T12:11:44">
+    <defSwitch name="CLEAR" label="Clear Data">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defNumberVector device="ZWO AM5" name="VARIABLE_SLEW_RATE" label="Variable Slew Rate" group="Motion Control" state="Idle" perm="rw" timeout="60" timestamp="2026-10-15T12:11:44">
+    <defNumber name="RATE" label="Rate (x Sidereal)" format="%.2f" min="0" max="1440" step="0.010000000000000000208">
+1440
+    </defNumber>
+</defNumberVector>
+<defTextVector device="ZWO AM5" name="ACTIVE_DEVICES" label="Snoop devices" group="Options" state="Idle" perm="rw" timeout="60" timestamp="2026-10-15T12:11:44">
+    <defText name="ACTIVE_GPS" label="GPS">
+GPS Simulator
+    </defText>
+    <defText name="ACTIVE_DOME" label="DOME">
+Dome Simulator
+    </defText>
+</defTextVector>
+<defSwitchVector device="ZWO AM5" name="DOME_POLICY" label="Dome Policy" group="Options" state="Idle" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-10-15T12:11:45">
+    <defSwitch name="DOME_IGNORED" label="Dome ignored">
+On
+    </defSwitch>
+    <defSwitch name="DOME_LOCKS" label="Dome locks">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="ZWO AM5" name="USEJOYSTICK" label="Joystick" group="Options" state="Idle" perm="rw" rule="OneOfMany" timeout="0" timestamp="2026-10-15T12:11:45">
+    <defSwitch name="ENABLE" label="Enable">
+Off
+    </defSwitch>
+    <defSwitch name="DISABLE" label="Disable">
+On
+    </defSwitch>
+</defSwitchVector>
+<defTextVector device="ZWO AM5" name="SNOOP_JOYSTICK" label="Snoop Joystick" group="Options" state="Idle" perm="rw" timeout="60" timestamp="2026-10-15T12:11:45">
+    <defText name="SNOOP_JOYSTICK_DEVICE" label="Device">
+Joystick
+    </defText>
+</defTextVector>
+<defSwitchVector device="ZWO CCD ASI2600MC Pro" name="CONNECTION" label="Connection" group="Main Control" state="Ok" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-10-15T12:11:44">
+    <defSwitch name="CONNECT" label="Connect">
+On
+    </defSwitch>
+    <defSwitch name="DISCONNECT" label="Disconnect">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defTextVector device="ZWO CCD ASI2600MC Pro" name="DRIVER_INFO" label="Driver Info" group="General Info" state="Idle" perm="ro" timeout="60" timestamp="2026-10-15T12:11:45">
+    <defText name="DRIVER_NAME" label="Name">
+ZWO CCD
+    </defText>
+    <defText name="DRIVER_EXEC" label="Exec">
+indi_asi_ccd
+    </defText>
+    <defText name="DRIVER_VERSION" label="Version">
+2.7
+    </defText>
+    <defText name="DRIVER_INTERFACE" label="Interface">
+2
+    </defText>
+</defTextVector>
+<defNumberVector device="ZWO CCD ASI2600MC Pro" name="POLLING_PERIOD" label="Polling" group="Options" state="Idle" perm="rw" timeout="0" timestamp="2026-10-15T12:11:45">
+    <defNumber name="PERIOD_MS" label="Period (ms)" format="%.f" min="10" max="600000" step="1000">
+1000
+    </defNumber>
+</defNumberVector>
+<defSwitchVector device="ZWO CCD ASI2600MC Pro" name="DEBUG" label="Debug" group="Options" state="Idle" perm="rw" rule="OneOfMany" timeout="0" timestamp="2026-10-15T12:11:45">
+    <defSwitch name="ENABLE" label="Enable">
+Off
+    </defSwitch>
+    <defSwitch name="DISABLE" label="Disable">
+On
+    </defSwitch>
+</defSwitchVector>
+<defTextVector device="ZWO CCD ASI2600MC Pro" name="NICKNAME" label="Nickname" group="General Info" state="Idle" perm="rw" timeout="60" timestamp="2026-10-15T12:11:45">
+    <defText name="nickname" label="nickname"/>
+</defTextVector>
+<defSwitchVector device="ZWO CCD ASI2600MC Pro" name="SIMULATION" label="Simulation" group="Options" state="Idle" perm="rw" rule="OneOfMany" timeout="0" timestamp="2026-10-15T12:11:45">
+    <defSwitch name="ENABLE" label="Enable">
+Off
+    </defSwitch>
+    <defSwitch name="DISABLE" label="Disable">
+On
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="ZWO CCD ASI2600MC Pro" name="CONFIG_PROCESS" label="Configuration" group="Options" state="Idle" perm="rw" rule="AtMostOne" timeout="0" timestamp="2026-10-15T12:11:45">
+    <defSwitch name="CONFIG_LOAD" label="Load">
+Off
+    </defSwitch>
+    <defSwitch name="CONFIG_SAVE" label="Save">
+Off
+    </defSwitch>
+    <defSwitch name="CONFIG_DEFAULT" label="Default">
+Off
+    </defSwitch>
+    <defSwitch name="CONFIG_PURGE" label="Purge">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defTextVector device="ZWO CCD ASI2600MC Pro" name="ACTIVE_DEVICES" label="Snoop devices" group="Options" state="Idle" perm="rw" timeout="60" timestamp="2026-10-15T12:11:45">
+    <defText name="ACTIVE_TELESCOPE" label="Telescope">
+Telescope Simulator
+    </defText>
+    <defText name="ACTIVE_ROTATOR" label="Rotator">
+Rotator Simulator
+    </defText>
+    <defText name="ACTIVE_FOCUSER" label="Focuser">
+Focuser Simulator
+    </defText>
+    <defText name="ACTIVE_FILTER" label="Filter">
+CCD Simulator
+    </defText>
+    <defText name="ACTIVE_SKYQUALITY" label="Sky Quality">
+SQM
+    </defText>
+</defTextVector>
+<defNumberVector device="ZWO CCD ASI2600MC Pro" name="CCD_EXPOSURE" label="Expose" group="Main Control" state="Ok" perm="rw" timeout="60" timestamp="2026-10-15T12:11:45">
+    <defNumber name="CCD_EXPOSURE_VALUE" label="Duration (s)" format="%5.2f" min="3.1999999999999998552e-05" max="2000" step="1">
+0
+    </defNumber>
+</defNumberVector>
+<defSwitchVector device="ZWO CCD ASI2600MC Pro" name="CCD_ABORT_EXPOSURE" label="Abort" group="Main Control" state="Idle" perm="rw" rule="AtMostOne" timeout="60" timestamp="2026-10-15T12:11:45">
+    <defSwitch name="ABORT" label="Abort">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defNumberVector device="ZWO CCD ASI2600MC Pro" name="CCD_FRAME" label="Frame" group="Image Settings" state="Idle" perm="rw" timeout="60" timestamp="2026-10-15T12:11:45">
+    <defNumber name="X" label="Left " format="%4.0f" min="0" max="6247" step="0">
+0
+    </defNumber>
+    <defNumber name="Y" label="Top" format="%4.0f" min="0" max="4175" step="0">
+0
+    </defNumber>
+    <defNumber name="WIDTH" label="Width" format="%4.0f" min="1" max="6248" step="0">
+6248
+    </defNumber>
+    <defNumber name="HEIGHT" label="Height" format="%4.0f" min="1" max="4176" step="0">
+4176
+    </defNumber>
+</defNumberVector>
+<defSwitchVector device="ZWO CCD ASI2600MC Pro" name="CCD_FRAME_RESET" label="Frame Values" group="Image Settings" state="Idle" perm="wo" rule="OneOfMany" timeout="0" timestamp="2026-10-15T12:11:45">
+    <defSwitch name="RESET" label="Reset">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defNumberVector device="ZWO CCD ASI2600MC Pro" name="CCD_BINNING" label="Binning" group="Image Settings" state="Idle" perm="rw" timeout="60" timestamp="2026-10-15T12:11:45">
+    <defNumber name="HOR_BIN" label="X" format="%2.0f" min="1" max="4" step="1">
+1
+    </defNumber>
+    <defNumber name="VER_BIN" label="Y" format="%2.0f" min="1" max="4" step="1">
+1
+    </defNumber>
+</defNumberVector>
+<defTextVector device="ZWO CCD ASI2600MC Pro" name="FITS_HEADER" label="FITS Header" group="General Info" state="Idle" perm="wo" timeout="60" timestamp="2026-10-15T12:11:45">
+    <defText name="KEYWORD_NAME" label="Name"/>
+    <defText name="KEYWORD_VALUE" label="Value"/>
+    <defText name="KEYWORD_COMMENT" label="Comment"/>
+</defTextVector>
+<defNumberVector device="ZWO CCD ASI2600MC Pro" name="CCD_TEMPERATURE" label="Temperature" group="Main Control" state="Idle" perm="rw" timeout="60" timestamp="2026-10-15T12:11:45">
+    <defNumber name="CCD_TEMPERATURE_VALUE" label="Temperature (C)" format="%5.2f" min="-50" max="50" step="0">
+23.800000000000000711
+    </defNumber>
+</defNumberVector>
+<defNumberVector device="ZWO CCD ASI2600MC Pro" name="CCD_TEMP_RAMP" label="Temp. Ramp" group="Main Control" state="Idle" perm="rw" timeout="60" timestamp="2026-10-15T12:11:45">
+    <defNumber name="RAMP_SLOPE" label="Max. dT (C/min)" format="%.f" min="0" max="30" step="1">
+0
+    </defNumber>
+    <defNumber name="RAMP_THRESHOLD" label="Threshold (C)" format="%.1f" min="0.10000000000000000555" max="2" step="0.10000000000000000555">
+0.2000000000000000111
+    </defNumber>
+</defNumberVector>
+<defSwitchVector device="ZWO CCD ASI2600MC Pro" name="CCD_CAPTURE_FORMAT" label="Format" group="Image Settings" state="Idle" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-10-15T12:11:45">
+    <defSwitch name="ASI_IMG_RAW8" label="Raw 8 bit">
+Off
+    </defSwitch>
+    <defSwitch name="ASI_IMG_RGB24" label="RGB 24">
+Off
+    </defSwitch>
+    <defSwitch name="ASI_IMG_Y8" label="Luma">
+Off
+    </defSwitch>
+    <defSwitch name="ASI_IMG_RAW16" label="Raw 16 bit">
+On
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="ZWO CCD ASI2600MC Pro" name="CCD_TRANSFER_FORMAT" label="Encode" group="Image Settings" state="Idle" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-10-15T12:11:45">
+    <defSwitch name="FORMAT_FITS" label="FITS">
+On
+    </defSwitch>
+    <defSwitch name="FORMAT_NATIVE" label="Native">
+Off
+    </defSwitch>
+    <defSwitch name="FORMAT_XISF" label="XISF">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defNumberVector device="ZWO CCD ASI2600MC Pro" name="CCD_INFO" label="CCD Information" group="Image Info" state="Idle" perm="ro" timeout="60" timestamp="2026-10-15T12:11:45">
+    <defNumber name="CCD_MAX_X" label="Max. Width" format="%.f" min="1" max="16000" step="0">
+6248
+    </defNumber>
+    <defNumber name="CCD_MAX_Y" label="Max. Height" format="%.f" min="1" max="16000" step="0">
+4176
+    </defNumber>
+    <defNumber name="CCD_PIXEL_SIZE" label="Pixel size (um)" format="%.2f" min="1" max="40" step="0">
+3.7599999904632568359
+    </defNumber>
+    <defNumber name="CCD_PIXEL_SIZE_X" label="Pixel size X" format="%.2f" min="1" max="40" step="0">
+3.7599999904632568359
+    </defNumber>
+    <defNumber name="CCD_PIXEL_SIZE_Y" label="Pixel size Y" format="%.2f" min="1" max="40" step="0">
+3.7599999904632568359
+    </defNumber>
+    <defNumber name="CCD_BITSPERPIXEL" label="Bits per pixel" format="%.f" min="8" max="64" step="0">
+16
+    </defNumber>
+</defNumberVector>
+<defSwitchVector device="ZWO CCD ASI2600MC Pro" name="CCD_COMPRESSION" label="Compression" group="Image Settings" state="Idle" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-10-15T12:11:45">
+    <defSwitch name="INDI_ENABLED" label="Enabled">
+Off
+    </defSwitch>
+    <defSwitch name="INDI_DISABLED" label="Disabled">
+On
+    </defSwitch>
+</defSwitchVector>
+<defBLOBVector device="ZWO CCD ASI2600MC Pro" name="CCD1" label="Image Data" group="Image Info" state="Ok" perm="ro" timeout="60" timestamp="2026-10-15T12:11:45">
+    <defBLOB name="CCD1" label="Image"/>
+</defBLOBVector>
+<defSwitchVector device="ZWO CCD ASI2600MC Pro" name="CCD_FRAME_TYPE" label="Type" group="Image Settings" state="Idle" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-10-15T12:11:45">
+    <defSwitch name="FRAME_LIGHT" label="Light">
+On
+    </defSwitch>
+    <defSwitch name="FRAME_BIAS" label="Bias">
+Off
+    </defSwitch>
+    <defSwitch name="FRAME_DARK" label="Dark">
+Off
+    </defSwitch>
+    <defSwitch name="FRAME_FLAT" label="Flat">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defTextVector device="ZWO CCD ASI2600MC Pro" name="CCD_CFA" label="Bayer Info" group="Image Info" state="Idle" perm="rw" timeout="60" timestamp="2026-10-15T12:11:45">
+    <defText name="CFA_OFFSET_X" label="X Offset">
+0
+    </defText>
+    <defText name="CFA_OFFSET_Y" label="Y Offset">
+0
+    </defText>
+    <defText name="CFA_TYPE" label="Filter">
+RGGB
+    </defText>
+</defTextVector>
+<defNumberVector device="ZWO CCD ASI2600MC Pro" name="SCOPE_INFO" label="Scope" group="Options" state="Idle" perm="rw" timeout="60" timestamp="2026-10-15T12:11:45">
+    <defNumber name="FOCAL_LENGTH" label="Focal Length (mm)" format="%g" min="0" max="10000" step="1">
+0
+    </defNumber>
+    <defNumber name="APERTURE" label="Aperture (mm)" format="%g" min="0" max="3000" step="1">
+0
+    </defNumber>
+</defNumberVector>
+<defSwitchVector device="ZWO CCD ASI2600MC Pro" name="WCS_CONTROL" label="WCS" group="WCS" state="Idle" perm="rw" rule="OneOfMany" timeout="0" timestamp="2026-10-15T12:11:45">
+    <defSwitch name="WCS_ENABLE" label="Enable">
+Off
+    </defSwitch>
+    <defSwitch name="WCS_DISABLE" label="Disable">
+On
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="ZWO CCD ASI2600MC Pro" name="UPLOAD_MODE" label="Upload" group="Options" state="Ok" perm="rw" rule="OneOfMany" timeout="0" timestamp="2026-10-15T12:11:45">
+    <defSwitch name="UPLOAD_CLIENT" label="Client">
+Off
+    </defSwitch>
+    <defSwitch name="UPLOAD_LOCAL" label="Local">
+On
+    </defSwitch>
+    <defSwitch name="UPLOAD_BOTH" label="Both">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defTextVector device="ZWO CCD ASI2600MC Pro" name="UPLOAD_SETTINGS" label="Upload Settings" group="Options" state="Ok" perm="rw" timeout="60" timestamp="2026-10-15T12:11:45">
+    <defText name="UPLOAD_DIR" label="Dir">
+/tmp
+    </defText>
+    <defText name="UPLOAD_PREFIX" label="Prefix">
+IMAGE_XXX
+    </defText>
+</defTextVector>
+<defSwitchVector device="ZWO CCD ASI2600MC Pro" name="CCD_FAST_TOGGLE" label="Fast Exposure" group="Options" state="Idle" perm="rw" rule="OneOfMany" timeout="0" timestamp="2026-10-15T12:11:45">
+    <defSwitch name="INDI_ENABLED" label="Enabled">
+Off
+    </defSwitch>
+    <defSwitch name="INDI_DISABLED" label="Disabled">
+On
+    </defSwitch>
+</defSwitchVector>
+<defNumberVector device="ZWO CCD ASI2600MC Pro" name="CCD_FAST_COUNT" label="Fast Count" group="Options" state="Idle" perm="rw" timeout="0" timestamp="2026-10-15T12:11:45">
+    <defNumber name="FRAMES" label="Frames" format="%.f" min="0" max="100000" step="1">
+1
+    </defNumber>
+</defNumberVector>
+<defSwitchVector device="ZWO CCD ASI2600MC Pro" name="CCD_VIDEO_STREAM" label="Video Stream" group="Streaming" state="Idle" perm="rw" rule="OneOfMany" timeout="0" timestamp="2026-10-15T12:11:45">
+    <defSwitch name="STREAM_ON" label="Stream On">
+Off
+    </defSwitch>
+    <defSwitch name="STREAM_OFF" label="Stream Off">
+On
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="ZWO CCD ASI2600MC Pro" name="STREAM_FULL_DEPTH" label="Stream Depth" group="Streaming" state="Idle" perm="rw" rule="OneOfMany" timeout="0" timestamp="2026-10-15T12:11:45">
+    <defSwitch name="FULL_DEPTH_8BIT" label="8-bit">
+On
+    </defSwitch>
+    <defSwitch name="FULL_DEPTH_16BIT" label="16-bit">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defNumberVector device="ZWO CCD ASI2600MC Pro" name="STREAM_DELAY" label="Video Stream Delay" group="Streaming" state="Idle" perm="ro" timeout="0" timestamp="2026-10-15T12:11:45">
+    <defNumber name="STREAM_DELAY_TIME" label="Delay (s)" format="%.3f" min="0" max="60" step="0.0010000000000000000208">
+0
+    </defNumber>
+</defNumberVector>
+<defNumberVector device="ZWO CCD ASI2600MC Pro" name="STREAMING_EXPOSURE" label="Expose" group="Streaming" state="Idle" perm="rw" timeout="60" timestamp="2026-10-15T12:11:45">
+    <defNumber name="STREAMING_EXPOSURE_VALUE" label="Duration (s)" format="%.6f" min="9.9999999999999995475e-07" max="60" step="0.10000000000000000555">
+0.10000000000000000555
+    </defNumber>
+    <defNumber name="STREAMING_DIVISOR_VALUE" label="Divisor" format="%.f" min="1" max="15" step="1">
+1
+    </defNumber>
+</defNumberVector>
+<defNumberVector device="ZWO CCD ASI2600MC Pro" name="FPS" label="FPS" group="Streaming" state="Idle" perm="ro" timeout="60" timestamp="2026-10-15T12:11:45">
+    <defNumber name="EST_FPS" label="Instant." format="%.2f" min="0" max="999" step="0">
+30
+    </defNumber>
+    <defNumber name="AVG_FPS" label="Average (1 sec.)" format="%.2f" min="0" max="999" step="0">
+30
+    </defNumber>
+</defNumberVector>
+<defSwitchVector device="ZWO CCD ASI2600MC Pro" name="RECORD_STREAM" label="Video Record" group="Streaming" state="Idle" perm="rw" rule="OneOfMany" timeout="0" timestamp="2026-10-15T12:11:45">
+    <defSwitch name="RECORD_ON" label="Record On">
+Off
+    </defSwitch>
+    <defSwitch name="RECORD_DURATION_ON" label="Record (Duration)">
+Off
+    </defSwitch>
+    <defSwitch name="RECORD_FRAME_ON" label="Record (Frames)">
+Off
+    </defSwitch>
+    <defSwitch name="RECORD_OFF" label="Record Off">
+On
+    </defSwitch>
+</defSwitchVector>
+<defTextVector device="ZWO CCD ASI2600MC Pro" name="RECORD_FILE" label="Record File" group="Streaming" state="Idle" perm="rw" timeout="0" timestamp="2026-10-15T12:11:45">
+    <defText name="RECORD_FILE_DIR" label="Dir.">
+/home/rig/Videos/indi__D_
+    </defText>
+    <defText name="RECORD_FILE_NAME" label="Name">
+indi_record__T_
+    </defText>
+</defTextVector>
+<defNumberVector device="ZWO CCD ASI2600MC Pro" name="RECORD_OPTIONS" label="Record Options" group="Streaming" state="Idle" perm="rw" timeout="60" timestamp="2026-10-15T12:11:45">
+    <defNumber name="RECORD_DURATION" label="Duration (sec)" format="%.3f" min="0.0010000000000000000208" max="999999" step="0">
+1
+    </defNumber>
+    <defNumber name="RECORD_FRAME_TOTAL" label="Frames" format="%.f" min="1" max="999999999" step="1">
+30
+    </defNumber>
+</defNumberVector>
+<defNumberVector device="ZWO CCD ASI2600MC Pro" name="CCD_STREAM_FRAME" label="Frame" group="Streaming" state="Ok" perm="rw" timeout="60" timestamp="2026-10-15T12:11:45">
+    <defNumber name="X" label="Left" format="%.f" min="0" max="6247" step="0">
+0
+    </defNumber>
+    <defNumber name="Y" label="Top" format="%.f" min="0" max="4175" step="0">
+0
+    </defNumber>
+    <defNumber name="WIDTH" label="Width" format="%.f" min="10" max="6248" step="0">
+6248
+    </defNumber>
+    <defNumber name="HEIGHT" label="Height" format="%.f" min="10" max="4176" step="0">
+4176
+    </defNumber>
+</defNumberVector>
+<defSwitchVector device="ZWO CCD ASI2600MC Pro" name="CCD_STREAM_ENCODER" label="Encoder" group="Streaming" state="Idle" perm="rw" rule="OneOfMany" timeout="0" timestamp="2026-10-15T12:11:45">
+    <defSwitch name="RAW" label="RAW">
+On
+    </defSwitch>
+    <defSwitch name="MJPEG" label="MJPEG">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="ZWO CCD ASI2600MC Pro" name="CCD_STREAM_RECORDER" label="Recorder" group="Streaming" state="Idle" perm="rw" rule="OneOfMany" timeout="0" timestamp="2026-10-15T12:11:45">
+    <defSwitch name="SER" label="SER">
+On
+    </defSwitch>
+</defSwitchVector>
+<defNumberVector device="ZWO CCD ASI2600MC Pro" name="LIMITS" label="Limits" group="Streaming" state="Idle" perm="rw" timeout="0" timestamp="2026-10-15T12:11:45">
+    <defNumber name="LIMITS_BUFFER_MAX" label="Maximum Buffer Size (MB)" format="%.0f" min="1" max="65536" step="1">
+512
+    </defNumber>
+    <defNumber name="LIMITS_PREVIEW_FPS" label="Maximum Preview FPS" format="%.0f" min="1" max="120" step="1">
+10
+    </defNumber>
+</defNumberVector>
+<defNumberVector device="ZWO CCD ASI2600MC Pro" name="CCD_COOLER_POWER" label="Cooling Power" group="Main Control" state="Idle" perm="ro" timeout="60" timestamp="2026-10-15T12:11:45">
+    <defNumber name="CCD_COOLER_VALUE" label="Cooling Power (%)" format="%+06.2f" min="0" max="1" step="0.2000000000000000111">
+0
+    </defNumber>
+</defNumberVector>
+<defSwitchVector device="ZWO CCD ASI2600MC Pro" name="CCD_COOLER" label="Cooler" group="Main Control" state="Idle" perm="wo" rule="OneOfMany" timeout="0" timestamp="2026-10-15T12:11:45">
+    <defSwitch name="COOLER_ON" label="ON">
+Off
+    </defSwitch>
+    <defSwitch name="COOLER_OFF" label="OFF">
+On
+    </defSwitch>
+</defSwitchVector>
+<defNumberVector device="ZWO CCD ASI2600MC Pro" name="CCD_CONTROLS" label="Controls" group="Controls" state="Idle" perm="rw" timeout="60" timestamp="2026-10-15T12:11:45">
+    <defNumber name="Gain" label="Gain" format="%g" min="-25" max="700" step="72.5">
+200
+    </defNumber>
+    <defNumber name="WB_R" label="WB_R" format="%g" min="1" max="99" step="9.8000000000000007105">
+52
+    </defNumber>
+    <defNumber name="WB_B" label="WB_B" format="%g" min="1" max="99" step="9.8000000000000007105">
+95
+    </defNumber>
+    <defNumber name="Offset" label="Offset" format="%g" min="0" max="240" step="24">
+1
+    </defNumber>
+    <defNumber name="BandWidth" label="BandWidth" format="%g" min="40" max="100" step="6">
+40
+    </defNumber>
+    <defNumber name="AutoExpMaxGain" label="AutoExpMaxGain" format="%g" min="-25" max="700" step="72.5">
+337
+    </defNumber>
+    <defNumber name="AutoExpMaxExpMS" label="AutoExpMaxExpMS" format="%g" min="1" max="60000" step="5999.8999999999996362">
+30000
+    </defNumber>
+    <defNumber name="AutoExpTargetBrightness" label="AutoExpTargetBrightness" format="%g" min="50" max="160" step="11">
+100
+    </defNumber>
+    <defNumber name="HardwareBin" label="HardwareBin" format="%g" min="0" max="1" step="1">
+0
+    </defNumber>
+    <defNumber name="HighSpeedMode" label="HighSpeedMode" format="%g" min="0" max="1" step="1">
+0
+    </defNumber>
+    <defNumber name="MonoBin" label="MonoBin" format="%g" min="0" max="1" step="1">
+0
+    </defNumber>
+    <defNumber name="AntiDewHeater" label="AntiDewHeater" format="%g" min="0" max="1" step="1">
+0
+    </defNumber>
+    <defNumber name="FanSpeedAdjust" label="FanSpeedAdjust" format="%g" min="0" max="255" step="25.5">
+255
+    </defNumber>
+    <defNumber name="PowerLedBright" label="PowerLedBright" format="%g" min="0" max="255" step="25.5">
+255
+    </defNumber>
+    <defNumber name="UsbHubReset" label="UsbHubReset" format="%g" min="0" max="1" step="1">
+1
+    </defNumber>
+</defNumberVector>
+<defSwitchVector device="ZWO CCD ASI2600MC Pro" name="CCD_CONTROLS_MODE" label="Set Auto" group="Controls" state="Idle" perm="rw" rule="AnyOfMany" timeout="60" timestamp="2026-10-15T12:11:45">
+    <defSwitch name="AUTO_Gain" label="Gain">
+Off
+    </defSwitch>
+    <defSwitch name="AUTO_WB_R" label="WB_R">
+Off
+    </defSwitch>
+    <defSwitch name="AUTO_WB_B" label="WB_B">
+Off
+    </defSwitch>
+    <defSwitch name="AUTO_BandWidth" label="BandWidth">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="ZWO CCD ASI2600MC Pro" name="FLIP" label="Flip" group="Controls" state="Idle" perm="rw" rule="AnyOfMany" timeout="60" timestamp="2026-10-15T12:11:45">
+    <defSwitch name="FLIP_HORIZONTAL" label="Horizontal">
+Off
+    </defSwitch>
+    <defSwitch name="FLIP_VERTICAL" label="Vertical">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="ZWO CCD ASI2600MC Pro" name="CCD_VIDEO_FORMAT" label="Format" group="Controls" state="Ok" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-10-15T12:11:45">
+    <defSwitch name="ASI_IMG_RAW8" label="Raw 8 bit">
+Off
+    </defSwitch>
+    <defSwitch name="ASI_IMG_RGB24" label="RGB 24">
+Off
+    </defSwitch>
+    <defSwitch name="ASI_IMG_Y8" label="Luma">
+Off
+    </defSwitch>
+    <defSwitch name="ASI_IMG_RAW16" label="Raw 16 bit">
+On
+    </defSwitch>
+</defSwitchVector>
+<defNumberVector device="ZWO CCD ASI2600MC Pro" name="BLINK" label="Blink" group="Controls" state="Idle" perm="rw" timeout="60" timestamp="2026-10-15T12:11:45">
+    <defNumber name="BLINK_COUNT" label="Blinks before exposure" format="%2.0f" min="0" max="100" step="1">
+0
+    </defNumber>
+    <defNumber name="BLINK_DURATION" label="Blink duration" format="%2.3f" min="0" max="60" step="0.0010000000000000000208">
+0
+    </defNumber>
+</defNumberVector>
+<defNumberVector device="ZWO CCD ASI2600MC Pro" name="ADC_DEPTH" label="ADC Depth" group="Image Info" state="Idle" perm="ro" timeout="60" timestamp="2026-10-15T12:11:45">
+    <defNumber name="BITS" label="Bits" format="%2.0f" min="0" max="32" step="1">
+16
+    </defNumber>
+</defNumberVector>
+<defTextVector device="ZWO CCD ASI2600MC Pro" name="SDK" label="SDK" group="General Info" state="Idle" perm="ro" timeout="60" timestamp="2026-10-15T12:11:45">
+    <defText name="VERSION" label="Version">
+1, 41, 0, 0
+    </defText>
+</defTextVector>
+<defTextVector device="ZWO CCD ASI2600MC Pro" name="Serial Number" label="Serial Number" group="General Info" state="Idle" perm="ro" timeout="60" timestamp="2026-10-15T12:11:45">
+    <defText name="SN" label="SN">
+1d324f012a020900
+    </defText>
+</defTextVector>
+<defSwitchVector device="ZWO CCD ASI2600MC Pro" name="USB_RESET" label="USB Reset" group="Options" state="Idle" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-10-15T12:11:45">
+    <defSwitch name="INDI_ENABLED" label="Enabled">
+Off
+    </defSwitch>
+    <defSwitch name="INDI_DISABLED" label="Disabled">
+On
+    </defSwitch>
+</defSwitchVector>
+<defTextVector device="ZWO CCD ASI2600MC Pro" name="CCD_FILE_PATH" label="Filename" group="Image Info" state="Ok" perm="ro" timeout="60" timestamp="2026-10-15T12:11:45">
+    <defText name="FILE_PATH" label="Path">
+/tmp/IMAGE_001.fits
+    </defText>
+</defTextVector>
+<defTextVector device="ZWO CCD ASI2600MC Pro" name="ACTIVE_DEVICES" label="Snoop devices" group="Options" state="Idle" perm="rw" timeout="60" timestamp="2026-10-15T12:11:45">
+    <defText name="ACTIVE_TELESCOPE" label="Telescope">
+Telescope Simulator
+    </defText>
+    <defText name="ACTIVE_ROTATOR" label="Rotator">
+Rotator Simulator
+    </defText>
+    <defText name="ACTIVE_FOCUSER" label="Focuser">
+Focuser Simulator
+    </defText>
+    <defText name="ACTIVE_FILTER" label="Filter">
+CCD Simulator
+    </defText>
+    <defText name="ACTIVE_SKYQUALITY" label="Sky Quality">
+SQM
+    </defText>
+</defTextVector>
+<defSwitchVector device="ZWO CCD ASI2600MC Pro" name="CCD_VIDEO_STREAM" label="Video Stream" group="Streaming" state="Idle" perm="rw" rule="OneOfMany" timeout="0" timestamp="2026-10-15T12:11:45">
+    <defSwitch name="STREAM_ON" label="Stream On">
+Off
+    </defSwitch>
+    <defSwitch name="STREAM_OFF" label="Stream Off">
+On
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="ZWO CCD ASI2600MC Pro" name="STREAM_FULL_DEPTH" label="Stream Depth" group="Streaming" state="Idle" perm="rw" rule="OneOfMany" timeout="0" timestamp="2026-10-15T12:11:45">
+    <defSwitch name="FULL_DEPTH_8BIT" label="8-bit">
+On
+    </defSwitch>
+    <defSwitch name="FULL_DEPTH_16BIT" label="16-bit">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defNumberVector device="ZWO CCD ASI2600MC Pro" name="STREAMING_EXPOSURE" label="Expose" group="Streaming" state="Idle" perm="rw" timeout="60" timestamp="2026-10-15T12:11:45">
+    <defNumber name="STREAMING_EXPOSURE_VALUE" label="Duration (s)" format="%.6f" min="9.9999999999999995475e-07" max="60" step="0.10000000000000000555">
+0.10000000000000000555
+    </defNumber>
+    <defNumber name="STREAMING_DIVISOR_VALUE" label="Divisor" format="%.f" min="1" max="15" step="1">
+1
+    </defNumber>
+</defNumberVector>
+<defNumberVector device="ZWO CCD ASI2600MC Pro" name="FPS" label="FPS" group="Streaming" state="Idle" perm="ro" timeout="60" timestamp="2026-10-15T12:11:45">
+    <defNumber name="EST_FPS" label="Instant." format="%.2f" min="0" max="999" step="0">
+30
+    </defNumber>
+    <defNumber name="AVG_FPS" label="Average (1 sec.)" format="%.2f" min="0" max="999" step="0">
+30
+    </defNumber>
+</defNumberVector>
+<defSwitchVector device="ZWO CCD ASI2600MC Pro" name="RECORD_STREAM" label="Video Record" group="Streaming" state="Idle" perm="rw" rule="OneOfMany" timeout="0" timestamp="2026-10-15T12:11:45">
+    <defSwitch name="RECORD_ON" label="Record On">
+Off
+    </defSwitch>
+    <defSwitch name="RECORD_DURATION_ON" label="Record (Duration)">
+Off
+    </defSwitch>
+    <defSwitch name="RECORD_FRAME_ON" label="Record (Frames)">
+Off
+    </defSwitch>
+    <defSwitch name="RECORD_OFF" label="Record Off">
+On
+    </defSwitch>
+</defSwitchVector>
+<defTextVector device="ZWO CCD ASI2600MC Pro" name="RECORD_FILE" label="Record File" group="Streaming" state="Idle" perm="rw" timeout="0" timestamp="2026-10-15T12:11:45">
+    <defText name="RECORD_FILE_DIR" label="Dir.">
+/home/rig/Videos/indi__D_
+    </defText>
+    <defText name="RECORD_FILE_NAME" label="Name">
+indi_record__T_
+    </defText>
+</defTextVector>
+<defNumberVector device="ZWO CCD ASI2600MC Pro" name="RECORD_OPTIONS" label="Record Options" group="Streaming" state="Idle" perm="rw" timeout="60" timestamp="2026-10-15T12:11:45">
+    <defNumber name="RECORD_DURATION" label="Duration (sec)" format="%.3f" min="0.0010000000000000000208" max="999999" step="0">
+1
+    </defNumber>
+    <defNumber name="RECORD_FRAME_TOTAL" label="Frames" format="%.f" min="1" max="999999999" step="1">
+30
+    </defNumber>
+</defNumberVector>
+<defNumberVector device="ZWO CCD ASI2600MC Pro" name="CCD_STREAM_FRAME" label="Frame" group="Streaming" state="Ok" perm="rw" timeout="60" timestamp="2026-10-15T12:11:45">
+    <defNumber name="X" label="Left" format="%.f" min="0" max="6247" step="0">
+0
+    </defNumber>
+    <defNumber name="Y" label="Top" format="%.f" min="0" max="4175" step="0">
+0
+    </defNumber>
+    <defNumber name="WIDTH" label="Width" format="%.f" min="10" max="6248" step="0">
+6248
+    </defNumber>
+    <defNumber name="HEIGHT" label="Height" format="%.f" min="10" max="4176" step="0">
+4176
+    </defNumber>
+</defNumberVector>
+<defSwitchVector device="ZWO CCD ASI2600MC Pro" name="CCD_STREAM_ENCODER" label="Encoder" group="Streaming" state="Idle" perm="rw" rule="OneOfMany" timeout="0" timestamp="2026-10-15T12:11:45">
+    <defSwitch name="RAW" label="RAW">
+On
+    </defSwitch>
+    <defSwitch name="MJPEG" label="MJPEG">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="ZWO CCD ASI2600MC Pro" name="CCD_STREAM_RECORDER" label="Recorder" group="Streaming" state="Idle" perm="rw" rule="OneOfMany" timeout="0" timestamp="2026-10-15T12:11:45">
+    <defSwitch name="SER" label="SER">
+On
+    </defSwitch>
+</defSwitchVector>
+<defNumberVector device="ZWO CCD ASI2600MC Pro" name="LIMITS" label="Limits" group="Streaming" state="Idle" perm="rw" timeout="0" timestamp="2026-10-15T12:11:45">
+    <defNumber name="LIMITS_BUFFER_MAX" label="Maximum Buffer Size (MB)" format="%.0f" min="1" max="65536" step="1">
+512
+    </defNumber>
+    <defNumber name="LIMITS_PREVIEW_FPS" label="Maximum Preview FPS" format="%.0f" min="1" max="120" step="1">
+10
+    </defNumber>
+</defNumberVector>
+<defSwitchVector device="ZWO CCD ASI220MM Mini" name="CONNECTION" label="Connection" group="Main Control" state="Ok" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-10-15T12:11:45">
+    <defSwitch name="CONNECT" label="Connect">
+On
+    </defSwitch>
+    <defSwitch name="DISCONNECT" label="Disconnect">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defTextVector device="ZWO CCD ASI220MM Mini" name="DRIVER_INFO" label="Driver Info" group="General Info" state="Idle" perm="ro" timeout="60" timestamp="2026-10-15T12:11:45">
+    <defText name="DRIVER_NAME" label="Name">
+ZWO CCD
+    </defText>
+    <defText name="DRIVER_EXEC" label="Exec">
+indi_asi_ccd
+    </defText>
+    <defText name="DRIVER_VERSION" label="Version">
+2.7
+    </defText>
+    <defText name="DRIVER_INTERFACE" label="Interface">
+6
+    </defText>
+</defTextVector>
+<defNumberVector device="ZWO CCD ASI220MM Mini" name="POLLING_PERIOD" label="Polling" group="Options" state="Idle" perm="rw" timeout="0" timestamp="2026-10-15T12:11:45">
+    <defNumber name="PERIOD_MS" label="Period (ms)" format="%.f" min="10" max="600000" step="1000">
+1000
+    </defNumber>
+</defNumberVector>
+<defSwitchVector device="ZWO CCD ASI220MM Mini" name="DEBUG" label="Debug" group="Options" state="Idle" perm="rw" rule="OneOfMany" timeout="0" timestamp="2026-10-15T12:11:45">
+    <defSwitch name="ENABLE" label="Enable">
+Off
+    </defSwitch>
+    <defSwitch name="DISABLE" label="Disable">
+On
+    </defSwitch>
+</defSwitchVector>
+<defTextVector device="ZWO CCD ASI220MM Mini" name="NICKNAME" label="Nickname" group="General Info" state="Idle" perm="rw" timeout="60" timestamp="2026-10-15T12:11:45">
+    <defText name="nickname" label="nickname"/>
+</defTextVector>
+<defSwitchVector device="ZWO CCD ASI220MM Mini" name="SIMULATION" label="Simulation" group="Options" state="Idle" perm="rw" rule="OneOfMany" timeout="0" timestamp="2026-10-15T12:11:45">
+    <defSwitch name="ENABLE" label="Enable">
+Off
+    </defSwitch>
+    <defSwitch name="DISABLE" label="Disable">
+On
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="ZWO CCD ASI220MM Mini" name="CONFIG_PROCESS" label="Configuration" group="Options" state="Idle" perm="rw" rule="AtMostOne" timeout="0" timestamp="2026-10-15T12:11:45">
+    <defSwitch name="CONFIG_LOAD" label="Load">
+Off
+    </defSwitch>
+    <defSwitch name="CONFIG_SAVE" label="Save">
+Off
+    </defSwitch>
+    <defSwitch name="CONFIG_DEFAULT" label="Default">
+Off
+    </defSwitch>
+    <defSwitch name="CONFIG_PURGE" label="Purge">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defTextVector device="ZWO CCD ASI220MM Mini" name="ACTIVE_DEVICES" label="Snoop devices" group="Options" state="Idle" perm="rw" timeout="60" timestamp="2026-10-15T12:11:45">
+    <defText name="ACTIVE_TELESCOPE" label="Telescope">
+Telescope Simulator
+    </defText>
+    <defText name="ACTIVE_ROTATOR" label="Rotator">
+Rotator Simulator
+    </defText>
+    <defText name="ACTIVE_FOCUSER" label="Focuser">
+Focuser Simulator
+    </defText>
+    <defText name="ACTIVE_FILTER" label="Filter">
+CCD Simulator
+    </defText>
+    <defText name="ACTIVE_SKYQUALITY" label="Sky Quality">
+SQM
+    </defText>
+</defTextVector>
+<defNumberVector device="ZWO CCD ASI220MM Mini" name="CCD_EXPOSURE" label="Expose" group="Main Control" state="Idle" perm="rw" timeout="60" timestamp="2026-10-15T12:11:45">
+    <defNumber name="CCD_EXPOSURE_VALUE" label="Duration (s)" format="%5.2f" min="3.1999999999999998552e-05" max="10" step="1">
+1
+    </defNumber>
+</defNumberVector>
+<defSwitchVector device="ZWO CCD ASI220MM Mini" name="CCD_ABORT_EXPOSURE" label="Abort" group="Main Control" state="Idle" perm="rw" rule="AtMostOne" timeout="60" timestamp="2026-10-15T12:11:45">
+    <defSwitch name="ABORT" label="Abort">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defNumberVector device="ZWO CCD ASI220MM Mini" name="CCD_FRAME" label="Frame" group="Image Settings" state="Idle" perm="rw" timeout="60" timestamp="2026-10-15T12:11:45">
+    <defNumber name="X" label="Left " format="%4.0f" min="0" max="1919" step="0">
+0
+    </defNumber>
+    <defNumber name="Y" label="Top" format="%4.0f" min="0" max="1079" step="0">
+0
+    </defNumber>
+    <defNumber name="WIDTH" label="Width" format="%4.0f" min="1" max="1920" step="0">
+1920
+    </defNumber>
+    <defNumber name="HEIGHT" label="Height" format="%4.0f" min="1" max="1080" step="0">
+1080
+    </defNumber>
+</defNumberVector>
+<defSwitchVector device="ZWO CCD ASI220MM Mini" name="CCD_FRAME_RESET" label="Frame Values" group="Image Settings" state="Idle" perm="wo" rule="OneOfMany" timeout="0" timestamp="2026-10-15T12:11:45">
+    <defSwitch name="RESET" label="Reset">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defNumberVector device="ZWO CCD ASI220MM Mini" name="CCD_BINNING" label="Binning" group="Image Settings" state="Idle" perm="rw" timeout="60" timestamp="2026-10-15T12:11:45">
+    <defNumber name="HOR_BIN" label="X" format="%2.0f" min="1" max="2" step="1">
+1
+    </defNumber>
+    <defNumber name="VER_BIN" label="Y" format="%2.0f" min="1" max="2" step="1">
+1
+    </defNumber>
+</defNumberVector>
+<defTextVector device="ZWO CCD ASI220MM Mini" name="FITS_HEADER" label="FITS Header" group="General Info" state="Idle" perm="wo" timeout="60" timestamp="2026-10-15T12:11:45">
+    <defText name="KEYWORD_NAME" label="Name"/>
+    <defText name="KEYWORD_VALUE" label="Value"/>
+    <defText name="KEYWORD_COMMENT" label="Comment"/>
+</defTextVector>
+<defSwitchVector device="ZWO CCD ASI220MM Mini" name="CCD_CAPTURE_FORMAT" label="Format" group="Image Settings" state="Idle" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-10-15T12:11:45">
+    <defSwitch name="ASI_IMG_RAW8" label="Raw 8 bit">
+Off
+    </defSwitch>
+    <defSwitch name="ASI_IMG_RAW16" label="Raw 16 bit">
+On
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="ZWO CCD ASI220MM Mini" name="CCD_TRANSFER_FORMAT" label="Encode" group="Image Settings" state="Idle" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-10-15T12:11:45">
+    <defSwitch name="FORMAT_FITS" label="FITS">
+On
+    </defSwitch>
+    <defSwitch name="FORMAT_NATIVE" label="Native">
+Off
+    </defSwitch>
+    <defSwitch name="FORMAT_XISF" label="XISF">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defNumberVector device="ZWO CCD ASI220MM Mini" name="CCD_INFO" label="CCD Information" group="Image Info" state="Idle" perm="ro" timeout="60" timestamp="2026-10-15T12:11:45">
+    <defNumber name="CCD_MAX_X" label="Max. Width" format="%.f" min="1" max="16000" step="0">
+1920
+    </defNumber>
+    <defNumber name="CCD_MAX_Y" label="Max. Height" format="%.f" min="1" max="16000" step="0">
+1080
+    </defNumber>
+    <defNumber name="CCD_PIXEL_SIZE" label="Pixel size (um)" format="%.2f" min="1" max="40" step="0">
+4
+    </defNumber>
+    <defNumber name="CCD_PIXEL_SIZE_X" label="Pixel size X" format="%.2f" min="1" max="40" step="0">
+4
+    </defNumber>
+    <defNumber name="CCD_PIXEL_SIZE_Y" label="Pixel size Y" format="%.2f" min="1" max="40" step="0">
+4
+    </defNumber>
+    <defNumber name="CCD_BITSPERPIXEL" label="Bits per pixel" format="%.f" min="8" max="64" step="0">
+16
+    </defNumber>
+</defNumberVector>
+<defSwitchVector device="ZWO CCD ASI220MM Mini" name="CCD_COMPRESSION" label="Compression" group="Image Settings" state="Idle" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-10-15T12:11:45">
+    <defSwitch name="INDI_ENABLED" label="Enabled">
+Off
+    </defSwitch>
+    <defSwitch name="INDI_DISABLED" label="Disabled">
+On
+    </defSwitch>
+</defSwitchVector>
+<defBLOBVector device="ZWO CCD ASI220MM Mini" name="CCD1" label="Image Data" group="Image Info" state="Idle" perm="ro" timeout="60" timestamp="2026-10-15T12:11:45">
+    <defBLOB name="CCD1" label="Image"/>
+</defBLOBVector>
+<defNumberVector device="ZWO CCD ASI220MM Mini" name="TELESCOPE_TIMED_GUIDE_NS" label="Guide N/S" group="Guider Control" state="Idle" perm="rw" timeout="60" timestamp="2026-10-15T12:11:45">
+    <defNumber name="TIMED_GUIDE_N" label="North (ms)" format="%.f" min="0" max="60000" step="100">
+0
+    </defNumber>
+    <defNumber name="TIMED_GUIDE_S" label="South (ms)" format="%.f" min="0" max="60000" step="100">
+0
+    </defNumber>
+</defNumberVector>
+<defNumberVector device="ZWO CCD ASI220MM Mini" name="TELESCOPE_TIMED_GUIDE_WE" label="Guide E/W" group="Guider Control" state="Idle" perm="rw" timeout="60" timestamp="2026-10-15T12:11:45">
+    <defNumber name="TIMED_GUIDE_W" label="West (ms)" format="%.f" min="0" max="60000" step="100">
+0
+    </defNumber>
+    <defNumber name="TIMED_GUIDE_E" label="East (ms)" format="%.f" min="0" max="60000" step="100">
+0
+    </defNumber>
+</defNumberVector>
+<defSwitchVector device="ZWO CCD ASI220MM Mini" name="CCD_FRAME_TYPE" label="Type" group="Image Settings" state="Idle" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-10-15T12:11:45">
+    <defSwitch name="FRAME_LIGHT" label="Light">
+On
+    </defSwitch>
+    <defSwitch name="FRAME_BIAS" label="Bias">
+Off
+    </defSwitch>
+    <defSwitch name="FRAME_DARK" label="Dark">
+Off
+    </defSwitch>
+    <defSwitch name="FRAME_FLAT" label="Flat">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defNumberVector device="ZWO CCD ASI220MM Mini" name="SCOPE_INFO" label="Scope" group="Options" state="Idle" perm="rw" timeout="60" timestamp="2026-10-15T12:11:45">
+    <defNumber name="FOCAL_LENGTH" label="Focal Length (mm)" format="%g" min="0" max="10000" step="1">
+0
+    </defNumber>
+    <defNumber name="APERTURE" label="Aperture (mm)" format="%g" min="0" max="3000" step="1">
+0
+    </defNumber>
+</defNumberVector>
+<defSwitchVector device="ZWO CCD ASI220MM Mini" name="WCS_CONTROL" label="WCS" group="WCS" state="Idle" perm="rw" rule="OneOfMany" timeout="0" timestamp="2026-10-15T12:11:45">
+    <defSwitch name="WCS_ENABLE" label="Enable">
+Off
+    </defSwitch>
+    <defSwitch name="WCS_DISABLE" label="Disable">
+On
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="ZWO CCD ASI220MM Mini" name="UPLOAD_MODE" label="Upload" group="Options" state="Idle" perm="rw" rule="OneOfMany" timeout="0" timestamp="2026-10-15T12:11:45">
+    <defSwitch name="UPLOAD_CLIENT" label="Client">
+On
+    </defSwitch>
+    <defSwitch name="UPLOAD_LOCAL" label="Local">
+Off
+    </defSwitch>
+    <defSwitch name="UPLOAD_BOTH" label="Both">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defTextVector device="ZWO CCD ASI220MM Mini" name="UPLOAD_SETTINGS" label="Upload Settings" group="Options" state="Idle" perm="rw" timeout="60" timestamp="2026-10-15T12:11:45">
+    <defText name="UPLOAD_DIR" label="Dir">
+/home/rig
+    </defText>
+    <defText name="UPLOAD_PREFIX" label="Prefix">
+IMAGE_XXX
+    </defText>
+</defTextVector>
+<defSwitchVector device="ZWO CCD ASI220MM Mini" name="CCD_FAST_TOGGLE" label="Fast Exposure" group="Options" state="Idle" perm="rw" rule="OneOfMany" timeout="0" timestamp="2026-10-15T12:11:45">
+    <defSwitch name="INDI_ENABLED" label="Enabled">
+Off
+    </defSwitch>
+    <defSwitch name="INDI_DISABLED" label="Disabled">
+On
+    </defSwitch>
+</defSwitchVector>
+<defNumberVector device="ZWO CCD ASI220MM Mini" name="CCD_FAST_COUNT" label="Fast Count" group="Options" state="Idle" perm="rw" timeout="0" timestamp="2026-10-15T12:11:45">
+    <defNumber name="FRAMES" label="Frames" format="%.f" min="0" max="100000" step="1">
+1
+    </defNumber>
+</defNumberVector>
+<defSwitchVector device="ZWO CCD ASI220MM Mini" name="CCD_VIDEO_STREAM" label="Video Stream" group="Streaming" state="Idle" perm="rw" rule="OneOfMany" timeout="0" timestamp="2026-10-15T12:11:45">
+    <defSwitch name="STREAM_ON" label="Stream On">
+Off
+    </defSwitch>
+    <defSwitch name="STREAM_OFF" label="Stream Off">
+On
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="ZWO CCD ASI220MM Mini" name="STREAM_FULL_DEPTH" label="Stream Depth" group="Streaming" state="Idle" perm="rw" rule="OneOfMany" timeout="0" timestamp="2026-10-15T12:11:45">
+    <defSwitch name="FULL_DEPTH_8BIT" label="8-bit">
+On
+    </defSwitch>
+    <defSwitch name="FULL_DEPTH_16BIT" label="16-bit">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defNumberVector device="ZWO CCD ASI220MM Mini" name="STREAM_DELAY" label="Video Stream Delay" group="Streaming" state="Idle" perm="ro" timeout="0" timestamp="2026-10-15T12:11:45">
+    <defNumber name="STREAM_DELAY_TIME" label="Delay (s)" format="%.3f" min="0" max="60" step="0.0010000000000000000208">
+0
+    </defNumber>
+</defNumberVector>
+<defNumberVector device="ZWO CCD ASI220MM Mini" name="STREAMING_EXPOSURE" label="Expose" group="Streaming" state="Idle" perm="rw" timeout="60" timestamp="2026-10-15T12:11:45">
+    <defNumber name="STREAMING_EXPOSURE_VALUE" label="Duration (s)" format="%.6f" min="9.9999999999999995475e-07" max="60" step="0.10000000000000000555">
+0.10000000000000000555
+    </defNumber>
+    <defNumber name="STREAMING_DIVISOR_VALUE" label="Divisor" format="%.f" min="1" max="15" step="1">
+1
+    </defNumber>
+</defNumberVector>
+<defNumberVector device="ZWO CCD ASI220MM Mini" name="FPS" label="FPS" group="Streaming" state="Idle" perm="ro" timeout="60" timestamp="2026-10-15T12:11:45">
+    <defNumber name="EST_FPS" label="Instant." format="%.2f" min="0" max="999" step="0">
+30
+    </defNumber>
+    <defNumber name="AVG_FPS" label="Average (1 sec.)" format="%.2f" min="0" max="999" step="0">
+30
+    </defNumber>
+</defNumberVector>
+<defSwitchVector device="ZWO CCD ASI220MM Mini" name="RECORD_STREAM" label="Video Record" group="Streaming" state="Idle" perm="rw" rule="OneOfMany" timeout="0" timestamp="2026-10-15T12:11:45">
+    <defSwitch name="RECORD_ON" label="Record On">
+Off
+    </defSwitch>
+    <defSwitch name="RECORD_DURATION_ON" label="Record (Duration)">
+Off
+    </defSwitch>
+    <defSwitch name="RECORD_FRAME_ON" label="Record (Frames)">
+Off
+    </defSwitch>
+    <defSwitch name="RECORD_OFF" label="Record Off">
+On
+    </defSwitch>
+</defSwitchVector>
+<defTextVector device="ZWO CCD ASI220MM Mini" name="RECORD_FILE" label="Record File" group="Streaming" state="Idle" perm="rw" timeout="0" timestamp="2026-10-15T12:11:45">
+    <defText name="RECORD_FILE_DIR" label="Dir.">
+/home/rig/Videos/indi__D_
+    </defText>
+    <defText name="RECORD_FILE_NAME" label="Name">
+indi_record__T_
+    </defText>
+</defTextVector>
+<defNumberVector device="ZWO CCD ASI220MM Mini" name="RECORD_OPTIONS" label="Record Options" group="Streaming" state="Idle" perm="rw" timeout="60" timestamp="2026-10-15T12:11:45">
+    <defNumber name="RECORD_DURATION" label="Duration (sec)" format="%.3f" min="0.0010000000000000000208" max="999999" step="0">
+1
+    </defNumber>
+    <defNumber name="RECORD_FRAME_TOTAL" label="Frames" format="%.f" min="1" max="999999999" step="1">
+30
+    </defNumber>
+</defNumberVector>
+<defNumberVector device="ZWO CCD ASI220MM Mini" name="CCD_STREAM_FRAME" label="Frame" group="Streaming" state="Ok" perm="rw" timeout="60" timestamp="2026-10-15T12:11:45">
+    <defNumber name="X" label="Left" format="%.f" min="0" max="1919" step="0">
+0
+    </defNumber>
+    <defNumber name="Y" label="Top" format="%.f" min="0" max="1079" step="0">
+0
+    </defNumber>
+    <defNumber name="WIDTH" label="Width" format="%.f" min="10" max="1920" step="0">
+1920
+    </defNumber>
+    <defNumber name="HEIGHT" label="Height" format="%.f" min="10" max="1080" step="0">
+1080
+    </defNumber>
+</defNumberVector>
+<defSwitchVector device="ZWO CCD ASI220MM Mini" name="CCD_STREAM_ENCODER" label="Encoder" group="Streaming" state="Idle" perm="rw" rule="OneOfMany" timeout="0" timestamp="2026-10-15T12:11:45">
+    <defSwitch name="RAW" label="RAW">
+On
+    </defSwitch>
+    <defSwitch name="MJPEG" label="MJPEG">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="ZWO CCD ASI220MM Mini" name="CCD_STREAM_RECORDER" label="Recorder" group="Streaming" state="Idle" perm="rw" rule="OneOfMany" timeout="0" timestamp="2026-10-15T12:11:45">
+    <defSwitch name="SER" label="SER">
+On
+    </defSwitch>
+</defSwitchVector>
+<defNumberVector device="ZWO CCD ASI220MM Mini" name="LIMITS" label="Limits" group="Streaming" state="Idle" perm="rw" timeout="0" timestamp="2026-10-15T12:11:45">
+    <defNumber name="LIMITS_BUFFER_MAX" label="Maximum Buffer Size (MB)" format="%.0f" min="1" max="65536" step="1">
+512
+    </defNumber>
+    <defNumber name="LIMITS_PREVIEW_FPS" label="Maximum Preview FPS" format="%.0f" min="1" max="120" step="1">
+10
+    </defNumber>
+</defNumberVector>
+<defNumberVector device="ZWO CCD ASI220MM Mini" name="CCD_TEMPERATURE" label="Temperature" group="Main Control" state="Idle" perm="ro" timeout="60" timestamp="2026-10-15T12:11:45">
+    <defNumber name="CCD_TEMPERATURE_VALUE" label="Temperature (C)" format="%5.2f" min="-50" max="50" step="0">
+22.5
+    </defNumber>
+</defNumberVector>
+<defNumberVector device="ZWO CCD ASI220MM Mini" name="CCD_CONTROLS" label="Controls" group="Controls" state="Idle" perm="rw" timeout="60" timestamp="2026-10-15T12:11:45">
+    <defNumber name="Gain" label="Gain" format="%g" min="0" max="600" step="60">
+100
+    </defNumber>
+    <defNumber name="Offset" label="Offset" format="%g" min="0" max="1500" step="150">
+200
+    </defNumber>
+    <defNumber name="BandWidth" label="BandWidth" format="%g" min="40" max="100" step="6">
+40
+    </defNumber>
+    <defNumber name="AutoExpMaxGain" label="AutoExpMaxGain" format="%g" min="0" max="600" step="60">
+300
+    </defNumber>
+    <defNumber name="AutoExpMaxExpMS" label="AutoExpMaxExpMS" format="%g" min="1" max="10000" step="999.89999999999997726">
+10000
+    </defNumber>
+    <defNumber name="AutoExpTargetBrightness" label="AutoExpTargetBrightness" format="%g" min="50" max="160" step="11">
+100
+    </defNumber>
+</defNumberVector>
+<defSwitchVector device="ZWO CCD ASI220MM Mini" name="CCD_CONTROLS_MODE" label="Set Auto" group="Controls" state="Idle" perm="rw" rule="AnyOfMany" timeout="60" timestamp="2026-10-15T12:11:45">
+    <defSwitch name="AUTO_Gain" label="Gain">
+Off
+    </defSwitch>
+    <defSwitch name="AUTO_BandWidth" label="BandWidth">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="ZWO CCD ASI220MM Mini" name="FLIP" label="Flip" group="Controls" state="Idle" perm="rw" rule="AnyOfMany" timeout="60" timestamp="2026-10-15T12:11:45">
+    <defSwitch name="FLIP_HORIZONTAL" label="Horizontal">
+Off
+    </defSwitch>
+    <defSwitch name="FLIP_VERTICAL" label="Vertical">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="ZWO CCD ASI220MM Mini" name="CCD_VIDEO_FORMAT" label="Format" group="Controls" state="Ok" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-10-15T12:11:45">
+    <defSwitch name="ASI_IMG_RAW8" label="Raw 8 bit">
+Off
+    </defSwitch>
+    <defSwitch name="ASI_IMG_RAW16" label="Raw 16 bit">
+On
+    </defSwitch>
+</defSwitchVector>
+<defNumberVector device="ZWO CCD ASI220MM Mini" name="BLINK" label="Blink" group="Controls" state="Idle" perm="rw" timeout="60" timestamp="2026-10-15T12:11:45">
+    <defNumber name="BLINK_COUNT" label="Blinks before exposure" format="%2.0f" min="0" max="100" step="1">
+0
+    </defNumber>
+    <defNumber name="BLINK_DURATION" label="Blink duration" format="%2.3f" min="0" max="60" step="0.0010000000000000000208">
+0
+    </defNumber>
+</defNumberVector>
+<defNumberVector device="ZWO CCD ASI220MM Mini" name="ADC_DEPTH" label="ADC Depth" group="Image Info" state="Idle" perm="ro" timeout="60" timestamp="2026-10-15T12:11:45">
+    <defNumber name="BITS" label="Bits" format="%2.0f" min="0" max="32" step="1">
+12
+    </defNumber>
+</defNumberVector>
+<defTextVector device="ZWO CCD ASI220MM Mini" name="SDK" label="SDK" group="General Info" state="Idle" perm="ro" timeout="60" timestamp="2026-10-15T12:11:45">
+    <defText name="VERSION" label="Version">
+1, 41, 0, 0
+    </defText>
+</defTextVector>
+<defTextVector device="ZWO CCD ASI220MM Mini" name="Serial Number" label="Serial Number" group="General Info" state="Idle" perm="ro" timeout="60" timestamp="2026-10-15T12:11:45">
+    <defText name="SN" label="SN">
+2a14ca052c020900
+    </defText>
+</defTextVector>
+<defSwitchVector device="ZWO CCD ASI220MM Mini" name="USB_RESET" label="USB Reset" group="Options" state="Idle" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-10-15T12:11:45">
+    <defSwitch name="INDI_ENABLED" label="Enabled">
+Off
+    </defSwitch>
+    <defSwitch name="INDI_DISABLED" label="Disabled">
+On
+    </defSwitch>
+</defSwitchVector>
+<defTextVector device="ZWO CCD ASI220MM Mini" name="ACTIVE_DEVICES" label="Snoop devices" group="Options" state="Idle" perm="rw" timeout="60" timestamp="2026-10-15T12:11:45">
+    <defText name="ACTIVE_TELESCOPE" label="Telescope">
+Telescope Simulator
+    </defText>
+    <defText name="ACTIVE_ROTATOR" label="Rotator">
+Rotator Simulator
+    </defText>
+    <defText name="ACTIVE_FOCUSER" label="Focuser">
+Focuser Simulator
+    </defText>
+    <defText name="ACTIVE_FILTER" label="Filter">
+CCD Simulator
+    </defText>
+    <defText name="ACTIVE_SKYQUALITY" label="Sky Quality">
+SQM
+    </defText>
+</defTextVector>
+<defSwitchVector device="ZWO CCD ASI220MM Mini" name="CCD_VIDEO_STREAM" label="Video Stream" group="Streaming" state="Idle" perm="rw" rule="OneOfMany" timeout="0" timestamp="2026-10-15T12:11:45">
+    <defSwitch name="STREAM_ON" label="Stream On">
+Off
+    </defSwitch>
+    <defSwitch name="STREAM_OFF" label="Stream Off">
+On
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="ZWO CCD ASI220MM Mini" name="STREAM_FULL_DEPTH" label="Stream Depth" group="Streaming" state="Idle" perm="rw" rule="OneOfMany" timeout="0" timestamp="2026-10-15T12:11:45">
+    <defSwitch name="FULL_DEPTH_8BIT" label="8-bit">
+On
+    </defSwitch>
+    <defSwitch name="FULL_DEPTH_16BIT" label="16-bit">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defNumberVector device="ZWO CCD ASI220MM Mini" name="STREAMING_EXPOSURE" label="Expose" group="Streaming" state="Idle" perm="rw" timeout="60" timestamp="2026-10-15T12:11:45">
+    <defNumber name="STREAMING_EXPOSURE_VALUE" label="Duration (s)" format="%.6f" min="9.9999999999999995475e-07" max="60" step="0.10000000000000000555">
+0.10000000000000000555
+    </defNumber>
+    <defNumber name="STREAMING_DIVISOR_VALUE" label="Divisor" format="%.f" min="1" max="15" step="1">
+1
+    </defNumber>
+</defNumberVector>
+<defNumberVector device="ZWO CCD ASI220MM Mini" name="FPS" label="FPS" group="Streaming" state="Idle" perm="ro" timeout="60" timestamp="2026-10-15T12:11:45">
+    <defNumber name="EST_FPS" label="Instant." format="%.2f" min="0" max="999" step="0">
+30
+    </defNumber>
+    <defNumber name="AVG_FPS" label="Average (1 sec.)" format="%.2f" min="0" max="999" step="0">
+30
+    </defNumber>
+</defNumberVector>
+<defSwitchVector device="ZWO CCD ASI220MM Mini" name="RECORD_STREAM" label="Video Record" group="Streaming" state="Idle" perm="rw" rule="OneOfMany" timeout="0" timestamp="2026-10-15T12:11:45">
+    <defSwitch name="RECORD_ON" label="Record On">
+Off
+    </defSwitch>
+    <defSwitch name="RECORD_DURATION_ON" label="Record (Duration)">
+Off
+    </defSwitch>
+    <defSwitch name="RECORD_FRAME_ON" label="Record (Frames)">
+Off
+    </defSwitch>
+    <defSwitch name="RECORD_OFF" label="Record Off">
+On
+    </defSwitch>
+</defSwitchVector>
+<defTextVector device="ZWO CCD ASI220MM Mini" name="RECORD_FILE" label="Record File" group="Streaming" state="Idle" perm="rw" timeout="0" timestamp="2026-10-15T12:11:45">
+    <defText name="RECORD_FILE_DIR" label="Dir.">
+/home/rig/Videos/indi__D_
+    </defText>
+    <defText name="RECORD_FILE_NAME" label="Name">
+indi_record__T_
+    </defText>
+</defTextVector>
+<defNumberVector device="ZWO CCD ASI220MM Mini" name="RECORD_OPTIONS" label="Record Options" group="Streaming" state="Idle" perm="rw" timeout="60" timestamp="2026-10-15T12:11:45">
+    <defNumber name="RECORD_DURATION" label="Duration (sec)" format="%.3f" min="0.0010000000000000000208" max="999999" step="0">
+1
+    </defNumber>
+    <defNumber name="RECORD_FRAME_TOTAL" label="Frames" format="%.f" min="1" max="999999999" step="1">
+30
+    </defNumber>
+</defNumberVector>
+<defNumberVector device="ZWO CCD ASI220MM Mini" name="CCD_STREAM_FRAME" label="Frame" group="Streaming" state="Ok" perm="rw" timeout="60" timestamp="2026-10-15T12:11:45">
+    <defNumber name="X" label="Left" format="%.f" min="0" max="1919" step="0">
+0
+    </defNumber>
+    <defNumber name="Y" label="Top" format="%.f" min="0" max="1079" step="0">
+0
+    </defNumber>
+    <defNumber name="WIDTH" label="Width" format="%.f" min="10" max="1920" step="0">
+1920
+    </defNumber>
+    <defNumber name="HEIGHT" label="Height" format="%.f" min="10" max="1080" step="0">
+1080
+    </defNumber>
+</defNumberVector>
+<defSwitchVector device="ZWO CCD ASI220MM Mini" name="CCD_STREAM_ENCODER" label="Encoder" group="Streaming" state="Idle" perm="rw" rule="OneOfMany" timeout="0" timestamp="2026-10-15T12:11:45">
+    <defSwitch name="RAW" label="RAW">
+On
+    </defSwitch>
+    <defSwitch name="MJPEG" label="MJPEG">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="ZWO CCD ASI220MM Mini" name="CCD_STREAM_RECORDER" label="Recorder" group="Streaming" state="Idle" perm="rw" rule="OneOfMany" timeout="0" timestamp="2026-10-15T12:11:45">
+    <defSwitch name="SER" label="SER">
+On
+    </defSwitch>
+</defSwitchVector>
+<defNumberVector device="ZWO CCD ASI220MM Mini" name="LIMITS" label="Limits" group="Streaming" state="Idle" perm="rw" timeout="0" timestamp="2026-10-15T12:11:45">
+    <defNumber name="LIMITS_BUFFER_MAX" label="Maximum Buffer Size (MB)" format="%.0f" min="1" max="65536" step="1">
+512
+    </defNumber>
+    <defNumber name="LIMITS_PREVIEW_FPS" label="Maximum Preview FPS" format="%.0f" min="1" max="120" step="1">
+10
+    </defNumber>
+</defNumberVector>
+<setNumberVector device="ZWO AM5" name="EQUATORIAL_EOD_COORD" state="Idle" timeout="60" timestamp="2026-10-15T12:11:45">
+    <oneNumber name="RA">
+15.28638888888888836
+    </oneNumber>
+    <oneNumber name="DEC">
+90
+    </oneNumber>
+</setNumberVector>
+<setNumberVector device="Pegasus PPBA" name="POWER_SENSORS" state="Ok" timeout="60" timestamp="2026-10-15T12:11:45">
+    <oneNumber name="SENSOR_VOLTAGE">
+12.900000000000000355
+    </oneNumber>
+    <oneNumber name="SENSOR_CURRENT">
+0.73846153846153850253
+    </oneNumber>
+    <oneNumber name="SENSOR_POWER">
+9.5261538461538464162
+    </oneNumber>
+</setNumberVector>
+<setNumberVector device="Pegasus PPBA" name="POWER_CURRENTS" state="Ok" timeout="60" timestamp="2026-10-15T12:11:45">
+    <oneNumber name="POWER_CHANNEL_1">
+0.5999999999999999778
+    </oneNumber>
+</setNumberVector>
+<setNumberVector device="Pegasus PPBA" name="DEW_CURRENTS" state="Idle" timeout="60" timestamp="2026-10-15T12:11:45">
+    <oneNumber name="DEW_CHANNEL_1">
+0
+    </oneNumber>
+    <oneNumber name="DEW_CHANNEL_2">
+0
+    </oneNumber>
+</setNumberVector>
+<setNumberVector device="Pegasus PPBA" name="POWER_STATISTICS" state="Ok" timeout="60" timestamp="2026-10-15T12:11:45">
+    <oneNumber name="STATS_AVG_AMPS">
+0.95999999999999996447
+    </oneNumber>
+    <oneNumber name="STATS_AMP_HOURS">
+111.12999999999999545
+    </oneNumber>
+    <oneNumber name="STATS_WATT_HOURS">
+1435.4100000000000819
+    </oneNumber>
+    <oneNumber name="STATS_TOTAL_CURRENT">
+0.5999999999999999778
+    </oneNumber>
+</setNumberVector>
+<setTextVector device="Pegasus PPBA" name="FIRMWARE_INFO" state="Idle" timeout="60" timestamp="2026-10-15T12:11:45">
+    <oneText name="VERSION">
+2.7
+    </oneText>
+    <oneText name="UPTIME">
+115.973
+    </oneText>
+</setTextVector>
+<setNumberVector device="ZWO CCD ASI2600MC Pro" name="CCD_COOLER_POWER" state="Idle" timeout="60" timestamp="2026-10-15T12:11:45">
+    <oneNumber name="CCD_COOLER_VALUE">
+0
+    </oneNumber>
+</setNumberVector>
+<setNumberVector device="ZWO AM5" name="EQUATORIAL_EOD_COORD" state="Idle" timeout="60" timestamp="2026-10-15T12:11:46">
+    <oneNumber name="RA">
+15.286666666666667069
+    </oneNumber>
+    <oneNumber name="DEC">
+90
+    </oneNumber>
+</setNumberVector>
+<setLightVector device="Pegasus PPBA" name="WEATHER_STATUS" state="Ok" timestamp="2026-10-15T12:11:46">
+    <oneLight name="WEATHER_TEMPERATURE">
+Ok
+    </oneLight>
+</setLightVector>
+<setNumberVector device="Pegasus PPBA" name="WEATHER_PARAMETERS" state="Ok" timeout="60" timestamp="2026-10-15T12:11:46">
+    <oneNumber name="WEATHER_TEMPERATURE">
+21.600000000000001421
+    </oneNumber>
+    <oneNumber name="WEATHER_HUMIDITY">
+53
+    </oneNumber>
+    <oneNumber name="WEATHER_DEWPOINT">
+11.599999999999999645
+    </oneNumber>
+</setNumberVector>
+<setNumberVector device="ZWO CCD ASI2600MC Pro" name="CCD_COOLER_POWER" state="Idle" timeout="60" timestamp="2026-10-15T12:11:46">
+    <oneNumber name="CCD_COOLER_VALUE">
+0
+    </oneNumber>
+</setNumberVector>
+<setTextVector device="Pegasus PPBA" name="FIRMWARE_INFO" state="Idle" timeout="60" timestamp="2026-10-15T12:11:47">
+    <oneText name="VERSION">
+2.7
+    </oneText>
+    <oneText name="UPTIME">
+115.973
+    </oneText>
+</setTextVector>
+<setNumberVector device="ZWO AM5" name="EQUATORIAL_EOD_COORD" state="Idle" timeout="60" timestamp="2026-10-15T12:11:47">
+    <oneNumber name="RA">
+15.286944444444444002
+    </oneNumber>
+    <oneNumber name="DEC">
+90
+    </oneNumber>
+</setNumberVector>
+<setNumberVector device="ZWO CCD ASI2600MC Pro" name="CCD_COOLER_POWER" state="Idle" timeout="60" timestamp="2026-10-15T12:11:47">
+    <oneNumber name="CCD_COOLER_VALUE">
+0
+    </oneNumber>
+</setNumberVector>
+<setNumberVector device="Pegasus PPBA" name="POWER_SENSORS" state="Ok" timeout="60" timestamp="2026-10-15T12:11:48">
+    <oneNumber name="SENSOR_VOLTAGE">
+12.900000000000000355
+    </oneNumber>
+    <oneNumber name="SENSOR_CURRENT">
+0.75384615384615383249
+    </oneNumber>
+    <oneNumber name="SENSOR_POWER">
+9.7246153846153848832
+    </oneNumber>
+</setNumberVector>
+<setTextVector device="Pegasus PPBA" name="FIRMWARE_INFO" state="Idle" timeout="60" timestamp="2026-10-15T12:11:48">
+    <oneText name="VERSION">
+2.7
+    </oneText>
+    <oneText name="UPTIME">
+115.973
+    </oneText>
+</setTextVector>
+<setNumberVector device="ZWO AM5" name="EQUATORIAL_EOD_COORD" state="Idle" timeout="60" timestamp="2026-10-15T12:11:48">
+    <oneNumber name="RA">
+15.287222222222222712
+    </oneNumber>
+    <oneNumber name="DEC">
+90
+    </oneNumber>
+</setNumberVector>
+<setNumberVector device="ZWO CCD ASI2600MC Pro" name="CCD_COOLER_POWER" state="Idle" timeout="60" timestamp="2026-10-15T12:11:48">
+    <oneNumber name="CCD_COOLER_VALUE">
+0
+    </oneNumber>
+</setNumberVector>
