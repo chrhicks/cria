@@ -1178,7 +1178,9 @@ lets go of the recording without waiting for its file.
 cleanly, a torn tail, a count of lines, messages, operations and images, the gaps, and
 unreferenced files. A torn last line, a gap, a missing `end` and unreferenced files
 are not problems. These are: a line that does not decode, a referenced image
-that is missing, a message count that skips (a deleted line), time running
+that is missing or whose size differs from the `size` its `oneBLOB` states (a
+compressed `.z` payload states its size after inflating, so it is not compared),
+a message count that skips (a deleted line), time running
 backwards, and any line after a `gap` (other than `end`) or after `end`.
 
 ## Restarts and crashes

@@ -5,7 +5,7 @@
  * which no reader may skip.
  */
 import { createReadStream } from 'node:fs'
-import { readFile, readdir } from 'node:fs/promises'
+import { readFile, readdir, stat } from 'node:fs/promises'
 import { join } from 'node:path'
 import { Result, Schema } from 'effect'
 import { Manifest, RecordingLine, blobsDirectory, manifestFile, trafficFile, type GapLine, type MessageLine } from './format.js'
@@ -75,6 +75,7 @@ export type Problem =
   | { readonly kind: 'bad-manifest'; readonly message: string }
   | { readonly kind: 'damaged-line'; readonly line: number; readonly message: string }
   | { readonly kind: 'missing-image'; readonly line: number; readonly path: string }
+  | { readonly kind: 'image-size'; readonly line: number; readonly path: string; readonly expected: number; readonly found: number }
   | { readonly kind: 'message-skipped'; readonly line: number; readonly conn: number; readonly dir: 'in' | 'out'; readonly expected: number; readonly found: number }
   | { readonly kind: 'time-went-back'; readonly line: number }
   | { readonly kind: 'line-after-gap'; readonly line: number }
@@ -100,6 +101,25 @@ async function imageFiles(dir: string): Promise<ReadonlySet<string>> {
   const names = await readdir(join(dir, blobsDirectory))
 
   return new Set(names.map(name => `${blobsDirectory}/${name}`))
+}
+
+/**
+ * The size each `oneBLOB` states for its file: INDI's `size` is the decoded
+ * byte count. A compressed payload (`format` ending `.z`) states its size
+ * after inflating, which the file does not hold, so it has no size to check.
+ */
+function statedSizes(xml: string): ReadonlyMap<string, number> {
+  const sizes = new Map<string, number>()
+
+  for (const [element] of xml.matchAll(/<oneBLOB\b[^>]*?\/>/g)) {
+    const attribute = (name: string) => new RegExp(`\\s${name}="([^"]*)"`).exec(element)?.[1]
+    const ref = attribute('ref')
+    const size = attribute('size')
+
+    if (ref !== undefined && size !== undefined && /^[0-9]+$/.test(size) && !(attribute('format') ?? '').endsWith('.z')) sizes.set(ref, Number(size))
+  }
+
+  return sizes
 }
 
 export async function verifyRecording(dir: string): Promise<RecordingReport> {
@@ -129,15 +149,28 @@ export async function verifyRecording(dir: string): Promise<RecordingReport> {
     lastTime = Math.max(lastTime, line.t)
   }
 
-  const checkMessage = (number: number, line: MessageLine) => {
+  const checkMessage = async (number: number, line: MessageLine) => {
     const key = `${line.conn}:${line.dir}`
     const next = expected.get(key) ?? 0
 
     if (line.n !== next) problems.push({ kind: 'message-skipped', line: number, conn: line.conn, dir: line.dir, expected: next, found: line.n })
     expected.set(key, line.n + 1)
+    const stated = statedSizes(line.xml)
+
     for (const path of line.blobs ?? []) {
       named.add(path)
-      if (!onDisk.has(path)) problems.push({ kind: 'missing-image', line: number, path })
+      if (!onDisk.has(path)) {
+        problems.push({ kind: 'missing-image', line: number, path })
+        continue
+      }
+
+      const expected = stated.get(path)
+
+      if (expected === undefined) continue
+
+      const found = (await stat(join(dir, path))).size
+
+      if (found !== expected) problems.push({ kind: 'image-size', line: number, path, expected, found })
     }
   }
 
@@ -156,7 +189,7 @@ export async function verifyRecording(dir: string): Promise<RecordingReport> {
     check(item.number, item.line)
     if (item.line.k === 'msg') {
       messages += 1
-      checkMessage(item.number, item.line)
+      await checkMessage(item.number, item.line)
     }
 
     if (item.line.k === 'op') operations += 1
