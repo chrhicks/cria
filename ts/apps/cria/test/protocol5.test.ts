@@ -4,7 +4,8 @@
  */
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { makeCriaClient } from '../../../testing/cria-client.js'
-import { FakeIndi, addCamera, exposeNormally } from './fake-indi.js'
+import { FakeIndi, addCamera } from '@cria/fake-indi'
+import { exposeNormally } from './drivers.js'
 import { allReady, startCria, type Cria } from './harness.js'
 
 const camera = 'Fake CCD'

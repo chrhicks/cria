@@ -6,7 +6,8 @@
  * refuses a target outside it before sending anything.
  */
 import { afterEach, describe, expect, it } from 'vitest'
-import { FakeIndi, addEaf } from './fake-indi.js'
+import { FakeIndi } from '@cria/fake-indi'
+import { addEaf } from './drivers.js'
 import { allReady, noneNotRead, startCria, until, valueOf, type Cria } from './harness.js'
 
 const eaf = 'ZWO EAF'

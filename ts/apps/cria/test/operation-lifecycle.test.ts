@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { FakeIndi, addCamera, addMount, exposeNormally, moveMount, type Behaviour } from './fake-indi.js'
+import { FakeIndi, type Behaviour, addCamera, addMount } from '@cria/fake-indi'
+import { exposeNormally, moveMount } from './drivers.js'
 import { allReady, startCria, until, type Cria } from './harness.js'
 
 const mount = 'ZWO AM5'

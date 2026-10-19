@@ -11,7 +11,7 @@ import { join } from 'node:path'
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { openRecordingFiles, readRecording, verifyRecording, type RecordingFiles } from '@cria/recording'
 import { startIndiServer, type RunningIndiServer } from '../../../testing/indiserver.js'
-import { fitsToImageBytes } from '../src/image/fits.js'
+import { fitsToImageBytes } from '@cria/fits'
 import { allReady, startCria, until, type Cria } from './harness.js'
 
 const camera = { id: 'primary', kind: 'camera', indiDevice: 'CCD Simulator', connect: true } as const

@@ -414,7 +414,7 @@ the same tag in their doc comment.
 | `apps/cria/src/operation/ledger.ts` | Run (with history), Quarantine | The one owner of operations per rig (see "The ledger"); `onSettled` announces each settled operation once |
 | `apps/cria/src/refusal.ts` | Wire boundary | `Refusal`, a tagged error with a closed `ErrorCode`; the HTTP layer maps it to a status |
 | `apps/cria/src/ids.ts` | Composition | `mint`: new instance, operation, image and binding IDs, and start-up request IDs |
-| `apps/cria/src/image/fits.ts` | Image boundary | FITS (INDI BLOB) to ASCOM ImageBytes v1 |
+| `packages/fits/src/fits.ts` | Image boundary (`@cria/fits`) | FITS (INDI BLOB) to ASCOM ImageBytes v1, and `fitsFrame`, a FITS test frame |
 | `apps/cria/src/image/store.ts` | Domain storage | The rolling set: budget, `410 image-gone` after a drop |
 | `apps/cria/src/wire/project.ts` | View | Readings and the ledger's facts to protocol 5 values; availability and `afterOperation` |
 | `apps/cria/src/wire/http.ts` | Wire boundary | Routes, token, origin refusal, body decoding, error code to status, image download |
@@ -437,7 +437,8 @@ Tests and test tools:
 | `testing/measure-recording-stall.ts` | Not a test: event-loop delay, other file work and memory with recording off, healthy and on a stalled disk |
 | `packages/cria-wire/src/*.test.ts` | The command table, branded IDs, every wire schema |
 | `apps/cria/src/**/*.test.ts` | Unit tests beside the code: ledger transitions, workflow table, units, FITS, image store, event stream |
-| `apps/cria/test/fake-indi.ts` | A small INDI server written from the protocol; answers from its own state; `am5` models errai's mount (see "Stopping the mount") |
+| `packages/fake-indi/src` | `@cria/fake-indi`: a small INDI server written from the protocol, independent of `@cria/indi`'s parser; answers from its own state (`server.ts`), with generic camera and mount definitions (`devices.ts`) |
+| `apps/cria/test/drivers.ts` | The rig's drivers modelled on that server: ZWO frames, the EAF, dew heaters, mount motion; `am5` models errai's mount (see "Stopping the mount") |
 | `apps/cria/test/harness.ts` | Starts Cria against an INDI server and drives it over HTTP as Vela does |
 | `apps/cria/test/*.test.ts` | Scenarios: fake-driver failures, mount stops, operation lifecycle, HTTP refusals, protocol 5 end to end, shutdown, real simulators, errai replay |
 | `apps/cria/test/fixtures/errai-2026-10-15.xml` | The rig's recorded INDI definitions |
@@ -996,11 +997,15 @@ package registry.
   (`Reading.required` included), the disciplines, Run (`makeRun`: `changes`,
   `view`, `start`, `stop`, `await`), Quarantine. No Cria or INDI imports.
 - `ts/packages/cria-wire` is `@cria/wire`: the protocol 5 schemas.
-- `ts/packages/indi` (`@cria/indi`) and `ts/apps/cria` are Cria only.
+- `ts/packages/fits` is `@cria/fits`: FITS header, FITS to ImageBytes v1 and
+  `fitsFrame`. No dependencies. Vela's packager uses it to compute the same
+  ImageBytes SHA-256 that Cria does.
+- `ts/packages/indi` (`@cria/indi`), `ts/packages/recording`,
+  `ts/packages/fake-indi` (`@cria/fake-indi`, test support) and `ts/apps/cria` are Cria only.
 
 ### How the packages ship
 
-A git subfolder dependency gets no build step, so both shared packages commit
+A git subfolder dependency gets no build step, so the shared packages (`primitives`, `cria-wire` and `fits`) commit
 their `dist/` (JavaScript, declarations, source maps). `testing/dist.test.ts`
 fails if `dist/` does not match a fresh build of `src/`. Building on install
 (`prepare`) was rejected, because pnpm 10 and later block dependency build scripts unless
