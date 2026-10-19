@@ -9,7 +9,7 @@ On 2026-10-19 a replay of the first real errai recording served an element Cria'
 treated any parse error as fatal: it closed the socket, reconnected, read the same bytes, and looped. Every device
 read `unavailable`, and the log said nothing. One bad element about one property took down all devices, and nobody
 could tell why. A real driver will send something unexpected again (the Pegasus PPBA and ZWO AM5 drivers already send
-five definitions with every attribute empty on each connect). The next one must be visible and must not take Cria down.
+five definitions with an empty device, name, label and group on each connect). The next one must be visible and must not take Cria down.
 
 ## Decision
 
@@ -31,8 +31,13 @@ update arrived. So skipping is made safe in the client, not left to liveness:
 
 - A bad `def*Vector` or `set*Vector` whose device and name can be read **forgets that property** in the mirror at once, on
   every occurrence, even when the log line is held back. Subscribers see the same `deleted` event a driver's
-  `delProperty` makes, so a command waiting on that property ends as it does then (uncertain), and readings say
-  unavailable, never stale-but-ready. Staleness is bounded at zero.
+  `delProperty` makes, so readings say unavailable, never stale-but-ready. Staleness is bounded at zero. The device and
+  property are named exactly as normal parsing names them (UTF-8, entities decoded), so the forgotten property is the
+  one the mirror holds. What a command in flight then does is what the capability does with that `deleted` event, not
+  one rule for all: an exposure that loses `CCD_EXPOSURE` before the camera has acknowledged it ends `uncertain`
+  (`driver-lost`) and the camera stays held. Lost after the camera went Busy, the exposure keeps waiting for its
+  frame; if none arrives it fails `unavailable` once the abort is confirmed, without quarantine (the camera is known
+  to be idle).
 - The driver is asked for the property again (`getProperties` for that device and name) each time a line is logged,
   so at most once a minute per distinct problem. A good answer restores the property. A driver that always sends the
   same bad element is asked once a minute and the property stays unavailable.
@@ -46,15 +51,19 @@ One line per problem, written through the Effect log at warning level (`options.
 
 `INDI protocol error #7: skipped the element: Invalid INDI number "12abc"; <setNumberVector> device="Test Focuser" name="POSITION", 96 bytes: <setNumberVector ...>`
 
-`#7` counts every problem since the client started, logged or not. The excerpt is at most 200 characters with
-control characters escaped, and a BLOB payload is never in it. The same problem (consequence, tag, device, name,
+`#7` counts every problem since the client started, logged or not. Every field that came from the driver is
+bounded and escaped, so a line is one physical line of a few KB at most however hostile the element: the reason at
+200 characters, device and name at 100, the tag at 40, the excerpt at 200 characters of the element, control characters
+(and `"` and `\` in a device or name) escaped, and a BLOB payload is never in it. The same problem (consequence, tag, device, name,
 reason) is logged once a minute; repeats are counted and added to the next line as "(N more since the last line)".
 All problems together are capped at 20 lines a minute, and the repeat check holds at most 256 keys.
 
 ## Recording
 
 The tap sits after the framer and gets every element's wire text as before, bad ones included, and now also when an
-element earlier or later in the same chunk is bad (before, a throw lost the whole chunk from the recording). Limit:
+element earlier or later in the same chunk is bad (before, a throw lost the whole chunk from the recording). A BLOB
+payload is kept whether or not its vector validates: a bad `setBLOBVector` is elided and its payloads are decoded
+from the bytes, in the same order as for a good one. Limit:
 the recording stores text, so invalid UTF-8 bytes in an element are recorded as U+FFFD, and the unfinished bytes
 of an element at a dropped connection are not recorded.
 
@@ -69,8 +78,8 @@ Each row is a test in `bad-input.test.ts`. "Before" is a182aac.
 | Unknown element type (`<bogus/>`, `<defFooVector>`) | Ignored silently | Skipped, logged. `<message>` stays silent |
 | Truncated before its close tag, next element follows | Swallowed the following elements, then a throw and a dropped connection | Connection dropped, logged, elements before it kept |
 | Truncated at the end of the stream | Held in the buffer | Same; nothing is logged |
-| Huge element | Waits to 512 MB, then throw | Dropped, logged, at 8 MB. A BLOB vector keeps 512 MB |
-| Invalid UTF-8 | Replacement characters, no error | Same. Marked `not valid UTF-8` in the log when the element is bad |
+| Huge element | Waits to 512 MB, then throw | Dropped, logged, over 8 MB, whether it arrives whole or in small chunks. A BLOB vector keeps 512 MB. A tag or comment that never ends is held to the same 8 MB |
+| Invalid UTF-8 | Replacement characters, no error | Same, in a bad element's device and name too. Marked `not valid UTF-8` in the log when the element is bad |
 | Number with junk text (`12abc`, `nan`) | Throw, connection dropped | Whole vector skipped, property forgotten, logged |
 | Unknown vector `state`, `perm` or light state | Throw, connection dropped | Skipped, property forgotten, logged |
 | Unknown switch value (not `On` or `Off`) | Read as Off | Skipped, property forgotten, logged |
