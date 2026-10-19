@@ -6,12 +6,17 @@
  * fails `not-connected` (nothing was sent); a request whose write failed or
  * whose connection dropped afterwards fails `connection-lost` (it may have been
  * received). Nothing is ever resent by this layer.
+ *
+ * Bytes indiserver sends that Cria cannot read are never silent: an element that is bad on its own is skipped and
+ * the connection kept, with the property it was about forgotten so no stale value is shown; a stream whose framing
+ * is lost ends the connection. Both are logged (see `ProblemLog`).
  */
 import net from 'node:net'
 import { Data, Effect, Option, PubSub, Scope, Stream, SubscriptionRef } from 'effect'
 import { Mirror, type Blob, type MirrorChange, type Property } from './mirror.js'
 import type { TrafficTap } from './tap.js'
-import { IndiFramer, serialize, type BlobMode, type IndiMessage, type IndiRequest } from './xml.js'
+import { ProblemLog } from './problems.js'
+import { IndiFramer, serialize, type BlobMode, type IndiMessage, type IndiRequest, type ProtocolProblem } from './xml.js'
 
 export type ConnectionStatus =
   | { readonly kind: 'connecting' }
@@ -66,6 +71,8 @@ export interface IndiClientOptions {
   readonly port: number
   /** Told of every element sent and received. Absent, the client behaves exactly as without recording. */
   readonly tap?: TrafficTap
+  /** Where protocol problems are written, one line each. Default: the Effect log at warning level. */
+  readonly warn?: (line: string) => void
 }
 
 type ClientEvent = { readonly device?: string; readonly event: DeviceEvent }
@@ -88,6 +95,10 @@ export function makeIndiClient(options: IndiClientOptions): Effect.Effect<IndiCl
     }
 
     const tap = options.tap
+    const problems = new ProblemLog({
+      warn: options.warn ?? (line => Effect.runSync(Effect.logWarning(line))),
+      now: Date.now,
+    })
 
     // The one place Cria writes to indiserver: what it meant to send is recorded before the write.
     const transmit = (request: IndiRequest, current: net.Socket, onWritten?: (error?: Error | null) => void) => {
@@ -126,6 +137,21 @@ export function makeIndiClient(options: IndiClientOptions): Effect.Effect<IndiCl
       for (const change of mirror.apply(message, Date.now())) publish(toClientEvent(change))
     }
 
+    // An element that is bad on its own: skipped and logged. The property it was about is forgotten every time, even
+    // when the log line is suppressed: keeping the old value would let it look current while the driver has moved on
+    // (liveness only proves the driver answers, not that every update arrived), so the property reads as gone until a
+    // good definition arrives. The driver is asked for that definition only when a line is logged, so a driver that
+    // always sends the same bad element is asked at most once a minute.
+    const skip = (problem: ProtocolProblem, current: net.Socket) => {
+      const logged = problems.report(problem, 'skipped the element')
+
+      if (problem.device === undefined || problem.name === undefined || !/^(def|set)\w+Vector$/.test(problem.tag)) return
+      const { device, name } = problem
+
+      if (mirror.property(device, name)) for (const change of mirror.apply({ type: 'del', device, name }, Date.now())) publish(toClientEvent(change))
+      if (logged) transmit({ type: 'getProperties', device, name }, current)
+    }
+
     // One session per TCP connection; resolves when the socket closes.
     const session = Effect.callback<string>(resume => {
       const framer = new IndiFramer()
@@ -142,13 +168,17 @@ export function makeIndiClient(options: IndiClientOptions): Effect.Effect<IndiCl
       })
       current.on('data', (chunk: Buffer) => {
         try {
-          if (tap) {
-            for (const { message, xml, blobs } of framer.pushFramed(chunk)) {
-              tap.message({ conn: connectionNumber, dir: 'in', xml, blobs })
-              if (message) receive(message, current)
-            }
-          } else {
-            for (const message of framer.push(chunk)) receive(message, current)
+          const { elements, stopped } = framer.frame(chunk, tap !== undefined)
+
+          for (const { message, problem, xml, blobs } of elements) {
+            tap?.message({ conn: connectionNumber, dir: 'in', xml, blobs })
+            if (message) receive(message, current)
+            else if (problem && problem.scope === 'element') skip(problem, current)
+          }
+
+          if (stopped) {
+            problems.report(stopped, 'dropped the connection')
+            current.destroy(new Error(`INDI protocol error: ${stopped.reason}`))
           }
         } catch (error) {
           current.destroy(error instanceof Error ? error : new Error(String(error)))
