@@ -314,7 +314,8 @@ function describeProblem(error: IndiProtocolError, bytes: Buffer): ProtocolProbl
 
   return {
     scope: error.scope,
-    reason: error.message,
+    // Reasons quote the driver's text; the reason also reaches the connection's error, so it is bounded here too.
+    reason: error.message.length > excerptChars ? `${error.message.slice(0, excerptChars)}...` : error.message,
     tag,
     ...(attributes.device ? { device: attributes.device } : {}),
     ...(attributes.name ? { name: attributes.name } : {}),
