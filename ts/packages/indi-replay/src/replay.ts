@@ -244,7 +244,9 @@ export async function startReplay(tape: Tape, options: ReplayOptions = {}): Prom
       if (!existing) {
         fake.define(definition, message)
       } else if (shape(existing) !== shape(definition)) {
-        // The driver defined the property differently (limits, format, permission, labels): clients are told, as indiserver relays it.
+        // The driver defined the property differently (limits, format, permission, labels, or its kind): clients are told, as indiserver
+        // relays it. A definition of another kind is never a refresh, which would write its values into this property: some drivers define
+        // properties with no device and no name, in several kinds, and replay holds them as one (`empty-definitions.test.ts`).
         if (held) {
           for (const [name, element] of Object.entries(existing.elements)) if (name in definition.elements) definition.elements[name]!.value = element.value
           definition.state = existing.state
