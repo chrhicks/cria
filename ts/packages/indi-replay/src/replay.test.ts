@@ -90,9 +90,11 @@ const focuser = 'Synthetic Focuser'
 const startAt = Date.UTC(2026, 2, 1, 4, 0, 0)
 const longitude = -75
 
+const sensor = { width: 160, height: 128 }
+
 const spec: SynthSpec = {
   focuser,
-  sensor: { width: 32, height: 24 },
+  sensor,
   exposureSeconds: 2,
   stars: [6, 6, 6, 0, 0, 0],
   site: { latitudeDegrees: 40, longitudeDegrees: longitude },
@@ -155,7 +157,7 @@ const states = (client: Client, device: string, name: string) =>
 
 const images = (client: Client) => client.received('<setBLOBVector').map(element => Buffer.from(/<oneBLOB[^>]*>([\s\S]*)<\/oneBLOB>/.exec(element)![1]!.replace(/\s/g, ''), 'base64'))
 
-const pixels = (fits: Buffer) => fitsToImageBytes(fits, { width: 32, height: 24 }).bytes
+const pixels = (fits: Buffer) => fitsToImageBytes(fits, sensor).bytes
 
 describe('loading a recording', () => {
   it('finds the camera, its frames and their sizes', async () => {
@@ -163,7 +165,7 @@ describe('loading a recording', () => {
 
     expect(tape.camera).toBe(camera)
     expect(tape.frames.map(frame => [frame.index, frame.width, frame.height, frame.format])).toEqual(
-      [0, 1, 2, 3, 4, 5].map(index => [index, 32, 24, '.fits']),
+      [0, 1, 2, 3, 4, 5].map(index => [index, sensor.width, sensor.height, '.fits']),
     )
     expect(tape.kinds.get(mount)).toBe('mount')
   })
@@ -317,7 +319,7 @@ describe('an exposure', () => {
     exposure(client, 1)
     await client.until('Alert', () => states(client, camera, 'CCD_EXPOSURE').includes('Alert'))
 
-    expect(client.received(`<setNumberVector device="${camera}" name="CCD_EXPOSURE" state="Alert"`)[0]).toContain('message="frame 0 is 32x24; the camera is set to 16x12"')
+    expect(client.received(`<setNumberVector device="${camera}" name="CCD_EXPOSURE" state="Alert"`)[0]).toContain('message="frame 0 is 160x128; the camera is set to 80x64"')
     expect(replay!.cursor()).toBe(0)
     expect(replay!.phase()).toBe('idle')
   })
@@ -498,7 +500,7 @@ describe('faults', () => {
       await client.until(`frame ${frame}`, () => images(client).length === frame + 1)
     }
 
-    const flat = (fits: Buffer) => new Set(Array.from({ length: 32 * 24 }, (_, pixel) => pixels(fits).readUInt16LE(44 + pixel * 2))).size === 1
+    const flat = (fits: Buffer) => new Set(Array.from({ length: sensor.width * sensor.height }, (_, pixel) => pixels(fits).readUInt16LE(44 + pixel * 2))).size === 1
     const sent = images(client)
 
     expect(sent.map(flat)).toEqual([false, true, true, false])

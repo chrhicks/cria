@@ -1262,9 +1262,15 @@ closed and new ones refused for `forMs`). Each starts `before-exposure`, or
 `before-blob` to fail during the exposure.
 
 **`synthesizeTape`** (`indi-replay synthesize`) writes a recording in the real
-format with tiny frames, a made-up site and a camera, a mount and optionally a
+format with small frames, a made-up site and a camera, a mount and optionally a
 focuser from `@cria/fake-indi`. Committed scenarios use only these, so no real
-coordinates enter the repository. It holds no `op` lines.
+coordinates enter the repository. Each frame holds the number of stars it is
+asked for: Gaussians with a sigma of 2 pixels on a grid 32 pixels apart, 24
+pixels from the edge (12 on a 160x128 sensor, which `starCapacity` computes), so
+a star-measuring client such as Vela finds each one isolated and whole. The
+mount tracks over the frames `tracking` names and drifts at the sidereal rate
+outside them; `pierSide` adds `TELESCOPE_PIER_SIDE`, which is absent otherwise.
+It holds no `op` lines.
 
 ## Restarts and crashes
 
