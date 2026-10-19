@@ -55,10 +55,14 @@ export interface Recorder extends TrafficTap {
   readonly latched: () => GapReason | undefined
   /** Bytes held in the queue, the entry being written included. */
   readonly queuedBytes: () => number
-  /** Drains the queue, then writes `end` if the file is still sound. Never rejects; waits as long as the disk does. */
+  /** Drains the queue, then writes `end` if the file is still sound. Never rejects; waits as long as the disk does. Safe to call twice. */
   readonly close: () => Promise<void>
-  /** For a close that gave up waiting on a stalled disk: stops recording and releases the traffic file. */
-  readonly abandon: () => Promise<void>
+  /**
+   * For a close that gave up waiting on a stalled disk: stops recording and
+   * lets go of the traffic file without waiting for it. Closing a file handle
+   * waits for its outstanding writes, so this must not.
+   */
+  readonly abandon: () => void
 }
 
 interface Entry {
@@ -102,10 +106,16 @@ export async function openRecorder(config: RecordConfig, identity: RecorderIdent
     limits: { queueBytes: config.queueBytes, reserveBytes: config.reserveBytes },
   }
 
-  await files.writeFile(`${manifestFile}.partial`, Buffer.from(`${JSON.stringify(manifest, null, 2)}\n`))
-  await files.syncFile(`${manifestFile}.partial`)
-  await files.rename(`${manifestFile}.partial`, manifestFile)
-  await files.syncDirectory('')
+  try {
+    await files.writeFile(`${manifestFile}.partial`, Buffer.from(`${JSON.stringify(manifest, null, 2)}\n`))
+    await files.syncFile(`${manifestFile}.partial`)
+    await files.rename(`${manifestFile}.partial`, manifestFile)
+    await files.syncDirectory('')
+  } catch (error) {
+    // An open traffic file nobody holds is closed by the garbage collector, which Node now treats as an error.
+    await Promise.allSettled([files.close()])
+    throw error
+  }
 
   const queue: Entry[] = []
   const ordinals = new Map<string, number>()
@@ -296,6 +306,7 @@ export async function openRecorder(config: RecordConfig, identity: RecorderIdent
   const release = async () => {
     await Promise.allSettled([files.close()])
   }
+  let closed: Promise<void> | undefined
 
   const consuming = consume()
 
@@ -305,15 +316,16 @@ export async function openRecorder(config: RecordConfig, identity: RecorderIdent
     connection: tap.connection,
     latched: () => (gate.kind === 'latched' ? gate.reason : undefined),
     queuedBytes: () => queuedBytes,
-    close: async () => {
-      closing = true
-      wake?.()
-      await consuming
-      await finish()
-    },
-    abandon: async () => {
+    close: () =>
+      (closed ??= (async () => {
+        closing = true
+        wake?.()
+        await consuming
+        await finish()
+      })()),
+    abandon: () => {
       latch('io-error', 'abandoned at shutdown')
-      await release()
+      void release()
     },
   }
 }

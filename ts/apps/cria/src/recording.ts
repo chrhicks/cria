@@ -8,8 +8,8 @@ import type { InstanceId } from '@cria/wire'
 import type { Config } from './config.js'
 
 export interface RecordingOptions {
-  /** How long closing may wait for a stalled disk before the recording is abandoned. Default 5000. */
-  readonly closeBudgetMs?: number
+  /** How long opening or closing may wait for a stalled disk before Cria goes on without the recording. Default 5000. */
+  readonly budgetMs?: number
   /** Replaces the real disk, for tests that stall it, fill it or kill the process between two writes. */
   readonly files?: (folder: string) => Promise<RecordingFiles>
 }
@@ -23,8 +23,10 @@ export function makeRecorder(config: Config, instanceId: InstanceId, options: Re
 
   if (!record) return Effect.succeed(undefined)
 
-  const open = Effect.tryPromise(() =>
-    openRecorder(
+  // Set when opening gave up: a recorder that opens after that has no user and is let go at once.
+  const state = { gaveUp: false }
+  const open = Effect.tryPromise(async () => {
+    const recorder = await openRecorder(
       { dir: record.dir, reserveBytes: record.reserveGb * 1024 ** 3, queueBytes: record.queueMb * 1024 ** 2 },
       {
         instanceId,
@@ -35,14 +37,20 @@ export function makeRecorder(config: Config, instanceId: InstanceId, options: Re
         ...(options.files ? { files: options.files } : {}),
         onLatch: (reason, cause) => Effect.runSync(Effect.logWarning(`recording stopped (${reason}) for the rest of this run: ${String(cause)}`)),
       },
-    ),
-  )
+    )
+
+    if (state.gaveUp) recorder.abandon()
+
+    return recorder
+  })
+  const budget = options.budgetMs ?? 5000
 
   return Effect.gen(function* () {
-    const opened = yield* Effect.option(open)
+    const opened = Option.flatten(yield* Effect.option(Effect.timeoutOption(open, budget)))
 
     if (Option.isNone(opened)) {
-      yield* Effect.logWarning(`recording is configured for ${record.dir} but could not open; this run is not recorded`)
+      state.gaveUp = true
+      yield* Effect.logWarning(`recording is configured for ${record.dir} but did not open within ${budget} ms or failed; this run is not recorded`)
 
       return undefined
     }
@@ -50,8 +58,8 @@ export function makeRecorder(config: Config, instanceId: InstanceId, options: Re
     const recorder = opened.value
 
     yield* Effect.addFinalizer(() =>
-      Effect.flatMap(Effect.timeoutOption(Effect.promise(() => recorder.close()), options.closeBudgetMs ?? 5000), closed =>
-        Option.isSome(closed) ? Effect.void : Effect.promise(() => recorder.abandon()),
+      Effect.flatMap(Effect.timeoutOption(Effect.promise(() => recorder.close()), budget), closed =>
+        Option.isSome(closed) ? Effect.void : Effect.sync(() => recorder.abandon()),
       ),
     )
 

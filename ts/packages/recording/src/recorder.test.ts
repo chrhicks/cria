@@ -21,7 +21,8 @@ beforeEach(async () => {
 })
 
 afterEach(async () => {
-  await Promise.all(open.map(recorder => recorder.close()))
+  // A stalled disk never lets close finish; that is the rig's timeout to handle, not this test's.
+  await Promise.all(open.map(recorder => Promise.race([recorder.close(), settle()])))
   open = []
   await rm(dir, { recursive: true, force: true })
 })
@@ -103,6 +104,64 @@ describe('a recorder with a healthy disk', () => {
     await settle()
 
     expect((await verifyRecording(recorder.folder)).messages).toBe(0)
+  })
+})
+
+describe('opening', () => {
+  it('lets go of the traffic file when the manifest cannot be written, and says why', async () => {
+    let closes = 0
+    const failing = openRecorder({ dir, reserveBytes: 0, queueBytes: 1000 }, identity, {
+      files: async folder => {
+        const real = await openRecordingFiles(folder)
+
+        return {
+          ...real,
+          syncFile: async () => {
+            throw new Error('EIO: i/o error')
+          },
+          close: () => {
+            closes += 1
+
+            return real.close()
+          },
+        }
+      },
+    })
+
+    await expect(failing).rejects.toThrow('EIO: i/o error')
+    expect(closes).toBe(1)
+  })
+})
+
+describe('shutdown', () => {
+  it('writes one end line however many times close is called', async () => {
+    const { recorder } = await start()
+
+    recorder.message({ conn: 1, dir: 'in', xml: '<message/>', blobs: [] })
+    await Promise.all([recorder.close(), recorder.close()])
+    await recorder.close()
+
+    const text = await readFile(join(recorder.folder, 'traffic.jsonl'), 'utf8')
+
+    expect(text.split('\n').filter(line => line.includes('"k":"end"'))).toHaveLength(1)
+  })
+
+  it('abandon returns at once and stops recording even when the traffic file cannot close', async () => {
+    let held: RecordingFiles | undefined
+    const { recorder } = await start({
+      files: real => {
+        held = real
+
+        return { ...real, close: () => new Promise<void>(() => undefined) }
+      },
+    })
+
+    recorder.abandon()
+    recorder.message({ conn: 1, dir: 'in', xml: '<message/>', blobs: [] })
+
+    expect(recorder.latched()).toBe('io-error')
+    expect(recorder.queuedBytes()).toBe(0)
+    await held!.close()
   })
 })
 
