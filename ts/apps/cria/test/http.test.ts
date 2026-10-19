@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { FakeIndi, addCamera, exposeNormally } from './fake-indi.js'
+import { FakeIndi, addCamera } from '@cria/fake-indi'
+import { exposeNormally } from './drivers.js'
 import { startCria, type Cria } from './harness.js'
 
 const token = 'test-token-not-a-secret'

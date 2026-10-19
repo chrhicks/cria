@@ -17,11 +17,13 @@ legacy ([docs/legacy-windows.md](../docs/legacy-windows.md)).
 | `packages/cria-wire` | `@cria/wire`: the protocol 5 schemas and the 15-kind command table, shared with Vela | View |
 | `apps/cria/src/capability` | camera, mount, focuser, weather, power, connection | Capabilities |
 | `apps/cria/src/operation` | workflow bodies; the ledger, one owner of operations per rig with one Run per failure domain | Workflows, Run, Quarantine |
-| `apps/cria/src/image` | FITS → ImageBytes, rolling store | Image boundary |
+| `packages/fits` | `@cria/fits`: FITS header, FITS → ImageBytes, test frames | Image boundary |
+| `packages/fake-indi` | `@cria/fake-indi`: a small INDI server written from the protocol, independent of `@cria/indi`'s parser | — |
+| `apps/cria/src/image` | the rolling image store | Image boundary |
 | `apps/cria/src/wire` | projection into protocol 5, HTTP, SSE | View and wire boundary |
 | `apps/cria/src/rig.ts`, `device.ts`, `ids.ts`, `service.ts`, `main.ts`, `config.ts` | composition | — |
 | `apps/cria/src/refusal.ts` | `Refusal`: a closed error code the HTTP layer maps to a status | Wire boundary |
-| `apps/cria/test` | scenario tests, fake INDI server | — |
+| `apps/cria/test` | scenario tests; `drivers.ts` models the rig's INDI drivers on `@cria/fake-indi` | — |
 | `testing/indiserver.ts` | runs a real indiserver with simulators for tests | — |
 | `testing/cria-client.ts` | a typed protocol 5 client for tests; decodes every response strictly | — |
 | `testing/recorder-crash.test.ts` | `kill -9` of a real process at each step of the recorder's write order | — |
