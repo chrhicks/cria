@@ -134,8 +134,8 @@ async function connect(blobs = true) {
   const client = await Client.connect(replay!.port)
 
   clients.push(client)
-  if (blobs) client.send(`<enableBLOB device="${camera}">Also</enableBLOB>`)
   client.send('<getProperties version="1.7"/>')
+  if (blobs) client.send(`<enableBLOB device="${camera}">Also</enableBLOB>`)
   await client.until('every definition', () => client.received('<defSwitchVector device="Synthetic Focuser" name="FOCUS_ABORT_MOTION"').length > 0)
 
   return client
@@ -262,6 +262,103 @@ describe('writes', () => {
     }
 
     expect(replay!.value(mount, 'TELESCOPE_TRACK_STATE', 'TRACK_ON')).toBe(false)
+  })
+})
+
+describe('writes the INDI library refuses', () => {
+  const written = (client: Client, device: string, name: string, kind: 'Number' | 'Switch') => client.received(`<set${kind}Vector device="${device}" name="${name}"`)
+  const numbers = (device: string, name: string, elements: Record<string, number>) =>
+    `<newNumberVector device="${device}" name="${name}">${Object.entries(elements).map(([element, value]) => `<oneNumber name="${element}">${value}</oneNumber>`).join('')}</newNumberVector>`
+  const switches = (device: string, name: string, elements: Record<string, 'On' | 'Off'>) =>
+    `<newSwitchVector device="${device}" name="${name}">${Object.entries(elements).map(([element, value]) => `<oneSwitch name="${element}">${value}</oneSwitch>`).join('')}</newSwitchVector>`
+
+  it('answers a number out of its limits with Alert, the reason and the value it holds, then Ok, and applies nothing', async () => {
+    await serve()
+    const client = await connect()
+
+    client.send(numbers(camera, 'CCD_BINNING', { HOR_BIN: 5, VER_BIN: 2 }))
+    await client.until('both answers', () => written(client, camera, 'CCD_BINNING', 'Number').length === 2)
+
+    const [refused, then] = written(client, camera, 'CCD_BINNING', 'Number')
+
+    expect(refused).toContain('state="Alert"')
+    expect(refused).toContain('message="Error: Invalid range for HOR_BIN (HOR_BIN). Valid range is from 1 to 4. Requested value is 5"')
+    expect(refused).toContain('timeout="60"')
+    expect(refused).toMatch(/<oneNumber name="HOR_BIN"[^>]*>\s*1\s*<\/oneNumber>\s*<oneNumber name="VER_BIN"[^>]*>\s*1\s*<\/oneNumber>/)
+    expect(then).toContain('state="Ok"')
+    expect(then).not.toContain('message=')
+    expect(replay!.value(camera, 'CCD_BINNING', 'HOR_BIN')).toBe('1')
+    expect(replay!.value(camera, 'CCD_BINNING', 'VER_BIN')).toBe('1')
+  })
+
+  it('reports the first element out of its limits in the order written, and applies none of the others', async () => {
+    await serve()
+    const client = await connect()
+
+    client.send(numbers(camera, 'CCD_FRAME', { WIDTH: 100, HEIGHT: 9999 }))
+    await client.until('both answers', () => written(client, camera, 'CCD_FRAME', 'Number').length === 2)
+
+    expect(written(client, camera, 'CCD_FRAME', 'Number')[0]).toContain(`message="Error: Invalid range for HEIGHT (HEIGHT). Valid range is from 1 to ${sensor.height}. Requested value is 9999"`)
+    expect(replay!.value(camera, 'CCD_FRAME', 'WIDTH')).toBe(String(sensor.width))
+  })
+
+  it('words a limit and a request as C\'s %g does', async () => {
+    await serve()
+    const client = await connect()
+
+    client.send(numbers(mount, 'GEOGRAPHIC_COORD', { ELEV: 12345678 }))
+    await client.until('the answer', () => written(client, mount, 'GEOGRAPHIC_COORD', 'Number').length === 2)
+
+    expect(written(client, mount, 'GEOGRAPHIC_COORD', 'Number')[0]).toContain('message="Error: Invalid range for ELEV (ELEV). Valid range is from -200 to 10000. Requested value is 1.23457e+07"')
+  })
+
+  it('takes a number at either limit', async () => {
+    await serve()
+    const client = await connect()
+
+    client.send(numbers(camera, 'CCD_BINNING', { HOR_BIN: 4, VER_BIN: 1 }))
+    await client.until('the echo', () => written(client, camera, 'CCD_BINNING', 'Number').length === 1)
+
+    expect(written(client, camera, 'CCD_BINNING', 'Number')[0]).toContain('state="Ok"')
+    expect(replay!.value(camera, 'CCD_BINNING', 'HOR_BIN')).toBe(4)
+  })
+
+  it('answers a one-of-many switch with none or several on with Idle, the reason and the switches it holds, and nothing more', async () => {
+    await serve()
+    const client = await connect()
+    const reason = (what: string) => `message="Error: invalid state switch for property ON_COORD_SET (ON_COORD_SET). ${what}."`
+
+    client.send(switches(mount, 'ON_COORD_SET', { TRACK: 'On', SLEW: 'On', SYNC: 'Off' }))
+    await client.until('the first answer', () => written(client, mount, 'ON_COORD_SET', 'Switch').length === 1)
+    client.send(switches(mount, 'ON_COORD_SET', { TRACK: 'Off', SLEW: 'Off', SYNC: 'Off' }))
+    await client.until('the second answer', () => written(client, mount, 'ON_COORD_SET', 'Switch').length === 2)
+    client.send(switches(mount, 'ON_COORD_SET', { SLEW: 'Off' }))
+    await client.until('the third answer', () => written(client, mount, 'ON_COORD_SET', 'Switch').length === 3)
+    await client.quiet()
+
+    const answers = written(client, mount, 'ON_COORD_SET', 'Switch')
+
+    expect(answers).toHaveLength(3)
+    expect(answers[0]).toContain(reason('Too many switches are on'))
+    expect(answers[1]).toContain(reason('No switch is on'))
+    expect(answers[2]).toContain(reason('No switch is on'))
+    for (const answer of answers) {
+      expect(answer).toContain('state="Idle"')
+      expect(answer).toMatch(/<oneSwitch name="TRACK">\s*On\s*<\/oneSwitch>\s*<oneSwitch name="SLEW">\s*Off\s*<\/oneSwitch>\s*<oneSwitch name="SYNC">\s*Off/)
+    }
+    expect(replay!.value(mount, 'ON_COORD_SET', 'TRACK')).toBe(true)
+  })
+
+  it('takes a one-of-many switch vector that names one element on', async () => {
+    await serve()
+    const client = await connect()
+
+    client.send(switches(mount, 'ON_COORD_SET', { SLEW: 'On' }))
+    await client.until('the echo', () => written(client, mount, 'ON_COORD_SET', 'Switch').length === 1)
+
+    expect(written(client, mount, 'ON_COORD_SET', 'Switch')[0]).toContain('state="Ok"')
+    expect(replay!.value(mount, 'ON_COORD_SET', 'SLEW')).toBe(true)
+    expect(replay!.value(mount, 'ON_COORD_SET', 'TRACK')).toBe(false)
   })
 })
 

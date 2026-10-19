@@ -88,6 +88,10 @@ importers:
       effect:
         specifier: 4.0.3
         version: 4.0.3
+    devDependencies:
+      '@cria/indi':
+        specifier: workspace:*
+        version: link:../indi
 
   packages/primitives:
     devDependencies:

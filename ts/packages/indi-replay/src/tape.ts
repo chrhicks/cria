@@ -8,14 +8,16 @@ import { open } from 'node:fs/promises'
 import { join } from 'node:path'
 import { readFitsHeader } from '@cria/fits'
 import { readManifest, readRecording, verifyRecording, type Manifest } from '@cria/recording'
-import { parseServerElement, type ServerElement } from './xml.js'
+import { AnswerCounter, type AnswerSet } from './answers.js'
+import { RepeatCounter } from './repeats.js'
+import { parseClientAsk, parseServerElement, type ServerElement } from './xml.js'
 
 export class TapeError extends Error {
   override readonly name = 'TapeError'
 }
 
 /** One thing a driver said, with when Cria heard it: `t` on the recording's monotonic clock, `at` in epoch milliseconds. */
-export type TapeEvent = { readonly t: number; readonly at: number } & Exclude<ServerElement, { readonly kind: 'image' }>
+export type TapeEvent = { readonly t: number; readonly at: number; readonly answer?: true } & Exclude<ServerElement, { readonly kind: 'image' }>
 
 /** One image the camera delivered, and what its FITS header says about its size. */
 export interface Frame {
@@ -24,6 +26,9 @@ export interface Frame {
   readonly property: string
   readonly element: string
   readonly format: string
+  /** What the driver sent with the image's vector besides the image: its timeout and a message, if it sent them. */
+  readonly timeout?: number
+  readonly message?: string
   readonly t: number
   readonly at: number
   /** The image file, absolute. */
@@ -39,6 +44,10 @@ export interface Tape {
   /** The INDI name of the camera whose images replay serves. */
   readonly camera: string
   readonly frames: ReadonlyArray<Frame>
+  /** How many times a driver defines a property in one answer to a device-wide getProperties, where more than once, by `device.name`. */
+  readonly repeats: ReadonlyMap<string, number>
+  /** What a driver sets right after it defines a property, whenever it answers a getProperties, by `device.name`. The recorded events that are those sets are marked `answer`. */
+  readonly answerSets: ReadonlyMap<string, AnswerSet>
   /** The kind of each INDI device the manifest names. */
   readonly kinds: ReadonlyMap<string, Manifest['devices'][number]['kind']>
 }
@@ -72,16 +81,30 @@ export async function loadTape(directory: string, options: { readonly camera?: s
 
   const manifest = await readManifest(directory)
   const events: TapeEvent[] = []
-  const images = new Map<string, Array<{ t: number; at: number; element: string; format: string; path: string }>>()
+  const images = new Map<string, Array<{ t: number; at: number; element: string; format: string; path: string; timeout?: number; message?: string }>>()
+  const repeats = new RepeatCounter()
+  const answers = new AnswerCounter()
 
   for await (const line of readRecording(directory)) {
-    if (line.k !== 'msg' || line.dir !== 'in') continue
+    if (line.k !== 'msg') continue
+
+    if (line.dir === 'out') {
+      const ask = parseClientAsk(line.xml)
+
+      if (ask) repeats.ask(ask.device, ask.name)
+      answers.client(ask)
+      continue
+    }
+
     const element = parseServerElement(line.xml)
 
     if (element === undefined) continue
 
     if (element.kind !== 'image') {
+      answers.server(events.length, element)
       events.push({ t: line.t, at: line.at, ...element })
+      if (element.kind === 'define') repeats.define(element.vector.device, element.vector.name, line.xml.replace(/\s+timestamp="[^"]*"/, ''))
+      else if (element.kind !== 'message') repeats.changed(element.device, element.name)
       continue
     }
 
@@ -91,7 +114,7 @@ export async function loadTape(directory: string, options: { readonly camera?: s
       if (!(line.blobs ?? []).includes(image.ref)) throw new TapeError(`${directory}: an image in the XML of message ${line.n} is not one of the message's recorded images: ${image.ref}`)
       const list = images.get(element.device) ?? []
 
-      list.push({ t: line.t, at: line.at, element: image.element, format: image.format, path: join(directory, image.ref) })
+      list.push({ t: line.t, at: line.at, element: image.element, format: image.format, path: join(directory, image.ref), ...(element.timeout === undefined ? {} : { timeout: element.timeout }), ...(element.message === undefined ? {} : { message: element.message }) })
       images.set(element.device, list)
     }
   }
@@ -109,5 +132,9 @@ export async function loadTape(directory: string, options: { readonly camera?: s
     frames.push({ index: frames.length, device: camera, property: mainChip, ...image, ...size })
   }
 
-  return { directory, manifest, events, camera, frames, kinds: new Map(manifest.devices.map(device => [device.indiDevice, device.kind])) }
+  const { sets, indexes } = answers.found()
+
+  for (const index of indexes) events[index] = { ...events[index]!, answer: true }
+
+  return { directory, manifest, events, camera, frames, repeats: repeats.repeats(), answerSets: sets, kinds: new Map(manifest.devices.map(device => [device.indiDevice, device.kind])) }
 }
