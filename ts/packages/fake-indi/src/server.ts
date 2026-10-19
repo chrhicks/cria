@@ -167,7 +167,7 @@ export class FakeIndi {
     const full: FakeVector = { state: 'Idle', ...vector }
 
     this.vectors.set(`${full.device}.${full.name}`, full)
-    this.broadcast(this.definition(full), full.device)
+    this.broadcast(this.definition(full), full.device, full.name)
   }
 
   vector(device: string, name: string): FakeVector {
@@ -191,13 +191,15 @@ export class FakeIndi {
       .join('')
     const message = change.message ? ` message="${escape(change.message)}"` : ''
 
-    this.broadcast(`<set${tag}Vector device="${escape(device)}" name="${escape(name)}" state="${vector.state}"${message}>\n${body}</set${tag}Vector>\n`, device)
+    this.broadcast(`<set${tag}Vector device="${escape(device)}" name="${escape(name)}" state="${vector.state}"${message}>\n${body}</set${tag}Vector>\n`, device, name)
   }
 
   sendBlob(device: string, name: string, element: string, data: Buffer): void {
     this.broadcast(
       `<setBLOBVector device="${device}" name="${name}" state="Ok">\n  <oneBLOB name="${element}" size="${data.length}" format=".fits" len="${data.length}">\n${data.toString('base64').replace(/.{72}/g, '$&\n')}\n  </oneBLOB>\n</setBLOBVector>\n`,
       device,
+      undefined,
+      true,
     )
   }
 
@@ -243,13 +245,13 @@ export class FakeIndi {
   /** The driver process went away: indiserver deletes the device. */
   removeDevice(device: string): void {
     for (const key of [...this.vectors.keys()]) if (key.startsWith(`${device}.`)) this.vectors.delete(key)
-    this.broadcast(`<delProperty device="${escape(device)}"/>\n`, device)
+    this.broadcast(`<delProperty device="${escape(device)}"/>\n`, device, '')
   }
 
   /** One property went away. */
   removeVector(device: string, name: string): void {
     this.vectors.delete(`${device}.${name}`)
-    this.broadcast(`<delProperty device="${escape(device)}" name="${escape(name)}"/>\n`, device)
+    this.broadcast(`<delProperty device="${escape(device)}" name="${escape(name)}"/>\n`, device, name)
   }
 
   onStop(cleanup: () => void): void {
@@ -308,6 +310,7 @@ export class FakeIndi {
         if (attributes.device && attributes.device !== vector.device) continue
         if (attributes.name && attributes.name !== vector.name) continue
         if (this.muted.has(vector.device)) continue
+        if (client.modeFor(vector.device, vector.name) === 'Only') continue
         client.write(this.definition(vector))
       }
 
@@ -375,9 +378,13 @@ export class FakeIndi {
     return `<def${tag}Vector device="${escape(vector.device)}" name="${escape(vector.name)}" label="${escape(vector.label ?? vector.name)}" group="${escape(vector.group ?? 'Main')}" state="${vector.state}" perm="${vector.perm}"${rule} timeout="${vector.timeout ?? 60}">\n${body}</def${tag}Vector>\n`
   }
 
-  private broadcast(xml: string, device?: string) {
+  /** Everything but an image skips a client whose `enableBLOB` is `Only` for that device or property, as indiserver does. */
+  private broadcast(xml: string, device?: string, property = '', isImage = false) {
     if (device !== undefined && this.muted.has(device)) return
-    for (const client of this.clients) client.write(xml)
+    for (const client of this.clients) {
+      if (!isImage && device !== undefined && client.modeFor(device, property) === 'Only') continue
+      client.write(xml)
+    }
   }
 }
 
