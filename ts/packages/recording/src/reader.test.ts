@@ -153,4 +153,44 @@ describe('images', () => {
 
     expect((await verifyRecording(dir)).problems.map(problem => problem.kind)).toEqual(['damaged-line'])
   })
+
+  const stated = (size: number, extra = '') => `<setBLOBVector device="CCD" name="CCD1" state="Ok"><oneBLOB name="CCD1" size="${size}" format=".fits"${extra} ref="blobs/1-0-0.blob"/></setBLOBVector>`
+
+  it('passes an image whose file is the size its line states', async () => {
+    await writeFile(join(dir, 'blobs', '1-0-0.blob'), 'abcd')
+    await traffic(msg(0, 1, { xml: stated(4), blobs: ['blobs/1-0-0.blob'] }))
+
+    expect(await verifyRecording(dir)).toMatchObject({ valid: true, images: 1, problems: [] })
+  })
+
+  it('fails an image one byte short of the size its line states', async () => {
+    await writeFile(join(dir, 'blobs', '1-0-0.blob'), 'abc')
+    await traffic(msg(0, 1, { xml: stated(4), blobs: ['blobs/1-0-0.blob'] }))
+
+    expect(await verifyRecording(dir)).toMatchObject({
+      valid: false,
+      problems: [{ kind: 'image-size', line: 1, path: 'blobs/1-0-0.blob', expected: 4, found: 3 }],
+    })
+  })
+
+  it('fails an image longer than the size its line states', async () => {
+    await writeFile(join(dir, 'blobs', '1-0-0.blob'), 'abcde')
+    await traffic(msg(0, 1, { xml: stated(4), blobs: ['blobs/1-0-0.blob'] }))
+
+    expect((await verifyRecording(dir)).problems).toEqual([{ kind: 'image-size', line: 1, path: 'blobs/1-0-0.blob', expected: 4, found: 5 }])
+  })
+
+  it('does not compare a compressed image, whose stated size is the size after inflating', async () => {
+    await writeFile(join(dir, 'blobs', '1-0-0.blob'), 'abc')
+    await traffic(msg(0, 1, { xml: stated(4).replace('.fits"', '.fits.z"'), blobs: ['blobs/1-0-0.blob'] }))
+
+    expect((await verifyRecording(dir)).valid).toBe(true)
+  })
+
+  it('does not compare when the line states no size', async () => {
+    await writeFile(join(dir, 'blobs', '1-0-0.blob'), 'abc')
+    await traffic(msg(0, 1, { xml: stated(4).replace(' size="4"', ''), blobs: ['blobs/1-0-0.blob'] }))
+
+    expect((await verifyRecording(dir)).valid).toBe(true)
+  })
 })
