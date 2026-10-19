@@ -7,6 +7,7 @@
  * bytes; BLOB payloads (tens of megabytes of base64) are decoded straight from
  * the byte buffer, never assembled into intermediate strings chunk by chunk.
  */
+import { isUtf8 } from 'node:buffer'
 
 export type PropertyState = 'Idle' | 'Ok' | 'Busy' | 'Alert'
 export type PropertyKind = 'number' | 'switch' | 'text' | 'light' | 'blob'
@@ -54,6 +55,31 @@ export type IndiMessage =
 
 export class IndiProtocolError extends Error {
   override readonly name = 'IndiProtocolError'
+
+  /**
+   * `element`: this one element is bad but its extent is known, so the next one starts cleanly and can be read.
+   * `stream`: the framer can no longer tell where elements begin, so only a new connection restores it.
+   */
+  readonly scope: 'element' | 'stream'
+
+  constructor(message: string, scope: 'element' | 'stream' = 'element') {
+    super(message)
+    this.scope = scope
+  }
+}
+
+/** What the client needs to find a bad element again: where it was, why it failed, and a short look at its bytes. */
+export interface ProtocolProblem {
+  readonly scope: IndiProtocolError['scope']
+  readonly reason: string
+  /** The element's tag, or '' when not even that could be read. */
+  readonly tag: string
+  readonly device?: string
+  readonly name?: string
+  readonly utf8: boolean
+  /** At most `excerptChars` of the element, control characters escaped, a BLOB payload never included. */
+  readonly excerpt: string
+  readonly bytes: number
 }
 
 // ---------------------------------------------------------------- framing
@@ -62,8 +88,13 @@ const LT = 0x3c
 const GT = 0x3e
 const SLASH = 0x2f
 
-/** Maximum bytes for one element; protects memory from a runaway stream. */
-const maxElementBytes = 512 * 1024 * 1024
+/**
+ * Maximum bytes for one element; protects memory from a runaway stream. Only a BLOB vector is big (a 2600 frame is
+ * about 70 MB of base64): a definition or update is a few KB, so an unclosed one is stopped much earlier.
+ */
+const maxBlobElementBytes = 512 * 1024 * 1024
+const maxElementBytes = 8 * 1024 * 1024
+const excerptChars = 200
 
 /**
  * Accumulates bytes and yields complete top-level elements. Grows its buffer
@@ -75,40 +106,61 @@ export class IndiFramer {
   private start = 0
   private searchFrom = 0
   private closing: Buffer | undefined
+  private limit = maxElementBytes
+  private stopped: ProtocolProblem | undefined
 
+  private readonly limits: { readonly element: number; readonly blob: number }
+
+  constructor(limits: { readonly element: number; readonly blob: number } = { element: maxElementBytes, blob: maxBlobElementBytes }) {
+    this.limits = limits
+  }
+
+  /** The messages in `chunk`. A bad element is skipped; see `frame`. */
   push(chunk: Buffer): IndiMessage[] {
-    const messages: IndiMessage[] = []
-
-    this.collect(chunk, (_, message) => {
-      if (message) messages.push(message)
-    })
-
-    return messages
+    return this.frame(chunk, false).elements.flatMap(element => (element.message ? [element.message] : []))
   }
 
   /**
-   * Like `push`, and keeps every element, the ignored ones too, with its wire
+   * Like `push`, and keeps every element, the ignored and the bad ones too, with its wire
    * text and BLOB payloads. For the traffic tap; `push` costs none of this.
    */
   pushFramed(chunk: Buffer): FramedElement[] {
-    const framed: FramedElement[] = []
-
-    this.collect(chunk, (element, message) => framed.push({ message, xml: elideBlobs(element), blobs: blobsOf(message) }))
-
-    return framed
+    return this.frame(chunk, true).elements
   }
 
-  private collect(chunk: Buffer, onElement: (element: Buffer, message: IndiMessage | undefined) => void) {
+  /**
+   * Every whole top-level element in the bytes so far, in order. A bad element does not throw: it comes back
+   * with a `problem` and no message, and the elements after it are read as usual. `stopped` is set when the
+   * framing itself is lost (an element that never closes, a tag that is not a tag): the elements before it are
+   * returned, the framer reads nothing more, and the caller must start a new connection.
+   */
+  frame(chunk: Buffer, keepText: boolean): { readonly elements: FramedElement[]; readonly stopped?: ProtocolProblem } {
+    const elements: FramedElement[] = []
+
+    if (this.stopped) return { elements, stopped: this.stopped }
     this.append(chunk)
 
-    while (true) {
-      const element = this.nextElement()
+    try {
+      while (true) {
+        const element = this.nextElement()
 
-      if (!element) break
-      onElement(element, parseElement(element))
+        if (!element) break
+        const framed = frameElement(element, keepText)
+
+        elements.push(framed)
+        if (framed.problem?.scope === 'stream') {
+          this.stopped = framed.problem
+          break
+        }
+      }
+    } catch (error) {
+      if (!(error instanceof IndiProtocolError)) throw error
+      this.stopped = describeProblem(error, this.buffer.subarray(this.start, this.length))
     }
 
     this.compact()
+
+    return this.stopped ? { elements, stopped: this.stopped } : { elements }
   }
 
   private append(chunk: Buffer) {
@@ -159,8 +211,9 @@ export class IndiFramer {
 
       const tag = /^([A-Za-z][\w]*)/.exec(header)?.[1]
 
-      if (!tag) throw new IndiProtocolError(`Malformed INDI element <${header.slice(0, 40)}>`)
+      if (!tag) throw new IndiProtocolError(`Malformed INDI element <${header.slice(0, 40)}>`, 'stream')
       this.closing = Buffer.from(`</${tag}>`)
+      this.limit = tag === 'setBLOBVector' ? this.limits.blob : this.limits.element
       this.searchFrom = headerEnd + 1
     }
 
@@ -168,8 +221,8 @@ export class IndiFramer {
 
     if (close < 0 || close + this.closing.length > this.length) {
       this.searchFrom = Math.max(this.start, this.length - this.closing.length)
-      if (this.length - this.start > maxElementBytes)
-        throw new IndiProtocolError('INDI element exceeds the size limit')
+      if (this.length - this.start > this.limit)
+        throw new IndiProtocolError(`INDI element is larger than ${this.limit} bytes and has not closed`, 'stream')
 
       return undefined
     }
@@ -214,12 +267,54 @@ export class IndiFramer {
 }
 
 export interface FramedElement {
-  /** Undefined for an element the client ignores (`<message>`, unknown tags). */
+  /** Undefined for an element the client ignores (`<message>`) and for a bad one (then `problem` is set). */
   readonly message: IndiMessage | undefined
+  /** Why this element could not be read. It is still in `xml`, byte for byte, for the recording. */
+  readonly problem?: ProtocolProblem
   /** The element's wire text with each BLOB payload removed: `<oneBLOB name="CCD1" size="9" format=".fits"/>`. */
   readonly xml: string
   /** The decoded payload of each elided `oneBLOB`, in document order. */
   readonly blobs: ReadonlyArray<Buffer>
+}
+
+function frameElement(element: Buffer, keepText: boolean): FramedElement {
+  let message: IndiMessage | undefined
+  let problem: ProtocolProblem | undefined
+
+  try {
+    message = parseElement(element)
+  } catch (error) {
+    if (!(error instanceof IndiProtocolError)) throw error
+    problem = describeProblem(error, element)
+  }
+
+  return {
+    message,
+    ...(problem ? { problem } : {}),
+    xml: keepText ? elideBlobs(element) : '',
+    blobs: keepText ? blobsOf(message) : [],
+  }
+}
+
+/** The error path only: where the bad bytes are from and a bounded look at them. */
+function describeProblem(error: IndiProtocolError, bytes: Buffer): ProtocolProblem {
+  const head = bytes.toString('latin1', 0, 4096)
+  const tag = /^\s*<([A-Za-z]\w*)/.exec(head)?.[1] ?? ''
+  const attributes = parseAttributes(/^\s*<[A-Za-z]\w*([^>]*)/.exec(head)?.[1] ?? '')
+  // The payload of a BLOB is base64 of an image: never part of what is shown.
+  const text = tag === 'setBLOBVector' ? elideBlobs(bytes) : bytes.toString('utf8', 0, excerptChars * 4)
+  const escaped = JSON.stringify(text.slice(0, excerptChars)).slice(1, -1)
+
+  return {
+    scope: error.scope,
+    reason: error.message,
+    tag,
+    ...(attributes.device ? { device: attributes.device } : {}),
+    ...(attributes.name ? { name: attributes.name } : {}),
+    utf8: isUtf8(bytes),
+    excerpt: text.length > excerptChars ? `${escaped}...` : escaped,
+    bytes: bytes.length,
+  }
 }
 
 function blobsOf(message: IndiMessage | undefined): Buffer[] {
@@ -289,26 +384,29 @@ function parseTree(xml: string): Node {
     if (stack.length > 0) stack[stack.length - 1]!.text += decodeEntities(xml.slice(index, open))
 
     if (xml.startsWith('<!--', open)) {
-      index = xml.indexOf('-->', open) + 3
+      const end = xml.indexOf('-->', open)
+
+      if (end < 0) throw new IndiProtocolError('Unterminated comment in INDI element', 'stream')
+      index = end + 3
       continue
     }
 
     const close = xml.indexOf('>', open)
 
-    if (close < 0) throw new IndiProtocolError('Unterminated INDI tag')
+    if (close < 0) throw new IndiProtocolError('Unterminated INDI tag', 'stream')
     const inner = xml.slice(open + 1, close)
 
     if (inner.startsWith('/')) {
       const done = stack.pop()
 
-      if (!done) throw new IndiProtocolError('Unbalanced INDI closing tag')
+      if (!done) throw new IndiProtocolError('Unbalanced INDI closing tag', 'stream')
       if (stack.length === 0) root = done
     } else {
       const selfClosing = inner.endsWith('/')
       const body = selfClosing ? inner.slice(0, -1) : inner
       const name = /^([A-Za-z]\w*)/.exec(body)?.[1]
 
-      if (!name) throw new IndiProtocolError(`Malformed INDI tag <${body.slice(0, 40)}>`)
+      if (!name) throw new IndiProtocolError(`Malformed INDI tag <${body.slice(0, 40)}>`, 'stream')
       const node: Node = { tag: name, attributes: parseAttributes(body.slice(name.length)), children: [], text: '' }
 
       stack[stack.length - 1]?.children.push(node)
@@ -322,7 +420,7 @@ function parseTree(xml: string): Node {
     index = close + 1
   }
 
-  if (!root || stack.length > 0) throw new IndiProtocolError('Incomplete INDI element')
+  if (!root || stack.length > 0) throw new IndiProtocolError('Incomplete INDI element: a tag is never closed', 'stream')
 
   return root
 }
@@ -371,11 +469,13 @@ function toMessage(node: Node): IndiMessage | undefined {
 
   switch (node.tag) {
     case 'delProperty':
-      return a.name === undefined ? { type: 'del', device: required(a, 'device') } : { type: 'del', device: required(a, 'device'), name: a.name }
+      return a.name === undefined ? { type: 'del', device: identity(a, 'device') } : { type: 'del', device: identity(a, 'device'), name: a.name }
     case 'pingRequest':
       return { type: 'pingRequest', uid: a.uid ?? '' }
-    default:
+    case 'message':
       return undefined
+    default:
+      throw new IndiProtocolError(`Unknown INDI element <${node.tag}>`)
   }
 }
 
@@ -384,8 +484,8 @@ function toDefinition(node: Node, kind: PropertyKind): VectorDefinition {
   const elements = node.children.map(child => toElementDefinition(child, kind))
 
   return {
-    device: required(a, 'device'),
-    name: required(a, 'name'),
+    device: identity(a, 'device'),
+    name: identity(a, 'name'),
     kind,
     label: a.label ?? a.name ?? '',
     state: parseState(a.state ?? 'Idle'),
@@ -397,7 +497,7 @@ function toDefinition(node: Node, kind: PropertyKind): VectorDefinition {
 
 function toElementDefinition(node: Node, kind: PropertyKind): ElementDefinition {
   const a = node.attributes
-  const name = required(a, 'name')
+  const name = identity(a, 'name')
   const label = a.label ?? name
   const text = node.text.trim()
 
@@ -413,7 +513,7 @@ function toElementDefinition(node: Node, kind: PropertyKind): ElementDefinition 
         step: parseNumber(a.step ?? '0'),
       }
     case 'switch':
-      return { kind, name, label, on: text === 'On' }
+      return { kind, name, label, on: parseSwitch(text) }
     case 'text':
       // indiserver pretty-prints values ("\nRGGB\n    "); the value is the trimmed text.
       return { kind, name, label, value: text }
@@ -427,7 +527,7 @@ function toElementDefinition(node: Node, kind: PropertyKind): ElementDefinition 
 function toUpdate(node: Node, kind: PropertyKind): VectorUpdate {
   const a = node.attributes
   const elements: ElementUpdate[] = node.children.map(child => {
-    const name = required(child.attributes, 'name')
+    const name = identity(child.attributes, 'name')
     const text = child.text.trim()
 
     switch (kind) {
@@ -443,7 +543,7 @@ function toUpdate(node: Node, kind: PropertyKind): VectorUpdate {
         }
       }
       case 'switch':
-        return { kind, name, on: text === 'On' }
+        return { kind, name, on: parseSwitch(text) }
       case 'text':
         return { kind, name, value: text }
       case 'light':
@@ -454,8 +554,8 @@ function toUpdate(node: Node, kind: PropertyKind): VectorUpdate {
   })
 
   return {
-    device: required(a, 'device'),
-    name: required(a, 'name'),
+    device: identity(a, 'device'),
+    name: identity(a, 'name'),
     kind,
     ...(a.state === undefined ? {} : { state: parseState(a.state) }),
     ...(a.message === undefined ? {} : { message: a.message }),
@@ -479,27 +579,27 @@ function parseBlobVector(bytes: Buffer): IndiMessage | undefined {
     const attributes = parseAttributes(bytes.toString('utf8', open + 8, openEnd))
 
     if (bytes[openEnd - 1] === SLASH) {
-      elements.push({ kind: 'blob', name: required(attributes, 'name'), format: attributes.format ?? '', size: 0, data: Buffer.alloc(0) })
+      elements.push({ kind: 'blob', name: identity(attributes, 'name'), format: attributes.format ?? '', size: 0, data: Buffer.alloc(0) })
       at = openEnd + 1
       continue
     }
 
     const close = bytes.indexOf('</oneBLOB>', openEnd)
 
-    if (close < 0) throw new IndiProtocolError('Unterminated oneBLOB')
+    if (close < 0) throw new IndiProtocolError('Unterminated oneBLOB', 'stream')
     // Node's base64 decoder skips the line breaks INDI inserts.
     const data = Buffer.from(bytes.toString('latin1', openEnd + 1, close), 'base64')
     const size = Number(attributes.size ?? data.length)
 
-    elements.push({ kind: 'blob', name: required(attributes, 'name'), format: attributes.format ?? '', size, data })
+    elements.push({ kind: 'blob', name: identity(attributes, 'name'), format: attributes.format ?? '', size, data })
     at = close + 10
   }
 
   return {
     type: 'set',
     vector: {
-      device: required(header, 'device'),
-      name: required(header, 'name'),
+      device: identity(header, 'device'),
+      name: identity(header, 'name'),
       kind: 'blob',
       ...(header.state === undefined ? {} : { state: parseState(header.state) }),
       ...(header.message === undefined ? {} : { message: header.message }),
@@ -508,12 +608,21 @@ function parseBlobVector(bytes: Buffer): IndiMessage | undefined {
   }
 }
 
-function required(attributes: Readonly<Record<string, string>>, name: string): string {
+/** A device or property or element name: without one the value can't be put anywhere, so empty counts as missing. */
+function identity(attributes: Readonly<Record<string, string>>, name: string): string {
   const value = attributes[name]
 
   if (value === undefined) throw new IndiProtocolError(`INDI element is missing ${name}`)
+  if (value === '') throw new IndiProtocolError(`INDI element has an empty ${name}`)
 
   return value
+}
+
+/** INDI switches are exactly On or Off; a driver that says anything else is not telling us which. */
+function parseSwitch(text: string): boolean {
+  if (text === 'On') return true
+  if (text === 'Off') return false
+  throw new IndiProtocolError(`Unknown INDI switch value "${text.slice(0, 20)}"`)
 }
 
 function parseState(text: string): PropertyState {

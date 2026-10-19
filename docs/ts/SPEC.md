@@ -475,6 +475,9 @@ Behaviour inside the boundary:
   payloads (about 70 MB of base64 for a 2600 frame) from the byte buffer without
   building intermediate strings per chunk. Text values are trimmed (indiserver
   sends `"\nRGGB\n    "`).
+- An element Cria cannot read never ends the connection by itself: it is skipped and logged, and the property it was
+  about is forgotten until the driver defines it again. Only lost framing drops the connection. See
+  [indi-bad-input.md](indi-bad-input.md).
 - `delProperty` without a name (driver gone or device removed) clears the device.
   Its capabilities report every value unavailable, and its in-flight command ends
   uncertain.
