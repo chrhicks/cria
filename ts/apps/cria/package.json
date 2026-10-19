@@ -15,6 +15,7 @@
   "dependencies": {
     "@cria/indi": "workspace:*",
     "@cria/primitives": "workspace:*",
+    "@cria/recording": "workspace:*",
     "@cria/wire": "workspace:*",
     "effect": "4.0.3"
   }

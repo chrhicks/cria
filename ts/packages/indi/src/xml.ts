@@ -77,21 +77,38 @@ export class IndiFramer {
   private closing: Buffer | undefined
 
   push(chunk: Buffer): IndiMessage[] {
-    this.append(chunk)
     const messages: IndiMessage[] = []
+
+    this.collect(chunk, (_, message) => {
+      if (message) messages.push(message)
+    })
+
+    return messages
+  }
+
+  /**
+   * Like `push`, and keeps every element, the ignored ones too, with its wire
+   * text and BLOB payloads. For the traffic tap; `push` costs none of this.
+   */
+  pushFramed(chunk: Buffer): FramedElement[] {
+    const framed: FramedElement[] = []
+
+    this.collect(chunk, (element, message) => framed.push({ message, xml: elideBlobs(element), blobs: blobsOf(message) }))
+
+    return framed
+  }
+
+  private collect(chunk: Buffer, onElement: (element: Buffer, message: IndiMessage | undefined) => void) {
+    this.append(chunk)
 
     while (true) {
       const element = this.nextElement()
 
       if (!element) break
-      const message = parseElement(element)
-
-      if (message) messages.push(message)
+      onElement(element, parseElement(element))
     }
 
     this.compact()
-
-    return messages
   }
 
   private append(chunk: Buffer) {
@@ -194,6 +211,50 @@ export class IndiFramer {
       this.buffer = smaller
     }
   }
+}
+
+export interface FramedElement {
+  /** Undefined for an element the client ignores (`<message>`, unknown tags). */
+  readonly message: IndiMessage | undefined
+  /** The element's wire text with each BLOB payload removed: `<oneBLOB name="CCD1" size="9" format=".fits"/>`. */
+  readonly xml: string
+  /** The decoded payload of each elided `oneBLOB`, in document order. */
+  readonly blobs: ReadonlyArray<Buffer>
+}
+
+function blobsOf(message: IndiMessage | undefined): Buffer[] {
+  if (message?.type !== 'set' || message.vector.kind !== 'blob') return []
+
+  return message.vector.elements.flatMap(element => (element.kind === 'blob' ? [element.data] : []))
+}
+
+/** Pure: `element` as text, each `oneBLOB` payload dropped. Walks the bytes the way `parseBlobVector` does. */
+function elideBlobs(element: Buffer): string {
+  if (!element.toString('latin1', 0, 14).startsWith('<setBLOBVector')) return element.toString('utf8')
+
+  const parts: string[] = []
+  let kept = 0
+  let from = 0
+
+  while (true) {
+    const open = element.indexOf('<oneBLOB', from)
+
+    if (open < 0) break
+    const openEnd = element.indexOf(GT, open)
+
+    from = openEnd + 1
+    if (element[openEnd - 1] === SLASH) continue
+    const close = element.indexOf('</oneBLOB>', openEnd)
+
+    if (close < 0) break
+    parts.push(element.toString('utf8', kept, openEnd), '/>')
+    kept = close + 10
+    from = kept
+  }
+
+  parts.push(element.toString('utf8', kept))
+
+  return parts.join('')
 }
 
 // ---------------------------------------------------------------- parsing

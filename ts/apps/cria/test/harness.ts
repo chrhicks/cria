@@ -10,6 +10,7 @@ import { join } from 'node:path'
 import type { Device, Operation, OperationRequest, State } from '@cria/wire'
 import { makeCriaClient, type CriaClient, type Reply } from '../../../testing/cria-client.js'
 import { decodeConfig } from '../src/config.js'
+import type { RecordingOptions } from '../src/recording.js'
 import { startService, type RunningService } from '../src/service.js'
 
 export type { Device, Operation, State }
@@ -80,7 +81,7 @@ export async function startCria(
   indiPort: number,
   devices: ReadonlyArray<DeviceSpec>,
   overrides: object = {},
-  options: { readonly token?: string } = {},
+  options: { readonly token?: string; readonly recording?: RecordingOptions } = {},
 ): Promise<Cria> {
   const imageDirectory = await mkdtemp(join(tmpdir(), 'cria-test-images-'))
   const config = decodeConfig({

@@ -35,6 +35,9 @@ importers:
       '@cria/primitives':
         specifier: workspace:*
         version: link:../../packages/primitives
+      '@cria/recording':
+        specifier: workspace:*
+        version: link:../../packages/recording
       '@cria/wire':
         specifier: workspace:*
         version: link:../../packages/cria-wire
@@ -59,6 +62,15 @@ importers:
 
   packages/primitives:
     devDependencies:
+      effect:
+        specifier: 4.0.3
+        version: 4.0.3
+
+  packages/recording:
+    dependencies:
+      '@cria/indi':
+        specifier: workspace:*
+        version: link:../indi
       effect:
         specifier: 4.0.3
         version: 4.0.3
