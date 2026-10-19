@@ -58,6 +58,12 @@ bounded and escaped, so a line is one physical line of a few KB at most however 
 reason) is logged once a minute; repeats are counted and added to the next line as "(N more since the last line)".
 All problems together are capped at 20 lines a minute, and the repeat check holds at most 256 keys.
 
+Describing a problem costs the same however big the element is. Only the first 4096 bytes are read for it (the tag,
+the device and name, the excerpt, the UTF-8 check), and the attribute reader is a single pass, so a tag that never
+ends, or an attribute-like run of junk up to the 8 MB limit, drops the connection at once instead of tying up the
+event loop. The `bytes` count is still the real size. A device or name that starts after the first 4096 bytes of a
+tag is not named in the log, and the property is not re-requested.
+
 ## Recording
 
 The tap sits after the framer and gets every element's wire text as before, bad ones included, and now also when an

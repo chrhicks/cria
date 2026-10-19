@@ -95,6 +95,8 @@ const SLASH = 0x2f
 const maxBlobElementBytes = 512 * 1024 * 1024
 const maxElementBytes = 8 * 1024 * 1024
 const excerptChars = 200
+/** A problem is described from the first `inspectedBytes` of the element, however big it is or how much is buffered. */
+const inspectedBytes = 4096
 
 /**
  * Accumulates bytes and yields complete top-level elements. Grows its buffer
@@ -105,6 +107,9 @@ export class IndiFramer {
   private length = 0
   private start = 0
   private searchFrom = 0
+  /** How far the bytes of a header, and of a comment, have been searched for their end: each new chunk is searched once. */
+  private headerFrom = 0
+  private declarationFrom = 0
   private closing: Buffer | undefined
   private limit = maxElementBytes
   private stopped: ProtocolProblem | undefined
@@ -189,13 +194,16 @@ export class IndiFramer {
       }
 
       this.start = open
-      const headerEnd = this.buffer.indexOf(GT, open)
+      const headerEnd = this.buffer.indexOf(GT, Math.max(open, this.headerFrom))
 
       if (headerEnd < 0 || headerEnd >= this.length) {
+        this.headerFrom = this.length
         this.within(this.length - open, this.limits.element)
 
         return undefined
       }
+
+      this.headerFrom = 0
 
       this.within(headerEnd + 1 - open, this.limits.element)
       const header = this.buffer.toString('utf8', open + 1, headerEnd)
@@ -257,9 +265,14 @@ export class IndiFramer {
   private skipDeclaration(open: number): number {
     const isComment = this.buffer.toString('utf8', open, open + 4) === '<!--'
     const terminator = isComment ? '-->' : '>'
-    const end = this.buffer.indexOf(terminator, open)
+    const end = this.buffer.indexOf(terminator, Math.max(open, this.declarationFrom))
 
-    if (end < 0 || end >= this.length) return -1
+    if (end < 0 || end >= this.length) {
+      this.declarationFrom = Math.max(open, this.length - terminator.length + 1)
+
+      return -1
+    }
+    this.declarationFrom = 0
 
     return end + terminator.length
   }
@@ -271,6 +284,8 @@ export class IndiFramer {
     this.buffer.copy(this.buffer, 0, this.start, this.length)
     this.length -= this.start
     this.searchFrom = Math.max(0, this.searchFrom - this.start)
+    this.headerFrom = Math.max(0, this.headerFrom - this.start)
+    this.declarationFrom = Math.max(0, this.declarationFrom - this.start)
     this.start = 0
 
     // After a 70 MB BLOB the buffer would stay that big; give it back when idle.
@@ -318,7 +333,10 @@ function frameElement(element: Buffer, keepText: boolean): FramedElement {
 }
 
 /** The error path only: where the bad bytes are from and a bounded look at them. */
-function describeProblem(error: IndiProtocolError, bytes: Buffer): ProtocolProblem {
+function describeProblem(error: IndiProtocolError, element: Buffer): ProtocolProblem {
+  // The element can be megabytes of anything, and a stream problem is described from a buffer that never ended:
+  // everything below reads only its start, so the cost does not depend on its size.
+  const bytes = leading(element)
   // Attribution must name the property the way parsing does (UTF-8, entities decoded) or the client forgets and
   // re-requests a property that does not exist. The header is the bytes up to the first '>', as in the parsers.
   const headerEnd = bytes.indexOf(GT)
@@ -326,7 +344,7 @@ function describeProblem(error: IndiProtocolError, bytes: Buffer): ProtocolProbl
   const tag = /^\s*<([A-Za-z]\w*)/.exec(header)?.[1] ?? ''
   const attributes = parseAttributes(/^\s*<[A-Za-z]\w*([^>]*)/.exec(header)?.[1] ?? '')
   // The payload of a BLOB is base64 of an image: never part of what is shown.
-  const text = tag === 'setBLOBVector' ? elideBlobs(bytes, false).xml : bytes.toString('utf8', 0, excerptChars * 4)
+  const text = tag === 'setBLOBVector' ? elideBlobs(bytes, false, bytes.length < element.length).xml : bytes.toString('utf8', 0, excerptChars * 4)
   const escaped = JSON.stringify(text.slice(0, excerptChars)).slice(1, -1)
 
   return {
@@ -338,8 +356,18 @@ function describeProblem(error: IndiProtocolError, bytes: Buffer): ProtocolProbl
     ...(attributes.name ? { name: attributes.name } : {}),
     utf8: isUtf8(bytes),
     excerpt: text.length > excerptChars ? `${escaped}...` : escaped,
-    bytes: bytes.length,
+    bytes: element.length,
   }
+}
+
+/** The first `inspectedBytes` of `element`, cut between characters so the cut is not itself invalid UTF-8. */
+function leading(element: Buffer): Buffer {
+  if (element.length <= inspectedBytes) return element
+  let end = inspectedBytes
+
+  while (end > inspectedBytes - 4 && (element[end]! & 0xc0) === 0x80) end--
+
+  return element.subarray(0, end)
 }
 
 function blobsOf(message: IndiMessage | undefined): Buffer[] {
@@ -351,8 +379,9 @@ function blobsOf(message: IndiMessage | undefined): Buffer[] {
 /**
  * Pure: `element` as text with each `oneBLOB` payload dropped, and, if `decode`, those payloads decoded as
  * `parseBlobVector` does (an empty one for a `oneBLOB` with no payload). Walks the bytes the way it does.
+ * `prefix`: `element` is only the start of one, so a payload that begins but does not end in it is dropped too.
  */
-function elideBlobs(element: Buffer, decode: boolean): { readonly xml: string; readonly blobs: Buffer[] } {
+function elideBlobs(element: Buffer, decode: boolean, prefix = false): { readonly xml: string; readonly blobs: Buffer[] } {
   const blobs: Buffer[] = []
 
   if (!element.toString('latin1', 0, 14).startsWith('<setBLOBVector')) return { xml: element.toString('utf8'), blobs }
@@ -367,6 +396,7 @@ function elideBlobs(element: Buffer, decode: boolean): { readonly xml: string; r
     if (open < 0) break
     const openEnd = element.indexOf(GT, open)
 
+    if (openEnd < 0) break
     from = openEnd + 1
     if (element[openEnd - 1] === SLASH) {
       if (decode) blobs.push(Buffer.alloc(0))
@@ -374,7 +404,13 @@ function elideBlobs(element: Buffer, decode: boolean): { readonly xml: string; r
     }
     const close = element.indexOf('</oneBLOB>', openEnd)
 
-    if (close < 0) break
+    if (close < 0) {
+      if (prefix) {
+        parts.push(element.toString('utf8', kept, openEnd), '/>')
+        kept = element.length
+      }
+      break
+    }
     if (decode) blobs.push(Buffer.from(element.toString('latin1', openEnd + 1, close), 'base64'))
     parts.push(element.toString('utf8', kept, openEnd), '/>')
     kept = close + 10
@@ -459,12 +495,46 @@ function parseTree(xml: string): Node {
   return root
 }
 
-function parseAttributes(text: string): Record<string, string> {
+export function parseAttributes(text: string): Record<string, string> {
   const attributes: Record<string, string> = {}
-  const pattern = /([A-Za-z_][\w.-]*)\s*=\s*("([^"]*)"|'([^']*)')/g
+  // Once a kind of quote has no closing mate in the rest of the text, none after it has one either.
+  const unclosed = new Set<string>()
+  let at = 0
 
-  for (const match of text.matchAll(pattern)) {
-    attributes[match[1]!] = decodeEntities(match[3] ?? match[4] ?? '')
+  // `name = "value"` or `name = 'value'`, read left to right in one pass: a name with no value is skipped as a
+  // whole word, so a long run of junk costs its length and no more (a regex retried from every letter did not).
+  while (at < text.length) {
+    if (!/[A-Za-z_]/.test(text[at]!)) {
+      at++
+      continue
+    }
+    let end = at + 1
+
+    while (end < text.length && /[\w.-]/.test(text[end]!)) end++
+    const name = text.slice(at, end)
+
+    while (end < text.length && /\s/.test(text[end]!)) end++
+    if (text[end] !== '=') {
+      at = end
+      continue
+    }
+    end++
+    while (end < text.length && /\s/.test(text[end]!)) end++
+    const quote = text[end]
+
+    if (quote !== '"' && quote !== "'") {
+      at = end
+      continue
+    }
+    const close = unclosed.has(quote) ? -1 : text.indexOf(quote, end + 1)
+
+    if (close < 0) {
+      unclosed.add(quote)
+      at = end
+      continue
+    }
+    attributes[name] = decodeEntities(text.slice(end + 1, close))
+    at = close + 1
   }
 
   return attributes

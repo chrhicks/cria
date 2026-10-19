@@ -501,6 +501,22 @@ describe('the client when indiserver sends something unexpected', () => {
     })
   })
 
+  it('drops the connection, once and promptly, for a tag that never ends and is made to be slow to read', async () => {
+    await session(async ({ warnings, closed, socket }) => {
+      const first = await socket(1)
+      const began = performance.now()
+
+      first.write(`<a ${'b=" '.repeat(Math.ceil((9 * 1024 * 1024) / 4))}`)
+      await until(() => closed.some(item => item.status === 'closed'))
+
+      expect(performance.now() - began).toBeLessThan(2500)
+      expect(warnings).toHaveLength(1)
+      expect(warnings[0]).toContain('INDI protocol error #1: dropped the connection: INDI element is larger than 8388608 bytes')
+      expect(warnings[0]).not.toMatch(/[\r\n]/)
+      expect(warnings[0]!.length).toBeLessThan(1700)
+    })
+  })
+
   it('drops the connection, logs why, and reconnects when the framing is lost', async () => {
     await session(async ({ fake, warnings, closed, property, socket }) => {
       const first = await socket(1)
