@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import net from 'node:net'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { FakeIndi, type BlobMode } from './server.js'
@@ -205,60 +206,110 @@ describe('enableBLOB Only on a whole device', () => {
   })
 })
 
+type Setting = readonly [mode: BlobMode, property?: string]
+
+interface Delivered {
+  /** Every definition, update and deletion reached the client (true) or none did (false). */
+  readonly others: boolean
+  /** The image of CCD1 reached the client. */
+  readonly image: boolean
+}
+
 /**
- * Each row is what indiserver 2.2.5 delivered, measured with indi_simulator_ccd (the script and its
- * output are in the description of PR #10). `others` is every definition, update and deletion;
- * `image` is the image of the property the row names, CCD1. Only a device-wide `Only` withholds
- * `others`, and a property's setting wins over the device's for `image`.
+ * Applies each row's `enableBLOB` settings on its own connection to one fake, sends everything a driver
+ * does (definitions, updates, deletions, an image), and reports what each connection received.
  */
-const enableBlobRows: ReadonlyArray<readonly [string, ReadonlyArray<readonly [BlobMode, string?]>, boolean, boolean]> = [
-  ['nothing sent', [], true, false],
-  ['device Never', [['Never']], true, false],
-  ['device Also', [['Also']], true, true],
-  ['device Only', [['Only']], false, true],
-  ['CONNECTION Never', [['Never', 'CONNECTION']], true, false],
-  ['CONNECTION Also', [['Also', 'CONNECTION']], true, false],
-  ['CONNECTION Only', [['Only', 'CONNECTION']], true, false],
-  ['CCD1 Never', [['Never', 'CCD1']], true, false],
-  ['CCD1 Also', [['Also', 'CCD1']], true, true],
-  ['CCD1 Only', [['Only', 'CCD1']], true, true],
-  ['device Also, then CCD1 Never', [['Also'], ['Never', 'CCD1']], true, false],
-  ['device Also, then CCD1 Only', [['Also'], ['Only', 'CCD1']], true, true],
-  ['device Never, then CCD1 Also', [['Never'], ['Also', 'CCD1']], true, true],
-  ['device Never, then CCD1 Only', [['Never'], ['Only', 'CCD1']], true, true],
-  ['device Only, then CCD1 Also', [['Only'], ['Also', 'CCD1']], false, true],
-  ['device Only, then CCD1 Never', [['Only'], ['Never', 'CCD1']], false, false],
+async function observe(rows: ReadonlyArray<ReadonlyArray<Setting>>): Promise<Delivered[]> {
+  fake.define({ device: 'CCD', name: 'CONNECTION', kind: 'switch', perm: 'rw', rule: 'OneOfMany', state: 'Ok', elements: { CONNECT: { value: true }, DISCONNECT: { value: false } } })
+  fake.define({ device: 'CCD', name: 'CCD_EXPOSURE', kind: 'number', perm: 'rw', state: 'Idle', elements: { CCD_EXPOSURE_VALUE: { value: 0 } } })
+  const clients = await Promise.all(rows.map(() => connect()))
+  const barrier = (uid: string) =>
+    Promise.all(
+      clients.map(async client => {
+        client.send(`<pingRequest uid="${uid}"/>`)
+        await client.until(`ping ${uid}`, text => text.includes(`<pingReply uid="${uid}"/>`))
+      }),
+    )
+
+  rows.forEach((settings, index) => {
+    for (const [mode, name] of settings) clients[index]!.send(`<enableBLOB device="CCD"${name ? ` name="${name}"` : ''}>${mode}</enableBLOB>`)
+  })
+  await barrier('enabled')
+  for (const client of clients) {
+    client.send('<getProperties version="1.7" device="CCD"/>')
+    client.send('<getProperties version="1.7" device="CCD" name="CCD1"/>')
+  }
+  fake.update('CCD', 'CCD_EXPOSURE', { state: 'Busy' })
+  fake.define({ device: 'CCD', name: 'CCD_TEMPERATURE', kind: 'number', perm: 'ro', state: 'Ok', elements: { CCD_TEMPERATURE_VALUE: { value: 1 } } })
+  fake.removeVector('CCD', 'CCD_TEMPERATURE')
+  await barrier('replied')
+  await fake.deliverBlob('CCD', 'CCD1', 'CCD1', Buffer.from('pixels'))
+  await barrier('done')
+
+  return clients.map(client => {
+    const received = client.text()
+    const others = [
+      received.includes('<defSwitchVector device="CCD" name="CONNECTION"'),
+      received.includes('<defBLOBVector device="CCD" name="CCD1"'),
+      received.includes('<setNumberVector device="CCD" name="CCD_EXPOSURE" state="Busy">'),
+      received.includes('<defNumberVector device="CCD" name="CCD_TEMPERATURE"'),
+      received.includes('<delProperty device="CCD" name="CCD_TEMPERATURE"/>'),
+    ]
+
+    expect(new Set(others).size, `either all of the definitions, update and deletion arrived or none: ${others}`).toBe(1)
+
+    return { others: others[0]!, image: received.includes('<setBLOBVector device="CCD" name="CCD1"') }
+  })
+}
+
+/**
+ * What indiserver 2.2.5 delivered for sequences that mix device-wide and property-scoped `enableBLOB`,
+ * measured with indi_simulator_ccd (measure/measure-enable-blob.py, PR #10). Only a device-wide `Only`
+ * withholds definitions, updates and deletions. A device-wide command drops the device's property
+ * settings, so it supersedes earlier ones; a property's setting beats the device's for its own image.
+ * Each row here failed on the fake before it modelled that (the sequences that did not are only in the
+ * exhaustive table below).
+ */
+const mixedRows: ReadonlyArray<readonly [string, ReadonlyArray<Setting>, Delivered]> = [
+  ['CCD1 Only, then device Never', [['Only', 'CCD1'], ['Never']], { others: true, image: false }],
+  ['CCD1 Also, then device Never', [['Also', 'CCD1'], ['Never']], { others: true, image: false }],
+  ['CCD1 Never, then device Only', [['Never', 'CCD1'], ['Only']], { others: false, image: true }],
+  ['CCD1 Never, then device Also', [['Never', 'CCD1'], ['Also']], { others: true, image: true }],
+  ['device Also, then CCD1 Never, then device Only', [['Also'], ['Never', 'CCD1'], ['Only']], { others: false, image: true }],
+  ['device Also, then CCD1 Never, then device Also', [['Also'], ['Never', 'CCD1'], ['Also']], { others: true, image: true }],
+  ['device Only, then CCD1 Also, then device Never', [['Only'], ['Also', 'CCD1'], ['Never']], { others: true, image: false }],
+  ['device Only, then CCD1 Never, then device Also', [['Only'], ['Never', 'CCD1'], ['Also']], { others: true, image: true }],
+  ['device Never, then CCD1 Only, then device Never', [['Never'], ['Only', 'CCD1'], ['Never']], { others: true, image: false }],
 ]
 
 describe('enableBLOB at device and property scope, as indiserver delivers it', () => {
-  it.each(enableBlobRows)('%s', async (_title, settings, others, image) => {
-    fake.define({ device: 'CCD', name: 'CONNECTION', kind: 'switch', perm: 'rw', rule: 'OneOfMany', state: 'Ok', elements: { CONNECT: { value: true }, DISCONNECT: { value: false } } })
-    fake.define({ device: 'CCD', name: 'CCD_EXPOSURE', kind: 'number', perm: 'rw', state: 'Idle', elements: { CCD_EXPOSURE_VALUE: { value: 0 } } })
-    const client = await connect()
+  it.each(mixedRows)('%s', async (_title, settings, expected) => {
+    expect(await observe([settings])).toEqual([expected])
+  })
 
-    for (const [mode, name] of settings) client.send(`<enableBLOB device="CCD"${name ? ` name="${name}"` : ''}>${mode}</enableBLOB>`)
-    client.send('<pingRequest uid="enabled"/>')
-    await client.until('the settings', text => text.includes('<pingReply uid="enabled"/>'))
-    client.send('<getProperties version="1.7" device="CCD"/>')
-    client.send('<getProperties version="1.7" device="CCD" name="CCD1"/>')
-    fake.update('CCD', 'CCD_EXPOSURE', { state: 'Busy' })
-    fake.define({ device: 'CCD', name: 'CCD_TEMPERATURE', kind: 'number', perm: 'ro', state: 'Ok', elements: { CCD_TEMPERATURE_VALUE: { value: 1 } } })
-    fake.removeVector('CCD', 'CCD_TEMPERATURE')
-    await pause(50)
-    expect(await fake.deliverBlob('CCD', 'CCD1', 'CCD1', Buffer.from('pixels'))).toBe(image ? 1 : 0)
-    client.send('<pingRequest uid="done"/>')
-    await client.until('the ping', text => text.includes('<pingReply uid="done"/>'))
+  it('matches every measured sequence of up to three commands', async () => {
+    const measured: ReadonlyArray<{ sequence: ReadonlyArray<Setting>; withheld: boolean; image: boolean }> = JSON.parse(
+      readFileSync(new URL('./enable-blob-sequences.json', import.meta.url), 'utf8'),
+    ).map((row: { sequence: Array<[BlobMode, string | null]> }) => ({ ...row, sequence: row.sequence.map(([mode, name]) => (name === null ? [mode] : [mode, name])) }))
+    const delivered = await observe(measured.map(row => row.sequence))
+    const wrong = measured.flatMap((row, index) => {
+      const got = delivered[index]!
 
-    const received = client.text()
+      return got.others === !row.withheld && got.image === row.image ? [] : [`${JSON.stringify(row.sequence)}: indiserver ${row.withheld ? 'withholds' : 'sends'} definitions and ${row.image ? 'sends' : 'withholds'} the image; fake did ${got.others ? 'send' : 'withhold'} and ${got.image ? 'send' : 'withhold'}`]
+    })
 
-    expect({
-      deviceDefinitions: received.includes('<defSwitchVector device="CCD" name="CONNECTION"'),
-      propertyDefinition: received.includes('<defBLOBVector device="CCD" name="CCD1"'),
-      update: received.includes('<setNumberVector device="CCD" name="CCD_EXPOSURE" state="Busy">'),
-      broadcastDefinition: received.includes('<defNumberVector device="CCD" name="CCD_TEMPERATURE"'),
-      deletion: received.includes('<delProperty device="CCD" name="CCD_TEMPERATURE"/>'),
-      image: received.includes('<setBLOBVector device="CCD" name="CCD1"'),
-    }).toEqual({ deviceDefinitions: others, propertyDefinition: others, update: others, broadcastDefinition: others, deletion: others, image })
+    expect(measured).toHaveLength(400)
+    expect(wrong).toEqual([])
+  })
+
+  it('keeps each client\'s settings to itself', async () => {
+    const [only, nothing, also] = await observe([[['Only']], [], [['Also'], ['Never', 'CCD1']]])
+
+    expect([only, nothing, also]).toEqual([
+      { others: false, image: true },
+      { others: true, image: false },
+      { others: true, image: false },
+    ])
   })
 })
 

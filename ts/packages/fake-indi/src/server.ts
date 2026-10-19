@@ -13,6 +13,9 @@
  * one string or one write.
  */
 import net from 'node:net'
+import { BlobSettings, type BlobMode } from './blob-settings.js'
+
+export type { BlobMode }
 
 export type Value = number | boolean | string
 
@@ -51,8 +54,6 @@ export interface FakeClient {
  */
 export type Behaviour = (fake: FakeIndi, vector: FakeVector, values: Record<string, string>, client: FakeClient) => 'default' | 'handled'
 
-export type BlobMode = 'Never' | 'Also' | 'Only'
-
 export interface FakeIndiOptions {
   /** How many received elements `received` keeps, oldest dropped first. Default: all. */
   readonly receivedLimit?: number
@@ -65,8 +66,7 @@ const imageChunkBytes = 54 * 1024
 const maxElementBytes = 1024 * 1024
 
 class Client implements FakeClient {
-  /** `enableBLOB` per property name; `''` is the whole device. */
-  readonly blobModes = new Map<string, BlobMode>()
+  readonly blobs = new BlobSettings()
   private tail: Promise<void> = Promise.resolve()
   private queued = 0
 
@@ -76,20 +76,6 @@ class Client implements FakeClient {
   constructor(id: number, socket: net.Socket) {
     this.id = id
     this.socket = socket
-  }
-
-  /** Whether this property's images are sent: its own `enableBLOB` setting, else the device's, else `Never`. */
-  modeFor(device: string, name: string): BlobMode {
-    return this.blobModes.get(`${device}.${name}`) ?? this.blobModes.get(`${device}.`) ?? 'Never'
-  }
-
-  /**
-   * Whether everything but images is withheld for `device`. Only the device-wide setting does that:
-   * indiserver 2.2.5 keeps sending a client definitions, updates and deletions of a property it set
-   * to `Only`, and a property's setting does not lift a device-wide `Only`.
-   */
-  takesOnlyImages(device: string): boolean {
-    return this.blobModes.get(`${device}.`) === 'Only'
   }
 
   /** Writes at once unless a large write is in progress; then after it, so elements never interleave. */
@@ -225,7 +211,7 @@ export class FakeIndi {
 
     if (this.muted.has(device) || signal?.aborted) return 0
 
-    const wanting = [...this.clients].filter(client => client.modeFor(device, name) !== 'Never')
+    const wanting = [...this.clients].filter(client => client.blobs.wantsImage(device, name))
     const head = `<setBLOBVector device="${escape(device)}" name="${escape(name)}" state="Ok">\n  <oneBLOB name="${escape(element)}" size="${data.length}" format="${escape(format)}">\n`
     const tail = '\n  </oneBLOB>\n</setBLOBVector>\n'
 
@@ -273,7 +259,7 @@ export class FakeIndi {
 
   /** Whether `client` asked for this property's images (`enableBLOB` Also or Only). */
   wantsBlobs(client: FakeClient, device: string, name: string): boolean {
-    return (client as Client).modeFor(device, name) !== 'Never'
+    return (client as Client).blobs.wantsImage(device, name)
   }
 
   private accept(socket: net.Socket) {
@@ -319,7 +305,7 @@ export class FakeIndi {
         if (attributes.device && attributes.device !== vector.device) continue
         if (attributes.name && attributes.name !== vector.name) continue
         if (this.muted.has(vector.device)) continue
-        if (client.takesOnlyImages(vector.device)) continue
+        if (client.blobs.withholdsOthers(vector.device)) continue
         client.write(this.definition(vector))
       }
 
@@ -335,7 +321,7 @@ export class FakeIndi {
     if (xml.startsWith('<enableBLOB')) {
       const mode = />\s*(Never|Also|Only)\s*</.exec(xml)?.[1] as BlobMode | undefined
 
-      if (mode && attributes.device) client.blobModes.set(`${attributes.device}.${attributes.name ?? ''}`, mode)
+      if (mode && attributes.device) client.blobs.set(attributes.device, attributes.name || undefined, mode)
 
       return
     }
@@ -391,7 +377,7 @@ export class FakeIndi {
   private broadcast(xml: string, device?: string, isImage = false) {
     if (device !== undefined && this.muted.has(device)) return
     for (const client of this.clients) {
-      if (!isImage && device !== undefined && client.takesOnlyImages(device)) continue
+      if (!isImage && device !== undefined && client.blobs.withholdsOthers(device)) continue
       client.write(xml)
     }
   }
