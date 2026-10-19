@@ -25,6 +25,9 @@ export interface Frame {
   readonly property: string
   readonly element: string
   readonly format: string
+  /** What the driver sent with the image's vector besides the image: its timeout and a message, if it sent them. */
+  readonly timeout?: number
+  readonly message?: string
   readonly t: number
   readonly at: number
   /** The image file, absolute. */
@@ -75,7 +78,7 @@ export async function loadTape(directory: string, options: { readonly camera?: s
 
   const manifest = await readManifest(directory)
   const events: TapeEvent[] = []
-  const images = new Map<string, Array<{ t: number; at: number; element: string; format: string; path: string }>>()
+  const images = new Map<string, Array<{ t: number; at: number; element: string; format: string; path: string; timeout?: number; message?: string }>>()
   const repeats = new RepeatCounter()
 
   for await (const line of readRecording(directory)) {
@@ -95,7 +98,7 @@ export async function loadTape(directory: string, options: { readonly camera?: s
     if (element.kind !== 'image') {
       events.push({ t: line.t, at: line.at, ...element })
       if (element.kind === 'define') repeats.define(element.vector.device, element.vector.name, line.xml.replace(/\s+timestamp="[^"]*"/, ''))
-      else repeats.changed(element.device, element.name)
+      else if (element.kind !== 'message') repeats.changed(element.device, element.name)
       continue
     }
 
@@ -105,7 +108,7 @@ export async function loadTape(directory: string, options: { readonly camera?: s
       if (!(line.blobs ?? []).includes(image.ref)) throw new TapeError(`${directory}: an image in the XML of message ${line.n} is not one of the message's recorded images: ${image.ref}`)
       const list = images.get(element.device) ?? []
 
-      list.push({ t: line.t, at: line.at, element: image.element, format: image.format, path: join(directory, image.ref) })
+      list.push({ t: line.t, at: line.at, element: image.element, format: image.format, path: join(directory, image.ref), ...(element.timeout === undefined ? {} : { timeout: element.timeout }), ...(element.message === undefined ? {} : { message: element.message }) })
       images.set(element.device, list)
     }
   }

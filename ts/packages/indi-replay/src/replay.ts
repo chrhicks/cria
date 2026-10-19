@@ -18,6 +18,11 @@
  * Whoever holds a value, the recording owns a property's limits and definition: a recorded min, max or step,
  * or a definition that differs from the one held, is relayed to the clients watching the property.
  *
+ * The driver's words are the recording's too: a message on a definition, an update or a deletion, and a
+ * `<message>` on its own, reach the clients indiserver would have delivered them to. The exception is a
+ * property held by a client or by the exposure machine: the recorded update, and the message on it, is
+ * about a value the replay does not share, so neither is relayed.
+ *
  * Writes that would move hardware are refused (Alert, "not in this recording"),
  * and stop and abort requests are confirmed. Nothing is ever simulated beyond
  * what the recording holds.
@@ -161,20 +166,20 @@ export async function startReplay(tape: Tape, options: ReplayOptions = {}): Prom
   })
 
   const noteSite = (event: TapeEvent) => {
-    if (event.kind === 'delete') return
+    if (event.kind === 'delete' || event.kind === 'message') return
     if (event.kind === 'define' ? event.vector.device !== mount || event.vector.name !== 'GEOGRAPHIC_COORD' : event.device !== mount || event.name !== 'GEOGRAPHIC_COORD') return
     const value = event.kind === 'define' ? event.vector.elements.LONG?.value : event.values.LONG
 
     if (value !== undefined && Number.isFinite(Number(value))) longitude = Number(value)
   }
 
-  const setStore = (device: string, property: string, change: { state?: FakeVector['state']; values: Readonly<Record<string, Value>>; limits?: Limits }) => {
+  const setStore = (device: string, property: string, change: { state?: FakeVector['state']; values: Readonly<Record<string, Value>>; limits?: Limits; message?: string; timeout?: number }) => {
     const vector = fake.vectors.get(key(device, property))
 
     if (!vector) return
     const known = <T>(entries: Readonly<Record<string, T>>) => Object.fromEntries(Object.entries(entries).filter(([element]) => element in vector.elements))
 
-    fake.update(device, property, { ...(change.state ? { state: change.state } : {}), values: known(change.values), ...(change.limits ? { limits: known(change.limits) } : {}) })
+    fake.update(device, property, { ...(change.state ? { state: change.state } : {}), values: known(change.values), ...(change.limits ? { limits: known(change.limits) } : {}), ...(change.message === undefined ? {} : { message: change.message }), ...(change.timeout === undefined ? {} : { timeout: change.timeout }) })
   }
 
   /** What a definition says besides values and state, as text: two definitions with the same shape tell a client the same thing. */
@@ -201,9 +206,17 @@ export async function startReplay(tape: Tape, options: ReplayOptions = {}): Prom
   const applyEvent = (event: TapeEvent) => {
     noteSite(event)
 
+    if (event.kind === 'message') {
+      fake.message(event.device, event.text)
+
+      return
+    }
+
     if (event.kind === 'delete') {
-      if (event.name === undefined) fake.removeDevice(event.device)
-      else fake.removeVector(event.device, event.name)
+      const message = event.message === undefined ? {} : { message: event.message }
+
+      if (event.name === undefined) fake.removeDevice(event.device, message)
+      else fake.removeVector(event.device, event.name, message)
 
       return
     }
@@ -218,17 +231,21 @@ export async function startReplay(tape: Tape, options: ReplayOptions = {}): Prom
       // The driver went away and is defining the property again: a pinned property comes back holding what was written.
       for (const [name, value] of Object.entries(kept.get(slot) ?? {})) if (!existing && name in definition.elements) definition.elements[name]!.value = value
 
+      const message = event.message === undefined ? {} : { message: event.message }
+
       if (!existing) {
-        fake.define(definition)
+        fake.define(definition, message)
       } else if (shape(existing) !== shape(definition)) {
         // The driver defined the property differently (limits, format, permission, labels): clients are told, as indiserver relays it.
         if (held) {
           for (const [name, element] of Object.entries(existing.elements)) if (name in definition.elements) definition.elements[name]!.value = element.value
           definition.state = existing.state
         }
-        fake.define({ ...definition, ...(existing.repeats === undefined ? {} : { repeats: existing.repeats }) })
-      } else if (!held) {
-        refresh(existing, event.vector)
+        fake.define({ ...definition, ...(existing.repeats === undefined ? {} : { repeats: existing.repeats }) }, message)
+      } else {
+        if (!held) refresh(existing, event.vector)
+        // A definition that carries the driver's words is not only an answer to a getProperties: clients are told it again, with them.
+        if (event.message !== undefined) fake.define(existing, message)
       }
 
       return
@@ -241,7 +258,7 @@ export async function startReplay(tape: Tape, options: ReplayOptions = {}): Prom
       return
     }
 
-    setStore(event.device, event.name, { ...(event.state ? { state: event.state } : {}), values: event.values, ...(event.limits ? { limits: event.limits } : {}) })
+    setStore(event.device, event.name, { ...(event.state ? { state: event.state } : {}), values: event.values, ...(event.limits ? { limits: event.limits } : {}), ...(event.message === undefined ? {} : { message: event.message }), ...(event.timeout === undefined ? {} : { timeout: event.timeout }) })
   }
 
   /** Brings every property to what the drivers had said by recording time `t`, which is epoch time `at`. */
@@ -376,6 +393,8 @@ export async function startReplay(tape: Tape, options: ReplayOptions = {}): Prom
       const stamped = withExposure(source, { seconds: exposure.seconds, startedAt: exposure.startedAt })
       const clients = await fake.deliverBlob(camera, frame.property, frame.element, blanks.has(frame.index) ? flattened(stamped) : stamped, {
         format: frame.format,
+        ...(frame.timeout === undefined ? {} : { timeout: frame.timeout }),
+        ...(frame.message === undefined ? {} : { message: frame.message }),
         signal: exposure.delivery.signal,
       })
 

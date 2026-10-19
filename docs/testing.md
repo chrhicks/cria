@@ -35,6 +35,13 @@ The suite asserts literal values. Scenario tests wait for a state with a deadlin
 
 To run the suite without the other stages, run `pnpm test` in `ts/`. It starts its own `indiserver` processes on free ports.
 
+## Keep the fake and the replay the same as indiserver
+
+`packages/fake-indi` and `packages/indi-replay` stand in for `indiserver`, so what they deliver is measured against the real one, not assumed. Python scripts under `packages/fake-indi/measure/` and `packages/indi-replay/measure/` start a real `indiserver` (libindi 2.2.5) on a free loopback port with the INDI simulators (CCD, focuser, telescope, weather) or with a scripted driver, connect clients, and write what each client received into a JSON file under `src/`. The tests replay the same steps against the fake or the replay and compare. The files are committed, so CI needs no libindi; re-run a script after a libindi upgrade or when a new case needs measuring (each script's header says how).
+
+- `measure-routing.py` and `measure-blob-scope.py` (fake): which clients each kind of driver output reaches, for every client setup and every sequence of up to three `getProperties` and `enableBLOB` commands over two devices, and exactly what they receive, `message` attributes and standalone `<message>` elements included.
+- `measure-definitions.py` (replay): three observers' view of the four simulators through a recorded session that includes writes the drivers reject, a limit change and a device disconnecting and connecting. `equivalence.test.ts` compares every attribute and value of every element the replay delivers with the real ones, and then feeds both to Cria's own client and compares what it sees. Anything not compared is named in the test, with the reason.
+
 ## Check the wire with the golden
 
 `pnpm golden` drives a fixed list of scenarios through the typed client against Cria on the fake INDI server. It replaces IDs, times and durations with placeholders and compares the result with `ts/testing/golden/wire.golden.json`. On a mismatch it prints what changed per scenario and step, and exits 1.

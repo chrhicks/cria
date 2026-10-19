@@ -3,21 +3,34 @@ import { readFileSync } from 'node:fs'
 import net from 'node:net'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { Effect, Option, Stream } from 'effect'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { makeIndiClient, type DeviceEvent, type Property } from '@cria/indi'
 import { startReplay, type Replay } from './replay.js'
 import { tapeFromStream } from './synthesize.js'
 import { loadTape } from './tape.js'
 
 /**
  * What an observing client receives from indi-replay against what it received from real indiserver 2.2.5
- * (indi_simulator_ccd and indi_simulator_focus), for the same recording and the same requests.
+ * (indi_simulator_ccd, _focus, _telescope and _weather), for the same recording and the same requests.
  * The fixture is measure/measure-definitions.py's output: the recorder's stream becomes the tape, and each
- * scenario lists the definitions, updates and deletions that three observers received after every step.
+ * scenario lists everything three observers received after every step: definitions, updates, deletions and
+ * the drivers' standalone messages.
+ *
+ * Two comparisons, so that no field is compared by a choice made here:
+ *
+ * - Every attribute and every value of every element must be the same, whatever Cria reads of them. What is
+ *   left out is named, with the reason: attributes in `notCompared`, elements in `comparable`.
+ * - The same elements are fed to Cria's own client (`makeIndiClient`), from a server that does nothing but
+ *   play them, and what Cria sees must be the same: every event it publishes and every property in its
+ *   mirror, with each field it decodes. That is what shows the way the first comparison reads numbers and
+ *   whitespace cannot change what Cria sees.
  */
 interface World {
   readonly indiserver: string
   readonly camera: string
   readonly focuser: string
+  readonly volatile: ReadonlyArray<string>
   readonly messages: Readonly<Record<string, string>>
   readonly tape: ReadonlyArray<readonly ['in' | 'out', string]>
   readonly scenarios: ReadonlyArray<{
@@ -29,6 +42,7 @@ interface World {
 
 const world: World = JSON.parse(readFileSync(new URL('./indiserver-definitions.json', import.meta.url), 'utf8'))
 const sensor = { width: 1280, height: 1024 }
+const devices = ['CCD Simulator', 'Focuser Simulator', 'Telescope Simulator', 'Weather Simulator']
 
 let directory: string
 let replay: Replay | undefined
@@ -66,9 +80,9 @@ class Observer {
     return new Observer(socket)
   }
 
-  /** Everything received since the last call, as definitions, updates and deletions. */
+  /** Everything received since the last call, as definitions, updates, deletions and messages. */
   take(): string[] {
-    const found = [...this.text.matchAll(/<(def\w+Vector|set\w+Vector|delProperty)\b[^>]*?(?:\/>|>[\s\S]*?<\/\1>)/g)].map(match => match[0])
+    const found = [...this.text.matchAll(/<(def\w+Vector|set\w+Vector|delProperty|message)\b[^>]*?(?:\/>|>[\s\S]*?<\/\1>)/g)].map(match => match[0])
 
     this.text = ''
 
@@ -85,33 +99,44 @@ class Observer {
 }
 
 const attributes = (tag: string) => Object.fromEntries([...tag.matchAll(/([\w-]+)="([^"]*)"/g)].map(match => [match[1]!, match[2]!]))
-const number = (text: string | undefined) => (text === undefined ? '' : String(Number(text)))
 
-/** What a client can tell apart: not whitespace, attribute order or timestamps. */
+const decimal = (text: string) => (text.trim() !== '' && Number.isFinite(Number(text)) ? String(Number(text)) : text)
+
+/**
+ * The attributes not compared. `timestamp` is the time indiserver stamped on an element: Cria's parser does not
+ * decode it, and a replay that stamped the recording's time would tell a client it is a different night.
+ *
+ * A number's text, `min`, `max` and `step` are compared as numbers, because the replay holds numbers as numbers
+ * (`4.29497e+09` is sent as `4294970000`). Cria decodes them with `parseNumber`, which reads both the same, and
+ * the second comparison feeds both to Cria to show it.
+ */
+const notCompared = ['timestamp'] as const
+
+/** What a client can tell apart, every attribute included: not whitespace, attribute order, the time indiserver stamps or how a number is written. */
 function canonical(xml: string): string {
-  const deletion = /^<delProperty\b([^>]*?)\/?>/.exec(xml)
+  return xml
+    .replace(/<(\w+)([^>]*?)(\/?)>/g, (_, tag: string, rest: string, close: string) => {
+      const found = Object.entries(attributes(rest))
+        .filter(([name]) => !(notCompared as ReadonlyArray<string>).includes(name))
+        .map(([name, value]) => [name, ['min', 'max', 'step'].includes(name) ? decimal(value) : value] as const)
 
-  if (deletion) return `del ${attributes(deletion[1]!).device} ${attributes(deletion[1]!).name ?? ''}`
-
-  const head = /^<(def|set)(\w+)Vector\b([^>]*)>/.exec(xml)!
-  const vector = attributes(head[3]!)
-  const defined = head[1] === 'def'
-  const elements = [...xml.matchAll(/<(?:def|one)(Number|Switch|Text|Light|BLOB)\b([^>]*?)(?:\/>|>([\s\S]*?)<\/(?:def|one)\1>)/g)].map(match => {
-    const element = attributes(match[2]!)
-    const value = (match[3] ?? '').trim()
-    const shown = match[1] === 'Number' ? number(value) : value
-
-    return defined
-      ? `${element.name}|${element.label}|${shown}|${match[1] === 'Number' ? `${element.format}|${number(element.min)}|${number(element.max)}|${number(element.step)}` : ''}`
-      : `${element.name}|${shown}|${match[1] === 'Number' ? `${number(element.min)}|${number(element.max)}|${number(element.step)}` : ''}`
-  })
-
-  return defined
-    ? `def ${vector.device}/${vector.name} ${head[2]} ${vector.state} ${vector.perm} ${vector.rule ?? ''} ${vector.label} ${vector.group} ${vector.timeout} [${elements.join(', ')}]`
-    : `set ${vector.device}/${vector.name} ${head[2]} ${vector.state} [${elements.join(', ')}]`
+      return `<${tag}${found.sort(([x], [y]) => x.localeCompare(y)).map(([name, value]) => ` ${name}=${JSON.stringify(value)}`).join('')}${close}>`
+    })
+    .replace(/<(\w+)([^>]*?)\/>/g, '<$1$2></$1>')
+    .replace(/(<(?:def|one)Number\b[^>]*>)([^<]*)/g, (_, tag: string, text: string) => `${tag}${decimal(text.trim())}`)
+    .replace(/\s+/g, ' ')
+    .replace(/> /g, '>')
+    .replace(/ </g, '<')
+    .trim()
 }
 
-const device = (canonicalMessage: string) => /^\w+ ([^/]+)\//.exec(canonicalMessage)?.[1]
+const identity = (xml: string) => {
+  const { device, name } = attributes(/^<[^>]*>/.exec(xml)![0])
+
+  return { device, name, set: xml.startsWith('<set') }
+}
+
+const device = (xml: string) => identity(xml).device
 
 /**
  * The first time each distinct message appears, in order, per device: the order a client sees properties in.
@@ -119,6 +144,159 @@ const device = (canonicalMessage: string) => /^\w+ ([^/]+)\//.exec(canonicalMess
  * the copies a driver repeats come after its first pass, in an order that carries no information (they are identical).
  */
 const firstOccurrences = (messages: ReadonlyArray<string>, of: string | undefined) => [...new Set(messages.filter(message => device(message) === of))]
+
+const answerExtras = ['Telescope Simulator/TELESCOPE_MOUNT_TYPE']
+
+/**
+ * The elements not compared, and why. Both sides are filtered the same way.
+ * - `world.volatile` are properties that change on their own or with the time of day the run began: the
+ *   telescope reports its position every fraction of a second, the weather station updates every minute, the
+ *   clock and the axes follow the time of day. How many updates a client gets depends on how long the real run
+ *   took, and a value on the day it was made is not today's. The replay follows the recording's frames. Their
+ *   definitions are compared, with the value the property has at the moment left out; the updates are not.
+ * - A driver may add updates of its own to its answer to a `getProperties`: the telescope simulator sets
+ *   TELESCOPE_MOUNT_TYPE again after defining it. A replay answers with definitions, and Cria's mirror takes
+ *   such an update as the property it already holds. These are not compared in a step that asks.
+ * - While exposures are taken, the camera's exposure and abort properties are the replay's exposure machine's:
+ *   it answers the client's own exposure, not the recorded one.
+ * - An image is compared without its bytes, `size` and `len` (they must be there, with any number): the
+ *   tape's frames are made up (the test cannot keep a simulator's image), and Cria does not use them; what
+ *   the bytes are is `testing/replay.test.ts`'s.
+ */
+function comparable(messages: ReadonlyArray<string>, advanced: boolean): string[] {
+  return messages.map(withoutBytes).map(blankIfMoving).filter(xml => {
+    const { device: of, name, set } = identity(xml)
+
+    if (set && world.volatile.includes(`${of}/${name}`)) return false
+
+    if (set && !advanced && answerExtras.includes(`${of}/${name}`)) return false
+
+    return !(advanced && of === world.camera && ['CCD_EXPOSURE', 'CCD_ABORT_EXPOSURE'].includes(name ?? ''))
+  })
+}
+
+function withoutBytes(xml: string): string {
+  return xml.startsWith('<setBLOBVector') ? xml.replace(/<oneBLOB\b([^>]*?)(?:\/>|>[^<]*<\/oneBLOB>)/g, (_, attributes: string) => `<oneBLOB${attributes.replace(/\b(size|len)="\d+"/g, '$1="0"')}/>`) : xml
+}
+
+/** A volatile property is defined with the value it has at that moment, which depends on when: its shape is compared, its value is not (numbers are set to 0 and texts to x on both sides). */
+function blankIfMoving(xml: string): string {
+  const { device: of, name, set } = identity(xml)
+
+  return !set && xml.startsWith('<def') && world.volatile.includes(`${of}/${name}`)
+    ? xml.replace(/(<defNumber\b[^>]*>)[^<]*/g, (_, tag: string) => `${tag}0`).replace(/(<defText\b[^>]*>)[^<]*/g, (_, tag: string) => `${tag}x`)
+    : xml
+}
+
+/**
+ * A replay starts from the state when the first exposure's Busy was said, so the driver's standalone messages
+ * just before it, which belong to starting that exposure, are history to it. Real indiserver sends them to
+ * whoever is connected. Cria discards every standalone `<message>` (`xml.ts`, the default of `toMessage`), so
+ * this changes nothing it sees; the later exposures replay theirs.
+ */
+function withoutOpeningWords(expected: ReadonlyArray<string>): string[] {
+  const busy = expected.findIndex(xml => xml.includes(`device="${world.camera}"`) && xml.includes('name="CCD_EXPOSURE"') && xml.includes('state="Busy"'))
+
+  return expected.filter((xml, index) => !(xml.startsWith('<message') && xml.includes(`device="${world.camera}"`) && index < busy))
+}
+
+/** Where two renderings of one element first differ, with some text around it. */
+function whereDiffers(wanted: string, heard: string): string {
+  let at = 0
+
+  while (at < wanted.length && wanted[at] === heard[at]) at += 1
+
+  return `...${wanted.slice(Math.max(0, at - 60), at + 80)} <> ${heard.slice(Math.max(0, at - 60), at + 80)}`
+}
+
+function differences(expected: ReadonlyArray<string>, got: ReadonlyArray<string>): string | undefined {
+  const [wanted, heard] = [expected.map(canonical), got.map(canonical)]
+
+  if (JSON.stringify([...wanted].sort()) !== JSON.stringify([...heard].sort())) {
+    const missing = wanted.filter(message => !heard.includes(message))
+    const extra = heard.filter(message => !wanted.includes(message))
+    const counted = [...new Set([...wanted, ...heard])].filter(message => wanted.filter(x => x === message).length !== heard.filter(x => x === message).length)
+    const brief = (list: ReadonlyArray<string>) => JSON.stringify(list.slice(0, 3).map(xml => (xml.length > 200 ? `${xml.slice(0, 200)}...` : xml)))
+    const kind = (xml: string) => `${/^<(\w+)/.exec(xml)![1]} ${/device="([^"]*)"/.exec(xml)?.[1]} ${/name="([^"]*)"/.exec(xml)?.[1]}`
+    const changed = missing.flatMap(xml => {
+      const other = extra.find(candidate => kind(candidate) === kind(xml))
+
+      return other === undefined ? [] : [`${kind(xml)} ${whereDiffers(xml, other)}`]
+    })
+
+    return `indiserver sent ${wanted.length}, replay sent ${heard.length}; same element, different text (indiserver <> replay): ${JSON.stringify(changed.slice(0, 6))}; only indiserver sent ${brief(missing)}; only replay sent ${brief(extra)}; different number of copies of ${JSON.stringify(counted.slice(0, 6).map(xml => `${kind(xml)} indiserver ${wanted.filter(x => x === xml).length}, replay ${heard.filter(x => x === xml).length}`))}`
+  }
+
+  if ([world.camera, world.focuser].some(of => JSON.stringify(firstOccurrences(wanted, of)) !== JSON.stringify(firstOccurrences(heard, of)))) return 'same messages, different order of properties'
+
+  return undefined
+}
+
+/** A server that plays `raw` to whoever connects, once released, then says nothing. */
+async function playback(raw: string) {
+  const open: net.Socket[] = []
+  const server = net.createServer(socket => {
+    open.push(socket)
+    socket.on('error', () => undefined)
+    socket.write(raw)
+  })
+
+  await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve))
+
+  return { port: (server.address() as net.AddressInfo).port, stop: () => new Promise<void>(resolve => (open.forEach(socket => socket.destroy()), server.close(() => resolve()))) }
+}
+
+const sentinel = '<defTextVector device="Sentinel" name="END" label="END" group="Main" state="Ok" perm="ro" timeout="0"><defText name="END" label="END">end</defText></defTextVector>'
+
+/** Everything Cria's own client sees of `raw`: each event it publishes per device, and its mirror in the end. */
+async function criaSees(raw: ReadonlyArray<string>) {
+  const served = await playback(`${raw.join('\n')}\n${sentinel}\n`)
+
+  try {
+    return await Effect.runPromise(
+      Effect.scoped(
+        Effect.gen(function* () {
+          const client = yield* makeIndiClient({ host: '127.0.0.1', port: served.port })
+          const events: string[] = []
+
+          for (const name of devices)
+            yield* Effect.forkScoped(
+              Stream.runForEach(client.device(name).events, event =>
+                Effect.sync(() => {
+                  if (event.type !== 'connection') events.push(JSON.stringify([name, summary(event)]))
+                }),
+              ),
+            )
+
+          for (let waited = 0; Option.isNone(yield* client.device('Sentinel').property('END')); waited += 10) {
+            if (waited > 10_000) throw new Error('Cria did not reach the end of the stream')
+            yield* Effect.sleep('10 millis')
+          }
+
+          const mirror: Record<string, unknown> = {}
+
+          for (const name of devices) mirror[name] = (yield* client.device(name).properties).map(summaryOfProperty).sort((x, y) => x.name.localeCompare(y.name))
+
+          return { events: events.sort(), mirror }
+        }),
+      ),
+    )
+  } finally {
+    await served.stop()
+  }
+}
+
+function summaryOfProperty(property: Property) {
+  const { receivedAt: _, elements, ...rest } = property
+
+  return { ...rest, elements: [...elements.entries()] }
+}
+
+function summary(event: DeviceEvent) {
+  if (event.type === 'property') return { type: event.type, origin: event.origin, property: summaryOfProperty(event.property) }
+
+  return event.type === 'blob' ? { type: event.type, blob: { ...event.blob, data: event.blob.data.length, receivedAt: 0 } } : event
+}
 
 describe('what observers receive from the replay matches real indiserver', () => {
   it.each(world.scenarios.map(scenario => [scenario.title, scenario] as const))('%s', async (_title, scenario) => {
@@ -135,9 +313,12 @@ describe('what observers receive from the replay matches real indiserver', () =>
     const control = await Observer.connect(replay.port)
     const names = Object.keys(observers)
     const wrong: string[] = []
+    const [expectedAll, gotAll] = [Object.fromEntries(names.map(name => [name, [] as string[]])), Object.fromEntries(names.map(name => [name, [] as string[]]))]
 
     for (const [index, step] of scenario.steps.entries()) {
-      if ('advance' in step) {
+      const advanced = 'advance' in step
+
+      if (advanced) {
         for (const expected of [1, 2]) {
           control.socket.write(`<newNumberVector device="${world.camera}" name="CCD_EXPOSURE"><oneNumber name="CCD_EXPOSURE_VALUE">0.05</oneNumber></newNumberVector>`)
           for (let waited = 0; replay.events().filter(event => event.kind === 'delivered').length < expected; waited += 5) {
@@ -152,26 +333,77 @@ describe('what observers receive from the replay matches real indiserver', () =>
       for (const name of names) await observers[name]!.ping(`step-${index}`)
 
       for (const name of names) {
-        const advanced = 'advance' in step
-        // An exposure's own traffic is the exposure machine's, not a definition; the focuser's limits are the tape's.
-        const only = (messages: ReadonlyArray<string>) => (advanced ? messages.filter(message => device(message) === world.focuser) : messages)
-        const expected = only(scenario.heard[name]![index]!.map(id => canonical(world.messages[id]!)))
-        const got = only(observers[name]!.take().map(canonical))
+        const heard = scenario.heard[name]![index]!.map(id => world.messages[id]!)
+        const expected = comparable(advanced && index === scenario.steps.findIndex(other => 'advance' in other) ? withoutOpeningWords(heard) : heard, advanced)
+        const got = comparable(observers[name]!.take(), advanced)
+        const problem = differences(expected, got)
 
-        if (JSON.stringify([...expected].sort()) !== JSON.stringify([...got].sort())) {
-          const missing = expected.filter(message => !got.includes(message))
-          const extra = got.filter(message => !expected.includes(message))
-
-          const counted = [...new Set([...expected, ...got])].filter(message => expected.filter(x => x === message).length !== got.filter(x => x === message).length)
-
-          wrong.push(`step ${index} client ${name}: indiserver sent ${expected.length}, replay sent ${got.length}; only indiserver sent ${JSON.stringify(missing.slice(0, 2))}; only replay sent ${JSON.stringify(extra.slice(0, 2))}; different number of copies of ${JSON.stringify(counted.slice(0, 2))}`)
-        } else if ([world.camera, world.focuser].some(of => JSON.stringify(firstOccurrences(expected, of)) !== JSON.stringify(firstOccurrences(got, of)))) {
-          wrong.push(`step ${index} client ${name}: same messages, different order of properties`)
-        }
+        expectedAll[name]!.push(...expected)
+        gotAll[name]!.push(...got)
+        if (problem) wrong.push(`step ${index} client ${name}: ${problem}`)
       }
     }
 
     expect(wrong).toEqual([])
+
+    for (const name of names) {
+      const [real, replayed] = await Promise.all([criaSees(expectedAll[name]!), criaSees(gotAll[name]!)])
+
+      expect({ client: name, events: replayed.events, mirror: replayed.mirror }).toEqual({ client: name, events: real.events, mirror: real.mirror })
+    }
+  }, 60_000)
+})
+
+describe('a driver\'s rejection reaches Cria with its reason', () => {
+  it('Cria\'s client sees the Alert on FOCUS_MAX with the words the driver gave, as it does from the simulator', async () => {
+    const folder = join(directory, 'tape')
+
+    await tapeFromStream(
+      world.tape.map(([dir, entry]) => [dir, dir === 'in' ? world.messages[entry]! : entry] as const),
+      { devices: [{ id: 'primary', kind: 'camera', indiDevice: world.camera }, { id: 'focuser', kind: 'focuser', indiDevice: world.focuser }], sensor, startAt: Date.UTC(2026, 9, 19) },
+      folder,
+    )
+    replay = await startReplay(await loadTape(folder))
+    const control = await Observer.connect(replay.port)
+    const port = replay.port
+
+    const seen = await Effect.runPromise(
+      Effect.scoped(
+        Effect.gen(function* () {
+          const client = yield* makeIndiClient({ host: '127.0.0.1', port })
+          const events: string[] = []
+
+          yield* Effect.forkScoped(
+            Stream.runForEach(client.device(world.focuser).events, event =>
+              Effect.sync(() => {
+                if (event.type !== 'property' || event.property.name !== 'FOCUS_MAX') return
+                const limit = event.property.elements.get('FOCUS_MAX_VALUE')
+
+                events.push(`${event.origin} ${event.property.state} ${event.property.message ?? '-'} ${limit?.kind === 'number' ? limit.value : '-'}`)
+              }),
+            ),
+          )
+
+          for (let waited = 0; Option.isNone(yield* client.device(world.focuser).property('FOCUS_MAX')); waited += 10) {
+            if (waited > 10_000) throw new Error('Cria was not told of FOCUS_MAX')
+            yield* Effect.sleep('10 millis')
+          }
+
+          for (const expected of [1, 2]) {
+            control.socket.write(`<newNumberVector device="${world.camera}" name="CCD_EXPOSURE"><oneNumber name="CCD_EXPOSURE_VALUE">0.05</oneNumber></newNumberVector>`)
+            for (let waited = 0; replay!.events().filter(event => event.kind === 'delivered').length < expected; waited += 10) {
+              if (waited > 10_000) throw new Error('the exposure was not delivered')
+              yield* Effect.sleep('10 millis')
+            }
+          }
+          yield* Effect.sleep('100 millis')
+
+          return events
+        }),
+      ),
+    )
+
+    expect(seen).toContain('set Alert Error: Invalid range for Steps (FOCUS_MAX_VALUE). Valid range is from 1000 to 1e+06. Requested value is -1 100000')
   })
 })
 
@@ -185,7 +417,7 @@ const exposure = (state: string, value: number) => numberVector('set', 'CCD_EXPO
 const image = `<setBLOBVector device="${cam}" name="CCD1" state="Ok"><oneBLOB name="CCD1" size="1" format=".fits"/></setBLOBVector>`
 
 /** A camera that is set to the sensor's size and takes two exposures; `between` is what the driver says between them. */
-function session(between: ReadonlyArray<string>): ReadonlyArray<readonly ['in' | 'out', string]> {
+function session(between: ReadonlyArray<string>, secondImage = image): ReadonlyArray<readonly ['in' | 'out', string]> {
   return [
     ['out', '<getProperties version="1.7"/>'],
     ['in', `<defSwitchVector device="${cam}" name="CONNECTION" label="" group="Main" state="Ok" perm="rw" rule="OneOfMany" timeout="60"><defSwitch name="CONNECT" label="Connect">On</defSwitch><defSwitch name="DISCONNECT" label="Disconnect">Off</defSwitch></defSwitchVector>`],
@@ -199,15 +431,15 @@ function session(between: ReadonlyArray<string>): ReadonlyArray<readonly ['in' |
     ['in', exposure('Ok', 0)],
     ...between.map(xml => ['in', xml] as const),
     ['in', exposure('Busy', 0.05)],
-    ['in', image],
+    ['in', secondImage],
     ['in', exposure('Ok', 0)],
   ]
 }
 
-async function observe(between: ReadonlyArray<string>) {
+async function observe(between: ReadonlyArray<string>, secondImage = image) {
   const folder = join(directory, 'stream')
 
-  await tapeFromStream(session(between), { devices: [{ id: 'primary', kind: 'camera', indiDevice: cam }], sensor: small, startAt: Date.UTC(2026, 9, 19) }, folder)
+  await tapeFromStream(session(between, secondImage), { devices: [{ id: 'primary', kind: 'camera', indiDevice: cam }], sensor: small, startAt: Date.UTC(2026, 9, 19) }, folder)
   replay = await startReplay(await loadTape(folder))
   const [watching, writer] = [await Observer.connect(replay.port), await Observer.connect(replay.port)]
 
@@ -237,12 +469,17 @@ describe('limits and definitions a driver changes between frames', () => {
     const relayed = await advance(2)
 
     expect(relayed).toHaveLength(1)
-    expect(canonical(relayed[0]!)).toBe('set Test Camera/CCD_FRAME Number Ok [WIDTH|16|1|16|2, HEIGHT|8|1|8|]')
+    expect(canonical(relayed[0]!)).toBe(
+      '<setNumberVector device="Test Camera" name="CCD_FRAME" state="Ok"><oneNumber max="16" min="1" name="WIDTH" step="2">16</oneNumber><oneNumber max="8" min="1" name="HEIGHT">8</oneNumber></setNumberVector>',
+    )
 
     watching.socket.write(`<getProperties version="1.7" device="${cam}" name="CCD_FRAME"/>`)
     await watching.ping('asked')
 
-    expect(canonical(watching.take()[0]!)).toBe('def Test Camera/CCD_FRAME Number Ok rw   Main 60 [WIDTH|WIDTH|16|%g|1|16|2, HEIGHT|HEIGHT|8|%g|1|8|0]')
+    expect(canonical(watching.take()[0]!)).toBe(
+      '<defNumberVector device="Test Camera" group="Main" label="" name="CCD_FRAME" perm="rw" state="Ok" timeout="60">' +
+        '<defNumber format="%g" label="WIDTH" max="16" min="1" name="WIDTH" step="2">16</defNumber><defNumber format="%g" label="HEIGHT" max="8" min="1" name="HEIGHT" step="0">8</defNumber></defNumberVector>',
+    )
   })
 
   it('a limit changes under a value a client wrote, which the client keeps', async () => {
@@ -254,7 +491,7 @@ describe('limits and definitions a driver changes between frames', () => {
     await advance(1)
     const relayed = await advance(2)
 
-    expect(relayed.map(canonical)).toEqual(['set Test Camera/CCD_GAIN Number Ok [GAIN|20||200|]'])
+    expect(relayed.map(canonical)).toEqual(['<setNumberVector device="Test Camera" name="CCD_GAIN" state="Ok"><oneNumber max="200" name="GAIN">20</oneNumber></setNumberVector>'])
   })
 
   it('a property the driver defines again with other limits and format is defined again to the clients watching', async () => {
@@ -263,7 +500,10 @@ describe('limits and definitions a driver changes between frames', () => {
     await advance(1)
     const relayed = await advance(2)
 
-    expect(relayed.map(canonical)).toEqual(['def Test Camera/CCD_BINNING Number Ok rw   Main 60 [HOR_BIN|HOR_BIN|1|%.0f|1|8|1, VER_BIN|VER_BIN|1|%.0f|1|8|1]'])
+    expect(relayed.map(canonical)).toEqual([
+      '<defNumberVector device="Test Camera" group="Main" label="" name="CCD_BINNING" perm="rw" state="Ok" timeout="60">' +
+        '<defNumber format="%.0f" label="HOR_BIN" max="8" min="1" name="HOR_BIN" step="1">1</defNumber><defNumber format="%.0f" label="VER_BIN" max="8" min="1" name="VER_BIN" step="1">1</defNumber></defNumberVector>',
+    ])
   })
 
   it('a definition identical to the one before is not sent again', async () => {
@@ -273,5 +513,88 @@ describe('limits and definitions a driver changes between frames', () => {
     await advance(1)
 
     expect(await advance(2)).toEqual([])
+  })
+})
+
+describe('what a driver says in words between frames', () => {
+  const gain = (state: string, message?: string) => `<setNumberVector device="${cam}" name="CCD_GAIN" state="${state}"${message === undefined ? '' : ` message="${message}"`}><oneNumber name="GAIN">10</oneNumber></setNumberVector>`
+
+  it('a standalone message reaches the clients watching its device, and one without a device reaches everyone', async () => {
+    const { watching, writer, advance } = await observe([`<message device="${cam}" message="exposure started &amp; going"/>`, '<message message="to everyone"/>', '<message device="Other" message="not here"/>'])
+
+    await advance(1)
+    const relayed = await advance(2)
+
+    expect(relayed.map(canonical)).toEqual([`<message device="${cam}" message="exposure started &amp; going"></message>`, '<message message="to everyone"></message>'])
+    expect(writer.take().map(canonical)).toEqual(['<message message="to everyone"></message>'])
+    expect(watching.take()).toEqual([])
+  })
+
+  it('a message on an update, a definition and a deletion is relayed with them', async () => {
+    const { advance } = await observe([
+      gain('Alert', 'Error: Invalid range for value (GAIN). Valid range is from 0 to 300. Requested value is -5'),
+      numberVector('def', 'CCD_BINNING', 'Ok', [defNumber('HOR_BIN', 1, 'min="1" max="8" step="1"'), defNumber('VER_BIN', 1, 'min="1" max="8" step="1"')]).replace('timeout="60"', 'timeout="60" message="binning changed"'),
+      `<delProperty device="${cam}" name="CCD_BINNING" message="binning gone"/>`,
+    ])
+
+    await advance(1)
+    const relayed = (await advance(2)).map(canonical)
+
+    expect(relayed[0]).toBe(
+      `<setNumberVector device="${cam}" message="Error: Invalid range for value (GAIN). Valid range is from 0 to 300. Requested value is -5" name="CCD_GAIN" state="Alert"><oneNumber name="GAIN">10</oneNumber></setNumberVector>`,
+    )
+    expect(relayed[1]).toContain('message="binning changed"')
+    expect(relayed[2]).toBe(`<delProperty device="${cam}" message="binning gone" name="CCD_BINNING"></delProperty>`)
+  })
+
+  it('a message on an update of a property a client wrote goes with the update, which the client\'s value outranks', async () => {
+    const { watching, writer, advance } = await observe([gain('Alert', 'driver says no')])
+
+    writer.socket.write(`<newNumberVector device="${cam}" name="CCD_GAIN"><oneNumber name="GAIN">20</oneNumber></newNumberVector>`)
+    await watching.ping('written')
+    watching.take()
+    await advance(1)
+
+    expect(await advance(2)).toEqual([])
+  })
+
+  it('a message on a first definition and on a definition identical to the one held is relayed with it each time', async () => {
+    const binning = numberVector('def', 'CCD_BINNING', 'Ok', [defNumber('HOR_BIN', 1, 'min="1" max="4" step="1"'), defNumber('VER_BIN', 1, 'min="1" max="4" step="1"')])
+    const fresh = numberVector('def', 'CCD_NEW', 'Ok', [defNumber('NEW', 1, 'min="0" max="1" step="1"')])
+    const { advance } = await observe([fresh.replace('timeout="60"', 'timeout="60" message="a new property"'), binning.replace('timeout="60"', 'timeout="60" message="binning again"')])
+
+    await advance(1)
+    const relayed = (await advance(2)).map(canonical)
+
+    expect(relayed).toHaveLength(2)
+    expect(relayed[0]).toContain('name="CCD_NEW"')
+    expect(relayed[0]).toContain('message="a new property"')
+    expect(relayed[1]).toContain('name="CCD_BINNING"')
+    expect(relayed[1]).toContain('message="binning again"')
+  })
+
+  it('a message on the deletion of a whole device reaches the clients watching it', async () => {
+    const { writer, advance } = await observe(['<delProperty device="Other" message="the driver went away"/>'])
+
+    writer.socket.write('<getProperties version="1.7" device="Other"/>')
+    await writer.ping('asked')
+    writer.take()
+    await advance(1)
+    await advance(2)
+
+    expect(writer.take().map(canonical)).toEqual(['<delProperty device="Other" message="the driver went away"></delProperty>'])
+  })
+
+  it('a message and a timeout on an image are relayed with it', async () => {
+    const withWords = `<setBLOBVector device="${cam}" name="CCD1" state="Ok" timeout="60" message="the sensor is warm"><oneBLOB name="CCD1" size="1" format=".fits"/></setBLOBVector>`
+    const { watching, advance } = await observe([], withWords)
+
+    watching.socket.write(`<enableBLOB device="${cam}">Also</enableBLOB>`)
+    await watching.ping('enabled')
+    await advance(1)
+    const relayed = (await advance(2)).map(canonical)
+
+    expect(relayed).toHaveLength(1)
+    expect(relayed[0]).toMatch(/^<setBLOBVector device="Test Camera" message="the sensor is warm" name="CCD1" state="Ok" timeout="60"><oneBLOB format="\.fits" len="\d+" name="CCD1" size="\d+">/)
   })
 })
