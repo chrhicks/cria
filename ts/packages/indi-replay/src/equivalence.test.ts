@@ -145,8 +145,6 @@ const device = (xml: string) => identity(xml).device
  */
 const firstOccurrences = (messages: ReadonlyArray<string>, of: string | undefined) => [...new Set(messages.filter(message => device(message) === of))]
 
-const answerExtras = ['Telescope Simulator/TELESCOPE_MOUNT_TYPE']
-
 /**
  * The elements not compared, and why. Both sides are filtered the same way.
  * - `world.volatile` are properties that change on their own or with the time of day the run began: the
@@ -154,22 +152,22 @@ const answerExtras = ['Telescope Simulator/TELESCOPE_MOUNT_TYPE']
  *   clock and the axes follow the time of day. How many updates a client gets depends on how long the real run
  *   took, and a value on the day it was made is not today's. The replay follows the recording's frames. Their
  *   definitions are compared, with the value the property has at the moment left out; the updates are not.
- * - A driver may add updates of its own to its answer to a `getProperties`: the telescope simulator sets
- *   TELESCOPE_MOUNT_TYPE again after defining it. A replay answers with definitions, and Cria's mirror takes
- *   such an update as the property it already holds. These are not compared in a step that asks.
+ * - After a client writes, a driver may say things about its own work that a replay cannot know: the focuser saves its
+ *   configuration and says so in two standalone `<message>`s. They are left out of the steps where a client writes;
+ *   Cria discards them (`xml.ts`), and the properties the write changes are compared, attribute by attribute.
  * - While exposures are taken, the camera's exposure and abort properties are the replay's exposure machine's:
  *   it answers the client's own exposure, not the recorded one.
  * - An image is compared without its bytes, `size` and `len` (they must be there, with any number): the
  *   tape's frames are made up (the test cannot keep a simulator's image), and Cria does not use them; what
  *   the bytes are is `testing/replay.test.ts`'s.
  */
-function comparable(messages: ReadonlyArray<string>, advanced: boolean): string[] {
+function comparable(messages: ReadonlyArray<string>, advanced: boolean, wrote: boolean): string[] {
   return messages.map(withoutBytes).map(blankIfMoving).filter(xml => {
+    if (wrote && xml.startsWith('<message')) return false
+
     const { device: of, name, set } = identity(xml)
 
     if (set && world.volatile.includes(`${of}/${name}`)) return false
-
-    if (set && !advanced && answerExtras.includes(`${of}/${name}`)) return false
 
     return !(advanced && of === world.camera && ['CCD_EXPOSURE', 'CCD_ABORT_EXPOSURE'].includes(name ?? ''))
   })
@@ -317,6 +315,7 @@ describe('what observers receive from the replay matches real indiserver', () =>
 
     for (const [index, step] of scenario.steps.entries()) {
       const advanced = 'advance' in step
+      const wrote = !advanced && step.send.startsWith('<new')
 
       if (advanced) {
         for (const expected of [1, 2]) {
@@ -334,8 +333,8 @@ describe('what observers receive from the replay matches real indiserver', () =>
 
       for (const name of names) {
         const heard = scenario.heard[name]![index]!.map(id => world.messages[id]!)
-        const expected = comparable(advanced && index === scenario.steps.findIndex(other => 'advance' in other) ? withoutOpeningWords(heard) : heard, advanced)
-        const got = comparable(observers[name]!.take(), advanced)
+        const expected = comparable(advanced && index === scenario.steps.findIndex(other => 'advance' in other) ? withoutOpeningWords(heard) : heard, advanced, wrote)
+        const got = comparable(observers[name]!.take(), advanced, wrote)
         const problem = differences(expected, got)
 
         expectedAll[name]!.push(...expected)
@@ -436,16 +435,18 @@ function session(between: ReadonlyArray<string>, secondImage = image): ReadonlyA
   ]
 }
 
-async function observe(between: ReadonlyArray<string>, secondImage = image) {
+const observe = (between: ReadonlyArray<string>, secondImage = image) => watch(session(between, secondImage))
+
+async function watch(stream: ReadonlyArray<readonly ['in' | 'out', string]>) {
   const folder = join(directory, 'stream')
 
-  await tapeFromStream(session(between, secondImage), { devices: [{ id: 'primary', kind: 'camera', indiDevice: cam }], sensor: small, startAt: Date.UTC(2026, 9, 19) }, folder)
+  await tapeFromStream(stream, { devices: [{ id: 'primary', kind: 'camera', indiDevice: cam }], sensor: small, startAt: Date.UTC(2026, 9, 19) }, folder)
   replay = await startReplay(await loadTape(folder))
   const [watching, writer] = [await Observer.connect(replay.port), await Observer.connect(replay.port)]
 
   watching.socket.write(`<getProperties version="1.7" device="${cam}"/>`)
   await watching.ping('start')
-  watching.take()
+  const started = watching.take()
 
   const advance = async (count: number) => {
     writer.socket.write(`<newNumberVector device="${cam}" name="CCD_EXPOSURE"><oneNumber name="CCD_EXPOSURE_VALUE">0.05</oneNumber></newNumberVector>`)
@@ -458,7 +459,7 @@ async function observe(between: ReadonlyArray<string>, secondImage = image) {
     return watching.take().filter(message => !message.includes('name="CCD_EXPOSURE"'))
   }
 
-  return { watching, writer, advance }
+  return { watching, writer, advance, started }
 }
 
 describe('limits and definitions a driver changes between frames', () => {
@@ -596,5 +597,97 @@ describe('what a driver says in words between frames', () => {
 
     expect(relayed).toHaveLength(1)
     expect(relayed[0]).toMatch(/^<setBLOBVector device="Test Camera" message="the sensor is warm" name="CCD1" state="Ok" timeout="60"><oneBLOB format="\.fits" len="\d+" name="CCD1" size="\d+">/)
+  })
+})
+
+describe('what a driver sets inside its answer to a getProperties', () => {
+  const connection = (state: string, connect: boolean, message = '') =>
+    `<setSwitchVector device="${cam}" name="CONNECTION" state="${state}" timeout="60"${message}><oneSwitch name="CONNECT">${connect ? 'On' : 'Off'}</oneSwitch><oneSwitch name="DISCONNECT">${connect ? 'Off' : 'On'}</oneSwitch></setSwitchVector>`
+  const ask = `<getProperties version="1.7" device="${cam}"/>`
+  type Stream = ReadonlyArray<readonly ['in' | 'out', string]>
+  const defined = (stream: Stream, name: string) => stream.findIndex(([dir, xml]) => dir === 'in' && xml.startsWith('<def') && xml.includes(`name="${name}"`))
+  const summary = (xml: ReadonlyArray<string>) => xml.map(text => /^<(\w+)\b.*?\bname="([^"]*)"/s.exec(text)!.slice(1).join(' '))
+  const insert = (stream: Stream, at: number, ...entries: Stream): Stream => [...stream.slice(0, at), ...entries, ...stream.slice(at)]
+
+  /** The recorded session with `extra` said by the driver right after the definition of `name`. */
+  const after = (name: string, extra: string, stream: Stream = session([])) => insert(stream, defined(stream, name) + 1, ['in', extra])
+
+  it('is sent where the driver sent it, after the definition it followed, to every client that asked for the device', async () => {
+    const { watching, writer, started } = await watch(after('CCD_BINNING', connection('Ok', true)))
+
+    expect(summary(started).slice(0, 5)).toEqual(['defSwitchVector CONNECTION', 'defNumberVector CCD_FRAME', 'defNumberVector CCD_BINNING', 'setSwitchVector CONNECTION', 'defNumberVector CCD_GAIN'])
+    expect(canonical(started[3]!)).toBe(canonical(connection('Ok', true)))
+
+    writer.socket.write(`<newSwitchVector device="${cam}" name="CONNECTION"><oneSwitch name="CONNECT">Off</oneSwitch><oneSwitch name="DISCONNECT">On</oneSwitch></newSwitchVector>`)
+    await watching.ping('written')
+    watching.take()
+    watching.socket.write(ask)
+    await watching.ping('asked')
+
+    const again = watching.take()
+
+    expect(summary(again).slice(0, 5)).toEqual(['defSwitchVector CONNECTION', 'defNumberVector CCD_FRAME', 'defNumberVector CCD_BINNING', 'setSwitchVector CONNECTION', 'defNumberVector CCD_GAIN'])
+    expect(canonical(again[3]!)).toBe(canonical(connection('Ok', false)))
+  })
+
+  it('is sent right after its own definition when that is where the driver sent it', async () => {
+    const { started } = await watch(after('CONNECTION', connection('Ok', true)))
+
+    expect(summary(started).slice(0, 3)).toEqual(['defSwitchVector CONNECTION', 'setSwitchVector CONNECTION', 'defNumberVector CCD_FRAME'])
+  })
+
+  it('is not sent in answer to an ask that names a property, as a driver does not', async () => {
+    const { watching } = await watch(after('CCD_BINNING', connection('Ok', true)))
+
+    for (const [name, kind] of [['CONNECTION', 'defSwitchVector'], ['CCD_BINNING', 'defNumberVector']] as const) {
+      watching.socket.write(`<getProperties version="1.7" device="${cam}" name="${name}"/>`)
+      await watching.ping(name)
+
+      expect(summary(watching.take())).toEqual([`${kind} ${name}`])
+    }
+  })
+
+  it('is not sent again when the recording reaches it, which nobody asked for', async () => {
+    const { advance } = await watch(after('CCD_BINNING', connection('Ok', true)))
+
+    await advance(1)
+
+    expect(await advance(2)).toEqual([])
+  })
+
+  it('carries the timeout and the words the driver gave it', async () => {
+    const { started } = await watch(after('CCD_BINNING', connection('Ok', true, ' message="connected"')))
+
+    expect(canonical(started[3]!)).toContain('message="connected"')
+    expect(canonical(started[3]!)).toContain('timeout="60"')
+  })
+
+  it('is not part of the answer when only some of the answers had it', async () => {
+    const recorded = after('CCD_BINNING', connection('Ok', true))
+    const stream = insert(recorded, defined(recorded, 'CCD1') + 1, ['out', ask], recorded[defined(recorded, 'CONNECTION')]!)
+    const { started } = await watch(stream)
+
+    expect(summary(started)).not.toContain('setSwitchVector CONNECTION')
+  })
+
+  it('is not part of the answer when the driver reports the property again and again, as it does a position', async () => {
+    const { started } = await watch(after('CCD_BINNING', connection('Ok', true), after('CCD_BINNING', connection('Busy', true))))
+
+    expect(summary(started)).not.toContain('setSwitchVector CONNECTION')
+  })
+
+  it('is not part of the answer when the driver updates the property elsewhere in the recording, as it does a position', async () => {
+    const stream = [...after('CCD_BINNING', connection('Ok', true)), ['out', '<pingRequest uid="1"/>'] as const, ['in', connection('Busy', true)] as const]
+    const { started } = await watch(stream)
+
+    expect(summary(started)).not.toContain('setSwitchVector CONNECTION')
+  })
+
+  it('stays part of the answer when another ask in the recording named the property', async () => {
+    const recorded = after('CCD_BINNING', connection('Ok', true))
+    const stream = insert(recorded, defined(recorded, 'CCD1') + 1, ['out', `<getProperties version="1.7" device="${cam}" name="CONNECTION"/>`], recorded[defined(recorded, 'CONNECTION')]!)
+    const { started } = await watch(stream)
+
+    expect(summary(started)).toContain('setSwitchVector CONNECTION')
   })
 })
