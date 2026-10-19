@@ -178,6 +178,45 @@ describe('images', () => {
   })
 })
 
+describe('enableBLOB Only', () => {
+  it('sends a client nothing but images for that device, and everything else as usual', async () => {
+    fake.define({ device: 'Mount', name: 'TIME_LST', kind: 'number', perm: 'ro', state: 'Ok', elements: { LST: { value: 1 } } })
+    const [only, also] = [await connect(), await connect()]
+
+    only.send('<enableBLOB device="Mount">Only</enableBLOB><enableBLOB device="CCD">Only</enableBLOB>')
+    also.send('<enableBLOB device="Mount">Also</enableBLOB><enableBLOB device="CCD">Also</enableBLOB>')
+    await pause(50)
+
+    fake.update('Mount', 'TELESCOPE_PARK', { state: 'Busy' })
+    fake.define({ device: 'Mount', name: 'MOUNT_INFO', kind: 'text', perm: 'ro', state: 'Ok', elements: { NAME: { value: 'AM5' } } })
+    fake.removeVector('Mount', 'TIME_LST')
+    only.send('<getProperties version="1.7" device="Mount"/>')
+    expect(await fake.deliverBlob('CCD', 'CCD1', 'CCD1', Buffer.from('pixels'))).toBe(2)
+    await only.until('the image', text => text.includes('</setBLOBVector>'))
+    await also.until('the image', text => text.includes('</setBLOBVector>'))
+    await pause(50)
+
+    expect(only.text()).toBe(
+      '<setBLOBVector device="CCD" name="CCD1" state="Ok">\n  <oneBLOB name="CCD1" size="6" format=".fits">\ncGl4ZWxz\n  </oneBLOB>\n</setBLOBVector>\n',
+    )
+    expect(also.text()).toContain('<setSwitchVector device="Mount" name="TELESCOPE_PARK" state="Busy">')
+    expect(also.text()).toContain('<defTextVector device="Mount" name="MOUNT_INFO"')
+    expect(also.text()).toContain('<delProperty device="Mount" name="TIME_LST"/>')
+  })
+
+  it('on one property leaves the device\'s other properties alone', async () => {
+    const client = await connect()
+
+    client.send('<enableBLOB device="Mount" name="TELESCOPE_PARK">Only</enableBLOB>')
+    await pause(50)
+    fake.update('Mount', 'TELESCOPE_PARK', { state: 'Busy' })
+    fake.define({ device: 'Mount', name: 'TIME_LST', kind: 'number', perm: 'ro', state: 'Ok', elements: { LST: { value: 1 } } })
+    await client.until('the other property', text => text.includes('TIME_LST'))
+
+    expect(client.text()).not.toContain('TELESCOPE_PARK')
+  })
+})
+
 describe('muting and refusing', () => {
   it('a muted device sends nothing and answers no getProperties until unmuted; other devices go on', async () => {
     const client = await connect()
