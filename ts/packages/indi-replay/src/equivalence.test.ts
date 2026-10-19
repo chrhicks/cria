@@ -601,8 +601,8 @@ describe('what a driver says in words between frames', () => {
 })
 
 describe('what a driver sets inside its answer to a getProperties', () => {
-  const connection = (state: string, connect: boolean, message = '') =>
-    `<setSwitchVector device="${cam}" name="CONNECTION" state="${state}" timeout="60"${message}><oneSwitch name="CONNECT">${connect ? 'On' : 'Off'}</oneSwitch><oneSwitch name="DISCONNECT">${connect ? 'Off' : 'On'}</oneSwitch></setSwitchVector>`
+  const binning = (state: string, value: number, message = '') =>
+    `<setNumberVector device="${cam}" name="CCD_BINNING" state="${state}" timeout="60"${message}><oneNumber name="HOR_BIN">${value}</oneNumber><oneNumber name="VER_BIN">1</oneNumber></setNumberVector>`
   const ask = `<getProperties version="1.7" device="${cam}"/>`
   type Stream = ReadonlyArray<readonly ['in' | 'out', string]>
   const defined = (stream: Stream, name: string) => stream.findIndex(([dir, xml]) => dir === 'in' && xml.startsWith('<def') && xml.includes(`name="${name}"`))
@@ -613,12 +613,12 @@ describe('what a driver sets inside its answer to a getProperties', () => {
   const after = (name: string, extra: string, stream: Stream = session([])) => insert(stream, defined(stream, name) + 1, ['in', extra])
 
   it('is sent where the driver sent it, after the definition it followed, to every client that asked for the device', async () => {
-    const { watching, writer, started } = await watch(after('CCD_BINNING', connection('Ok', true)))
+    const { watching, writer, started } = await watch(after('CCD_GAIN', binning('Ok', 1)))
 
-    expect(summary(started).slice(0, 5)).toEqual(['defSwitchVector CONNECTION', 'defNumberVector CCD_FRAME', 'defNumberVector CCD_BINNING', 'setSwitchVector CONNECTION', 'defNumberVector CCD_GAIN'])
-    expect(canonical(started[3]!)).toBe(canonical(connection('Ok', true)))
+    expect(summary(started).slice(0, 5)).toEqual(['defSwitchVector CONNECTION', 'defNumberVector CCD_FRAME', 'defNumberVector CCD_BINNING', 'defNumberVector CCD_GAIN', 'setNumberVector CCD_BINNING'])
+    expect(canonical(started[4]!)).toBe(canonical(binning('Ok', 1)))
 
-    writer.socket.write(`<newSwitchVector device="${cam}" name="CONNECTION"><oneSwitch name="CONNECT">Off</oneSwitch><oneSwitch name="DISCONNECT">On</oneSwitch></newSwitchVector>`)
+    writer.socket.write(`<newNumberVector device="${cam}" name="CCD_BINNING"><oneNumber name="HOR_BIN">2</oneNumber></newNumberVector>`)
     await watching.ping('written')
     watching.take()
     watching.socket.write(ask)
@@ -626,18 +626,18 @@ describe('what a driver sets inside its answer to a getProperties', () => {
 
     const again = watching.take()
 
-    expect(summary(again).slice(0, 5)).toEqual(['defSwitchVector CONNECTION', 'defNumberVector CCD_FRAME', 'defNumberVector CCD_BINNING', 'setSwitchVector CONNECTION', 'defNumberVector CCD_GAIN'])
-    expect(canonical(again[3]!)).toBe(canonical(connection('Ok', false)))
+    expect(summary(again).slice(0, 5)).toEqual(['defSwitchVector CONNECTION', 'defNumberVector CCD_FRAME', 'defNumberVector CCD_BINNING', 'defNumberVector CCD_GAIN', 'setNumberVector CCD_BINNING'])
+    expect(canonical(again[4]!)).toBe(canonical(binning('Ok', 2)))
   })
 
   it('is sent right after its own definition when that is where the driver sent it', async () => {
-    const { started } = await watch(after('CONNECTION', connection('Ok', true)))
+    const { started } = await watch(after('CCD_BINNING', binning('Ok', 1)))
 
-    expect(summary(started).slice(0, 3)).toEqual(['defSwitchVector CONNECTION', 'setSwitchVector CONNECTION', 'defNumberVector CCD_FRAME'])
+    expect(summary(started).slice(2, 5)).toEqual(['defNumberVector CCD_BINNING', 'setNumberVector CCD_BINNING', 'defNumberVector CCD_GAIN'])
   })
 
   it('is not sent in answer to an ask that names a property, as a driver does not', async () => {
-    const { watching } = await watch(after('CCD_BINNING', connection('Ok', true)))
+    const { watching } = await watch(after('CCD_GAIN', binning('Ok', 1)))
 
     for (const [name, kind] of [['CONNECTION', 'defSwitchVector'], ['CCD_BINNING', 'defNumberVector']] as const) {
       watching.socket.write(`<getProperties version="1.7" device="${cam}" name="${name}"/>`)
@@ -648,7 +648,7 @@ describe('what a driver sets inside its answer to a getProperties', () => {
   })
 
   it('is not sent again when the recording reaches it, which nobody asked for', async () => {
-    const { advance } = await watch(after('CCD_BINNING', connection('Ok', true)))
+    const { advance } = await watch(after('CCD_GAIN', binning('Ok', 1)))
 
     await advance(1)
 
@@ -656,38 +656,38 @@ describe('what a driver sets inside its answer to a getProperties', () => {
   })
 
   it('carries the timeout and the words the driver gave it', async () => {
-    const { started } = await watch(after('CCD_BINNING', connection('Ok', true, ' message="connected"')))
+    const { started } = await watch(after('CCD_GAIN', binning('Ok', 1, ' message="connected"')))
 
-    expect(canonical(started[3]!)).toContain('message="connected"')
-    expect(canonical(started[3]!)).toContain('timeout="60"')
+    expect(canonical(started[4]!)).toContain('message="connected"')
+    expect(canonical(started[4]!)).toContain('timeout="60"')
   })
 
   it('is not part of the answer when only some of the answers had it', async () => {
-    const recorded = after('CCD_BINNING', connection('Ok', true))
-    const stream = insert(recorded, defined(recorded, 'CCD1') + 1, ['out', ask], recorded[defined(recorded, 'CONNECTION')]!)
+    const recorded = after('CCD_GAIN', binning('Ok', 1))
+    const stream = insert(recorded, defined(recorded, 'CCD1') + 1, ['out', ask], recorded[defined(recorded, 'CCD_BINNING')]!, recorded[defined(recorded, 'CCD_GAIN')]!)
     const { started } = await watch(stream)
 
-    expect(summary(started)).not.toContain('setSwitchVector CONNECTION')
+    expect(summary(started)).not.toContain('setNumberVector CCD_BINNING')
   })
 
   it('is not part of the answer when the driver reports the property again and again, as it does a position', async () => {
-    const { started } = await watch(after('CCD_BINNING', connection('Ok', true), after('CCD_BINNING', connection('Busy', true))))
+    const { started } = await watch(after('CCD_GAIN', binning('Ok', 1), after('CCD_GAIN', binning('Busy', 1))))
 
-    expect(summary(started)).not.toContain('setSwitchVector CONNECTION')
+    expect(summary(started)).not.toContain('setNumberVector CCD_BINNING')
   })
 
   it('is not part of the answer when the driver updates the property elsewhere in the recording, as it does a position', async () => {
-    const stream = [...after('CCD_BINNING', connection('Ok', true)), ['out', '<pingRequest uid="1"/>'] as const, ['in', connection('Busy', true)] as const]
+    const stream = [...after('CCD_GAIN', binning('Ok', 1)), ['out', '<pingRequest uid="1"/>'] as const, ['in', binning('Busy', 1)] as const]
     const { started } = await watch(stream)
 
-    expect(summary(started)).not.toContain('setSwitchVector CONNECTION')
+    expect(summary(started)).not.toContain('setNumberVector CCD_BINNING')
   })
 
   it('stays part of the answer when another ask in the recording named the property', async () => {
-    const recorded = after('CCD_BINNING', connection('Ok', true))
-    const stream = insert(recorded, defined(recorded, 'CCD1') + 1, ['out', `<getProperties version="1.7" device="${cam}" name="CONNECTION"/>`], recorded[defined(recorded, 'CONNECTION')]!)
+    const recorded = after('CCD_GAIN', binning('Ok', 1))
+    const stream = insert(recorded, defined(recorded, 'CCD1') + 1, ['out', `<getProperties version="1.7" device="${cam}" name="CCD_BINNING"/>`], recorded[defined(recorded, 'CCD_BINNING')]!)
     const { started } = await watch(stream)
 
-    expect(summary(started)).toContain('setSwitchVector CONNECTION')
+    expect(summary(started)).toContain('setNumberVector CCD_BINNING')
   })
 })

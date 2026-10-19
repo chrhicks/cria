@@ -5,9 +5,14 @@
  *
  * A repeat is a definition identical to the one before it for the same property, with no update or deletion
  * of that property between and no `getProperties` asking for it between: two asks answered the same way are
- * two answers, not a repeat. The count is the longest such run seen.
+ * two answers, not a repeat. So are two lists of a driver's properties that follow one another with nothing
+ * between (a connection's definitions and an answer, or an answer to another client's ask and the next): the
+ * second list begins again at CONNECTION. The count is the longest such run seen.
  */
+import { beginsList } from './answers.js'
+
 export class RepeatCounter {
+  private readonly lastDefined = new Map<string, string>()
   private readonly last = new Map<string, { readonly signature: string; readonly run: number }>()
   private readonly found = new Map<string, number>()
 
@@ -22,6 +27,8 @@ export class RepeatCounter {
 
   /** A definition the driver sent; `signature` is its text without the timestamp. */
   define(device: string, name: string, signature: string): void {
+    if (beginsList(this.lastDefined.get(device), name)) this.changed(device, undefined)
+    this.lastDefined.set(device, name)
     const slot = `${device}\u0000${name}`
     const previous = this.last.get(slot)
     const run = previous?.signature === signature ? previous.run + 1 : 1
