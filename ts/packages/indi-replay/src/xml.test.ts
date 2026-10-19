@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { FakeIndi } from '@cria/fake-indi'
-import { parseServerElement, type ServerElement } from './xml.js'
+import { parseClientAsk, parseServerElement, type ServerElement } from './xml.js'
 
 const fixture = readFileSync(join(import.meta.dirname, '..', '..', '..', 'apps', 'cria', 'test', 'fixtures', 'errai-2026-10-15.xml'), 'utf8')
 const elements = [...fixture.matchAll(/<(def\w+Vector)\b[^>]*?(?:\/>|>[\s\S]*?<\/\1>)/g)].map(match => match[0])
@@ -85,5 +85,36 @@ describe('updates and deletions', () => {
 
   it('does not read what is not a property: messages, ping replies, Cria\'s own commands', () => {
     for (const xml of ['<message device="CCD" message="hi"/>', '<pingReply uid="1"/>', '<newNumberVector device="CCD" name="X"/>', '']) expect(parseServerElement(xml)).toBeUndefined()
+  })
+})
+
+describe('number limits a driver changes at runtime', () => {
+  it('reads min, max and step from the oneNumber elements that carry them, and only those', () => {
+    const parsed = parseServerElement(
+      '<setNumberVector device="Focuser Simulator" name="ABS_FOCUS_POSITION" state="Ok" timeout="60" timestamp="2026-10-19T04:13:13">\n' +
+        '    <oneNumber name="FOCUS_ABSOLUTE_POSITION" min="0" max="50000" step="1000">\n50000\n    </oneNumber>\n' +
+        '    <oneNumber name="OTHER">\n3\n    </oneNumber>\n</setNumberVector>',
+    )
+
+    expect(parsed).toEqual({
+      kind: 'update',
+      device: 'Focuser Simulator',
+      name: 'ABS_FOCUS_POSITION',
+      state: 'Ok',
+      values: { FOCUS_ABSOLUTE_POSITION: '50000', OTHER: '3' },
+      limits: { FOCUS_ABSOLUTE_POSITION: { min: 0, max: 50000, step: 1000 } },
+    })
+  })
+
+  it('has no limits for an update that carries none', () => {
+    expect(parseServerElement('<setNumberVector device="D" name="N" state="Ok"><oneNumber name="A">1</oneNumber></setNumberVector>')).toEqual({ kind: 'update', device: 'D', name: 'N', state: 'Ok', values: { A: '1' } })
+  })
+})
+
+describe('what a client asked for', () => {
+  it('reads a getProperties with or without a device and a property', () => {
+    expect(parseClientAsk('<getProperties version="1.7"/>')).toEqual({ device: undefined, name: undefined })
+    expect(parseClientAsk('<getProperties version="1.7" device="CCD &amp; Co" name="CCD1"/>')).toEqual({ device: 'CCD & Co', name: 'CCD1' })
+    expect(parseClientAsk('<enableBLOB device="CCD">Also</enableBLOB>')).toBeUndefined()
   })
 })

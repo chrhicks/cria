@@ -8,7 +8,8 @@ import { open } from 'node:fs/promises'
 import { join } from 'node:path'
 import { readFitsHeader } from '@cria/fits'
 import { readManifest, readRecording, verifyRecording, type Manifest } from '@cria/recording'
-import { parseServerElement, type ServerElement } from './xml.js'
+import { RepeatCounter } from './repeats.js'
+import { parseClientAsk, parseServerElement, type ServerElement } from './xml.js'
 
 export class TapeError extends Error {
   override readonly name = 'TapeError'
@@ -39,6 +40,8 @@ export interface Tape {
   /** The INDI name of the camera whose images replay serves. */
   readonly camera: string
   readonly frames: ReadonlyArray<Frame>
+  /** How many times a driver defines a property in one answer to a device-wide getProperties, where more than once, by `device.name`. */
+  readonly repeats: ReadonlyMap<string, number>
   /** The kind of each INDI device the manifest names. */
   readonly kinds: ReadonlyMap<string, Manifest['devices'][number]['kind']>
 }
@@ -73,15 +76,26 @@ export async function loadTape(directory: string, options: { readonly camera?: s
   const manifest = await readManifest(directory)
   const events: TapeEvent[] = []
   const images = new Map<string, Array<{ t: number; at: number; element: string; format: string; path: string }>>()
+  const repeats = new RepeatCounter()
 
   for await (const line of readRecording(directory)) {
-    if (line.k !== 'msg' || line.dir !== 'in') continue
+    if (line.k !== 'msg') continue
+
+    if (line.dir === 'out') {
+      const ask = parseClientAsk(line.xml)
+
+      if (ask) repeats.ask(ask.device, ask.name)
+      continue
+    }
+
     const element = parseServerElement(line.xml)
 
     if (element === undefined) continue
 
     if (element.kind !== 'image') {
       events.push({ t: line.t, at: line.at, ...element })
+      if (element.kind === 'define') repeats.define(element.vector.device, element.vector.name, line.xml.replace(/\s+timestamp="[^"]*"/, ''))
+      else repeats.changed(element.device, element.name)
       continue
     }
 
@@ -109,5 +123,5 @@ export async function loadTape(directory: string, options: { readonly camera?: s
     frames.push({ index: frames.length, device: camera, property: mainChip, ...image, ...size })
   }
 
-  return { directory, manifest, events, camera, frames, kinds: new Map(manifest.devices.map(device => [device.indiDevice, device.kind])) }
+  return { directory, manifest, events, camera, frames, repeats: repeats.repeats(), kinds: new Map(manifest.devices.map(device => [device.indiDevice, device.kind])) }
 }

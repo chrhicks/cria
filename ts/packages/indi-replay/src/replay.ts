@@ -15,12 +15,15 @@
  *             value for the rest of the replay (later recorded updates are ignored)
  *   exposure  the camera's exposure properties, driven by the exposure machine
  *
+ * Whoever holds a value, the recording owns a property's limits and definition: a recorded min, max or step,
+ * or a definition that differs from the one held, is relayed to the clients watching the property.
+ *
  * Writes that would move hardware are refused (Alert, "not in this recording"),
  * and stop and abort requests are confirmed. Nothing is ever simulated beyond
  * what the recording holds.
  */
 import { readFile } from 'node:fs/promises'
-import { FakeIndi, type Behaviour, type FakeVector, type Value } from '@cria/fake-indi'
+import { FakeIndi, type Behaviour, type FakeVector, type Limits, type Value } from '@cria/fake-indi'
 import { flattened, withExposure } from '@cria/fits'
 import { realClock, type Clock } from './clock.js'
 import type { Fault, FaultPhase } from './faults.js'
@@ -165,14 +168,18 @@ export async function startReplay(tape: Tape, options: ReplayOptions = {}): Prom
     if (value !== undefined && Number.isFinite(Number(value))) longitude = Number(value)
   }
 
-  const setStore = (device: string, property: string, change: { state?: FakeVector['state']; values: Readonly<Record<string, Value>> }) => {
+  const setStore = (device: string, property: string, change: { state?: FakeVector['state']; values: Readonly<Record<string, Value>>; limits?: Limits }) => {
     const vector = fake.vectors.get(key(device, property))
 
     if (!vector) return
-    const values = Object.fromEntries(Object.entries(change.values).filter(([element]) => element in vector.elements))
+    const known = <T>(entries: Readonly<Record<string, T>>) => Object.fromEntries(Object.entries(entries).filter(([element]) => element in vector.elements))
 
-    fake.update(device, property, { ...(change.state ? { state: change.state } : {}), values })
+    fake.update(device, property, { ...(change.state ? { state: change.state } : {}), values: known(change.values), ...(change.limits ? { limits: known(change.limits) } : {}) })
   }
+
+  /** What a definition says besides values and state, as text: two definitions with the same shape tell a client the same thing. */
+  const shape = (vector: FakeVector) =>
+    fake.definition({ ...vector, state: 'Idle', elements: Object.fromEntries(Object.entries(vector.elements).map(([name, element]) => [name, { ...element, value: '' }])) })
 
   /** A recorded definition of a property we hold is a driver's answer to a getProperties: it changes nothing but values that differ. */
   const refresh = (existing: FakeVector, definition: Definition) => {
@@ -202,29 +209,39 @@ export async function startReplay(tape: Tape, options: ReplayOptions = {}): Prom
     }
 
     const slot = event.kind === 'define' ? key(event.vector.device, event.vector.name) : key(event.device, event.name)
+    const held = pinned.has(slot) || owned.has(slot)
 
-    if (pinned.has(slot)) {
-      // The driver went away and is defining the property again: it comes back holding what was written.
-      if (event.kind === 'define' && !fake.vectors.has(slot)) {
-        const restored = clone(event.vector)
+    if (event.kind === 'define') {
+      const existing = fake.vectors.get(slot)
+      const definition = { ...clone(event.vector), ...(tape.repeats.has(slot) ? { repeats: tape.repeats.get(slot)! } : {}) }
 
-        for (const [name, value] of Object.entries(kept.get(slot) ?? {})) if (name in restored.elements) restored.elements[name]!.value = value
-        fake.define(restored)
+      // The driver went away and is defining the property again: a pinned property comes back holding what was written.
+      for (const [name, value] of Object.entries(kept.get(slot) ?? {})) if (!existing && name in definition.elements) definition.elements[name]!.value = value
+
+      if (!existing) {
+        fake.define(definition)
+      } else if (shape(existing) !== shape(definition)) {
+        // The driver defined the property differently (limits, format, permission, labels): clients are told, as indiserver relays it.
+        if (held) {
+          for (const [name, element] of Object.entries(existing.elements)) if (name in definition.elements) definition.elements[name]!.value = element.value
+          definition.state = existing.state
+        }
+        fake.define({ ...definition, ...(existing.repeats === undefined ? {} : { repeats: existing.repeats }) })
+      } else if (!held) {
+        refresh(existing, event.vector)
       }
 
       return
     }
 
-    if (event.kind === 'define') {
-      const existing = fake.vectors.get(slot)
-
-      if (!existing) fake.define(clone(event.vector))
-      else if (!owned.has(slot)) refresh(existing, event.vector)
+    // A client or the exposure machine holds the values; the driver still owns the limits.
+    if (held) {
+      if (event.limits) setStore(event.device, event.name, { values: {}, limits: event.limits })
 
       return
     }
 
-    if (!owned.has(slot)) setStore(event.device, event.name, { ...(event.state ? { state: event.state } : {}), values: event.values })
+    setStore(event.device, event.name, { ...(event.state ? { state: event.state } : {}), values: event.values, ...(event.limits ? { limits: event.limits } : {}) })
   }
 
   /** Brings every property to what the drivers had said by recording time `t`, which is epoch time `at`. */

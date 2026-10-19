@@ -120,7 +120,7 @@ describe('images', () => {
     const client = await connect()
     const image = Buffer.alloc(3 * 1024 * 1024, 7)
 
-    client.send('<enableBLOB device="CCD">Also</enableBLOB>')
+    client.send('<enableBLOB device="CCD">Also</enableBLOB><getProperties version="1.7" device="Mount"/>')
     await pause(50)
 
     const delivery = fake.deliverBlob('CCD', 'CCD1', 'CCD1', image)
@@ -239,6 +239,7 @@ async function observe(rows: ReadonlyArray<ReadonlyArray<Setting>>): Promise<Del
     client.send('<getProperties version="1.7" device="CCD"/>')
     client.send('<getProperties version="1.7" device="CCD" name="CCD1"/>')
   }
+  await barrier('subscribed')
   fake.update('CCD', 'CCD_EXPOSURE', { state: 'Busy' })
   fake.define({ device: 'CCD', name: 'CCD_TEMPERATURE', kind: 'number', perm: 'ro', state: 'Ok', elements: { CCD_TEMPERATURE_VALUE: { value: 1 } } })
   fake.removeVector('CCD', 'CCD_TEMPERATURE')
@@ -387,9 +388,216 @@ describe('removing', () => {
   it('removeVector deletes one property and tells the clients', async () => {
     const client = await connect()
 
+    client.send('<getProperties version="1.7" device="Mount"/>')
+    await pause(50)
     fake.removeVector('Mount', 'TELESCOPE_PARK')
     await client.until('delProperty', text => text.includes('<delProperty device="Mount" name="TELESCOPE_PARK"/>'))
 
     expect(fake.vectors.has('Mount.TELESCOPE_PARK')).toBe(false)
+  })
+})
+
+/** Waits until everything the fake wrote to these clients before now has arrived: a ping is answered after earlier writes to the same socket. */
+async function settle(...clients: Client[]): Promise<void> {
+  const uid = `settle-${Math.random().toString(36).slice(2)}`
+
+  await Promise.all(
+    clients.map(async client => {
+      client.send(`<pingRequest uid="${uid}"/>`)
+      await client.until('the ping', text => text.includes(`<pingReply uid="${uid}"/>`))
+    }),
+  )
+}
+
+const taken = new WeakMap<Client, number>()
+
+/** What the fake sent this client since the last call, without the pings `settle` used. */
+function news(client: Client): string {
+  const text = client.text()
+  const from = taken.get(client) ?? 0
+
+  taken.set(client, text.length)
+
+  return text.slice(from).replace(/<pingReply uid="[^"]*"\/>\n?/g, '')
+}
+
+const defined = (client: Client, name: string) => client.text().split(`<defSwitchVector device="Mount" name="${name}"`).length - 1
+
+describe('who hears what, as indiserver 2.2.5 delivers it (measured: indi-replay/measure/measure-definitions.py)', () => {
+  beforeEach(() => {
+    fake.define({ device: 'Mount', name: 'TELESCOPE_HOME', kind: 'switch', perm: 'rw', rule: 'AtMostOne', state: 'Idle', elements: { GO: { value: false } } })
+  })
+
+  it('a client that has not asked for a device hears nothing about it', async () => {
+    const [silent, watching] = [await connect(), await connect()]
+
+    watching.send('<getProperties version="1.7" device="Mount"/>')
+    await settle(silent, watching)
+    fake.update('Mount', 'TELESCOPE_PARK', { state: 'Busy' })
+    fake.define({ device: 'Mount', name: 'NOTE', kind: 'text', perm: 'rw', state: 'Idle', elements: { TEXT: { value: '' } } })
+    fake.removeVector('Mount', 'TELESCOPE_HOME')
+    await settle(silent, watching)
+
+    const heard = news(watching)
+
+    expect(news(silent)).toBe('')
+    expect(heard).toContain('<setSwitchVector device="Mount" name="TELESCOPE_PARK" state="Busy">')
+    expect(heard).toContain('<defTextVector device="Mount" name="NOTE"')
+    expect(heard).toContain('<delProperty device="Mount" name="TELESCOPE_HOME"/>')
+  })
+
+  it('an answer reaches every client that watches the device, not only the one that asked', async () => {
+    const [asker, other, elsewhere] = [await connect(), await connect(), await connect()]
+
+    asker.send('<getProperties version="1.7" device="Mount"/>')
+    other.send('<getProperties version="1.7" device="Mount"/>')
+    elsewhere.send('<getProperties version="1.7" device="CCD"/>')
+    await settle(asker, other, elsewhere)
+    asker.send('<getProperties version="1.7" device="Mount"/>')
+    await settle(asker, other, elsewhere)
+
+    expect([defined(asker, 'TELESCOPE_PARK'), defined(other, 'TELESCOPE_PARK'), defined(elsewhere, 'TELESCOPE_PARK')]).toEqual([3, 2, 0])
+  })
+
+  it('a request for one property is answered once, to every client that watches it', async () => {
+    const [asker, device, same, different] = [await connect(), await connect(), await connect(), await connect()]
+
+    device.send('<getProperties version="1.7" device="Mount"/>')
+    same.send('<getProperties version="1.7" device="Mount" name="TELESCOPE_PARK"/>')
+    different.send('<getProperties version="1.7" device="Mount" name="TELESCOPE_HOME"/>')
+    await settle(asker, device, same, different)
+    const before = [device, same, different].map(client => defined(client, 'TELESCOPE_PARK'))
+
+    asker.send('<getProperties version="1.7" device="Mount" name="TELESCOPE_PARK"/>')
+    await settle(asker, device, same, different)
+
+    expect([defined(asker, 'TELESCOPE_PARK'), ...[device, same, different].map((client, index) => defined(client, 'TELESCOPE_PARK') - before[index]!)]).toEqual([1, 1, 1, 0])
+  })
+
+  it('a client watching one property hears that property and not the rest of the device', async () => {
+    const [one, device] = [await connect(), await connect()]
+
+    one.send('<getProperties version="1.7" device="Mount" name="TELESCOPE_PARK"/>')
+    await settle(one)
+    device.send('<getProperties version="1.7" device="Mount"/>')
+    await settle(one, device)
+    fake.update('Mount', 'TELESCOPE_HOME', { state: 'Busy' })
+    fake.update('Mount', 'TELESCOPE_PARK', { state: 'Busy' })
+    await settle(one, device)
+
+    expect(one.text()).toContain('name="TELESCOPE_PARK"')
+    expect(one.text()).not.toContain('TELESCOPE_HOME')
+    expect(device.text()).toContain('<setSwitchVector device="Mount" name="TELESCOPE_HOME"')
+  })
+
+  it('asking for everything covers every device, ones defined later too', async () => {
+    const all = await connect()
+
+    all.send('<getProperties version="1.7"/>')
+    await settle(all)
+    fake.define({ device: 'Dome', name: 'DOME_SHUTTER', kind: 'switch', perm: 'rw', state: 'Idle', elements: { OPEN: { value: false } } })
+    await settle(all)
+
+    expect(all.text()).toContain('device="Mount" name="TELESCOPE_PARK"')
+    expect(all.text()).toContain('device="CCD" name="CCD1"')
+    expect(all.text()).toContain('<defSwitchVector device="Dome" name="DOME_SHUTTER"')
+  })
+
+  it('enableBLOB subscribes like a getProperties, but is not answered', async () => {
+    const [device, property, nobody] = [await connect(), await connect(), await connect()]
+
+    device.send('<enableBLOB device="CCD">Also</enableBLOB>')
+    property.send('<enableBLOB device="CCD" name="CCD1">Also</enableBLOB>')
+    await settle(device, property, nobody)
+
+    expect([news(device), news(property)]).toEqual(['', ''])
+    nobody.send('<getProperties version="1.7" device="CCD"/>')
+    await settle(device, property, nobody)
+
+    expect([device, property, nobody].map(client => client.text().includes('<defBLOBVector device="CCD" name="CCD1"'))).toEqual([true, true, true])
+  })
+
+  it('a request for something that does not exist is answered by nobody', async () => {
+    const [asker, watching] = [await connect(), await connect()]
+
+    watching.send('<getProperties version="1.7" device="Mount"/>')
+    await settle(watching)
+    asker.send('<getProperties version="1.7" device="Nothing"/><getProperties version="1.7" device="Mount" name="NOTHING"/>')
+    await settle(asker, watching)
+    expect([news(asker), defined(watching, 'TELESCOPE_PARK')]).toEqual(['', 1])
+  })
+})
+
+describe('numbers a driver changes at runtime', () => {
+  beforeEach(() => {
+    fake.define({
+      device: 'Focuser',
+      name: 'ABS_FOCUS_POSITION',
+      kind: 'number',
+      perm: 'rw',
+      state: 'Ok',
+      elements: { FOCUS_ABSOLUTE_POSITION: { value: 50000, min: 0, max: 100000, step: 1000, format: '%.f' } },
+    })
+    fake.define({ device: 'Focuser', name: 'FOCUS_MAX', kind: 'number', perm: 'rw', state: 'Ok', elements: { FOCUS_MAX_VALUE: { value: 100000, min: 1000, max: 1000000, step: 10000, format: '%.f' } } })
+  })
+
+  it('an update carries min, max and step on the elements whose limits changed, to every client that watches', async () => {
+    const [first, second] = [await connect(), await connect()]
+
+    for (const client of [first, second]) client.send('<getProperties version="1.7" device="Focuser"/>')
+    await settle(first, second)
+    fake.update('Focuser', 'ABS_FOCUS_POSITION', { limits: { FOCUS_ABSOLUTE_POSITION: { max: 50000, step: 500 } } })
+    fake.update('Focuser', 'FOCUS_MAX', { values: { FOCUS_MAX_VALUE: 50000 } })
+    await settle(first, second)
+
+    for (const client of [first, second]) {
+      expect(client.text()).toContain('<setNumberVector device="Focuser" name="ABS_FOCUS_POSITION" state="Ok">\n  <oneNumber name="FOCUS_ABSOLUTE_POSITION" max="50000" step="500">50000</oneNumber>')
+      expect(client.text()).toContain('<setNumberVector device="Focuser" name="FOCUS_MAX" state="Ok">\n  <oneNumber name="FOCUS_MAX_VALUE">50000</oneNumber>')
+    }
+  })
+
+  it('a client that asks afterwards is defined the new limits', async () => {
+    const late = await connect()
+
+    fake.update('Focuser', 'ABS_FOCUS_POSITION', { limits: { FOCUS_ABSOLUTE_POSITION: { min: 100, max: 50000 } } })
+    late.send('<getProperties version="1.7" device="Focuser" name="ABS_FOCUS_POSITION"/>')
+    await settle(late)
+
+    expect(late.text()).toContain('<defNumber name="FOCUS_ABSOLUTE_POSITION" label="FOCUS_ABSOLUTE_POSITION" format="%.f" min="100" max="50000" step="1000">50000</defNumber>')
+  })
+
+  it('a definition sent again replaces the old one, format included, for every client that watches', async () => {
+    const watching = await connect()
+
+    watching.send('<getProperties version="1.7" device="Focuser"/>')
+    await settle(watching)
+    fake.define({ device: 'Focuser', name: 'FOCUS_MAX', kind: 'number', perm: 'rw', state: 'Ok', elements: { FOCUS_MAX_VALUE: { value: 80000, min: 1000, max: 200000, step: 500, format: '%6.0f' } } })
+    await settle(watching)
+
+    expect(watching.text().split('<defNumberVector device="Focuser" name="FOCUS_MAX"')[2]).toContain('format="%6.0f" min="1000" max="200000" step="500">80000')
+  })
+})
+
+describe('properties a driver defines more than once', () => {
+  it('a device-wide request is answered with each property once, then again with the repeated ones; a named request once', async () => {
+    fake.define({ device: 'Sim', name: 'ACTIVE_DEVICES', kind: 'text', perm: 'rw', state: 'Idle', repeats: 2, elements: { ACTIVE_TELESCOPE: { value: '' } } })
+    fake.define({ device: 'Sim', name: 'DEBUG', kind: 'switch', perm: 'rw', state: 'Idle', elements: { ENABLE: { value: false } } })
+    fake.define({ device: 'Sim', name: 'SIM_TILT', kind: 'number', perm: 'rw', state: 'Idle', repeats: 2, elements: { TILT: { value: 0 } } })
+    const [asker, watching] = [await connect(), await connect()]
+
+    watching.send('<getProperties version="1.7" device="Sim"/>')
+    await settle(watching)
+    news(watching)
+    const order = () => [...news(watching).matchAll(/<def\w+Vector device="Sim" name="(\w+)"/g)].map(match => match[1])
+
+    asker.send('<getProperties version="1.7" device="Sim"/>')
+    await settle(asker, watching)
+
+    expect(order()).toEqual(['ACTIVE_DEVICES', 'DEBUG', 'SIM_TILT', 'ACTIVE_DEVICES', 'SIM_TILT'])
+
+    asker.send('<getProperties version="1.7" device="Sim" name="ACTIVE_DEVICES"/>')
+    await settle(asker, watching)
+
+    expect(order()).toEqual(['ACTIVE_DEVICES'])
   })
 })
