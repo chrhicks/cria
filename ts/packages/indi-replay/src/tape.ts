@@ -88,6 +88,7 @@ export async function loadTape(directory: string, options: { readonly camera?: s
     if (element.name !== mainChip) continue
     for (const image of element.images) {
       if (image.ref === undefined) continue
+      if (!(line.blobs ?? []).includes(image.ref)) throw new TapeError(`${directory}: an image in the XML of message ${line.n} is not one of the message's recorded images: ${image.ref}`)
       const list = images.get(element.device) ?? []
 
       list.push({ t: line.t, at: line.at, element: image.element, format: image.format, path: join(directory, image.ref) })

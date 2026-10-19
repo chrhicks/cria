@@ -89,8 +89,8 @@ class Client implements FakeClient {
   }
 
   /** Runs `job` with nothing else written to this client meanwhile. */
-  exclusive(job: (write: (chunk: string) => Promise<void>) => Promise<void>): Promise<void> {
-    return this.enqueue(() => job(chunk => this.writeWithDrain(chunk)))
+  exclusive(job: (write: (chunk: string) => Promise<void>) => Promise<void>, signal?: AbortSignal): Promise<void> {
+    return this.enqueue(() => job(chunk => this.writeWithDrain(chunk, signal)))
   }
 
   private enqueue(work: () => Promise<void>): Promise<void> {
@@ -102,18 +102,20 @@ class Client implements FakeClient {
     return done
   }
 
-  private async writeWithDrain(chunk: string): Promise<void> {
+  private async writeWithDrain(chunk: string, signal?: AbortSignal): Promise<void> {
     if (!this.socket.writable) return
     if (this.socket.write(chunk)) return
     await new Promise<void>(resolve => {
       const done = () => {
         this.socket.off('drain', done)
         this.socket.off('close', done)
+        signal?.removeEventListener('abort', done)
         resolve()
       }
 
       this.socket.once('drain', done)
       this.socket.once('close', done)
+      signal?.addEventListener('abort', done, { once: true })
     })
   }
 }
@@ -203,10 +205,14 @@ export class FakeIndi {
    * Sends an image the way indiserver does: only to clients whose `enableBLOB`
    * mode for this property is `Also` or `Only`, as base64 written in chunks that
    * wait for the socket to drain. Resolves with how many clients were sent it,
-   * once the last chunk is written.
+   * once the last chunk is written. Aborting `signal` stops the delivery: an
+   * image not yet started is not sent, and one half written closes its
+   * connection, because an element cannot be finished or withdrawn.
    */
-  async deliverBlob(device: string, name: string, element: string, data: Buffer, format = '.fits'): Promise<number> {
-    if (this.muted.has(device)) return 0
+  async deliverBlob(device: string, name: string, element: string, data: Buffer, options: { readonly format?: string; readonly signal?: AbortSignal } = {}): Promise<number> {
+    const { format = '.fits', signal } = options
+
+    if (this.muted.has(device) || signal?.aborted) return 0
 
     const wanting = [...this.clients].filter(client => client.modeFor(device, name) !== 'Never')
     const head = `<setBLOBVector device="${escape(device)}" name="${escape(name)}" state="Ok">\n  <oneBLOB name="${escape(element)}" size="${data.length}" format="${escape(format)}">\n`
@@ -215,11 +221,19 @@ export class FakeIndi {
     await Promise.all(
       wanting.map(client =>
         client.exclusive(async write => {
+          if (signal?.aborted) return
           await write(head)
-          for (let offset = 0; offset < data.length; offset += imageChunkBytes)
+          for (let offset = 0; offset < data.length; offset += imageChunkBytes) {
+            if (signal?.aborted) {
+              client.socket.destroy()
+
+              return
+            }
             await write(data.toString('base64', offset, Math.min(data.length, offset + imageChunkBytes)).replace(/.{72}/g, '$&\n'))
-          await write(tail)
-        }),
+          }
+          if (signal?.aborted) client.socket.destroy()
+          else await write(tail)
+        }, signal),
       ),
     )
 

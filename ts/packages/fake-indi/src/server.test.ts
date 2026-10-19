@@ -135,6 +135,41 @@ describe('images', () => {
     expect(Buffer.from(payload.slice(payload.indexOf('>') + 1), 'base64')).toEqual(image)
   })
 
+  it('an aborted delivery to a client that is not reading ends the connection instead of finishing later', async () => {
+    const client = await connect()
+    const image = Buffer.alloc(24 * 1024 * 1024, 5)
+    const controller = new AbortController()
+
+    client.send('<enableBLOB device="CCD">Also</enableBLOB>')
+    await pause(50)
+    client.socket.pause()
+
+    const delivery = fake.deliverBlob('CCD', 'CCD1', 'CCD1', image, { signal: controller.signal })
+
+    await pause(200)
+    controller.abort()
+    await delivery
+    const closed = new Promise<void>(resolve => client.socket.once('close', () => resolve()))
+
+    client.socket.resume()
+    await closed
+
+    expect(client.text()).not.toContain('</setBLOBVector>')
+  })
+
+  it('an abort before the delivery starts sends nothing', async () => {
+    const client = await connect()
+    const controller = new AbortController()
+
+    client.send('<enableBLOB device="CCD">Also</enableBLOB>')
+    await pause(50)
+    controller.abort()
+
+    expect(await fake.deliverBlob('CCD', 'CCD1', 'CCD1', Buffer.from('x'), { signal: controller.signal })).toBe(0)
+    await pause(50)
+    expect(client.text()).toBe('')
+  })
+
   it('sendBlob still broadcasts to every client, whatever they enabled', async () => {
     const client = await connect()
 

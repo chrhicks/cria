@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, readdir, rm } from 'node:fs/promises'
+import { mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises'
 import net from 'node:net'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -9,7 +9,7 @@ import type { Fault } from './faults.js'
 import { endOfRecording, notInRecording, startReplay, type Replay } from './replay.js'
 import { localSiderealHours } from './sidereal.js'
 import { synthesizeTape, type SynthSpec } from './synthesize.js'
-import { TapeError, loadTape } from './tape.js'
+import { TapeError, loadTape, type TapeEvent } from './tape.js'
 
 class ManualClock implements Clock {
   private timers: Array<{ readonly due: number; readonly run: () => void; cancelled: boolean }> = []
@@ -173,6 +173,14 @@ describe('loading a recording', () => {
 
     await rm(join(folder, 'blobs', (await readdir(join(folder, 'blobs')))[0]!))
     await expect(loadTape(folder)).rejects.toThrow(TapeError)
+  })
+
+  it('refuses an image whose XML names a file the message does not list', async () => {
+    const folder = await synthesizeTape(spec, join(directory, 'tape'))
+    const traffic = await readFile(join(folder, 'traffic.jsonl'), 'utf8')
+
+    await writeFile(join(folder, 'traffic.jsonl'), traffic.replace('ref=\\"blobs/1-', 'ref=\\"../../x/1-'))
+    await expect(loadTape(folder)).rejects.toThrow(/not one of the message's recorded images/)
   })
 
   it('refuses a recording without images', async () => {
@@ -346,6 +354,28 @@ describe('an exposure', () => {
     expect(pixels(images(client)[0]!)).toEqual(pixels(await readFile(tape.frames[1]!.path)))
   })
 
+  it('an abort stops an image being written to a client that is not reading, and closes that connection', async () => {
+    const big: SynthSpec = { ...spec, sensor: { width: 2400, height: 1800 }, stars: [3, 3] }
+
+    await serve({ spec: big })
+    const slow = await connect()
+    const aborting = await connect(false)
+
+    slow.socket.pause()
+    await begin(slow, 1)
+    clock.advance(1000)
+    await slow.quiet(300)
+    aborting.send(`<newSwitchVector device="${camera}" name="CCD_ABORT_EXPOSURE"><oneSwitch name="ABORT">On</oneSwitch></newSwitchVector>`)
+    await aborting.until('Idle', () => states(aborting, camera, 'CCD_EXPOSURE').at(-1) === 'Idle')
+
+    const closed = new Promise<void>(resolve => slow.socket.once('close', () => resolve()))
+
+    slow.socket.resume()
+    await closed
+
+    expect(slow.text).not.toContain('</setBLOBVector>')
+  })
+
   it('past the last frame goes Busy, then Alert "end of recording", and sends nothing', async () => {
     await serve({ toFrame: 2 })
     const client = await connect()
@@ -390,6 +420,36 @@ describe('the frame cursor drives the rest of the rig', () => {
     // Four seconds between frames: tracking, the hour angle grows by four sidereal seconds. The recording's
     // mount stopped tracking as frame 3 began, so from frame 3 on the hour angle holds.
     expect(steps.map(step => Math.round(step * 3600 * 100) / 100 + 0)).toEqual([4.01, 4.01, 4.01, 0, 0])
+  })
+})
+
+describe('when the camera goes away and comes back', () => {
+  it('brings back what a client wrote, and serves the next frame', async () => {
+    const folder = await synthesizeTape(spec, join(directory, 'tape'))
+    const tape = await loadTape(folder)
+    const after = tape.frames[0]!.t
+    const definitions = tape.events.filter(event => event.kind === 'define' && event.vector.device === camera)
+    const events: TapeEvent[] = [
+      ...tape.events.filter(event => event.t <= after),
+      { t: after + 1, at: tape.frames[0]!.at + 1, kind: 'delete', device: camera, name: undefined },
+      ...definitions.map(event => ({ ...event, t: after + 2, at: tape.frames[0]!.at + 2 })),
+      ...tape.events.filter(event => event.t > after),
+    ]
+
+    replay = await startReplay({ ...tape, events }, { clock })
+    const client = await connect()
+
+    client.send(`<newSwitchVector device="${camera}" name="CCD_FRAME_TYPE"><oneSwitch name="FRAME_DARK">On</oneSwitch></newSwitchVector>`)
+    await client.until('the echo', () => replay!.value(camera, 'CCD_FRAME_TYPE', 'FRAME_DARK') === true)
+    await begin(client, 1)
+    clock.advance(1000)
+    await client.until('frame 0', () => images(client).length === 1)
+    await begin(client, 1)
+    clock.advance(1000)
+    await client.until('frame 1', () => images(client).length === 2)
+
+    expect(replay.value(camera, 'CCD_FRAME_TYPE', 'FRAME_DARK')).toBe(true)
+    expect(replay.value(camera, 'CCD_FRAME_TYPE', 'FRAME_LIGHT')).toBe(false)
   })
 })
 

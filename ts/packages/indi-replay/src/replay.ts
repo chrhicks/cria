@@ -89,6 +89,8 @@ interface Exposure {
   readonly frame: Frame
   readonly seconds: number
   readonly startedAt: number
+  /** Aborted by an abort request, so an image still being written to a slow client stops. */
+  readonly delivery: AbortController
   cancel: () => void
 }
 
@@ -103,6 +105,8 @@ export async function startReplay(tape: Tape, options: ReplayOptions = {}): Prom
   const first = options.fromFrame ?? 0
   const end = Math.min(options.toFrame ?? tape.frames.length, tape.frames.length)
   const pinned = new Set<string>()
+  /** What each pinned property held when it was last written, so a driver that goes away and returns gets it back. */
+  const kept = new Map<string, Record<string, Value>>()
   const owned = new Set([key(camera, 'CCD_EXPOSURE'), key(camera, 'CCD_ABORT_EXPOSURE'), key(camera, 'CCD1')])
   const cancels = new Set<() => void>()
   const history: ReplayEvent[] = []
@@ -178,19 +182,38 @@ export async function startReplay(tape: Tape, options: ReplayOptions = {}): Prom
     setStore(existing.device, existing.name, { state: definition.state, values: Object.fromEntries(changed.map(([name, element]) => [name, element.value])) })
   }
 
+  /** A client or a fault set this property: it keeps this value against the recording from now on. */
+  const pin = (device: string, property: string) => {
+    const vector = fake.vectors.get(key(device, property))
+
+    if (!vector) return
+    pinned.add(key(device, property))
+    kept.set(key(device, property), Object.fromEntries(Object.entries(vector.elements).map(([name, element]) => [name, element.value])))
+  }
+
   const applyEvent = (event: TapeEvent) => {
     noteSite(event)
 
     if (event.kind === 'delete') {
       if (event.name === undefined) fake.removeDevice(event.device)
-      else if (!pinned.has(key(event.device, event.name))) fake.removeVector(event.device, event.name)
+      else fake.removeVector(event.device, event.name)
 
       return
     }
 
     const slot = event.kind === 'define' ? key(event.vector.device, event.vector.name) : key(event.device, event.name)
 
-    if (pinned.has(slot)) return
+    if (pinned.has(slot)) {
+      // The driver went away and is defining the property again: it comes back holding what was written.
+      if (event.kind === 'define' && !fake.vectors.has(slot)) {
+        const restored = clone(event.vector)
+
+        for (const [name, value] of Object.entries(kept.get(slot) ?? {})) if (name in restored.elements) restored.elements[name]!.value = value
+        fake.define(restored)
+      }
+
+      return
+    }
 
     if (event.kind === 'define') {
       const existing = fake.vectors.get(slot)
@@ -258,8 +281,8 @@ export async function startReplay(tape: Tape, options: ReplayOptions = {}): Prom
       case 'blank':
         return
       case 'set':
-        pinned.add(key(fault.device, fault.property))
         setStore(fault.device, fault.property, { ...(fault.state ? { state: fault.state } : {}), values: fault.values })
+        pin(fault.device, fault.property)
 
         return
       case 'silent':
@@ -313,7 +336,7 @@ export async function startReplay(tape: Tape, options: ReplayOptions = {}): Prom
     next += 1
     advanceTo(frame.t, frame.at)
     runFaults(frame.index, 'before-exposure')
-    const exposure: Exposure = { frame, seconds, startedAt: clock.now(), cancel: () => undefined }
+    const exposure: Exposure = { frame, seconds, startedAt: clock.now(), delivery: new AbortController(), cancel: () => undefined }
 
     phase = { kind: 'exposing', exposure }
     exposure.cancel = later(seconds * 1000, () => void deliver(exposure))
@@ -334,13 +357,17 @@ export async function startReplay(tape: Tape, options: ReplayOptions = {}): Prom
 
       if (!current(exposure)) return
       const stamped = withExposure(source, { seconds: exposure.seconds, startedAt: exposure.startedAt })
-      const clients = await fake.deliverBlob(camera, frame.property, frame.element, blanks.has(frame.index) ? flattened(stamped) : stamped, frame.format)
+      const clients = await fake.deliverBlob(camera, frame.property, frame.element, blanks.has(frame.index) ? flattened(stamped) : stamped, {
+        format: frame.format,
+        signal: exposure.delivery.signal,
+      })
 
       if (!current(exposure)) return
       phase = { kind: 'idle' }
       record({ kind: 'delivered', frame: frame.index, clients })
       exposureState('Ok')
     } catch (error) {
+      if (!current(exposure)) return
       phase = { kind: 'idle' }
       exposureState('Alert', { message: `replay could not deliver frame ${frame.index}: ${String(error)}` })
     }
@@ -351,6 +378,7 @@ export async function startReplay(tape: Tape, options: ReplayOptions = {}): Prom
       const { exposure } = phase
 
       exposure.cancel()
+      exposure.delivery.abort()
       phase = { kind: 'idle' }
       record({ kind: 'aborted', frame: exposure.frame.index })
       exposureState('Idle')
@@ -397,9 +425,11 @@ export async function startReplay(tape: Tape, options: ReplayOptions = {}): Prom
     }
 
     if (vector.perm === 'ro') return 'handled'
-    pinned.add(key(device, name))
+    fake.apply(vector, values)
+    fake.update(device, name, { state: 'Ok' })
+    pin(device, name)
 
-    return 'default'
+    return 'handled'
   }
 
   fake.behaviour = behaviour
