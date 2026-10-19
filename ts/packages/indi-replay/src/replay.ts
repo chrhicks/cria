@@ -23,6 +23,10 @@
  * property held by a client or by the exposure machine: the recorded update, and the message on it, is
  * about a value the replay does not share, so neither is relayed.
  *
+ * A client's write that the INDI library refuses (a number outside its limits, a one-of-many switch with none or
+ * several on) applies nothing and is answered as the drivers answer it (`validate.ts`). A device-wide getProperties
+ * is answered with the sets the driver sent inside the recorded answer, where it sent them (`answers.ts`).
+ *
  * Writes that would move hardware are refused (Alert, "not in this recording"),
  * and stop and abort requests are confirmed. Nothing is ever simulated beyond
  * what the recording holds.
@@ -34,6 +38,7 @@ import { realClock, type Clock } from './clock.js'
 import type { Fault, FaultPhase } from './faults.js'
 import { localSiderealHours } from './sidereal.js'
 import type { Frame, Tape, TapeEvent } from './tape.js'
+import { refusal } from './validate.js'
 import type { Definition } from './xml.js'
 
 export interface ReplayOptions {
@@ -194,6 +199,9 @@ export async function startReplay(tape: Tape, options: ReplayOptions = {}): Prom
     setStore(existing.device, existing.name, { state: definition.state, values: Object.fromEntries(changed.map(([name, element]) => [name, element.value])) })
   }
 
+  const unchanged = (vector: FakeVector, event: Extract<TapeEvent, { kind: 'update' }>) =>
+    (event.state === undefined || event.state === vector.state) && !event.limits && event.message === undefined && Object.entries(event.values).every(([name, value]) => name in vector.elements && String(vector.elements[name]!.value) === String(value))
+
   /** A client or a fault set this property: it keeps this value against the recording from now on. */
   const pin = (device: string, property: string) => {
     const vector = fake.vectors.get(key(device, property))
@@ -226,7 +234,7 @@ export async function startReplay(tape: Tape, options: ReplayOptions = {}): Prom
 
     if (event.kind === 'define') {
       const existing = fake.vectors.get(slot)
-      const definition = { ...clone(event.vector), ...(tape.repeats.has(slot) ? { repeats: tape.repeats.get(slot)! } : {}) }
+      const definition = { ...clone(event.vector), ...(tape.repeats.has(slot) ? { repeats: tape.repeats.get(slot)! } : {}), ...(tape.answerSets.has(slot) ? { answerSet: tape.answerSets.get(slot)! } : {}) }
 
       // The driver went away and is defining the property again: a pinned property comes back holding what was written.
       for (const [name, value] of Object.entries(kept.get(slot) ?? {})) if (!existing && name in definition.elements) definition.elements[name]!.value = value
@@ -250,6 +258,9 @@ export async function startReplay(tape: Tape, options: ReplayOptions = {}): Prom
 
       return
     }
+
+    // A set the driver sends in answer to a getProperties is the replay's to send when asked: from the recording's time it changes nothing the clients do not already hold.
+    if (event.answer && fake.vectors.has(slot) && unchanged(fake.vectors.get(slot)!, event)) return
 
     // A client or the exposure machine holds the values; the driver still owns the limits.
     if (held) {
@@ -461,8 +472,17 @@ export async function startReplay(tape: Tape, options: ReplayOptions = {}): Prom
     }
 
     if (vector.perm === 'ro') return 'handled'
+    const refused = refusal(vector, values)
+
+    if (refused) {
+      fake.update(device, name, { state: refused.state, message: refused.message, timeout: vector.timeout ?? 0 })
+      if (refused.then) fake.update(device, name, { state: refused.then, timeout: vector.timeout ?? 0 })
+
+      return 'handled'
+    }
+
     fake.apply(vector, values)
-    fake.update(device, name, { state: 'Ok' })
+    fake.update(device, name, { state: 'Ok', timeout: vector.timeout ?? 0 })
     pin(device, name)
 
     return 'handled'

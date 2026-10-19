@@ -46,6 +46,12 @@ export interface FakeVector {
   readonly timeout?: number
   /** How many times the driver defines this property in one answer to a device-wide `getProperties`. Default 1. */
   readonly repeats?: number
+  /**
+   * What the driver sets in its answer to a device-wide `getProperties`, as the telescope simulator does
+   * TELESCOPE_MOUNT_TYPE: right after it defines the property `after` of this device. The set carries the
+   * vector's values and state as they are when asked, with this `timeout` and `message`. An ask that names a property is not answered with it.
+   */
+  readonly answerSet?: { readonly after: string; readonly timeout?: number; readonly message?: string }
   state: 'Idle' | 'Ok' | 'Busy' | 'Alert'
   readonly elements: Record<string, FakeElement>
 }
@@ -203,12 +209,16 @@ export class FakeIndi {
     for (const [element, value] of Object.entries(change.values ?? {})) vector.elements[element]!.value = value
     for (const [element, limits] of Object.entries(change.limits ?? {})) Object.assign(vector.elements[element]!, limits)
 
+    this.broadcast(this.setVector(vector, change), device, name)
+  }
+
+  private setVector(vector: FakeVector, change: { limits?: Limits; message?: string; timeout?: number }): string {
     const tag = tags[vector.kind]
     const body = Object.entries(vector.elements)
       .map(([element, { value }]) => `  <one${tag} name="${escape(element)}"${limitAttributes(change.limits?.[element])}>${format(value)}</one${tag}>\n`)
       .join('')
 
-    this.broadcast(`<set${tag}Vector device="${escape(device)}" name="${escape(name)}" state="${vector.state}"${change.timeout === undefined ? '' : ` timeout="${change.timeout}"`}${messageAttribute(change.message)}>\n${body}</set${tag}Vector>\n`, device, name)
+    return `<set${tag}Vector device="${escape(vector.device)}" name="${escape(vector.name)}" state="${vector.state}"${change.timeout === undefined ? '' : ` timeout="${change.timeout}"`}${messageAttribute(change.message)}>\n${body}</set${tag}Vector>\n`
   }
 
   sendBlob(device: string, name: string, element: string, data: Buffer): void {
@@ -403,13 +413,19 @@ export class FakeIndi {
    * The driver's answer to a `getProperties`, delivered as indiserver delivers it: to every client that hears
    * of each definition, not only the one that asked. A device-wide request is answered with each property once,
    * then again with those the driver defines more than once (`repeats`); a request for one property, once.
+   * A device-wide request also carries each property's `answerSet`, after the last definition of the property it follows.
    */
   private answer(device: string | undefined, name: string | undefined) {
     const asked = [...this.vectors.values()].filter(vector => (device === undefined || vector.device === device) && (name === undefined || vector.name === name))
     const passes = name === undefined ? Math.max(1, ...asked.map(vector => vector.repeats ?? 1)) : 1
 
     for (let pass = 1; pass <= passes; pass++)
-      for (const vector of asked) if ((vector.repeats ?? 1) >= pass) this.broadcast(this.definition(vector), vector.device, vector.name)
+      for (const vector of asked) {
+        if ((vector.repeats ?? 1) < pass) continue
+        this.broadcast(this.definition(vector), vector.device, vector.name)
+        if (name !== undefined || pass < (vector.repeats ?? 1)) continue
+        for (const other of asked) if (other.answerSet?.after === vector.name && other.device === vector.device) this.broadcast(this.setVector(other, other.answerSet), other.device, other.name)
+      }
   }
 
   /**

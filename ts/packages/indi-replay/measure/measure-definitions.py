@@ -43,6 +43,14 @@ def enable(device, mode, name=None):
     return f'<enableBLOB device="{device}"' + (f' name="{name}"' if name else '') + f'>{mode}</enableBLOB>'
 
 
+def numbers(device, name, **elements):
+    return f'<newNumberVector device="{device}" name="{name}">' + ''.join(f'<oneNumber name="{k}">{v}</oneNumber>' for k, v in elements.items()) + '</newNumberVector>'
+
+
+def switches(device, name, **elements):
+    return f'<newSwitchVector device="{device}" name="{name}">' + ''.join(f'<oneSwitch name="{k}">{v}</oneSwitch>' for k, v in elements.items()) + '</newSwitchVector>'
+
+
 SCENARIOS = {
     'unsubscribed client hears nothing': [('a', ask(CCD)), ('advance',)],
     'a device-wide ask reaches every client that watches the device': [('a', ask(CCD)), ('b', ask(CCD)), ('a', ask(CCD))],
@@ -63,6 +71,33 @@ SCENARIOS = {
     'a client that enabled images before asking for everything hears only that device': [('a', enable(CCD, 'Also')), ('a', ask()), ('b', ask()), ('advance',)],
     'a client that enabled only images hears nothing else': [('a', ask(CCD)), ('a', enable(CCD, 'Only')), ('b', ask(CCD)), ('advance',)],
     'Cria\'s own order: ask for everything, images on, images off': [('a', ask()), ('a', enable(CCD, 'Also')), ('advance',), ('a', enable(CCD, 'Never')), ('a', ask(CCD))],
+    'a named ask for a property the driver also sets in its answer is answered with its definition alone': [('a', ask(SCOPE, 'TELESCOPE_MOUNT_TYPE')), ('b', ask(SCOPE)), ('a', ask(SCOPE, 'TELESCOPE_MOUNT_TYPE'))],
+    'a number written outside its limits is refused with the reason, to every client that watches the property': [
+        ('a', ask(FOCUS)), ('b', ask()), ('c', ask(CCD)),
+        ('a', numbers(FOCUS, 'DELAY', DELAY_VALUE=-1)),
+        ('c', numbers(CCD, 'CCD_GAIN', GAIN=-5)),
+        ('a', numbers(FOCUS, 'DELAY', DELAY_VALUE=12345678)),
+        ('b', numbers(CCD, 'CCD_GAIN', GAIN=300.5)),
+        ('c', numbers(CCD, 'CCD_OFFSET', OFFSET=6001)),
+        ('c', ask(CCD, 'CCD_GAIN')), ('a', ask(FOCUS, 'DELAY')),
+    ],
+    'only the first number out of its limits is reported and nothing in the write is applied': [
+        ('a', ask(FOCUS)), ('b', ask(FOCUS, 'Presets')),
+        ('a', numbers(FOCUS, 'Presets', PRESET_1=111, PRESET_2=-1, PRESET_3=-2)),
+        ('b', ask(FOCUS, 'Presets')),
+    ],
+    'a number written within its limits is accepted': [
+        ('a', ask(CCD)), ('b', ask(CCD, 'CCD_GAIN')),
+        ('a', numbers(CCD, 'CCD_GAIN', GAIN=90)), ('a', numbers(CCD, 'CCD_GAIN', GAIN=300)), ('b', ask(CCD, 'CCD_GAIN')),
+    ],
+    'a switch vector that breaks its rule is refused with the reason, to every client that watches the property': [
+        ('a', ask(FOCUS)), ('b', ask()), ('c', ask(CCD)),
+        ('a', switches(FOCUS, 'DEBUG', ENABLE='On', DISABLE='On')),
+        ('c', switches(CCD, 'DEBUG', ENABLE='Off', DISABLE='Off')),
+        ('b', switches(FOCUS, 'DEBUG', DISABLE='Off')),
+        ('a', switches(FOCUS, 'CONNECTION_MODE', CONNECTION_SERIAL='On', CONNECTION_TCP='On')),
+        ('a', ask(FOCUS, 'DEBUG')),
+    ],
     'a client hears a device go and come back': [('a', ask(WEATHER)), ('b', ask(WEATHER, 'WEATHER_PARAMETERS')), ('c', ask()), ('advance',), ('a', ask(WEATHER))],
 }
 
