@@ -1,6 +1,6 @@
 import type { Operation, OperationRequest } from '@cria/wire'
-import { FakeIndi, type Behaviour } from '@cria/fake-indi'
-import { addCamera, addMount, am5, connection, exposeNormally, moveMount } from '../../apps/cria/test/drivers.js'
+import { FakeIndi, type Behaviour, addCamera, addMount, connection } from '@cria/fake-indi'
+import { am5, exposeNormally, moveMount } from '../../apps/cria/test/drivers.js'
 import { allReady, startCria, valueOf, type Cria, type DeviceSpec } from '../../apps/cria/test/harness.js'
 import { makeCriaClient, type CriaClient, type Reply } from '../cria-client.js'
 import { failedStep, recordingFetch, type Recorded } from './golden.js'

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import { FakeIndi } from '@cria/fake-indi'
-import { addCamera, addMount, exposeNormally, moveMount } from './drivers.js'
+import { FakeIndi, addCamera, addMount } from '@cria/fake-indi'
+import { exposeNormally, moveMount } from './drivers.js'
 import { allReady, startCria, until, type Cria } from './harness.js'
 
 const camera = 'Fake CCD'

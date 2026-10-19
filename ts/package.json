@@ -12,6 +12,7 @@
     "verify": "./verify.sh"
   },
   "devDependencies": {
+    "@cria/fake-indi": "workspace:*",
     "@cria/wire": "workspace:*",
     "@effect/vitest": "4.0.3",
     "@types/node": "24.19.1",
