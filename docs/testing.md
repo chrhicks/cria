@@ -27,10 +27,11 @@ The suite asserts literal values. Scenario tests wait for a state with a deadlin
 | Wire schemas and the ledger | `packages/cria-wire/src/*.test.ts`, `apps/cria/src/operation/*.test.ts` | Every protocol 5 schema on literal inputs, and every ledger transition |
 | Wire and image boundaries | `apps/cria/src/wire/sse.test.ts`, `packages/fits/src/*.test.ts`, `apps/cria/src/image/*.test.ts` | The event stream's cadence, coalescing and subscriber limits, the FITS to ImageBytes conversion, and the rolling image store |
 | Fake INDI server | `packages/fake-indi` (the server), `apps/cria/test/drivers.ts` (the rig's drivers on it) and the scenario tests beside them | Failures a simulator cannot produce: a driver that never acknowledges, a stop that never confirms, a dropped connection, a driver that disappears. Also the HTTP refusals, and SIGTERM during a slew aborting the mount before the process exits |
+| indi-replay | `packages/indi-replay/src/*.test.ts` (against raw TCP clients and a hand-driven clock), `testing/replay.test.ts` (the real Cria on a recording the simulators made) | The tape loader, the exposure machine, writes and pins, stops and refusals, the frame cursor and sidereal time, each fault; the real Cria's captures matching the recorded ImageBytes digests, the hour angle, abort, the end of the recording and liveness |
 | INDI simulators | `apps/cria/test/simulators.test.ts`, started by `testing/indiserver.ts` | Capture and download, cancel mid-exposure, focuser moves, slews and tracking against real INDI drivers |
 | errai, replayed | `apps/cria/test/errai.test.ts` | Cria running `deploy/rig.errai.json` against the real drivers' recorded definitions (`apps/cria/test/fixtures/errai-2026-10-15.xml`) |
 | Source rules | `testing/lint.test.ts` | Catches, `try`, `.catch(`, `Date.now()` and timers appear only at counted, reasoned sites, and `verify.sh` stays strict and pipe-free |
-| Shipped packages | `testing/dist.test.ts` | The committed `dist/` of `@cria/primitives` and `@cria/wire` matches a fresh build |
+| Shipped packages | `testing/dist.test.ts` | The committed `dist/` of `@cria/primitives`, `@cria/wire` and `@cria/fits` matches a fresh build |
 
 To run the suite without the other stages, run `pnpm test` in `ts/`. It starts its own `indiserver` processes on free ports.
 

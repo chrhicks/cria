@@ -138,3 +138,75 @@ function dateObs(text: string | undefined): number | undefined {
 
   return Number.isFinite(value) ? value : undefined
 }
+
+/** The 80-byte cards of the header, END excluded, and where the data starts. */
+function headerCards(fits: Buffer): { cards: string[]; dataStart: number } {
+  const cards: string[] = []
+
+  for (let offset = 0; offset + card <= fits.length; offset += card) {
+    const line = fits.toString('latin1', offset, offset + card)
+
+    if (line.slice(0, 8).trim() === 'END') return { cards, dataStart: Math.ceil((offset + card) / block) * block }
+    cards.push(line)
+  }
+
+  throw new FitsError('FITS header has no END card')
+}
+
+export interface Exposure {
+  readonly seconds: number
+  /** Epoch milliseconds the exposure started. */
+  readonly startedAt: number
+}
+
+/**
+ * A copy of `fits` that says it was exposed for `exposure.seconds` from
+ * `exposure.startedAt`: EXPTIME and DATE-OBS are replaced (or added before END),
+ * and CHECKSUM and DATASUM are dropped, because neither would match the new
+ * header. The data bytes are shared byte for byte. A header that needs more room
+ * grows by whole 2880-byte blocks.
+ */
+export function withExposure(fits: Buffer, exposure: Exposure): Buffer {
+  const { cards, dataStart } = headerCards(fits)
+  const exptime = String(exposure.seconds)
+
+  if (exptime.length > 20) throw new FitsError(`EXPTIME ${exptime} does not fit a FITS card`)
+
+  const replacement = new Map([
+    ['EXPTIME', `EXPTIME = ${exptime.padStart(20)}`],
+    ['DATE-OBS', `DATE-OBS= '${new Date(exposure.startedAt).toISOString().slice(0, -1)}'`],
+  ])
+  const kept = cards.filter(line => !['CHECKSUM', 'DATASUM'].includes(line.slice(0, 8).trim()))
+  const written = new Set<string>()
+  const rewritten = kept.map(line => {
+    const key = line.slice(0, 8).trim()
+    const next = replacement.get(key)
+
+    if (next === undefined || written.has(key)) return line
+    written.add(key)
+
+    return next
+  })
+
+  for (const [key, line] of replacement) if (!written.has(key)) rewritten.push(line)
+
+  const text = [...rewritten.map(line => line.padEnd(card)), 'END'.padEnd(card)].join('')
+  const header = Buffer.from(text.padEnd(Math.ceil(text.length / block) * block), 'latin1')
+
+  return Buffer.concat([header, fits.subarray(dataStart)])
+}
+
+/**
+ * A copy of `fits` whose every pixel equals its first: a frame with no stars
+ * and the same size, background and header.
+ */
+export function flattened(fits: Buffer): Buffer {
+  const { cards, dataStart } = readFitsHeader(fits)
+  const bytes = Math.abs(integerCard(cards, 'BITPIX')) / 8
+  const pixels = integerCard(cards, 'NAXIS1') * integerCard(cards, 'NAXIS2')
+  const out = Buffer.from(fits)
+
+  out.fill(Buffer.from(fits.subarray(dataStart, dataStart + bytes)), dataStart, dataStart + pixels * bytes)
+
+  return out
+}

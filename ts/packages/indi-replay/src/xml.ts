@@ -1,0 +1,128 @@
+/**
+ * What indiserver sent, read from the wire text a recording keeps. Written for
+ * libindi's output (machine-made, entity-escaped, no comments) and independent
+ * of `@cria/indi`'s parser, as `@cria/fake-indi` is. Anything it does not
+ * model (a message, a ping reply) reads as `undefined` and is not replayed.
+ */
+import type { FakeElement, FakeVector, Value } from '@cria/fake-indi'
+
+export type VectorKind = FakeVector['kind']
+
+/** A property as a driver defined it: the same shape `FakeIndi.define` takes. */
+export type Definition = Omit<FakeVector, 'state'> & { readonly state: FakeVector['state'] }
+
+export type ServerElement =
+  | { readonly kind: 'define'; readonly vector: Definition }
+  | { readonly kind: 'update'; readonly device: string; readonly name: string; readonly state?: FakeVector['state']; readonly values: Readonly<Record<string, Value>> }
+  | { readonly kind: 'image'; readonly device: string; readonly name: string; readonly images: ReadonlyArray<{ readonly element: string; readonly ref: string | undefined; readonly size: number | undefined; readonly format: string }> }
+  | { readonly kind: 'delete'; readonly device: string; readonly name: string | undefined }
+
+const kinds: Record<string, VectorKind> = { Number: 'number', Switch: 'switch', Text: 'text', Light: 'light', BLOB: 'blob' }
+const states = new Set(['Idle', 'Ok', 'Busy', 'Alert'])
+const perms = new Set(['ro', 'rw', 'wo'])
+const rules = new Set(['OneOfMany', 'AnyOfMany', 'AtMostOne'])
+
+export function unescapeXml(text: string): string {
+  return text.replace(/&(amp|lt|gt|quot|apos);/g, (_, name: string) => ({ amp: '&', lt: '<', gt: '>', quot: '"', apos: "'" })[name]!)
+}
+
+function attributes(tag: string): Record<string, string> {
+  return Object.fromEntries([...tag.matchAll(/([\w-]+)="([^"]*)"/g)].map(match => [match[1]!, unescapeXml(match[2]!)]))
+}
+
+const number = (text: string | undefined): number | undefined => (text === undefined || text.trim() === '' || !Number.isFinite(Number(text)) ? undefined : Number(text))
+
+function elementValue(kind: VectorKind, text: string): Value {
+  const trimmed = unescapeXml(text).trim()
+
+  return kind === 'switch' ? trimmed === 'On' : trimmed
+}
+
+export function parseServerElement(xml: string): ServerElement | undefined {
+  const head = /^\s*<(def|set)(Number|Switch|Text|Light|BLOB)Vector\b([^>]*)>/.exec(xml)
+
+  if (head) {
+    const verb = head[1]!
+    const kind = kinds[head[2]!]!
+    const vector = attributes(head[3]!)
+
+    if (vector.device === undefined || vector.name === undefined) return undefined
+
+    return verb === 'def' ? definition(xml, kind, vector) : update(xml, kind, vector)
+  }
+
+  const deletion = /^\s*<delProperty\b([^>]*?)\/?>/.exec(xml)
+
+  if (deletion) {
+    const { device, name } = attributes(deletion[1]!)
+
+    return device === undefined ? undefined : { kind: 'delete', device, name }
+  }
+
+  return undefined
+}
+
+function definition(xml: string, kind: VectorKind, vector: Record<string, string>): ServerElement | undefined {
+  const tag = { number: 'Number', switch: 'Switch', text: 'Text', light: 'Light', blob: 'BLOB' }[kind]
+  const elements: Record<string, FakeElement> = {}
+
+  for (const match of xml.matchAll(new RegExp(`<def${tag}\\b([^>]*?)(?:/>|>([\\s\\S]*?)</def${tag}>)`, 'g'))) {
+    const attribute = attributes(match[1]!)
+
+    if (attribute.name === undefined) return undefined
+    const min = number(attribute.min)
+    const max = number(attribute.max)
+    const step = number(attribute.step)
+
+    elements[attribute.name] = {
+      value: kind === 'blob' ? '' : elementValue(kind, match[2] ?? ''),
+      ...(attribute.label === undefined ? {} : { label: attribute.label }),
+      ...(kind !== 'number' ? {} : { ...(min === undefined ? {} : { min }), ...(max === undefined ? {} : { max }), ...(step === undefined ? {} : { step }), ...(attribute.format === undefined ? {} : { format: attribute.format }) }),
+    }
+  }
+
+  const state = vector.state && states.has(vector.state) ? (vector.state as FakeVector['state']) : 'Idle'
+  const perm = vector.perm && perms.has(vector.perm) ? (vector.perm as FakeVector['perm']) : 'ro'
+  const timeout = number(vector.timeout)
+
+  return {
+    kind: 'define',
+    vector: {
+      device: vector.device!,
+      name: vector.name!,
+      kind,
+      perm,
+      ...(vector.rule && rules.has(vector.rule) ? { rule: vector.rule as NonNullable<FakeVector['rule']> } : {}),
+      ...(vector.label === undefined ? {} : { label: vector.label }),
+      ...(vector.group === undefined ? {} : { group: vector.group }),
+      timeout: timeout ?? 0,
+      state,
+      elements,
+    },
+  }
+}
+
+function update(xml: string, kind: VectorKind, vector: Record<string, string>): ServerElement | undefined {
+  const state = vector.state && states.has(vector.state) ? (vector.state as FakeVector['state']) : undefined
+
+  if (kind === 'blob') {
+    const images = [...xml.matchAll(/<oneBLOB\b([^>]*?)(?:\/>|>)/g)].map(match => {
+      const attribute = attributes(match[1]!)
+
+      return { element: attribute.name ?? '', ref: attribute.ref, size: number(attribute.size), format: attribute.format ?? '' }
+    })
+
+    return { kind: 'image', device: vector.device!, name: vector.name!, images }
+  }
+
+  const tag = { number: 'Number', switch: 'Switch', text: 'Text', light: 'Light' }[kind]
+  const values: Record<string, Value> = {}
+
+  for (const match of xml.matchAll(new RegExp(`<one${tag}\\b([^>]*?)>([\\s\\S]*?)</one${tag}>`, 'g'))) {
+    const { name } = attributes(match[1]!)
+
+    if (name !== undefined) values[name] = elementValue(kind, match[2]!)
+  }
+
+  return { kind: 'update', device: vector.device!, name: vector.name!, ...(state ? { state } : {}), values }
+}

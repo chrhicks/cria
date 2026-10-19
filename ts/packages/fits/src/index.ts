@@ -1,2 +1,2 @@
-export { FitsError, fitsToImageBytes, readFitsHeader, type ConvertedImage } from './fits.js'
+export { FitsError, fitsToImageBytes, flattened, readFitsHeader, withExposure, type ConvertedImage, type Exposure } from './fits.js'
 export { fitsFrame } from './frame.js'

@@ -13,6 +13,7 @@ legacy ([docs/legacy-windows.md](../docs/legacy-windows.md)).
 | --- | --- | --- |
 | `packages/primitives` | Outcome, Reading, writeOnce, confirm, stoppable, retryReads, Run, `quarantineOf` | Types and disciplines; depends only on `effect`, built to move to Vela |
 | `packages/indi` | XML framing, property mirror, `IndiClient` / `IndiDevice` | INDI boundary (no primitive) |
+| `packages/indi-replay` | `indi-replay`: serves a recording over TCP like indiserver, for running the real Cria against a recorded night; `synthesizeTape` | — |
 | `packages/recording` | `@cria/recording`: the recording format, the recorder behind the INDI client's tap, the reader and `verifyRecording` | Recording (off unless `record` is configured) |
 | `packages/cria-wire` | `@cria/wire`: the protocol 5 schemas and the 15-kind command table, shared with Vela | View |
 | `apps/cria/src/capability` | camera, mount, focuser, weather, power, connection | Capabilities |
@@ -26,6 +27,7 @@ legacy ([docs/legacy-windows.md](../docs/legacy-windows.md)).
 | `apps/cria/test` | scenario tests; `drivers.ts` models the rig's INDI drivers on `@cria/fake-indi` | — |
 | `testing/indiserver.ts` | runs a real indiserver with simulators for tests | — |
 | `testing/cria-client.ts` | a typed protocol 5 client for tests; decodes every response strictly | — |
+| `testing/replay.test.ts` | the real Cria against `indi-replay` on a recording the simulators made: digests, hour angle, abort, the end, liveness | — |
 | `testing/recorder-crash.test.ts` | `kill -9` of a real process at each step of the recorder's write order | — |
 | `testing/measure-recording-stall.ts` | not a test: what recording costs the event loop, healthy and on a stalled disk | — |
 | `testing/rig-supervisor.test.ts` | the rig supervisor against a fake Cria, a temp FIFO and a fake clock | — |
@@ -47,6 +49,7 @@ pnpm install
 pnpm verify      # build, typecheck, committed dist/, wire golden, every test: about 2 min
 pnpm test        # every test, about 75 s; starts its own indiservers on free ports
 pnpm build       # primitives, indi, then the service, into dist/
+pnpm replay serve <recording>   # indi-replay from source: a recording served like indiserver (docs/ts/SPEC.md, "Replay")
 node apps/cria/dist/main.js deploy/rig.errai.json
 ```
 
