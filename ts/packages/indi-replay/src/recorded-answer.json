@@ -1,0 +1,645 @@
+{
+"indiserver": "2.2.5",
+"stream": [
+[
+"out",
+"<getProperties version=\"1.7\"/>"
+],
+[
+"in",
+"<defSwitchVector device=\"Telescope Simulator\" name=\"CONNECTION\" label=\"Connection\" group=\"Main Control\" state=\"Ok\" perm=\"rw\" rule=\"OneOfMany\" timeout=\"60\"><defSwitch name=\"CONNECT\" label=\"Connect\">\nOn\n    </defSwitch><defSwitch name=\"DISCONNECT\" label=\"Disconnect\">\nOff\n    </defSwitch></defSwitchVector>"
+],
+[
+"in",
+"<defTextVector device=\"Telescope Simulator\" name=\"DRIVER_INFO\" label=\"Driver Info\" group=\"Connection\" state=\"Idle\" perm=\"ro\" timeout=\"60\"><defText name=\"DRIVER_NAME\" label=\"Name\">\nTelescope Simulator\n    </defText><defText name=\"DRIVER_EXEC\" label=\"Exec\">\nindi_simulator_telescope\n    </defText><defText name=\"DRIVER_VERSION\" label=\"Version\">\n1.0\n    </defText><defText name=\"DRIVER_INTERFACE\" label=\"Interface\">\n5\n    </defText></defTextVector>"
+],
+[
+"in",
+"<defNumberVector device=\"Telescope Simulator\" name=\"POLLING_PERIOD\" label=\"Polling\" group=\"Options\" state=\"Idle\" perm=\"rw\" timeout=\"0\"><defNumber name=\"PERIOD_MS\" label=\"Period (ms)\" format=\"%.f\" min=\"10\" max=\"600000\" step=\"1000\">\n250\n    </defNumber></defNumberVector>"
+],
+[
+"in",
+"<defSwitchVector device=\"Telescope Simulator\" name=\"DEBUG\" label=\"Debug\" group=\"Options\" state=\"Idle\" perm=\"rw\" rule=\"OneOfMany\" timeout=\"0\"><defSwitch name=\"ENABLE\" label=\"Enable\">\nOff\n    </defSwitch><defSwitch name=\"DISABLE\" label=\"Disable\">\nOn\n    </defSwitch></defSwitchVector>"
+],
+[
+"in",
+"<defNumberVector device=\"Telescope Simulator\" name=\"ALIGNMENT_POINT_MANDATORY_NUMBERS\" label=\"Mandatory sync point numeric fields\" group=\"Alignment\" state=\"Idle\" perm=\"rw\" timeout=\"60\"><defNumber name=\"ALIGNMENT_POINT_ENTRY_OBSERVATION_JULIAN_DATE\" label=\"Observation Julian date\" format=\"%g\" min=\"0\" max=\"60000\" step=\"0\">\n0\n    </defNumber><defNumber name=\"ALIGNMENT_POINT_ENTRY_RA\" label=\"Right Ascension (hh:mm:ss)\" format=\"%010.6m\" min=\"0\" max=\"24\" step=\"0\">\n0\n    </defNumber><defNumber name=\"ALIGNMENT_POINT_ENTRY_DEC\" label=\"Declination (dd:mm:ss)\" format=\"%010.6m\" min=\"-90\" max=\"90\" step=\"0\">\n0\n    </defNumber><defNumber name=\"ALIGNMENT_POINT_ENTRY_VECTOR_X\" label=\"Telescope direction vector x\" format=\"%g\" min=\"-3.4028234663852885981e+38\" max=\"3.4028234663852885981e+38\" step=\"0\">\n0\n    </defNumber><defNumber name=\"ALIGNMENT_POINT_ENTRY_VECTOR_Y\" label=\"Telescope direction vector y\" format=\"%g\" min=\"-3.4028234663852885981e+38\" max=\"3.4028234663852885981e+38\" step=\"0\">\n0\n    </defNumber><defNumber name=\"ALIGNMENT_POINT_ENTRY_VECTOR_Z\" label=\"Telescope direction vector z\" format=\"%g\" min=\"-3.4028234663852885981e+38\" max=\"3.4028234663852885981e+38\" step=\"0\">\n0\n    </defNumber></defNumberVector>"
+],
+[
+"in",
+"<defBLOBVector device=\"Telescope Simulator\" name=\"ALIGNMENT_POINT_OPTIONAL_BINARY_BLOB\" label=\"Optional sync point binary data\" group=\"Alignment\" state=\"Idle\" perm=\"rw\" timeout=\"60\"><defBLOB name=\"ALIGNMENT_POINT_ENTRY_PRIVATE\" label=\"Private binary data\"/></defBLOBVector>"
+],
+[
+"in",
+"<defNumberVector device=\"Telescope Simulator\" name=\"ALIGNMENT_POINTSET_SIZE\" label=\"Current Set\" group=\"Alignment\" state=\"Idle\" perm=\"ro\" timeout=\"60\"><defNumber name=\"ALIGNMENT_POINTSET_SIZE\" label=\"Size\" format=\"%g\" min=\"0\" max=\"100000\" step=\"0\">\n0\n    </defNumber></defNumberVector>"
+],
+[
+"in",
+"<defSwitchVector device=\"CCD Simulator\" name=\"CONNECTION\" label=\"Connection\" group=\"Main Control\" state=\"Ok\" perm=\"rw\" rule=\"OneOfMany\" timeout=\"60\"><defSwitch name=\"CONNECT\" label=\"Connect\">\nOn\n    </defSwitch><defSwitch name=\"DISCONNECT\" label=\"Disconnect\">\nOff\n    </defSwitch></defSwitchVector>"
+],
+[
+"in",
+"<defNumberVector device=\"Telescope Simulator\" name=\"ALIGNMENT_POINTSET_CURRENT_ENTRY\" label=\"Current Set\" group=\"Alignment\" state=\"Idle\" perm=\"rw\" timeout=\"60\"><defNumber name=\"ALIGNMENT_POINTSET_CURRENT_ENTRY\" label=\"Pointer\" format=\"%g\" min=\"0\" max=\"100000\" step=\"0\">\n0\n    </defNumber></defNumberVector>"
+],
+[
+"in",
+"<defSwitchVector device=\"Telescope Simulator\" name=\"ALIGNMENT_POINTSET_ACTION\" label=\"Action to take\" group=\"Alignment\" state=\"Idle\" perm=\"rw\" rule=\"OneOfMany\" timeout=\"60\"><defSwitch name=\"APPEND\" label=\"Add entries at end of set\">\nOn\n    </defSwitch><defSwitch name=\"INSERT\" label=\"Insert entries at current index\">\nOff\n    </defSwitch><defSwitch name=\"EDIT\" label=\"Overwrite entry at current index\">\nOff\n    </defSwitch><defSwitch name=\"DELETE\" label=\"Delete entry at current index\">\nOff\n    </defSwitch><defSwitch name=\"CLEAR\" label=\"Delete all the entries in the set\">\nOff\n    </defSwitch><defSwitch name=\"READ\" label=\"Read the entry at the current pointer\">\nOff\n    </defSwitch><defSwitch name=\"READ INCREMENT\" label=\"Increment the pointer before reading the entry\">\nOff\n    </defSwitch><defSwitch name=\"LOAD DATABASE\" label=\"Load the alignment database from local storage\">\nOff\n    </defSwitch><defSwitch name=\"SAVE DATABASE\" label=\"Save the alignment database to local storage\">\nOff\n    </defSwitch></defSwitchVector>"
+],
+[
+"in",
+"<defSwitchVector device=\"Telescope Simulator\" name=\"ALIGNMENT_POINTSET_COMMIT\" label=\"Execute the action\" group=\"Alignment\" state=\"Idle\" perm=\"rw\" rule=\"AtMostOne\" timeout=\"60\"><defSwitch name=\"ALIGNMENT_POINTSET_COMMIT\" label=\"OK\">\nOff\n    </defSwitch></defSwitchVector>"
+],
+[
+"in",
+"<defSwitchVector device=\"Telescope Simulator\" name=\"ALIGNMENT_SUBSYSTEM_MATH_PLUGINS\" label=\"Math Plugins\" group=\"Alignment\" state=\"Idle\" perm=\"rw\" rule=\"OneOfMany\" timeout=\"60\"><defSwitch name=\"INBUILT_MATH_PLUGIN\" label=\"Inbuilt Math Plugin\">\nOff\n    </defSwitch><defSwitch name=\"Nearest Math Plugin\" label=\"Nearest Math Plugin\">\nOn\n    </defSwitch><defSwitch name=\"SVD Math Plugin\" label=\"SVD Math Plugin\">\nOff\n    </defSwitch></defSwitchVector>"
+],
+[
+"in",
+"<defSwitchVector device=\"Telescope Simulator\" name=\"ALIGNMENT_SUBSYSTEM_MATH_PLUGIN_INITIALISE\" label=\"(Re)Initialise Plugin\" group=\"Alignment\" state=\"Idle\" perm=\"rw\" rule=\"AtMostOne\" timeout=\"60\"><defSwitch name=\"ALIGNMENT_SUBSYSTEM_MATH_PLUGIN_INITIALISE\" label=\"OK\">\nOff\n    </defSwitch></defSwitchVector>"
+],
+[
+"in",
+"<defSwitchVector device=\"Telescope Simulator\" name=\"ALIGNMENT_SUBSYSTEM_ACTIVE\" label=\"Activate alignment subsystem\" group=\"Alignment\" state=\"Ok\" perm=\"rw\" rule=\"AtMostOne\" timeout=\"60\"><defSwitch name=\"ALIGNMENT SUBSYSTEM ACTIVE\" label=\"Alignment Subsystem Active\">\nOn\n    </defSwitch></defSwitchVector>"
+],
+[
+"in",
+"<defSwitchVector device=\"Telescope Simulator\" name=\"CONFIG_PROCESS\" label=\"Configuration\" group=\"Options\" state=\"Idle\" perm=\"rw\" rule=\"AtMostOne\" timeout=\"0\"><defSwitch name=\"CONFIG_LOAD\" label=\"Load\">\nOff\n    </defSwitch><defSwitch name=\"CONFIG_SAVE\" label=\"Save\">\nOff\n    </defSwitch><defSwitch name=\"CONFIG_DEFAULT\" label=\"Default\">\nOff\n    </defSwitch><defSwitch name=\"CONFIG_PURGE\" label=\"Purge\">\nOff\n    </defSwitch></defSwitchVector>"
+],
+[
+"in",
+"<defSwitchVector device=\"Telescope Simulator\" name=\"CONNECTION_MODE\" label=\"Connection Mode\" group=\"Connection\" state=\"Idle\" perm=\"rw\" rule=\"OneOfMany\" timeout=\"60\"><defSwitch name=\"CONNECTION_SERIAL\" label=\"Serial\">\nOn\n    </defSwitch><defSwitch name=\"CONNECTION_TCP\" label=\"Network\">\nOff\n    </defSwitch></defSwitchVector>"
+],
+[
+"in",
+"<defTextVector device=\"Telescope Simulator\" name=\"DEVICE_PORT\" label=\"Ports\" group=\"Connection\" state=\"Idle\" perm=\"rw\" timeout=\"60\"><defText name=\"PORT\" label=\"Port\">\n/dev/ttyUSB0\n    </defText></defTextVector>"
+],
+[
+"in",
+"<defSwitchVector device=\"Telescope Simulator\" name=\"DEVICE_BAUD_RATE\" label=\"Baud Rate\" group=\"Connection\" state=\"Idle\" perm=\"rw\" rule=\"OneOfMany\" timeout=\"60\"><defSwitch name=\"9600\" label=\"9600\">\nOn\n    </defSwitch><defSwitch name=\"19200\" label=\"19200\">\nOff\n    </defSwitch><defSwitch name=\"38400\" label=\"38400\">\nOff\n    </defSwitch><defSwitch name=\"57600\" label=\"57600\">\nOff\n    </defSwitch><defSwitch name=\"115200\" label=\"115200\">\nOff\n    </defSwitch><defSwitch name=\"230400\" label=\"230400\">\nOff\n    </defSwitch></defSwitchVector>"
+],
+[
+"in",
+"<defSwitchVector device=\"Telescope Simulator\" name=\"DEVICE_AUTO_SEARCH\" label=\"Auto Search\" group=\"Connection\" state=\"Idle\" perm=\"rw\" rule=\"OneOfMany\" timeout=\"60\"><defSwitch name=\"INDI_ENABLED\" label=\"Enabled\">\nOn\n    </defSwitch><defSwitch name=\"INDI_DISABLED\" label=\"Disabled\">\nOff\n    </defSwitch></defSwitchVector>"
+],
+[
+"in",
+"<defSwitchVector device=\"Telescope Simulator\" name=\"DEVICE_PORT_SCAN\" label=\"Refresh\" group=\"Connection\" state=\"Idle\" perm=\"rw\" rule=\"OneOfMany\" timeout=\"60\"><defSwitch name=\"Scan Ports\" label=\"Scan Ports\">\nOff\n    </defSwitch></defSwitchVector>"
+],
+[
+"in",
+"<defTextVector device=\"Telescope Simulator\" name=\"ACTIVE_DEVICES\" label=\"Snoop devices\" group=\"Options\" state=\"Idle\" perm=\"rw\" timeout=\"60\"><defText name=\"ACTIVE_GPS\" label=\"GPS\">\nGPS Simulator\n    </defText><defText name=\"ACTIVE_DOME\" label=\"DOME\">\nDome Simulator\n    </defText></defTextVector>"
+],
+[
+"in",
+"<defSwitchVector device=\"Telescope Simulator\" name=\"DOME_POLICY\" label=\"Dome Policy\" group=\"Options\" state=\"Idle\" perm=\"rw\" rule=\"OneOfMany\" timeout=\"60\"><defSwitch name=\"DOME_IGNORED\" label=\"Dome ignored\">\nOn\n    </defSwitch><defSwitch name=\"DOME_LOCKS\" label=\"Dome locks\">\nOff\n    </defSwitch></defSwitchVector>"
+],
+[
+"in",
+"<defSwitchVector device=\"Telescope Simulator\" name=\"SIM_PIER_SIDE\" label=\"Sim Pier Side\" group=\"Simulation\" state=\"Idle\" perm=\"wo\" rule=\"OneOfMany\" timeout=\"60\"><defSwitch name=\"PS_OFF\" label=\"Off\">\nOff\n    </defSwitch><defSwitch name=\"PS_ON\" label=\"On\">\nOn\n    </defSwitch></defSwitchVector>"
+],
+[
+"in",
+"<defNumberVector device=\"Telescope Simulator\" name=\"MOUNT_MODEL\" label=\"Mount Model\" group=\"Simulation\" state=\"Idle\" perm=\"rw\" timeout=\"0\"><defNumber name=\"MM_IH\" label=\"Ha Zero (IH) &apos;\" format=\"%.1f\" min=\"-10800\" max=\"10800\" step=\"0.10000000000000000555\">\n0\n    </defNumber><defNumber name=\"MM_ID\" label=\"Dec Zero (ID) &apos;\" format=\"%.1f\" min=\"-10800\" max=\"10800\" step=\"0.10000000000000000555\">\n0\n    </defNumber><defNumber name=\"MM_CH\" label=\"Cone (CH) &apos;\" format=\"%.1f\" min=\"-300\" max=\"300\" step=\"0.10000000000000000555\">\n0\n    </defNumber><defNumber name=\"MM_NP\" label=\"Ha/Dec (NP) &apos;\" format=\"%.1f\" min=\"-300\" max=\"300\" step=\"0.10000000000000000555\">\n0\n    </defNumber><defNumber name=\"MM_MA\" label=\"Pole Azm (MA) &apos;\" format=\"%.1f\" min=\"-300\" max=\"300\" step=\"0.10000000000000000555\">\n0\n    </defNumber><defNumber name=\"MM_ME\" label=\"Pole elev (ME) &apos;\" format=\"%.1f\" min=\"-300\" max=\"300\" step=\"0.10000000000000000555\">\n0\n    </defNumber></defNumberVector>"
+],
+[
+"in",
+"<defNumberVector device=\"Telescope Simulator\" name=\"MOUNT_AXES\" label=\"Mount Axes\" group=\"Simulation\" state=\"Idle\" perm=\"ro\" timeout=\"0\"><defNumber name=\"PRIMARY\" label=\"Primary (Ha)\" format=\"%g\" min=\"-180\" max=\"180\" step=\"0.010000000000000000208\">\n157.40271557251105605\n    </defNumber><defNumber name=\"SECONDARY\" label=\"Secondary (Dec)\" format=\"%g\" min=\"-180\" max=\"180\" step=\"0.010000000000000000208\">\n90\n    </defNumber></defNumberVector>"
+],
+[
+"in",
+"<defNumberVector device=\"Telescope Simulator\" name=\"FLIP_HA\" label=\"Flip Posn.\" group=\"Simulation\" state=\"Idle\" perm=\"wo\" timeout=\"0\"><defNumber name=\"FLIP_HA\" label=\"Hour Angle (deg)\" format=\"%g\" min=\"-20\" max=\"20\" step=\"0.10000000000000000555\">\n0\n    </defNumber></defNumberVector>"
+],
+[
+"in",
+"<defNumberVector device=\"Telescope Simulator\" name=\"DEC_BACKLASH\" label=\"DEC Backlash\" group=\"Simulation\" state=\"Idle\" perm=\"rw\" timeout=\"0\"><defNumber name=\"DEC_BACKLASH\" label=\"DEC Backlash (ms)\" format=\"%.0f\" min=\"0\" max=\"5000\" step=\"0\">\n0\n    </defNumber></defNumberVector>"
+],
+[
+"in",
+"<defTextVector device=\"Telescope Simulator\" name=\"ACTIVE_PAC\" label=\"Polar Alignment Corrector\" group=\"Simulation\" state=\"Idle\" perm=\"rw\" timeout=\"60\"><defText name=\"PAC_DEVICE\" label=\"Alignment Corrector\">\nAlignment Correction Simulator\n    </defText></defTextVector>"
+],
+[
+"in",
+"<defSwitchVector device=\"Telescope Simulator\" name=\"ON_COORD_SET\" label=\"On Set\" group=\"Main Control\" state=\"Idle\" perm=\"rw\" rule=\"OneOfMany\" timeout=\"60\"><defSwitch name=\"TRACK\" label=\"Track\">\nOn\n    </defSwitch><defSwitch name=\"SLEW\" label=\"Slew\">\nOff\n    </defSwitch><defSwitch name=\"SYNC\" label=\"Sync\">\nOff\n    </defSwitch></defSwitchVector>"
+],
+[
+"in",
+"<defNumberVector device=\"Telescope Simulator\" name=\"EQUATORIAL_EOD_COORD\" label=\"Eq. Coordinates\" group=\"Main Control\" state=\"Idle\" perm=\"rw\" timeout=\"60\"><defNumber name=\"RA\" label=\"RA (hh:mm:ss)\" format=\"%010.6m\" min=\"0\" max=\"24\" step=\"0\">\n0.00027883934477965037751\n    </defNumber><defNumber name=\"DEC\" label=\"DEC (dd:mm:ss)\" format=\"%010.6m\" min=\"-90\" max=\"90\" step=\"0\">\n90\n    </defNumber></defNumberVector>"
+],
+[
+"in",
+"<defSwitchVector device=\"Telescope Simulator\" name=\"TELESCOPE_ABORT_MOTION\" label=\"Abort Motion\" group=\"Main Control\" state=\"Idle\" perm=\"rw\" rule=\"AtMostOne\" timeout=\"60\"><defSwitch name=\"ABORT\" label=\"Abort\">\nOff\n    </defSwitch></defSwitchVector>"
+],
+[
+"in",
+"<defSwitchVector device=\"Telescope Simulator\" name=\"TELESCOPE_TRACK_MODE\" label=\"Track Mode\" group=\"Main Control\" state=\"Idle\" perm=\"rw\" rule=\"OneOfMany\" timeout=\"0\"><defSwitch name=\"TRACK_SIDEREAL\" label=\"Sidereal\">\nOn\n    </defSwitch><defSwitch name=\"TRACK_SOLAR\" label=\"Solar\">\nOff\n    </defSwitch><defSwitch name=\"TRACK_LUNAR\" label=\"Lunar\">\nOff\n    </defSwitch><defSwitch name=\"TRACK_CUSTOM\" label=\"Custom\">\nOff\n    </defSwitch></defSwitchVector>"
+],
+[
+"in",
+"<defSwitchVector device=\"Telescope Simulator\" name=\"TELESCOPE_TRACK_STATE\" label=\"Tracking\" group=\"Main Control\" state=\"Idle\" perm=\"rw\" rule=\"OneOfMany\" timeout=\"0\"><defSwitch name=\"TRACK_ON\" label=\"On\">\nOff\n    </defSwitch><defSwitch name=\"TRACK_OFF\" label=\"Off\">\nOn\n    </defSwitch></defSwitchVector>"
+],
+[
+"in",
+"<defNumberVector device=\"Telescope Simulator\" name=\"TELESCOPE_TRACK_RATE\" label=\"Track Rates\" group=\"Main Control\" state=\"Idle\" perm=\"rw\" timeout=\"60\"><defNumber name=\"TRACK_RATE_RA\" label=\"RA (arcsecs/s)\" format=\"%.6f\" min=\"-16384\" max=\"16384\" step=\"9.9999999999999995475e-07\">\n15.04106717867020393\n    </defNumber><defNumber name=\"TRACK_RATE_DE\" label=\"DE (arcsecs/s)\" format=\"%.6f\" min=\"-16384\" max=\"16384\" step=\"9.9999999999999995475e-07\">\n0\n    </defNumber></defNumberVector>"
+],
+[
+"in",
+"<defSwitchVector device=\"Telescope Simulator\" name=\"TELESCOPE_HOME\" label=\"Home\" group=\"Main Control\" state=\"Idle\" perm=\"rw\" rule=\"AtMostOne\" timeout=\"60\"><defSwitch name=\"FIND\" label=\"Find\">\nOff\n    </defSwitch><defSwitch name=\"SET\" label=\"Set\">\nOff\n    </defSwitch><defSwitch name=\"GO\" label=\"Go\">\nOff\n    </defSwitch></defSwitchVector>"
+],
+[
+"in",
+"<defSwitchVector device=\"Telescope Simulator\" name=\"TELESCOPE_MOTION_NS\" label=\"Motion N/S\" group=\"Motion Control\" state=\"Idle\" perm=\"rw\" rule=\"AtMostOne\" timeout=\"60\"><defSwitch name=\"MOTION_NORTH\" label=\"North\">\nOff\n    </defSwitch><defSwitch name=\"MOTION_SOUTH\" label=\"South\">\nOff\n    </defSwitch></defSwitchVector>"
+],
+[
+"in",
+"<defSwitchVector device=\"Telescope Simulator\" name=\"TELESCOPE_MOTION_WE\" label=\"Motion W/E\" group=\"Motion Control\" state=\"Idle\" perm=\"rw\" rule=\"AtMostOne\" timeout=\"60\"><defSwitch name=\"MOTION_WEST\" label=\"West\">\nOff\n    </defSwitch><defSwitch name=\"MOTION_EAST\" label=\"East\">\nOff\n    </defSwitch></defSwitchVector>"
+],
+[
+"in",
+"<defSwitchVector device=\"Telescope Simulator\" name=\"TELESCOPE_REVERSE_MOTION\" label=\"Reverse\" group=\"Motion Control\" state=\"Idle\" perm=\"rw\" rule=\"AnyOfMany\" timeout=\"60\"><defSwitch name=\"REVERSE_NS\" label=\"North/South\">\nOff\n    </defSwitch><defSwitch name=\"REVERSE_WE\" label=\"West/East\">\nOff\n    </defSwitch></defSwitchVector>"
+],
+[
+"in",
+"<defSwitchVector device=\"Telescope Simulator\" name=\"TELESCOPE_SLEW_RATE\" label=\"Slew Rate\" group=\"Motion Control\" state=\"Idle\" perm=\"rw\" rule=\"OneOfMany\" timeout=\"0\"><defSwitch name=\"1x\" label=\"Guide\">\nOff\n    </defSwitch><defSwitch name=\"2x\" label=\"Centering\">\nOff\n    </defSwitch><defSwitch name=\"3x\" label=\"Find\">\nOn\n    </defSwitch><defSwitch name=\"4x\" label=\"Max\">\nOff\n    </defSwitch></defSwitchVector>"
+],
+[
+"in",
+"<defNumberVector device=\"Telescope Simulator\" name=\"TARGET_EOD_COORD\" label=\"Slew Target\" group=\"Motion Control\" state=\"Idle\" perm=\"ro\" timeout=\"60\"><defNumber name=\"RA\" label=\"RA (hh:mm:ss)\" format=\"%010.6m\" min=\"0\" max=\"24\" step=\"0\">\n0\n    </defNumber><defNumber name=\"DEC\" label=\"DEC (dd:mm:ss)\" format=\"%010.6m\" min=\"-90\" max=\"90\" step=\"0\">\n0\n    </defNumber></defNumberVector>"
+],
+[
+"in",
+"<defSwitchVector device=\"Telescope Simulator\" name=\"TELESCOPE_MOUNT_TYPE\" label=\"Mount Type\" group=\"Motion Control\" state=\"Idle\" perm=\"rw\" rule=\"OneOfMany\" timeout=\"60\"><defSwitch name=\"ALTAZ\" label=\"ALTAZ\">\nOff\n    </defSwitch><defSwitch name=\"EQ_FORK\" label=\"Fork (Eq)\">\nOff\n    </defSwitch><defSwitch name=\"EQ_GEM\" label=\"GEM\">\nOn\n    </defSwitch></defSwitchVector>"
+],
+[
+"in",
+"<defTextVector device=\"Telescope Simulator\" name=\"TIME_UTC\" label=\"UTC\" group=\"Site Management\" state=\"Ok\" perm=\"rw\" timeout=\"60\"><defText name=\"UTC\" label=\"UTC Time\">\n2026-10-19T08:38:14\n    </defText><defText name=\"OFFSET\" label=\"UTC Offset\">\n-4.00\n    </defText></defTextVector>"
+],
+[
+"in",
+"<defNumberVector device=\"Telescope Simulator\" name=\"GEOGRAPHIC_COORD\" label=\"Scope Location\" group=\"Site Management\" state=\"Idle\" perm=\"rw\" timeout=\"60\"><defNumber name=\"LAT\" label=\"Lat (dd:mm:ss.s)\" format=\"%012.8m\" min=\"-90\" max=\"90\" step=\"0\">\n0\n    </defNumber><defNumber name=\"LONG\" label=\"Lon (dd:mm:ss.s)\" format=\"%012.8m\" min=\"0\" max=\"360\" step=\"0\">\n0\n    </defNumber><defNumber name=\"ELEV\" label=\"Elevation (m)\" format=\"%g\" min=\"-200\" max=\"10000\" step=\"0\">\n0\n    </defNumber></defNumberVector>"
+],
+[
+"in",
+"<defSwitchVector device=\"Telescope Simulator\" name=\"TELESCOPE_PARK\" label=\"Parking\" group=\"Main Control\" state=\"Ok\" perm=\"rw\" rule=\"OneOfMany\" timeout=\"60\"><defSwitch name=\"PARK\" label=\"Park(ed)\">\nOff\n    </defSwitch><defSwitch name=\"UNPARK\" label=\"UnPark(ed)\">\nOn\n    </defSwitch></defSwitchVector>"
+],
+[
+"in",
+"<defNumberVector device=\"Telescope Simulator\" name=\"TELESCOPE_PARK_POSITION\" label=\"Park Position\" group=\"Site Management\" state=\"Idle\" perm=\"rw\" timeout=\"60\"><defNumber name=\"PARK_HA\" label=\"HA (hh:mm:ss)\" format=\"%010.6m\" min=\"-12\" max=\"12\" step=\"0\">\n-6\n    </defNumber><defNumber name=\"PARK_DEC\" label=\"DEC (dd:mm:ss)\" format=\"%010.6m\" min=\"-90\" max=\"90\" step=\"0\">\n0\n    </defNumber></defNumberVector>"
+],
+[
+"in",
+"<defSwitchVector device=\"Telescope Simulator\" name=\"TELESCOPE_PARK_OPTION\" label=\"Park Options\" group=\"Site Management\" state=\"Idle\" perm=\"rw\" rule=\"AtMostOne\" timeout=\"60\"><defSwitch name=\"PARK_CURRENT\" label=\"Current\">\nOff\n    </defSwitch><defSwitch name=\"PARK_DEFAULT\" label=\"Default\">\nOff\n    </defSwitch><defSwitch name=\"PARK_WRITE_DATA\" label=\"Write Data\">\nOff\n    </defSwitch><defSwitch name=\"PARK_PURGE_DATA\" label=\"Purge Data\">\nOff\n    </defSwitch></defSwitchVector>"
+],
+[
+"in",
+"<defSwitchVector device=\"Telescope Simulator\" name=\"TELESCOPE_PIER_SIDE\" label=\"Pier Side\" group=\"Main Control\" state=\"Ok\" perm=\"ro\" rule=\"AtMostOne\" timeout=\"60\"><defSwitch name=\"PIER_WEST\" label=\"West (pointing east)\">\nOff\n    </defSwitch><defSwitch name=\"PIER_EAST\" label=\"East (pointing west)\">\nOn\n    </defSwitch></defSwitchVector>"
+],
+[
+"in",
+"<defSwitchVector device=\"Telescope Simulator\" name=\"USEJOYSTICK\" label=\"Joystick\" group=\"Options\" state=\"Idle\" perm=\"rw\" rule=\"OneOfMany\" timeout=\"0\"><defSwitch name=\"ENABLE\" label=\"Enable\">\nOff\n    </defSwitch><defSwitch name=\"DISABLE\" label=\"Disable\">\nOn\n    </defSwitch></defSwitchVector>"
+],
+[
+"in",
+"<defTextVector device=\"Telescope Simulator\" name=\"SNOOP_JOYSTICK\" label=\"Snoop Joystick\" group=\"Options\" state=\"Idle\" perm=\"rw\" timeout=\"60\"><defText name=\"SNOOP_JOYSTICK_DEVICE\" label=\"Device\">\nJoystick\n    </defText></defTextVector>"
+],
+[
+"in",
+"<defNumberVector device=\"Telescope Simulator\" name=\"GUIDE_RATE\" label=\"Guiding Rate\" group=\"Motion Control\" state=\"Idle\" perm=\"rw\" timeout=\"0\"><defNumber name=\"GUIDE_RATE_WE\" label=\"W/E Rate\" format=\"%g\" min=\"0\" max=\"1\" step=\"0.10000000000000000555\">\n0.5\n    </defNumber><defNumber name=\"GUIDE_RATE_NS\" label=\"N/S Rate\" format=\"%g\" min=\"0\" max=\"1\" step=\"0.10000000000000000555\">\n0.5\n    </defNumber></defNumberVector>"
+],
+[
+"in",
+"<defNumberVector device=\"Telescope Simulator\" name=\"EQUATORIAL_PE\" label=\"True Pointing\" group=\"Main Control\" state=\"Ok\" perm=\"ro\" timeout=\"0\"><defNumber name=\"RA_PE\" label=\"RA (hh:mm:ss)\" format=\"%010.6m\" min=\"0\" max=\"24\" step=\"0\">\n0.00027882813786466917848\n    </defNumber><defNumber name=\"DEC_PE\" label=\"DEC (dd:mm:ss)\" format=\"%010.6m\" min=\"-90\" max=\"90\" step=\"0\">\n90\n    </defNumber></defNumberVector>"
+],
+[
+"in",
+"<defNumberVector device=\"Telescope Simulator\" name=\"TELESCOPE_TIMED_GUIDE_NS\" label=\"Guide N/S\" group=\"Motion Control\" state=\"Idle\" perm=\"rw\" timeout=\"60\"><defNumber name=\"TIMED_GUIDE_N\" label=\"North (ms)\" format=\"%.f\" min=\"0\" max=\"60000\" step=\"100\">\n0\n    </defNumber><defNumber name=\"TIMED_GUIDE_S\" label=\"South (ms)\" format=\"%.f\" min=\"0\" max=\"60000\" step=\"100\">\n0\n    </defNumber></defNumberVector>"
+],
+[
+"in",
+"<defNumberVector device=\"Telescope Simulator\" name=\"TELESCOPE_TIMED_GUIDE_WE\" label=\"Guide E/W\" group=\"Motion Control\" state=\"Idle\" perm=\"rw\" timeout=\"60\"><defNumber name=\"TIMED_GUIDE_W\" label=\"West (ms)\" format=\"%.f\" min=\"0\" max=\"60000\" step=\"100\">\n0\n    </defNumber><defNumber name=\"TIMED_GUIDE_E\" label=\"East (ms)\" format=\"%.f\" min=\"0\" max=\"60000\" step=\"100\">\n0\n    </defNumber></defNumberVector>"
+],
+[
+"in",
+"<defTextVector device=\"Telescope Simulator\" name=\"ACTIVE_DEVICES\" label=\"Snoop devices\" group=\"Options\" state=\"Idle\" perm=\"rw\" timeout=\"60\"><defText name=\"ACTIVE_GPS\" label=\"GPS\">\nGPS Simulator\n    </defText><defText name=\"ACTIVE_DOME\" label=\"DOME\">\nDome Simulator\n    </defText></defTextVector>"
+],
+[
+"in",
+"<defSwitchVector device=\"Telescope Simulator\" name=\"DOME_POLICY\" label=\"Dome Policy\" group=\"Options\" state=\"Idle\" perm=\"rw\" rule=\"OneOfMany\" timeout=\"60\"><defSwitch name=\"DOME_IGNORED\" label=\"Dome ignored\">\nOn\n    </defSwitch><defSwitch name=\"DOME_LOCKS\" label=\"Dome locks\">\nOff\n    </defSwitch></defSwitchVector>"
+],
+[
+"in",
+"<defSwitchVector device=\"Telescope Simulator\" name=\"USEJOYSTICK\" label=\"Joystick\" group=\"Options\" state=\"Idle\" perm=\"rw\" rule=\"OneOfMany\" timeout=\"0\"><defSwitch name=\"ENABLE\" label=\"Enable\">\nOff\n    </defSwitch><defSwitch name=\"DISABLE\" label=\"Disable\">\nOn\n    </defSwitch></defSwitchVector>"
+],
+[
+"in",
+"<defTextVector device=\"Telescope Simulator\" name=\"SNOOP_JOYSTICK\" label=\"Snoop Joystick\" group=\"Options\" state=\"Idle\" perm=\"rw\" timeout=\"60\"><defText name=\"SNOOP_JOYSTICK_DEVICE\" label=\"Device\">\nJoystick\n    </defText></defTextVector>"
+],
+[
+"in",
+"<setSwitchVector device=\"Telescope Simulator\" name=\"TELESCOPE_MOUNT_TYPE\" state=\"Idle\" timeout=\"60\"><oneSwitch name=\"ALTAZ\">\nOff\n    </oneSwitch><oneSwitch name=\"EQ_FORK\">\nOff\n    </oneSwitch><oneSwitch name=\"EQ_GEM\">\nOn\n    </oneSwitch></setSwitchVector>"
+],
+[
+"in",
+"<defSwitchVector device=\"Telescope Simulator\" name=\"SIM_PIER_SIDE\" label=\"Sim Pier Side\" group=\"Simulation\" state=\"Idle\" perm=\"wo\" rule=\"OneOfMany\" timeout=\"60\"><defSwitch name=\"PS_OFF\" label=\"Off\">\nOff\n    </defSwitch><defSwitch name=\"PS_ON\" label=\"On\">\nOn\n    </defSwitch></defSwitchVector>"
+],
+[
+"in",
+"<defNumberVector device=\"Telescope Simulator\" name=\"MOUNT_MODEL\" label=\"Mount Model\" group=\"Simulation\" state=\"Idle\" perm=\"rw\" timeout=\"0\"><defNumber name=\"MM_IH\" label=\"Ha Zero (IH) &apos;\" format=\"%.1f\" min=\"-10800\" max=\"10800\" step=\"0.10000000000000000555\">\n0\n    </defNumber><defNumber name=\"MM_ID\" label=\"Dec Zero (ID) &apos;\" format=\"%.1f\" min=\"-10800\" max=\"10800\" step=\"0.10000000000000000555\">\n0\n    </defNumber><defNumber name=\"MM_CH\" label=\"Cone (CH) &apos;\" format=\"%.1f\" min=\"-300\" max=\"300\" step=\"0.10000000000000000555\">\n0\n    </defNumber><defNumber name=\"MM_NP\" label=\"Ha/Dec (NP) &apos;\" format=\"%.1f\" min=\"-300\" max=\"300\" step=\"0.10000000000000000555\">\n0\n    </defNumber><defNumber name=\"MM_MA\" label=\"Pole Azm (MA) &apos;\" format=\"%.1f\" min=\"-300\" max=\"300\" step=\"0.10000000000000000555\">\n0\n    </defNumber><defNumber name=\"MM_ME\" label=\"Pole elev (ME) &apos;\" format=\"%.1f\" min=\"-300\" max=\"300\" step=\"0.10000000000000000555\">\n0\n    </defNumber></defNumberVector>"
+],
+[
+"in",
+"<defNumberVector device=\"Telescope Simulator\" name=\"MOUNT_AXES\" label=\"Mount Axes\" group=\"Simulation\" state=\"Idle\" perm=\"ro\" timeout=\"0\"><defNumber name=\"PRIMARY\" label=\"Primary (Ha)\" format=\"%g\" min=\"-180\" max=\"180\" step=\"0.010000000000000000208\">\n157.40271557251105605\n    </defNumber><defNumber name=\"SECONDARY\" label=\"Secondary (Dec)\" format=\"%g\" min=\"-180\" max=\"180\" step=\"0.010000000000000000208\">\n90\n    </defNumber></defNumberVector>"
+],
+[
+"in",
+"<defNumberVector device=\"Telescope Simulator\" name=\"FLIP_HA\" label=\"Flip Posn.\" group=\"Simulation\" state=\"Idle\" perm=\"wo\" timeout=\"0\"><defNumber name=\"FLIP_HA\" label=\"Hour Angle (deg)\" format=\"%g\" min=\"-20\" max=\"20\" step=\"0.10000000000000000555\">\n0\n    </defNumber></defNumberVector>"
+],
+[
+"in",
+"<defNumberVector device=\"Telescope Simulator\" name=\"DEC_BACKLASH\" label=\"DEC Backlash\" group=\"Simulation\" state=\"Idle\" perm=\"rw\" timeout=\"0\"><defNumber name=\"DEC_BACKLASH\" label=\"DEC Backlash (ms)\" format=\"%.0f\" min=\"0\" max=\"5000\" step=\"0\">\n0\n    </defNumber></defNumberVector>"
+],
+[
+"in",
+"<defTextVector device=\"Telescope Simulator\" name=\"ACTIVE_PAC\" label=\"Polar Alignment Corrector\" group=\"Simulation\" state=\"Idle\" perm=\"rw\" timeout=\"60\"><defText name=\"PAC_DEVICE\" label=\"Alignment Corrector\">\nAlignment Correction Simulator\n    </defText></defTextVector>"
+],
+[
+"in",
+"<defBLOBVector device=\"CCD Simulator\" name=\"CCD1\" label=\"Image Data\" group=\"Image Info\" state=\"Idle\" perm=\"ro\" timeout=\"60\"><defBLOB name=\"CCD1\" label=\"Image\"/></defBLOBVector>"
+],
+[
+"out",
+"<getProperties version=\"1.7\" device=\"CCD Simulator\" name=\"CONNECTION\"/>"
+],
+[
+"out",
+"<getProperties version=\"1.7\" device=\"Focuser Simulator\" name=\"CONNECTION\"/>"
+],
+[
+"in",
+"<defSwitchVector device=\"CCD Simulator\" name=\"CONNECTION\" label=\"Connection\" group=\"Main Control\" state=\"Ok\" perm=\"rw\" rule=\"OneOfMany\" timeout=\"60\"><defSwitch name=\"CONNECT\" label=\"Connect\">\nOn\n    </defSwitch><defSwitch name=\"DISCONNECT\" label=\"Disconnect\">\nOff\n    </defSwitch></defSwitchVector>"
+],
+[
+"in",
+"<setNumberVector device=\"Telescope Simulator\" name=\"EQUATORIAL_PE\" state=\"Ok\" timeout=\"0\"><oneNumber name=\"RA_PE\">\n0.00034853238612602885881\n    </oneNumber><oneNumber name=\"DEC_PE\">\n90\n    </oneNumber></setNumberVector>"
+],
+[
+"in",
+"<setNumberVector device=\"Telescope Simulator\" name=\"EQUATORIAL_EOD_COORD\" state=\"Idle\" timeout=\"60\"><oneNumber name=\"RA\">\n0.00034853238612602885881\n    </oneNumber><oneNumber name=\"DEC\">\n90\n    </oneNumber></setNumberVector>"
+],
+[
+"in",
+"<defSwitchVector device=\"Telescope Simulator\" name=\"CONNECTION\" label=\"Connection\" group=\"Main Control\" state=\"Ok\" perm=\"rw\" rule=\"OneOfMany\" timeout=\"60\"><defSwitch name=\"CONNECT\" label=\"Connect\">\nOn\n    </defSwitch><defSwitch name=\"DISCONNECT\" label=\"Disconnect\">\nOff\n    </defSwitch></defSwitchVector>"
+],
+[
+"in",
+"<defTextVector device=\"Telescope Simulator\" name=\"DRIVER_INFO\" label=\"Driver Info\" group=\"Connection\" state=\"Idle\" perm=\"ro\" timeout=\"60\"><defText name=\"DRIVER_NAME\" label=\"Name\">\nTelescope Simulator\n    </defText><defText name=\"DRIVER_EXEC\" label=\"Exec\">\nindi_simulator_telescope\n    </defText><defText name=\"DRIVER_VERSION\" label=\"Version\">\n1.0\n    </defText><defText name=\"DRIVER_INTERFACE\" label=\"Interface\">\n5\n    </defText></defTextVector>"
+],
+[
+"in",
+"<defNumberVector device=\"Telescope Simulator\" name=\"POLLING_PERIOD\" label=\"Polling\" group=\"Options\" state=\"Idle\" perm=\"rw\" timeout=\"0\"><defNumber name=\"PERIOD_MS\" label=\"Period (ms)\" format=\"%.f\" min=\"10\" max=\"600000\" step=\"1000\">\n250\n    </defNumber></defNumberVector>"
+],
+[
+"in",
+"<defSwitchVector device=\"Telescope Simulator\" name=\"DEBUG\" label=\"Debug\" group=\"Options\" state=\"Idle\" perm=\"rw\" rule=\"OneOfMany\" timeout=\"0\"><defSwitch name=\"ENABLE\" label=\"Enable\">\nOff\n    </defSwitch><defSwitch name=\"DISABLE\" label=\"Disable\">\nOn\n    </defSwitch></defSwitchVector>"
+],
+[
+"in",
+"<defSwitchVector device=\"CCD Simulator\" name=\"CONNECTION\" label=\"Connection\" group=\"Main Control\" state=\"Ok\" perm=\"rw\" rule=\"OneOfMany\" timeout=\"60\"><defSwitch name=\"CONNECT\" label=\"Connect\">\nOn\n    </defSwitch><defSwitch name=\"DISCONNECT\" label=\"Disconnect\">\nOff\n    </defSwitch></defSwitchVector>"
+],
+[
+"in",
+"<defNumberVector device=\"Telescope Simulator\" name=\"ALIGNMENT_POINT_MANDATORY_NUMBERS\" label=\"Mandatory sync point numeric fields\" group=\"Alignment\" state=\"Idle\" perm=\"rw\" timeout=\"60\"><defNumber name=\"ALIGNMENT_POINT_ENTRY_OBSERVATION_JULIAN_DATE\" label=\"Observation Julian date\" format=\"%g\" min=\"0\" max=\"60000\" step=\"0\">\n0\n    </defNumber><defNumber name=\"ALIGNMENT_POINT_ENTRY_RA\" label=\"Right Ascension (hh:mm:ss)\" format=\"%010.6m\" min=\"0\" max=\"24\" step=\"0\">\n0\n    </defNumber><defNumber name=\"ALIGNMENT_POINT_ENTRY_DEC\" label=\"Declination (dd:mm:ss)\" format=\"%010.6m\" min=\"-90\" max=\"90\" step=\"0\">\n0\n    </defNumber><defNumber name=\"ALIGNMENT_POINT_ENTRY_VECTOR_X\" label=\"Telescope direction vector x\" format=\"%g\" min=\"-3.4028234663852885981e+38\" max=\"3.4028234663852885981e+38\" step=\"0\">\n0\n    </defNumber><defNumber name=\"ALIGNMENT_POINT_ENTRY_VECTOR_Y\" label=\"Telescope direction vector y\" format=\"%g\" min=\"-3.4028234663852885981e+38\" max=\"3.4028234663852885981e+38\" step=\"0\">\n0\n    </defNumber><defNumber name=\"ALIGNMENT_POINT_ENTRY_VECTOR_Z\" label=\"Telescope direction vector z\" format=\"%g\" min=\"-3.4028234663852885981e+38\" max=\"3.4028234663852885981e+38\" step=\"0\">\n0\n    </defNumber></defNumberVector>"
+],
+[
+"in",
+"<defBLOBVector device=\"Telescope Simulator\" name=\"ALIGNMENT_POINT_OPTIONAL_BINARY_BLOB\" label=\"Optional sync point binary data\" group=\"Alignment\" state=\"Idle\" perm=\"rw\" timeout=\"60\"><defBLOB name=\"ALIGNMENT_POINT_ENTRY_PRIVATE\" label=\"Private binary data\"/></defBLOBVector>"
+],
+[
+"in",
+"<defNumberVector device=\"Telescope Simulator\" name=\"ALIGNMENT_POINTSET_SIZE\" label=\"Current Set\" group=\"Alignment\" state=\"Idle\" perm=\"ro\" timeout=\"60\"><defNumber name=\"ALIGNMENT_POINTSET_SIZE\" label=\"Size\" format=\"%g\" min=\"0\" max=\"100000\" step=\"0\">\n0\n    </defNumber></defNumberVector>"
+],
+[
+"in",
+"<defNumberVector device=\"Telescope Simulator\" name=\"ALIGNMENT_POINTSET_CURRENT_ENTRY\" label=\"Current Set\" group=\"Alignment\" state=\"Idle\" perm=\"rw\" timeout=\"60\"><defNumber name=\"ALIGNMENT_POINTSET_CURRENT_ENTRY\" label=\"Pointer\" format=\"%g\" min=\"0\" max=\"100000\" step=\"0\">\n0\n    </defNumber></defNumberVector>"
+],
+[
+"in",
+"<defSwitchVector device=\"Telescope Simulator\" name=\"ALIGNMENT_POINTSET_ACTION\" label=\"Action to take\" group=\"Alignment\" state=\"Idle\" perm=\"rw\" rule=\"OneOfMany\" timeout=\"60\"><defSwitch name=\"APPEND\" label=\"Add entries at end of set\">\nOn\n    </defSwitch><defSwitch name=\"INSERT\" label=\"Insert entries at current index\">\nOff\n    </defSwitch><defSwitch name=\"EDIT\" label=\"Overwrite entry at current index\">\nOff\n    </defSwitch><defSwitch name=\"DELETE\" label=\"Delete entry at current index\">\nOff\n    </defSwitch><defSwitch name=\"CLEAR\" label=\"Delete all the entries in the set\">\nOff\n    </defSwitch><defSwitch name=\"READ\" label=\"Read the entry at the current pointer\">\nOff\n    </defSwitch><defSwitch name=\"READ INCREMENT\" label=\"Increment the pointer before reading the entry\">\nOff\n    </defSwitch><defSwitch name=\"LOAD DATABASE\" label=\"Load the alignment database from local storage\">\nOff\n    </defSwitch><defSwitch name=\"SAVE DATABASE\" label=\"Save the alignment database to local storage\">\nOff\n    </defSwitch></defSwitchVector>"
+],
+[
+"in",
+"<defSwitchVector device=\"Telescope Simulator\" name=\"ALIGNMENT_POINTSET_COMMIT\" label=\"Execute the action\" group=\"Alignment\" state=\"Idle\" perm=\"rw\" rule=\"AtMostOne\" timeout=\"60\"><defSwitch name=\"ALIGNMENT_POINTSET_COMMIT\" label=\"OK\">\nOff\n    </defSwitch></defSwitchVector>"
+],
+[
+"in",
+"<defSwitchVector device=\"Telescope Simulator\" name=\"ALIGNMENT_SUBSYSTEM_MATH_PLUGINS\" label=\"Math Plugins\" group=\"Alignment\" state=\"Idle\" perm=\"rw\" rule=\"OneOfMany\" timeout=\"60\"><defSwitch name=\"INBUILT_MATH_PLUGIN\" label=\"Inbuilt Math Plugin\">\nOff\n    </defSwitch><defSwitch name=\"Nearest Math Plugin\" label=\"Nearest Math Plugin\">\nOn\n    </defSwitch><defSwitch name=\"SVD Math Plugin\" label=\"SVD Math Plugin\">\nOff\n    </defSwitch></defSwitchVector>"
+],
+[
+"in",
+"<defSwitchVector device=\"Telescope Simulator\" name=\"ALIGNMENT_SUBSYSTEM_MATH_PLUGIN_INITIALISE\" label=\"(Re)Initialise Plugin\" group=\"Alignment\" state=\"Idle\" perm=\"rw\" rule=\"AtMostOne\" timeout=\"60\"><defSwitch name=\"ALIGNMENT_SUBSYSTEM_MATH_PLUGIN_INITIALISE\" label=\"OK\">\nOff\n    </defSwitch></defSwitchVector>"
+],
+[
+"in",
+"<defSwitchVector device=\"Telescope Simulator\" name=\"ALIGNMENT_SUBSYSTEM_ACTIVE\" label=\"Activate alignment subsystem\" group=\"Alignment\" state=\"Ok\" perm=\"rw\" rule=\"AtMostOne\" timeout=\"60\"><defSwitch name=\"ALIGNMENT SUBSYSTEM ACTIVE\" label=\"Alignment Subsystem Active\">\nOn\n    </defSwitch></defSwitchVector>"
+],
+[
+"in",
+"<defSwitchVector device=\"Telescope Simulator\" name=\"CONFIG_PROCESS\" label=\"Configuration\" group=\"Options\" state=\"Idle\" perm=\"rw\" rule=\"AtMostOne\" timeout=\"0\"><defSwitch name=\"CONFIG_LOAD\" label=\"Load\">\nOff\n    </defSwitch><defSwitch name=\"CONFIG_SAVE\" label=\"Save\">\nOff\n    </defSwitch><defSwitch name=\"CONFIG_DEFAULT\" label=\"Default\">\nOff\n    </defSwitch><defSwitch name=\"CONFIG_PURGE\" label=\"Purge\">\nOff\n    </defSwitch></defSwitchVector>"
+],
+[
+"in",
+"<defSwitchVector device=\"Telescope Simulator\" name=\"CONNECTION_MODE\" label=\"Connection Mode\" group=\"Connection\" state=\"Idle\" perm=\"rw\" rule=\"OneOfMany\" timeout=\"60\"><defSwitch name=\"CONNECTION_SERIAL\" label=\"Serial\">\nOn\n    </defSwitch><defSwitch name=\"CONNECTION_TCP\" label=\"Network\">\nOff\n    </defSwitch></defSwitchVector>"
+],
+[
+"in",
+"<defTextVector device=\"Telescope Simulator\" name=\"DEVICE_PORT\" label=\"Ports\" group=\"Connection\" state=\"Idle\" perm=\"rw\" timeout=\"60\"><defText name=\"PORT\" label=\"Port\">\n/dev/ttyUSB0\n    </defText></defTextVector>"
+],
+[
+"in",
+"<defSwitchVector device=\"Telescope Simulator\" name=\"DEVICE_BAUD_RATE\" label=\"Baud Rate\" group=\"Connection\" state=\"Idle\" perm=\"rw\" rule=\"OneOfMany\" timeout=\"60\"><defSwitch name=\"9600\" label=\"9600\">\nOn\n    </defSwitch><defSwitch name=\"19200\" label=\"19200\">\nOff\n    </defSwitch><defSwitch name=\"38400\" label=\"38400\">\nOff\n    </defSwitch><defSwitch name=\"57600\" label=\"57600\">\nOff\n    </defSwitch><defSwitch name=\"115200\" label=\"115200\">\nOff\n    </defSwitch><defSwitch name=\"230400\" label=\"230400\">\nOff\n    </defSwitch></defSwitchVector>"
+],
+[
+"in",
+"<defSwitchVector device=\"Telescope Simulator\" name=\"DEVICE_AUTO_SEARCH\" label=\"Auto Search\" group=\"Connection\" state=\"Idle\" perm=\"rw\" rule=\"OneOfMany\" timeout=\"60\"><defSwitch name=\"INDI_ENABLED\" label=\"Enabled\">\nOn\n    </defSwitch><defSwitch name=\"INDI_DISABLED\" label=\"Disabled\">\nOff\n    </defSwitch></defSwitchVector>"
+],
+[
+"in",
+"<defSwitchVector device=\"Telescope Simulator\" name=\"DEVICE_PORT_SCAN\" label=\"Refresh\" group=\"Connection\" state=\"Idle\" perm=\"rw\" rule=\"OneOfMany\" timeout=\"60\"><defSwitch name=\"Scan Ports\" label=\"Scan Ports\">\nOff\n    </defSwitch></defSwitchVector>"
+],
+[
+"in",
+"<defTextVector device=\"Telescope Simulator\" name=\"ACTIVE_DEVICES\" label=\"Snoop devices\" group=\"Options\" state=\"Idle\" perm=\"rw\" timeout=\"60\"><defText name=\"ACTIVE_GPS\" label=\"GPS\">\nGPS Simulator\n    </defText><defText name=\"ACTIVE_DOME\" label=\"DOME\">\nDome Simulator\n    </defText></defTextVector>"
+],
+[
+"in",
+"<defSwitchVector device=\"Telescope Simulator\" name=\"DOME_POLICY\" label=\"Dome Policy\" group=\"Options\" state=\"Idle\" perm=\"rw\" rule=\"OneOfMany\" timeout=\"60\"><defSwitch name=\"DOME_IGNORED\" label=\"Dome ignored\">\nOn\n    </defSwitch><defSwitch name=\"DOME_LOCKS\" label=\"Dome locks\">\nOff\n    </defSwitch></defSwitchVector>"
+],
+[
+"in",
+"<defSwitchVector device=\"Telescope Simulator\" name=\"SIM_PIER_SIDE\" label=\"Sim Pier Side\" group=\"Simulation\" state=\"Idle\" perm=\"wo\" rule=\"OneOfMany\" timeout=\"60\"><defSwitch name=\"PS_OFF\" label=\"Off\">\nOff\n    </defSwitch><defSwitch name=\"PS_ON\" label=\"On\">\nOn\n    </defSwitch></defSwitchVector>"
+],
+[
+"in",
+"<defNumberVector device=\"Telescope Simulator\" name=\"MOUNT_MODEL\" label=\"Mount Model\" group=\"Simulation\" state=\"Idle\" perm=\"rw\" timeout=\"0\"><defNumber name=\"MM_IH\" label=\"Ha Zero (IH) &apos;\" format=\"%.1f\" min=\"-10800\" max=\"10800\" step=\"0.10000000000000000555\">\n0\n    </defNumber><defNumber name=\"MM_ID\" label=\"Dec Zero (ID) &apos;\" format=\"%.1f\" min=\"-10800\" max=\"10800\" step=\"0.10000000000000000555\">\n0\n    </defNumber><defNumber name=\"MM_CH\" label=\"Cone (CH) &apos;\" format=\"%.1f\" min=\"-300\" max=\"300\" step=\"0.10000000000000000555\">\n0\n    </defNumber><defNumber name=\"MM_NP\" label=\"Ha/Dec (NP) &apos;\" format=\"%.1f\" min=\"-300\" max=\"300\" step=\"0.10000000000000000555\">\n0\n    </defNumber><defNumber name=\"MM_MA\" label=\"Pole Azm (MA) &apos;\" format=\"%.1f\" min=\"-300\" max=\"300\" step=\"0.10000000000000000555\">\n0\n    </defNumber><defNumber name=\"MM_ME\" label=\"Pole elev (ME) &apos;\" format=\"%.1f\" min=\"-300\" max=\"300\" step=\"0.10000000000000000555\">\n0\n    </defNumber></defNumberVector>"
+],
+[
+"in",
+"<defNumberVector device=\"Telescope Simulator\" name=\"MOUNT_AXES\" label=\"Mount Axes\" group=\"Simulation\" state=\"Idle\" perm=\"ro\" timeout=\"0\"><defNumber name=\"PRIMARY\" label=\"Primary (Ha)\" format=\"%g\" min=\"-180\" max=\"180\" step=\"0.010000000000000000208\">\n157.40271557251105605\n    </defNumber><defNumber name=\"SECONDARY\" label=\"Secondary (Dec)\" format=\"%g\" min=\"-180\" max=\"180\" step=\"0.010000000000000000208\">\n90\n    </defNumber></defNumberVector>"
+],
+[
+"in",
+"<defNumberVector device=\"Telescope Simulator\" name=\"FLIP_HA\" label=\"Flip Posn.\" group=\"Simulation\" state=\"Idle\" perm=\"wo\" timeout=\"0\"><defNumber name=\"FLIP_HA\" label=\"Hour Angle (deg)\" format=\"%g\" min=\"-20\" max=\"20\" step=\"0.10000000000000000555\">\n0\n    </defNumber></defNumberVector>"
+],
+[
+"in",
+"<defNumberVector device=\"Telescope Simulator\" name=\"DEC_BACKLASH\" label=\"DEC Backlash\" group=\"Simulation\" state=\"Idle\" perm=\"rw\" timeout=\"0\"><defNumber name=\"DEC_BACKLASH\" label=\"DEC Backlash (ms)\" format=\"%.0f\" min=\"0\" max=\"5000\" step=\"0\">\n0\n    </defNumber></defNumberVector>"
+],
+[
+"in",
+"<defTextVector device=\"Telescope Simulator\" name=\"ACTIVE_PAC\" label=\"Polar Alignment Corrector\" group=\"Simulation\" state=\"Idle\" perm=\"rw\" timeout=\"60\"><defText name=\"PAC_DEVICE\" label=\"Alignment Corrector\">\nAlignment Correction Simulator\n    </defText></defTextVector>"
+],
+[
+"in",
+"<defSwitchVector device=\"Telescope Simulator\" name=\"ON_COORD_SET\" label=\"On Set\" group=\"Main Control\" state=\"Idle\" perm=\"rw\" rule=\"OneOfMany\" timeout=\"60\"><defSwitch name=\"TRACK\" label=\"Track\">\nOn\n    </defSwitch><defSwitch name=\"SLEW\" label=\"Slew\">\nOff\n    </defSwitch><defSwitch name=\"SYNC\" label=\"Sync\">\nOff\n    </defSwitch></defSwitchVector>"
+],
+[
+"in",
+"<defNumberVector device=\"Telescope Simulator\" name=\"EQUATORIAL_EOD_COORD\" label=\"Eq. Coordinates\" group=\"Main Control\" state=\"Idle\" perm=\"rw\" timeout=\"60\"><defNumber name=\"RA\" label=\"RA (hh:mm:ss)\" format=\"%010.6m\" min=\"0\" max=\"24\" step=\"0\">\n0.00034853238612602885881\n    </defNumber><defNumber name=\"DEC\" label=\"DEC (dd:mm:ss)\" format=\"%010.6m\" min=\"-90\" max=\"90\" step=\"0\">\n90\n    </defNumber></defNumberVector>"
+],
+[
+"in",
+"<defSwitchVector device=\"Telescope Simulator\" name=\"TELESCOPE_ABORT_MOTION\" label=\"Abort Motion\" group=\"Main Control\" state=\"Idle\" perm=\"rw\" rule=\"AtMostOne\" timeout=\"60\"><defSwitch name=\"ABORT\" label=\"Abort\">\nOff\n    </defSwitch></defSwitchVector>"
+],
+[
+"in",
+"<defSwitchVector device=\"Telescope Simulator\" name=\"TELESCOPE_TRACK_MODE\" label=\"Track Mode\" group=\"Main Control\" state=\"Idle\" perm=\"rw\" rule=\"OneOfMany\" timeout=\"0\"><defSwitch name=\"TRACK_SIDEREAL\" label=\"Sidereal\">\nOn\n    </defSwitch><defSwitch name=\"TRACK_SOLAR\" label=\"Solar\">\nOff\n    </defSwitch><defSwitch name=\"TRACK_LUNAR\" label=\"Lunar\">\nOff\n    </defSwitch><defSwitch name=\"TRACK_CUSTOM\" label=\"Custom\">\nOff\n    </defSwitch></defSwitchVector>"
+],
+[
+"in",
+"<defSwitchVector device=\"Telescope Simulator\" name=\"TELESCOPE_TRACK_STATE\" label=\"Tracking\" group=\"Main Control\" state=\"Idle\" perm=\"rw\" rule=\"OneOfMany\" timeout=\"0\"><defSwitch name=\"TRACK_ON\" label=\"On\">\nOff\n    </defSwitch><defSwitch name=\"TRACK_OFF\" label=\"Off\">\nOn\n    </defSwitch></defSwitchVector>"
+],
+[
+"in",
+"<defNumberVector device=\"Telescope Simulator\" name=\"TELESCOPE_TRACK_RATE\" label=\"Track Rates\" group=\"Main Control\" state=\"Idle\" perm=\"rw\" timeout=\"60\"><defNumber name=\"TRACK_RATE_RA\" label=\"RA (arcsecs/s)\" format=\"%.6f\" min=\"-16384\" max=\"16384\" step=\"9.9999999999999995475e-07\">\n15.04106717867020393\n    </defNumber><defNumber name=\"TRACK_RATE_DE\" label=\"DE (arcsecs/s)\" format=\"%.6f\" min=\"-16384\" max=\"16384\" step=\"9.9999999999999995475e-07\">\n0\n    </defNumber></defNumberVector>"
+],
+[
+"in",
+"<defSwitchVector device=\"Telescope Simulator\" name=\"TELESCOPE_HOME\" label=\"Home\" group=\"Main Control\" state=\"Idle\" perm=\"rw\" rule=\"AtMostOne\" timeout=\"60\"><defSwitch name=\"FIND\" label=\"Find\">\nOff\n    </defSwitch><defSwitch name=\"SET\" label=\"Set\">\nOff\n    </defSwitch><defSwitch name=\"GO\" label=\"Go\">\nOff\n    </defSwitch></defSwitchVector>"
+],
+[
+"in",
+"<defSwitchVector device=\"Telescope Simulator\" name=\"TELESCOPE_MOTION_NS\" label=\"Motion N/S\" group=\"Motion Control\" state=\"Idle\" perm=\"rw\" rule=\"AtMostOne\" timeout=\"60\"><defSwitch name=\"MOTION_NORTH\" label=\"North\">\nOff\n    </defSwitch><defSwitch name=\"MOTION_SOUTH\" label=\"South\">\nOff\n    </defSwitch></defSwitchVector>"
+],
+[
+"in",
+"<defSwitchVector device=\"Telescope Simulator\" name=\"TELESCOPE_MOTION_WE\" label=\"Motion W/E\" group=\"Motion Control\" state=\"Idle\" perm=\"rw\" rule=\"AtMostOne\" timeout=\"60\"><defSwitch name=\"MOTION_WEST\" label=\"West\">\nOff\n    </defSwitch><defSwitch name=\"MOTION_EAST\" label=\"East\">\nOff\n    </defSwitch></defSwitchVector>"
+],
+[
+"in",
+"<defSwitchVector device=\"Telescope Simulator\" name=\"TELESCOPE_REVERSE_MOTION\" label=\"Reverse\" group=\"Motion Control\" state=\"Idle\" perm=\"rw\" rule=\"AnyOfMany\" timeout=\"60\"><defSwitch name=\"REVERSE_NS\" label=\"North/South\">\nOff\n    </defSwitch><defSwitch name=\"REVERSE_WE\" label=\"West/East\">\nOff\n    </defSwitch></defSwitchVector>"
+],
+[
+"in",
+"<defSwitchVector device=\"Telescope Simulator\" name=\"TELESCOPE_SLEW_RATE\" label=\"Slew Rate\" group=\"Motion Control\" state=\"Idle\" perm=\"rw\" rule=\"OneOfMany\" timeout=\"0\"><defSwitch name=\"1x\" label=\"Guide\">\nOff\n    </defSwitch><defSwitch name=\"2x\" label=\"Centering\">\nOff\n    </defSwitch><defSwitch name=\"3x\" label=\"Find\">\nOn\n    </defSwitch><defSwitch name=\"4x\" label=\"Max\">\nOff\n    </defSwitch></defSwitchVector>"
+],
+[
+"in",
+"<defNumberVector device=\"Telescope Simulator\" name=\"TARGET_EOD_COORD\" label=\"Slew Target\" group=\"Motion Control\" state=\"Idle\" perm=\"ro\" timeout=\"60\"><defNumber name=\"RA\" label=\"RA (hh:mm:ss)\" format=\"%010.6m\" min=\"0\" max=\"24\" step=\"0\">\n0\n    </defNumber><defNumber name=\"DEC\" label=\"DEC (dd:mm:ss)\" format=\"%010.6m\" min=\"-90\" max=\"90\" step=\"0\">\n0\n    </defNumber></defNumberVector>"
+],
+[
+"in",
+"<defSwitchVector device=\"Telescope Simulator\" name=\"TELESCOPE_MOUNT_TYPE\" label=\"Mount Type\" group=\"Motion Control\" state=\"Idle\" perm=\"rw\" rule=\"OneOfMany\" timeout=\"60\"><defSwitch name=\"ALTAZ\" label=\"ALTAZ\">\nOff\n    </defSwitch><defSwitch name=\"EQ_FORK\" label=\"Fork (Eq)\">\nOff\n    </defSwitch><defSwitch name=\"EQ_GEM\" label=\"GEM\">\nOn\n    </defSwitch></defSwitchVector>"
+],
+[
+"in",
+"<defTextVector device=\"Telescope Simulator\" name=\"TIME_UTC\" label=\"UTC\" group=\"Site Management\" state=\"Ok\" perm=\"rw\" timeout=\"60\"><defText name=\"UTC\" label=\"UTC Time\">\n2026-10-19T08:38:14\n    </defText><defText name=\"OFFSET\" label=\"UTC Offset\">\n-4.00\n    </defText></defTextVector>"
+],
+[
+"in",
+"<defNumberVector device=\"Telescope Simulator\" name=\"GEOGRAPHIC_COORD\" label=\"Scope Location\" group=\"Site Management\" state=\"Idle\" perm=\"rw\" timeout=\"60\"><defNumber name=\"LAT\" label=\"Lat (dd:mm:ss.s)\" format=\"%012.8m\" min=\"-90\" max=\"90\" step=\"0\">\n0\n    </defNumber><defNumber name=\"LONG\" label=\"Lon (dd:mm:ss.s)\" format=\"%012.8m\" min=\"0\" max=\"360\" step=\"0\">\n0\n    </defNumber><defNumber name=\"ELEV\" label=\"Elevation (m)\" format=\"%g\" min=\"-200\" max=\"10000\" step=\"0\">\n0\n    </defNumber></defNumberVector>"
+],
+[
+"in",
+"<defSwitchVector device=\"Telescope Simulator\" name=\"TELESCOPE_PARK\" label=\"Parking\" group=\"Main Control\" state=\"Ok\" perm=\"rw\" rule=\"OneOfMany\" timeout=\"60\"><defSwitch name=\"PARK\" label=\"Park(ed)\">\nOff\n    </defSwitch><defSwitch name=\"UNPARK\" label=\"UnPark(ed)\">\nOn\n    </defSwitch></defSwitchVector>"
+],
+[
+"in",
+"<defNumberVector device=\"Telescope Simulator\" name=\"TELESCOPE_PARK_POSITION\" label=\"Park Position\" group=\"Site Management\" state=\"Idle\" perm=\"rw\" timeout=\"60\"><defNumber name=\"PARK_HA\" label=\"HA (hh:mm:ss)\" format=\"%010.6m\" min=\"-12\" max=\"12\" step=\"0\">\n-6\n    </defNumber><defNumber name=\"PARK_DEC\" label=\"DEC (dd:mm:ss)\" format=\"%010.6m\" min=\"-90\" max=\"90\" step=\"0\">\n0\n    </defNumber></defNumberVector>"
+],
+[
+"in",
+"<defSwitchVector device=\"Telescope Simulator\" name=\"TELESCOPE_PARK_OPTION\" label=\"Park Options\" group=\"Site Management\" state=\"Idle\" perm=\"rw\" rule=\"AtMostOne\" timeout=\"60\"><defSwitch name=\"PARK_CURRENT\" label=\"Current\">\nOff\n    </defSwitch><defSwitch name=\"PARK_DEFAULT\" label=\"Default\">\nOff\n    </defSwitch><defSwitch name=\"PARK_WRITE_DATA\" label=\"Write Data\">\nOff\n    </defSwitch><defSwitch name=\"PARK_PURGE_DATA\" label=\"Purge Data\">\nOff\n    </defSwitch></defSwitchVector>"
+],
+[
+"in",
+"<defSwitchVector device=\"Telescope Simulator\" name=\"TELESCOPE_PIER_SIDE\" label=\"Pier Side\" group=\"Main Control\" state=\"Ok\" perm=\"ro\" rule=\"AtMostOne\" timeout=\"60\"><defSwitch name=\"PIER_WEST\" label=\"West (pointing east)\">\nOff\n    </defSwitch><defSwitch name=\"PIER_EAST\" label=\"East (pointing west)\">\nOn\n    </defSwitch></defSwitchVector>"
+],
+[
+"in",
+"<defSwitchVector device=\"Telescope Simulator\" name=\"USEJOYSTICK\" label=\"Joystick\" group=\"Options\" state=\"Idle\" perm=\"rw\" rule=\"OneOfMany\" timeout=\"0\"><defSwitch name=\"ENABLE\" label=\"Enable\">\nOff\n    </defSwitch><defSwitch name=\"DISABLE\" label=\"Disable\">\nOn\n    </defSwitch></defSwitchVector>"
+],
+[
+"in",
+"<defTextVector device=\"Telescope Simulator\" name=\"SNOOP_JOYSTICK\" label=\"Snoop Joystick\" group=\"Options\" state=\"Idle\" perm=\"rw\" timeout=\"60\"><defText name=\"SNOOP_JOYSTICK_DEVICE\" label=\"Device\">\nJoystick\n    </defText></defTextVector>"
+],
+[
+"in",
+"<defNumberVector device=\"Telescope Simulator\" name=\"GUIDE_RATE\" label=\"Guiding Rate\" group=\"Motion Control\" state=\"Idle\" perm=\"rw\" timeout=\"0\"><defNumber name=\"GUIDE_RATE_WE\" label=\"W/E Rate\" format=\"%g\" min=\"0\" max=\"1\" step=\"0.10000000000000000555\">\n0.5\n    </defNumber><defNumber name=\"GUIDE_RATE_NS\" label=\"N/S Rate\" format=\"%g\" min=\"0\" max=\"1\" step=\"0.10000000000000000555\">\n0.5\n    </defNumber></defNumberVector>"
+],
+[
+"in",
+"<defNumberVector device=\"Telescope Simulator\" name=\"EQUATORIAL_PE\" label=\"True Pointing\" group=\"Main Control\" state=\"Ok\" perm=\"ro\" timeout=\"0\"><defNumber name=\"RA_PE\" label=\"RA (hh:mm:ss)\" format=\"%010.6m\" min=\"0\" max=\"24\" step=\"0\">\n0.00034853238612602885881\n    </defNumber><defNumber name=\"DEC_PE\" label=\"DEC (dd:mm:ss)\" format=\"%010.6m\" min=\"-90\" max=\"90\" step=\"0\">\n90\n    </defNumber></defNumberVector>"
+],
+[
+"in",
+"<defNumberVector device=\"Telescope Simulator\" name=\"TELESCOPE_TIMED_GUIDE_NS\" label=\"Guide N/S\" group=\"Motion Control\" state=\"Idle\" perm=\"rw\" timeout=\"60\"><defNumber name=\"TIMED_GUIDE_N\" label=\"North (ms)\" format=\"%.f\" min=\"0\" max=\"60000\" step=\"100\">\n0\n    </defNumber><defNumber name=\"TIMED_GUIDE_S\" label=\"South (ms)\" format=\"%.f\" min=\"0\" max=\"60000\" step=\"100\">\n0\n    </defNumber></defNumberVector>"
+],
+[
+"in",
+"<defNumberVector device=\"Telescope Simulator\" name=\"TELESCOPE_TIMED_GUIDE_WE\" label=\"Guide E/W\" group=\"Motion Control\" state=\"Idle\" perm=\"rw\" timeout=\"60\"><defNumber name=\"TIMED_GUIDE_W\" label=\"West (ms)\" format=\"%.f\" min=\"0\" max=\"60000\" step=\"100\">\n0\n    </defNumber><defNumber name=\"TIMED_GUIDE_E\" label=\"East (ms)\" format=\"%.f\" min=\"0\" max=\"60000\" step=\"100\">\n0\n    </defNumber></defNumberVector>"
+],
+[
+"in",
+"<defTextVector device=\"Telescope Simulator\" name=\"ACTIVE_DEVICES\" label=\"Snoop devices\" group=\"Options\" state=\"Idle\" perm=\"rw\" timeout=\"60\"><defText name=\"ACTIVE_GPS\" label=\"GPS\">\nGPS Simulator\n    </defText><defText name=\"ACTIVE_DOME\" label=\"DOME\">\nDome Simulator\n    </defText></defTextVector>"
+],
+[
+"in",
+"<defSwitchVector device=\"Telescope Simulator\" name=\"DOME_POLICY\" label=\"Dome Policy\" group=\"Options\" state=\"Idle\" perm=\"rw\" rule=\"OneOfMany\" timeout=\"60\"><defSwitch name=\"DOME_IGNORED\" label=\"Dome ignored\">\nOn\n    </defSwitch><defSwitch name=\"DOME_LOCKS\" label=\"Dome locks\">\nOff\n    </defSwitch></defSwitchVector>"
+],
+[
+"in",
+"<defSwitchVector device=\"Telescope Simulator\" name=\"USEJOYSTICK\" label=\"Joystick\" group=\"Options\" state=\"Idle\" perm=\"rw\" rule=\"OneOfMany\" timeout=\"0\"><defSwitch name=\"ENABLE\" label=\"Enable\">\nOff\n    </defSwitch><defSwitch name=\"DISABLE\" label=\"Disable\">\nOn\n    </defSwitch></defSwitchVector>"
+],
+[
+"in",
+"<defTextVector device=\"Telescope Simulator\" name=\"SNOOP_JOYSTICK\" label=\"Snoop Joystick\" group=\"Options\" state=\"Idle\" perm=\"rw\" timeout=\"60\"><defText name=\"SNOOP_JOYSTICK_DEVICE\" label=\"Device\">\nJoystick\n    </defText></defTextVector>"
+],
+[
+"in",
+"<setSwitchVector device=\"Telescope Simulator\" name=\"TELESCOPE_MOUNT_TYPE\" state=\"Idle\" timeout=\"60\"><oneSwitch name=\"ALTAZ\">\nOff\n    </oneSwitch><oneSwitch name=\"EQ_FORK\">\nOff\n    </oneSwitch><oneSwitch name=\"EQ_GEM\">\nOn\n    </oneSwitch></setSwitchVector>"
+],
+[
+"in",
+"<defSwitchVector device=\"Telescope Simulator\" name=\"SIM_PIER_SIDE\" label=\"Sim Pier Side\" group=\"Simulation\" state=\"Idle\" perm=\"wo\" rule=\"OneOfMany\" timeout=\"60\"><defSwitch name=\"PS_OFF\" label=\"Off\">\nOff\n    </defSwitch><defSwitch name=\"PS_ON\" label=\"On\">\nOn\n    </defSwitch></defSwitchVector>"
+],
+[
+"in",
+"<defNumberVector device=\"Telescope Simulator\" name=\"MOUNT_MODEL\" label=\"Mount Model\" group=\"Simulation\" state=\"Idle\" perm=\"rw\" timeout=\"0\"><defNumber name=\"MM_IH\" label=\"Ha Zero (IH) &apos;\" format=\"%.1f\" min=\"-10800\" max=\"10800\" step=\"0.10000000000000000555\">\n0\n    </defNumber><defNumber name=\"MM_ID\" label=\"Dec Zero (ID) &apos;\" format=\"%.1f\" min=\"-10800\" max=\"10800\" step=\"0.10000000000000000555\">\n0\n    </defNumber><defNumber name=\"MM_CH\" label=\"Cone (CH) &apos;\" format=\"%.1f\" min=\"-300\" max=\"300\" step=\"0.10000000000000000555\">\n0\n    </defNumber><defNumber name=\"MM_NP\" label=\"Ha/Dec (NP) &apos;\" format=\"%.1f\" min=\"-300\" max=\"300\" step=\"0.10000000000000000555\">\n0\n    </defNumber><defNumber name=\"MM_MA\" label=\"Pole Azm (MA) &apos;\" format=\"%.1f\" min=\"-300\" max=\"300\" step=\"0.10000000000000000555\">\n0\n    </defNumber><defNumber name=\"MM_ME\" label=\"Pole elev (ME) &apos;\" format=\"%.1f\" min=\"-300\" max=\"300\" step=\"0.10000000000000000555\">\n0\n    </defNumber></defNumberVector>"
+],
+[
+"in",
+"<defNumberVector device=\"Telescope Simulator\" name=\"MOUNT_AXES\" label=\"Mount Axes\" group=\"Simulation\" state=\"Idle\" perm=\"ro\" timeout=\"0\"><defNumber name=\"PRIMARY\" label=\"Primary (Ha)\" format=\"%g\" min=\"-180\" max=\"180\" step=\"0.010000000000000000208\">\n157.40271557251105605\n    </defNumber><defNumber name=\"SECONDARY\" label=\"Secondary (Dec)\" format=\"%g\" min=\"-180\" max=\"180\" step=\"0.010000000000000000208\">\n90\n    </defNumber></defNumberVector>"
+],
+[
+"in",
+"<defNumberVector device=\"Telescope Simulator\" name=\"FLIP_HA\" label=\"Flip Posn.\" group=\"Simulation\" state=\"Idle\" perm=\"wo\" timeout=\"0\"><defNumber name=\"FLIP_HA\" label=\"Hour Angle (deg)\" format=\"%g\" min=\"-20\" max=\"20\" step=\"0.10000000000000000555\">\n0\n    </defNumber></defNumberVector>"
+],
+[
+"in",
+"<defNumberVector device=\"Telescope Simulator\" name=\"DEC_BACKLASH\" label=\"DEC Backlash\" group=\"Simulation\" state=\"Idle\" perm=\"rw\" timeout=\"0\"><defNumber name=\"DEC_BACKLASH\" label=\"DEC Backlash (ms)\" format=\"%.0f\" min=\"0\" max=\"5000\" step=\"0\">\n0\n    </defNumber></defNumberVector>"
+],
+[
+"in",
+"<defTextVector device=\"Telescope Simulator\" name=\"ACTIVE_PAC\" label=\"Polar Alignment Corrector\" group=\"Simulation\" state=\"Idle\" perm=\"rw\" timeout=\"60\"><defText name=\"PAC_DEVICE\" label=\"Alignment Corrector\">\nAlignment Correction Simulator\n    </defText></defTextVector>"
+],
+[
+"in",
+"<defBLOBVector device=\"CCD Simulator\" name=\"CCD1\" label=\"Image Data\" group=\"Image Info\" state=\"Idle\" perm=\"ro\" timeout=\"60\"><defBLOB name=\"CCD1\" label=\"Image\"/></defBLOBVector>"
+],
+[
+"in",
+"<setNumberVector device=\"Telescope Simulator\" name=\"EQUATORIAL_PE\" state=\"Ok\" timeout=\"0\"><oneNumber name=\"RA_PE\">\n0.00041820301363865533019\n    </oneNumber><oneNumber name=\"DEC_PE\">\n90\n    </oneNumber></setNumberVector>"
+],
+[
+"in",
+"<setNumberVector device=\"Telescope Simulator\" name=\"EQUATORIAL_EOD_COORD\" state=\"Idle\" timeout=\"60\"><oneNumber name=\"RA\">\n0.00041821422055363652922\n    </oneNumber><oneNumber name=\"DEC\">\n90\n    </oneNumber></setNumberVector>"
+],
+[
+"out",
+"<getProperties version=\"1.7\" device=\"CCD Simulator\" name=\"CONNECTION\"/>"
+],
+[
+"out",
+"<getProperties version=\"1.7\" device=\"Focuser Simulator\" name=\"CONNECTION\"/>"
+],
+[
+"in",
+"<defSwitchVector device=\"CCD Simulator\" name=\"CONNECTION\" label=\"Connection\" group=\"Main Control\" state=\"Ok\" perm=\"rw\" rule=\"OneOfMany\" timeout=\"60\"><defSwitch name=\"CONNECT\" label=\"Connect\">\nOn\n    </defSwitch><defSwitch name=\"DISCONNECT\" label=\"Disconnect\">\nOff\n    </defSwitch></defSwitchVector>"
+],
+[
+"in",
+"<setNumberVector device=\"Telescope Simulator\" name=\"EQUATORIAL_PE\" state=\"Ok\" timeout=\"0\"><oneNumber name=\"RA_PE\">\n0.00048792967572808265686\n    </oneNumber><oneNumber name=\"DEC_PE\">\n90\n    </oneNumber></setNumberVector>"
+],
+[
+"in",
+"<setNumberVector device=\"Telescope Simulator\" name=\"EQUATORIAL_EOD_COORD\" state=\"Idle\" timeout=\"60\"><oneNumber name=\"RA\">\n0.00048794088264495866182\n    </oneNumber><oneNumber name=\"DEC\">\n90\n    </oneNumber></setNumberVector>"
+],
+[
+"out",
+"<enableBLOB device=\"CCD Simulator\">Also</enableBLOB>"
+],
+[
+"out",
+"<newNumberVector device=\"CCD Simulator\" name=\"CCD_EXPOSURE\"><oneNumber name=\"CCD_EXPOSURE_VALUE\">0.5</oneNumber></newNumberVector>"
+],
+[
+"in",
+"<setNumberVector device=\"Telescope Simulator\" name=\"EQUATORIAL_PE\" state=\"Ok\" timeout=\"0\"><oneNumber name=\"RA_PE\">\n0.00055765630677531892196\n    </oneNumber><oneNumber name=\"DEC_PE\">\n90\n    </oneNumber></setNumberVector>"
+],
+[
+"in",
+"<setNumberVector device=\"Telescope Simulator\" name=\"EQUATORIAL_EOD_COORD\" state=\"Idle\" timeout=\"60\"><oneNumber name=\"RA\">\n0.00055765630677531892196\n    </oneNumber><oneNumber name=\"DEC\">\n90\n    </oneNumber></setNumberVector>"
+],
+[
+"out",
+"<getProperties version=\"1.7\" device=\"CCD Simulator\" name=\"CONNECTION\"/>"
+],
+[
+"out",
+"<getProperties version=\"1.7\" device=\"Focuser Simulator\" name=\"CONNECTION\"/>"
+],
+[
+"in",
+"<defSwitchVector device=\"CCD Simulator\" name=\"CONNECTION\" label=\"Connection\" group=\"Main Control\" state=\"Ok\" perm=\"rw\" rule=\"OneOfMany\" timeout=\"60\"><defSwitch name=\"CONNECT\" label=\"Connect\">\nOn\n    </defSwitch><defSwitch name=\"DISCONNECT\" label=\"Disconnect\">\nOff\n    </defSwitch></defSwitchVector>"
+],
+[
+"in",
+"<setNumberVector device=\"Telescope Simulator\" name=\"EQUATORIAL_PE\" state=\"Ok\" timeout=\"0\"><oneNumber name=\"RA_PE\">\n0.00062738296886285149691\n    </oneNumber><oneNumber name=\"DEC_PE\">\n90\n    </oneNumber></setNumberVector>"
+],
+[
+"in",
+"<setNumberVector device=\"Telescope Simulator\" name=\"EQUATORIAL_EOD_COORD\" state=\"Idle\" timeout=\"60\"><oneNumber name=\"RA\">\n0.00062739417577783269594\n    </oneNumber><oneNumber name=\"DEC\">\n90\n    </oneNumber></setNumberVector>"
+],
+[
+"in",
+"<setNumberVector device=\"Telescope Simulator\" name=\"EQUATORIAL_PE\" state=\"Ok\" timeout=\"0\"><oneNumber name=\"RA_PE\">\n0.00069710963095227882359\n    </oneNumber><oneNumber name=\"DEC_PE\">\n90\n    </oneNumber></setNumberVector>"
+],
+[
+"in",
+"<setNumberVector device=\"Telescope Simulator\" name=\"EQUATORIAL_EOD_COORD\" state=\"Idle\" timeout=\"60\"><oneNumber name=\"RA\">\n0.00069712083786915477433\n    </oneNumber><oneNumber name=\"DEC\">\n90\n    </oneNumber></setNumberVector>"
+],
+[
+"out",
+"<getProperties version=\"1.7\" device=\"CCD Simulator\" name=\"CONNECTION\"/>"
+],
+[
+"out",
+"<getProperties version=\"1.7\" device=\"Focuser Simulator\" name=\"CONNECTION\"/>"
+],
+[
+"in",
+"<defSwitchVector device=\"CCD Simulator\" name=\"CONNECTION\" label=\"Connection\" group=\"Main Control\" state=\"Ok\" perm=\"rw\" rule=\"OneOfMany\" timeout=\"60\"><defSwitch name=\"CONNECT\" label=\"Connect\">\nOn\n    </defSwitch><defSwitch name=\"DISCONNECT\" label=\"Disconnect\">\nOff\n    </defSwitch></defSwitchVector>"
+],
+[
+"in",
+"<setNumberVector device=\"Telescope Simulator\" name=\"EQUATORIAL_PE\" state=\"Ok\" timeout=\"0\"><oneNumber name=\"RA_PE\">\n0.00076683626199951508869\n    </oneNumber><oneNumber name=\"DEC_PE\">\n90\n    </oneNumber></setNumberVector>"
+],
+[
+"in",
+"<setNumberVector device=\"Telescope Simulator\" name=\"EQUATORIAL_EOD_COORD\" state=\"Idle\" timeout=\"60\"><oneNumber name=\"RA\">\n0.00076683626199951508869\n    </oneNumber><oneNumber name=\"DEC\">\n90\n    </oneNumber></setNumberVector>"
+],
+[
+"in",
+"<setBLOBVector device=\"CCD Simulator\" name=\"CCD1\" state=\"Ok\" timeout=\"60\"><oneBLOB name=\"CCD1\" size=\"2629440\" format=\".fits\" len=\"2629440\"/></setBLOBVector>"
+]
+]
+}

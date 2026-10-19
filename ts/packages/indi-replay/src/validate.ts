@@ -12,6 +12,17 @@
  *
  * What a driver refuses by its own rules (a binning it does not have, a temperature out of reach) is its code and
  * comes only from a recording.
+ *
+ * Not applicable: what the focuser does to its other properties after it refuses a FOCUS_MAX write (its ABS step
+ * becomes 2000, REL max 50000, FOCUS_SYNC step 2000, Presets max 4294970000, each with a set; measured with
+ * indiserver 2.2.5) is the focuser's own code, and a replay holds the old limits and sends none of those sets. Cria
+ * cannot ask for that write: its focuser operations are `focuser-move` and `focuser-halt`
+ * (`apps/cria/src/operation/workflows.ts:71-72`), which send ABS_FOCUS_POSITION through `startMotion`
+ * (`apps/cria/src/capability/focuser.ts:103`) and FOCUS_ABORT_MOTION through `sendOnce`
+ * (`apps/cria/src/capability/focuser.ts:81`). Nothing in `apps/cria/src` sends FOCUS_MAX; it is only read
+ * (`focuser.ts:34-35`). The exported INDI client would send it if a caller asked
+ * (`packages/indi/src/client.ts:204-213`), and then the replay's answer to it (Alert, then Ok, as measured) is what
+ * matches.
  */
 import type { FakeVector } from '@cria/fake-indi'
 

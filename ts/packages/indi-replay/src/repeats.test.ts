@@ -50,4 +50,12 @@ describe('a driver repeating a definition within one answer', () => {
 
     expect(counter.repeats()).toEqual(new Map([['A.P', 2]]))
   })
+
+  it('does not count the same list sent twice in a row, as when a connection brings definitions and an answer follows, but keeps a copy inside a list', () => {
+    const counter = new RepeatCounter()
+
+    for (const [name, signature] of [['CONNECTION', 'c'], ['ACTIVE_DEVICES', 'a'], ['ACTIVE_DEVICES', 'a'], ['MOUNT_TYPE', 'm'], ['CONNECTION', 'c'], ['ACTIVE_DEVICES', 'a'], ['ACTIVE_DEVICES', 'a'], ['MOUNT_TYPE', 'm']] as const) counter.define('Sim', name, signature)
+
+    expect(counter.repeats()).toEqual(new Map([['Sim.ACTIVE_DEVICES', 2]]))
+  })
 })
