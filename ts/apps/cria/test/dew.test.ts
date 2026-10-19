@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { FakeIndi } from '@cria/fake-indi'
-import { addDewHeaters, connection, pegasusDew } from './drivers.js'
+import { FakeIndi, connection } from '@cria/fake-indi'
+import { addDewHeaters, pegasusDew } from './drivers.js'
 import { allReady, noneNotRead, startCria, until, type Cria } from './harness.js'
 
 const box = 'Fake PPBA'

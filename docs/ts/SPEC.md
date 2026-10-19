@@ -437,8 +437,8 @@ Tests and test tools:
 | `testing/measure-recording-stall.ts` | Not a test: event-loop delay, other file work and memory with recording off, healthy and on a stalled disk |
 | `packages/cria-wire/src/*.test.ts` | The command table, branded IDs, every wire schema |
 | `apps/cria/src/**/*.test.ts` | Unit tests beside the code: ledger transitions, workflow table, units, FITS, image store, event stream |
-| `packages/fake-indi/src/server.ts` | `@cria/fake-indi`: a small INDI server written from the protocol, independent of `@cria/indi`'s parser; answers from its own state |
-| `apps/cria/test/drivers.ts` | The rig's drivers modelled on that server: cameras, mounts, the EAF, dew heaters; `am5` models errai's mount (see "Stopping the mount") |
+| `packages/fake-indi/src` | `@cria/fake-indi`: a small INDI server written from the protocol, independent of `@cria/indi`'s parser; answers from its own state (`server.ts`), with generic camera and mount definitions (`devices.ts`) |
+| `apps/cria/test/drivers.ts` | The rig's drivers modelled on that server: ZWO frames, the EAF, dew heaters, mount motion; `am5` models errai's mount (see "Stopping the mount") |
 | `apps/cria/test/harness.ts` | Starts Cria against an INDI server and drives it over HTTP as Vela does |
 | `apps/cria/test/*.test.ts` | Scenarios: fake-driver failures, mount stops, operation lifecycle, HTTP refusals, protocol 5 end to end, shutdown, real simulators, errai replay |
 | `apps/cria/test/fixtures/errai-2026-10-15.xml` | The rig's recorded INDI definitions |

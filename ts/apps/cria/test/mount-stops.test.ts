@@ -2,8 +2,8 @@
  * Stopping the mount, against a fake AM5 (review round 1: #3, #4, #6).
  */
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { FakeIndi } from '@cria/fake-indi'
-import { addMount, moveMount } from './drivers.js'
+import { FakeIndi, addMount } from '@cria/fake-indi'
+import { moveMount } from './drivers.js'
 import { allReady, startCria, until, type Cria } from './harness.js'
 
 const mount = 'ZWO AM5'

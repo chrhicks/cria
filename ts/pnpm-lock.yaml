@@ -8,6 +8,9 @@ importers:
 
   .:
     devDependencies:
+      '@cria/fake-indi':
+        specifier: workspace:*
+        version: link:packages/fake-indi
       '@cria/wire':
         specifier: workspace:*
         version: link:packages/cria-wire
