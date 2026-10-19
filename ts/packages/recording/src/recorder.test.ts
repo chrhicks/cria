@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, readdir, rm } from 'node:fs/promises'
+import { mkdtemp, readFile, readdir, rm, truncate } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
@@ -27,7 +27,8 @@ afterEach(async () => {
   await rm(dir, { recursive: true, force: true })
 })
 
-const blobVector = '<setBLOBVector device="CCD Simulator" name="CCD1" state="Ok"><oneBLOB name="CCD1" size="4" format=".fits"/></setBLOBVector>'
+const blobVectorOf = (size: number) => `<setBLOBVector device="CCD Simulator" name="CCD1" state="Ok"><oneBLOB name="CCD1" size="${size}" format=".fits"/></setBLOBVector>`
+const blobVector = blobVectorOf(4)
 
 async function start(options: { queueBytes?: number; reserveBytes?: number; files?: (real: RecordingFiles) => RecordingFiles } = {}) {
   const latches: Array<[GapReason, string]> = []
@@ -84,6 +85,18 @@ describe('a recorder with a healthy disk', () => {
       limits: { queueBytes: 1024 * 1024, reserveBytes: 0 },
     })
     expect(await verifyRecording(recorder.folder)).toMatchObject({ valid: true, ended: true, tornTail: false, messages: 3, images: 1, gaps: [], orphans: [] })
+  })
+
+  it('fails verification when a recorded image later loses its last byte', async () => {
+    const { recorder } = await start()
+
+    recorder.message({ conn: 1, dir: 'in', xml: blobVector, blobs: [Buffer.from([1, 2, 3, 4])] })
+    await recorder.close()
+    expect((await verifyRecording(recorder.folder)).valid).toBe(true)
+
+    await truncate(join(recorder.folder, 'blobs', '1-0-0.blob'), 3)
+
+    expect((await verifyRecording(recorder.folder)).problems).toEqual([{ kind: 'image-size', line: 1, path: 'blobs/1-0-0.blob', expected: 4, found: 3 }])
   })
 
   it('leaves no .partial file and no temporary manifest behind', async () => {
@@ -239,9 +252,9 @@ describe('a stalled disk', () => {
       files: real => ({ ...real, writeFile: (path, bytes) => (path.startsWith('blobs/') ? held.then(() => real.writeFile(path, bytes)) : real.writeFile(path, bytes)) }),
     })
 
-    recorder.message({ conn: 1, dir: 'in', xml: blobVector, blobs: [Buffer.alloc(1000)] })
+    recorder.message({ conn: 1, dir: 'in', xml: blobVectorOf(1000), blobs: [Buffer.alloc(1000)] })
     await settle()
-    for (let i = 0; i < 19; i += 1) recorder.message({ conn: 1, dir: 'in', xml: blobVector, blobs: [Buffer.alloc(1000)] })
+    for (let i = 0; i < 19; i += 1) recorder.message({ conn: 1, dir: 'in', xml: blobVectorOf(1000), blobs: [Buffer.alloc(1000)] })
     release()
     await recorder.close()
 
