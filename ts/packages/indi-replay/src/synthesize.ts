@@ -211,3 +211,60 @@ export async function synthesizeTape(spec: SynthSpec, into: string): Promise<str
 
   return folder
 }
+
+export interface StreamSpec {
+  readonly devices: Manifest['devices']
+  /** Every `setBLOBVector` in the stream is an image of this size. */
+  readonly sensor: SynthSpec['sensor']
+  /** Epoch milliseconds the recording starts. */
+  readonly startAt: number
+}
+
+/**
+ * A recording made of the wire text of a session, as a recorder client saw it: `out` is what the client sent,
+ * `in` what indiserver sent, in order, ten milliseconds apart. Each image element (a `setBLOBVector` whose
+ * `oneBLOB` is self-closed) gets a frame of noise of `sensor`'s size, and its `size` says so.
+ */
+export async function tapeFromStream(stream: ReadonlyArray<readonly ['in' | 'out', string]>, spec: StreamSpec, into: string): Promise<string> {
+  const folder = resolve(into)
+  const lines: RecordingLine[] = [{ k: 'conn', t: 0, at: spec.startAt, conn: 1, status: 'connected' }]
+  const blobs: string[] = []
+  const counts = { in: 0, out: 0 }
+  const frame = fitsFrame(spec.sensor.width, spec.sensor.height, { exptime: 0.05, startedAt: spec.startAt })
+
+  stream.forEach(([dir, xml], index) => {
+    const n = counts[dir]++
+    const path = `blobs/1-${n}-0.blob`
+    const image = dir === 'in' && xml.startsWith('<setBLOBVector')
+
+    if (image) blobs.push(path)
+    lines.push({
+      k: 'msg',
+      t: (index + 1) * 10,
+      at: spec.startAt + (index + 1) * 10,
+      conn: 1,
+      dir,
+      n,
+      xml: image ? xml.replace(/\bsize="\d+"/, `size="${frame.length}"`).replace(/(<oneBLOB\b[^>]*?)\/>/, `$1 ref="${path}"/>`) : xml,
+      ...(image ? { blobs: [path] } : {}),
+    })
+  })
+  lines.push({ k: 'end', t: (stream.length + 2) * 10, at: spec.startAt + (stream.length + 2) * 10 })
+
+  const manifest: Manifest = {
+    format: 1,
+    recording: basename(folder),
+    instanceId: 'stream',
+    startedAt: spec.startAt,
+    indi: { host: '127.0.0.1', port: 7624 },
+    devices: spec.devices,
+    limits: { queueBytes: 1, reserveBytes: 0 },
+  }
+
+  await mkdir(join(folder, 'blobs'), { recursive: true })
+  await Promise.all(blobs.map(path => writeFile(join(folder, path), frame)))
+  await writeFile(join(folder, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`)
+  await writeFile(join(folder, 'traffic.jsonl'), lines.map(line => `${JSON.stringify(line)}\n`).join(''))
+
+  return folder
+}

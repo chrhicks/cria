@@ -7,13 +7,15 @@
  * Deliberately independent of @cria/indi: it parses client XML with its own
  * code, so it can disagree with Cria's parser.
  *
- * Each client is a connection with its own `enableBLOB` modes: `sendBlob`
+ * Each client is a connection with its own subscriptions (`getProperties` and `enableBLOB` name what it hears
+ * about, as in indiserver) and its own `enableBLOB` modes: `sendBlob`
  * broadcasts to every client as it always did, `deliverBlob` sends only to
  * clients whose mode allows it and writes in chunks, so a 50 MB image is never
  * one string or one write.
  */
 import net from 'node:net'
 import { BlobSettings, type BlobMode } from './blob-settings.js'
+import { Interest } from './interest.js'
 
 export type { BlobMode }
 
@@ -29,6 +31,9 @@ export interface FakeElement {
   format?: string
 }
 
+/** New limits for number elements, as a driver sends them in a `setNumberVector`: only what changed. */
+export type Limits = Record<string, { min?: number; max?: number; step?: number }>
+
 export interface FakeVector {
   readonly device: string
   readonly name: string
@@ -39,6 +44,8 @@ export interface FakeVector {
   readonly label?: string
   readonly group?: string
   readonly timeout?: number
+  /** How many times the driver defines this property in one answer to a device-wide `getProperties`. Default 1. */
+  readonly repeats?: number
   state: 'Idle' | 'Ok' | 'Busy' | 'Alert'
   readonly elements: Record<string, FakeElement>
 }
@@ -67,6 +74,7 @@ const maxElementBytes = 1024 * 1024
 
 class Client implements FakeClient {
   readonly blobs = new BlobSettings()
+  readonly interest = new Interest()
   private tail: Promise<void> = Promise.resolve()
   private queued = 0
 
@@ -163,7 +171,7 @@ export class FakeIndi {
     const full: FakeVector = { state: 'Idle', ...vector }
 
     this.vectors.set(`${full.device}.${full.name}`, full)
-    this.broadcast(this.definition(full), full.device)
+    this.broadcast(this.definition(full), full.device, full.name)
   }
 
   vector(device: string, name: string): FakeVector {
@@ -174,26 +182,31 @@ export class FakeIndi {
     return found
   }
 
-  /** Changes state and values and tells every client, as a driver's IDSet* does. */
-  update(device: string, name: string, change: { state?: FakeVector['state']; values?: Record<string, Value>; message?: string }): void {
+  /**
+   * Changes state, values and number limits and tells every client who hears of the property, as a driver's
+   * IDSet* does: all elements' values, and min/max/step on the elements whose limits `limits` changed.
+   */
+  update(device: string, name: string, change: { state?: FakeVector['state']; values?: Record<string, Value>; limits?: Limits; message?: string }): void {
     const vector = this.vector(device, name)
 
     if (change.state) vector.state = change.state
     for (const [element, value] of Object.entries(change.values ?? {})) vector.elements[element]!.value = value
+    for (const [element, limits] of Object.entries(change.limits ?? {})) Object.assign(vector.elements[element]!, limits)
 
     const tag = tags[vector.kind]
     const body = Object.entries(vector.elements)
-      .map(([element, { value }]) => `  <one${tag} name="${escape(element)}">${format(value)}</one${tag}>\n`)
+      .map(([element, { value }]) => `  <one${tag} name="${escape(element)}"${limitAttributes(change.limits?.[element])}>${format(value)}</one${tag}>\n`)
       .join('')
     const message = change.message ? ` message="${escape(change.message)}"` : ''
 
-    this.broadcast(`<set${tag}Vector device="${escape(device)}" name="${escape(name)}" state="${vector.state}"${message}>\n${body}</set${tag}Vector>\n`, device)
+    this.broadcast(`<set${tag}Vector device="${escape(device)}" name="${escape(name)}" state="${vector.state}"${message}>\n${body}</set${tag}Vector>\n`, device, name)
   }
 
   sendBlob(device: string, name: string, element: string, data: Buffer): void {
     this.broadcast(
       `<setBLOBVector device="${device}" name="${name}" state="Ok">\n  <oneBLOB name="${element}" size="${data.length}" format=".fits" len="${data.length}">\n${data.toString('base64').replace(/.{72}/g, '$&\n')}\n  </oneBLOB>\n</setBLOBVector>\n`,
       device,
+      name,
       true,
     )
   }
@@ -246,7 +259,7 @@ export class FakeIndi {
   /** One property went away. */
   removeVector(device: string, name: string): void {
     this.vectors.delete(`${device}.${name}`)
-    this.broadcast(`<delProperty device="${escape(device)}" name="${escape(name)}"/>\n`, device)
+    this.broadcast(`<delProperty device="${escape(device)}" name="${escape(name)}"/>\n`, device, name)
   }
 
   onStop(cleanup: () => void): void {
@@ -300,14 +313,8 @@ export class FakeIndi {
     const attributes = Object.fromEntries([...openingTag.matchAll(/(\w+)="([^"]*)"/g)].map(match => [match[1], unescape(match[2]!)]))
 
     if (xml.startsWith('<getProperties')) {
-      if (!this.answering) return
-      for (const vector of this.vectors.values()) {
-        if (attributes.device && attributes.device !== vector.device) continue
-        if (attributes.name && attributes.name !== vector.name) continue
-        if (this.muted.has(vector.device)) continue
-        if (client.blobs.withholdsOthers(vector.device)) continue
-        client.write(this.definition(vector))
-      }
+      client.interest.add(attributes.device || undefined, attributes.name || undefined)
+      if (this.answering) this.answer(attributes.device || undefined, attributes.name || undefined)
 
       return
     }
@@ -321,7 +328,10 @@ export class FakeIndi {
     if (xml.startsWith('<enableBLOB')) {
       const mode = />\s*(Never|Also|Only)\s*</.exec(xml)?.[1] as BlobMode | undefined
 
-      if (mode && attributes.device) client.blobs.set(attributes.device, attributes.name || undefined, mode)
+      if (mode && attributes.device) {
+        client.blobs.set(attributes.device, attributes.name || undefined, mode)
+        client.interest.add(attributes.device, attributes.name || undefined)
+      }
 
       return
     }
@@ -373,14 +383,36 @@ export class FakeIndi {
     return `<def${tag}Vector device="${escape(vector.device)}" name="${escape(vector.name)}" label="${escape(vector.label ?? vector.name)}" group="${escape(vector.group ?? 'Main')}" state="${vector.state}" perm="${vector.perm}"${rule} timeout="${vector.timeout ?? 60}">\n${body}</def${tag}Vector>\n`
   }
 
-  /** Everything but an image skips a client whose device-wide `enableBLOB` is `Only`, as indiserver does. */
-  private broadcast(xml: string, device?: string, isImage = false) {
+  /**
+   * The driver's answer to a `getProperties`, delivered as indiserver delivers it: to every client that hears
+   * of each definition, not only the one that asked. A device-wide request is answered with each property once,
+   * then again with those the driver defines more than once (`repeats`); a request for one property, once.
+   */
+  private answer(device: string | undefined, name: string | undefined) {
+    const asked = [...this.vectors.values()].filter(vector => (device === undefined || vector.device === device) && (name === undefined || vector.name === name))
+    const passes = name === undefined ? Math.max(1, ...asked.map(vector => vector.repeats ?? 1)) : 1
+
+    for (let pass = 1; pass <= passes; pass++)
+      for (const vector of asked) if ((vector.repeats ?? 1) >= pass) this.broadcast(this.definition(vector), vector.device, vector.name)
+  }
+
+  /**
+   * Sends `xml` to the clients that hear of `property` of `device`, except one whose device-wide `enableBLOB` is
+   * `Only`, as indiserver does. An image (`sendBlob`) goes to every client.
+   */
+  private broadcast(xml: string, device?: string, property?: string, isImage = false) {
     if (device !== undefined && this.muted.has(device)) return
     for (const client of this.clients) {
-      if (!isImage && device !== undefined && client.blobs.withholdsOthers(device)) continue
+      if (!isImage && device !== undefined && (!client.interest.covers(device, property) || client.blobs.withholdsOthers(device))) continue
       client.write(xml)
     }
   }
+}
+
+function limitAttributes(limits: Limits[string] | undefined): string {
+  if (!limits) return ''
+
+  return (['min', 'max', 'step'] as const).map(key => (limits[key] === undefined ? '' : ` ${key}="${limits[key]}"`)).join('')
 }
 
 function format(value: Value): string {
