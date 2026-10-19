@@ -386,7 +386,12 @@ the same tag in their doc comment.
 | `packages/indi/src/xml.ts` | INDI boundary | XML framing, the INDI message union, request serialization |
 | `packages/indi/src/mirror.ts` | INDI boundary | Every property of every device from def, set and del messages |
 | `packages/indi/src/client.ts` | INDI boundary | The TCP connection, paced reconnect, `send`, BLOB routing, and `IndiDevice` |
+| `packages/indi/src/tap.ts` | INDI boundary | `TrafficTap`: what the client tells a recorder about each element sent and received |
 | `packages/indi/src/index.ts` | | The package's exports |
+| `packages/recording/src/format.ts` | View | The recording on disk: manifest and the line union `msg`, `conn`, `gap`, `end` as Effect Schemas |
+| `packages/recording/src/recorder.ts` | Composition | The recorder: byte-bounded queue, one consumer, write order, latch-off (see "Recording") |
+| `packages/recording/src/files.ts` | | The recorder's only contact with the disk, as one interface tests can stall, fill or kill |
+| `packages/recording/src/reader.ts` | | `readRecording`, `readManifest` and `verifyRecording` |
 | `packages/cria-wire/src/values.ts` | View | `Reading`, `Outcome`, `Timestamp`, `Json` as wire schemas |
 | `packages/cria-wire/src/ids.ts` | View | Branded IDs: `InstanceId`, `OperationId`, `ImageId`, `BindingId` (UUIDs), `DeviceId`, `FailureDomain`, `RequestId` |
 | `packages/cria-wire/src/command.ts` | View | The 15 operation kinds as one table: device kind, halt, parameter bounds |
@@ -416,6 +421,7 @@ the same tag in their doc comment.
 | `apps/cria/src/wire/sse.ts` | Wire boundary | The event stream (see "Event stream") |
 | `apps/cria/src/device.ts` | Composition | What a configured device is made of: its capability and its connection, per kind |
 | `apps/cria/src/rig.ts` | Composition | Builds the INDI client, devices, the ledger and the image store from config; start-up connect; device setup on each connection |
+| `apps/cria/src/recording.ts` | Composition | Opens the recorder from `record`, closes it with the rig's scope; a recorder that cannot open is logged |
 | `apps/cria/src/config.ts` | View, composition | The config schema with defaults, decoded once; failure domain from the INDI device name |
 | `apps/cria/src/service.ts` | Composition | One scope for the whole process, served over HTTP |
 | `apps/cria/src/main.ts` | Composition | Process entry (`cria <config.json>`); SIGTERM closes the scope |
@@ -425,7 +431,10 @@ Tests and test tools:
 | Path | What it is |
 |---|---|
 | `packages/primitives/src/*.test.ts` | Outcome, disciplines, Run and the quarantine fold, on Effect's TestClock |
-| `packages/indi/src/*.test.ts` | XML framing from recorded traffic; the client against a real indiserver |
+| `packages/indi/src/*.test.ts` | XML framing from recorded traffic, with and without the tap; the client against a real indiserver |
+| `packages/recording/src/*.test.ts` | The recorder on a healthy, stalled, full and failing disk; the reader on a torn tail and on damage in the middle |
+| `testing/recorder-crash.test.ts` | `kill -9` of a real process at each step of the recorder's write order |
+| `testing/measure-recording-stall.ts` | Not a test: event-loop delay, other file work and memory with recording off, healthy and on a stalled disk |
 | `packages/cria-wire/src/*.test.ts` | The command table, branded IDs, every wire schema |
 | `apps/cria/src/**/*.test.ts` | Unit tests beside the code: ledger transitions, workflow table, units, FITS, image store, event stream |
 | `apps/cria/test/fake-indi.ts` | A small INDI server written from the protocol; answers from its own state; `am5` models errai's mount (see "Stopping the mount") |
@@ -1089,11 +1098,80 @@ AM5's values as defaults: `stationaryDegrees` 0.02, `positionReadMs` 1500,
 `stopLatencyMs` 900 (measured on the AM5), `maxLeadFraction` 0.5. Cria refuses
 `site` or `motion` on a device that is not a mount.
 
+`record` turns on recording of INDI traffic (see "Recording"): `dir`, `reserveGb`
+and `queueMb`, all three required when it is present.
+
 `travel` is a focuser's safe range in steps, `{ "min": 15500, "max": 38000 }`
 for errai's EAF: integers from 0 to 2147483646, `min` below `max`, both ends
 allowed. Cria reports it in `minStep` and `maxStep` and refuses a move outside
 it (see "The focuser travel window"). Cria refuses `travel` on a device that is
 not a focuser.
+
+## Recording
+
+Cria can record every element it sends to and receives from `indiserver`, so a
+night can be replayed and queried later. It is off unless the config has
+`record`. The packager and replay that read these recordings are separate
+programs; Cria only writes. A recording is a diagnostic copy of what Cria saw,
+not custody: no operation, request, response or Vela image depends on it, the
+rolling image set is unchanged, and Cria owes Vela nothing about it.
+
+```json
+"record": { "dir": "/var/lib/cria/recordings", "reserveGb": 20, "queueMb": 256 }
+```
+
+`reserveGb` is how much free space recording must leave on the disk. `queueMb`
+is how much memory a slow disk can make recording hold, approximately: image
+bytes, element text and 256 bytes per entry.
+
+Each Cria start opens one folder, `<start time>-<instanceId>`, under `dir`:
+
+- `manifest.json`, written once at start and never rewritten: the format, the
+  `instanceId`, the INDI host and port, which INDI device is which Cria device
+  (no serial ports and no site) and the two limits.
+- `traffic.jsonl`, one JSON line per event in the order Cria saw them:
+  `msg` (`t`, `at`, `conn`, `dir` `in` or `out`, `n` counting from 0 per
+  connection and direction, the element's wire `xml`, and `blobs`), `conn` (a
+  TCP session opened or closed), `gap` and `end`. A missing `end` means Cria died.
+- `blobs/<connection>-<n>-<index>.blob`, one file per image payload, in the
+  `msg` line's `blobs` and named by a `ref` on the elided `<oneBLOB .../>` in its
+  `xml`. Nothing is hashed on errai.
+
+The tap sits in `@cria/indi`'s client, after the framer, so recording reuses the
+bytes and decoded images Cria already parsed. `xml` is the element's wire text,
+not a re-serialized message, because Cria's parser drops `rule`, `group` and
+`format`, which replay needs. Outgoing elements are recorded in `transmit`, the
+one place the client writes to the socket, before the write.
+
+The tap's `message` and `connection` return at once, do no I/O and never throw.
+One consumer writes the files, for each entry:
+
+1. each image to `<name>.partial`, then fsync it, rename it, fsync the folder;
+2. only then append the entry's line.
+
+A line therefore never names an image that is not on disk. A crash between the
+two leaves an image no line names, which `verifyRecording` lists and ignores. A
+crash inside the append leaves a torn last line, which the reader drops. The
+traffic file is flushed about once a second and when the queue is idle.
+
+**Recording stops for good at the first failure.** The failures are a full queue
+(the next entry would pass `queueMb`), free space that would drop below
+`reserveGb`, and any I/O error. Recording then frees its queue, writes a `gap`
+line (its reason and how many entries and bytes were dropped) unless an append
+may have left a torn line, logs once, and takes no more entries for the rest of
+that run. It never resumes, because a half-written line in the middle of the file
+would corrupt everything after it. Cria keeps observing, and no capture waits on
+the disk. The next Cria start opens a new recording. A recorder that cannot open
+at start, or has not opened after five seconds on a stalled disk, is logged and
+Cria runs unrecorded. Closing waits at most five seconds for a stalled disk, then
+lets go of the recording without waiting for its file.
+
+`verifyRecording(folder)` reports `valid` (no problems), whether Cria `ended`
+cleanly, a torn tail, a count of lines, messages and images, the gaps, and
+unreferenced files. A torn last line, a gap, a missing `end` and unreferenced files
+are not problems. These are: a line that does not decode, a referenced image
+that is missing, a message count that skips (a deleted line), time running
+backwards, and any line after a `gap` (other than `end`) or after `end`.
 
 ## Restarts and crashes
 

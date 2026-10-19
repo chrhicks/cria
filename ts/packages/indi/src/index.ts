@@ -16,3 +16,4 @@ export {
   type Property,
 } from './mirror.js'
 export type { BlobMode, ElementDefinition, Permission, PropertyKind, PropertyState } from './xml.js'
+export type { Direction, TappedConnection, TappedMessage, TrafficTap } from './tap.js'

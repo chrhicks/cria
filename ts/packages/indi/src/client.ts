@@ -10,6 +10,7 @@
 import net from 'node:net'
 import { Data, Effect, Option, PubSub, Scope, Stream, SubscriptionRef } from 'effect'
 import { Mirror, type Blob, type MirrorChange, type Property } from './mirror.js'
+import type { TrafficTap } from './tap.js'
 import { IndiFramer, serialize, type BlobMode, type IndiMessage, type IndiRequest } from './xml.js'
 
 export type ConnectionStatus =
@@ -63,6 +64,8 @@ export interface IndiClient {
 export interface IndiClientOptions {
   readonly host: string
   readonly port: number
+  /** Told of every element sent and received. Absent, the client behaves exactly as without recording. */
+  readonly tap?: TrafficTap
 }
 
 type ClientEvent = { readonly device?: string; readonly event: DeviceEvent }
@@ -84,9 +87,19 @@ export function makeIndiClient(options: IndiClientOptions): Effect.Effect<IndiCl
       publish({ event: { type: 'connection', status: next } })
     }
 
+    const tap = options.tap
+
+    // The one place Cria writes to indiserver: what it meant to send is recorded before the write.
+    const transmit = (request: IndiRequest, current: net.Socket, onWritten?: (error?: Error | null) => void) => {
+      const text = serialize(request)
+
+      tap?.message({ conn: connectionNumber, dir: 'out', xml: text, blobs: [] })
+      current.write(text, onWritten)
+    }
+
     const write = (request: IndiRequest, current: net.Socket) =>
       Effect.callback<void, IndiError>(resume => {
-        current.write(serialize(request), error => {
+        transmit(request, current, error => {
           resume(
             error
               ? Effect.fail(new IndiError({ reason: 'connection-lost', message: `INDI write failed: ${error.message}` }))
@@ -105,7 +118,7 @@ export function makeIndiClient(options: IndiClientOptions): Effect.Effect<IndiCl
 
     const receive = (message: IndiMessage, current: net.Socket) => {
       if (message.type === 'pingRequest') {
-        current.write(serialize({ type: 'pingReply', uid: message.uid }))
+        transmit({ type: 'pingReply', uid: message.uid }, current)
 
         return
       }
@@ -123,12 +136,20 @@ export function makeIndiClient(options: IndiClientOptions): Effect.Effect<IndiCl
       socket = current
       current.setNoDelay(true)
       current.on('connect', () => {
+        tap?.connection({ conn: connectionNumber, status: 'connected' })
         setStatus({ kind: 'connected', since: Date.now() })
-        current.write(serialize({ type: 'getProperties' }))
+        transmit({ type: 'getProperties' }, current)
       })
       current.on('data', (chunk: Buffer) => {
         try {
-          for (const message of framer.push(chunk)) receive(message, current)
+          if (tap) {
+            for (const { message, xml, blobs } of framer.pushFramed(chunk)) {
+              tap.message({ conn: connectionNumber, dir: 'in', xml, blobs })
+              if (message) receive(message, current)
+            }
+          } else {
+            for (const message of framer.push(chunk)) receive(message, current)
+          }
         } catch (error) {
           current.destroy(error instanceof Error ? error : new Error(String(error)))
         }
@@ -136,7 +157,10 @@ export function makeIndiClient(options: IndiClientOptions): Effect.Effect<IndiCl
       current.on('error', error => {
         lastError = error.message
       })
-      current.on('close', () => resume(Effect.succeed(lastError)))
+      current.on('close', () => {
+        tap?.connection({ conn: connectionNumber, status: 'closed', error: lastError })
+        resume(Effect.succeed(lastError))
+      })
 
       return Effect.sync(() => current.destroy())
     })

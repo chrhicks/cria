@@ -115,3 +115,66 @@ describe('INDI values', () => {
     expect(() => serialize({ type: 'new', kind: 'number', device: 'D', name: 'N', values: { V: Number.NaN } })).toThrow()
   })
 })
+
+describe('INDI framing for the traffic tap', () => {
+  const blobVector = (elements: string) => `<setBLOBVector device="CCD" name="CCD1" state="Ok" timestamp="2026-10-18T01:02:03">${elements}</setBLOBVector>`
+
+  it('keeps an element ignored by the parser, with its wire text', () => {
+    const framed = new IndiFramer().pushFramed(Buffer.from('<message device="CCD" message="hello &amp; bye"/>'))
+
+    expect(framed).toEqual([{ message: undefined, xml: '<message device="CCD" message="hello &amp; bye"/>', blobs: [] }])
+  })
+
+  it('elides every BLOB payload and hands back the decoded bytes in document order', () => {
+    const wire = blobVector(
+      '<oneBLOB name="CCD1" size="3" format=".fits">AQID</oneBLOB><oneBLOB name="CCD2" size="2" format=".fits">\nBAU=\n</oneBLOB>',
+    )
+    const [element] = new IndiFramer().pushFramed(Buffer.from(wire))
+
+    expect(element!.xml).toBe(blobVector('<oneBLOB name="CCD1" size="3" format=".fits"/><oneBLOB name="CCD2" size="2" format=".fits"/>'))
+    expect(element!.blobs.map(blob => [...blob])).toEqual([[1, 2, 3], [4, 5]])
+  })
+
+  it('keeps a self-closing oneBLOB in place and counts it as an empty payload', () => {
+    const [element] = new IndiFramer().pushFramed(
+      Buffer.from(blobVector('<oneBLOB name="A" size="0" format=".fits"/><oneBLOB name="B" size="1" format=".fits">AQ==</oneBLOB>')),
+    )
+
+    expect(element!.xml).toBe(blobVector('<oneBLOB name="A" size="0" format=".fits"/><oneBLOB name="B" size="1" format=".fits"/>'))
+    expect(element!.blobs.map(blob => [...blob])).toEqual([[], [1]])
+  })
+
+  it('frames real indiserver traffic the same however the bytes are split, and never changes what push returns', () => {
+    const whole = new IndiFramer().pushFramed(recorded)
+
+    expect(whole.map(element => element.message).filter(message => message !== undefined)).toEqual(parseInChunks(recorded, () => recorded.length))
+
+    for (const seed of [3, 11, 99]) {
+      const framer = new IndiFramer()
+      const sizes = chunkSizes(seed)
+      const split = []
+
+      for (let at = 0; at < recorded.length; ) {
+        const size = Math.max(1, sizes())
+
+        split.push(...framer.pushFramed(recorded.subarray(at, at + size)))
+        at += size
+      }
+
+      expect(split.map(element => element.xml)).toEqual(whole.map(element => element.xml))
+      expect(split.map(element => element.blobs.map(blob => blob.toString('base64')))).toEqual(whole.map(element => element.blobs.map(blob => blob.toString('base64'))))
+    }
+  })
+
+  it('gives the exposure BLOB of the real traffic as one elided element and the FITS bytes', () => {
+    const framed = new IndiFramer().pushFramed(recorded).filter(element => element.blobs.some(blob => blob.length > 0))
+
+    expect(framed).toHaveLength(1)
+    expect(framed[0]!.xml).toBe(
+      '<setBLOBVector device="CCD Simulator" name="CCD1" state="Ok" timeout="60" timestamp="2026-10-15T03:27:32">\n' +
+        '    <oneBLOB name="CCD1" size="14400" format=".fits" len="14400"/>\n' +
+        '</setBLOBVector>',
+    )
+    expect(framed[0]!.blobs[0]!.toString('latin1', 0, 6)).toBe('SIMPLE')
+  })
+})

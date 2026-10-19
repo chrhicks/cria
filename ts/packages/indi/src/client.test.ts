@@ -2,6 +2,7 @@ import { Effect, Option, Scope } from 'effect'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { startIndiServer, type RunningIndiServer } from '../../../testing/indiserver.js'
 import { makeIndiClient, type IndiClient } from './client.js'
+import type { TappedConnection, TappedMessage } from './tap.js'
 
 let server: RunningIndiServer
 
@@ -92,4 +93,43 @@ describe('INDI client against a real indiserver', () => {
         expect(error.reason).toBe('unknown-property')
       }),
     ))
+
+  it('tells the tap about the connection and every element, in the order it saw them', async () => {
+    const tapped: Array<TappedConnection | TappedMessage> = []
+    const tap = { message: (message: TappedMessage) => void tapped.push(message), connection: (connection: TappedConnection) => void tapped.push(connection) }
+
+    await Effect.runPromise(
+      Effect.scoped(
+        Effect.gen(function* () {
+          const client = yield* makeIndiClient({ host: '127.0.0.1', port: server.port, tap })
+          const focuser = client.device('Focuser Simulator')
+
+          yield* waitFor(focuser.property('CONNECTION'))
+          yield* focuser.send('CONNECTION', { CONNECT: true })
+          yield* waitFor(focuser.property('ABS_FOCUS_POSITION'))
+        }),
+      ),
+    )
+
+    const sent = tapped.filter((item): item is TappedMessage => 'dir' in item && item.dir === 'out')
+    const received = tapped.filter((item): item is TappedMessage => 'dir' in item && item.dir === 'in')
+
+    expect(tapped[0]).toEqual({ conn: 1, status: 'connected' })
+    expect(tapped[1]).toEqual({ conn: 1, dir: 'out', xml: '<getProperties version="1.7"/>\n', blobs: [] })
+    expect(sent.map(message => message.xml.split('\n')[0])).toEqual([
+      '<getProperties version="1.7"/>',
+      '<newSwitchVector device="Focuser Simulator" name="CONNECTION">',
+    ])
+    expect(received.some(message => message.xml.startsWith('<defSwitchVector device="Focuser Simulator" name="CONNECTION"'))).toBe(true)
+
+    await until(() => tapped.some(item => 'status' in item && item.status === 'closed'))
+    expect(tapped.at(-1)).toMatchObject({ conn: 1, status: 'closed' })
+  })
 })
+
+async function until(done: () => boolean) {
+  for (let waited = 0; !done(); waited += 20) {
+    if (waited > 2000) throw new Error('Timed out waiting for the tap to see the socket close')
+    await new Promise(resolve => setTimeout(resolve, 20))
+  }
+}

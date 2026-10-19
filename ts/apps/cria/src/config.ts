@@ -69,6 +69,15 @@ const Device = Schema.Struct({
   travel: Schema.optionalKey(FocuserTravel),
 })
 
+/** Record Cria's INDI traffic into `dir` (docs/ts/SPEC.md, "Recording"). Absent means off. */
+const Record = Schema.Struct({
+  dir: Name,
+  /** Recording stops for good when it would leave less than this free on the disk, in GiB. */
+  reserveGb: Schema.Number.pipe(Schema.check(Schema.isBetween({ minimum: 0, maximum: 100_000 }))),
+  /** The most memory a stalled disk can make recording hold before it stops, in MiB. One image can be 52 MB. */
+  queueMb: Schema.Number.pipe(Schema.check(Schema.isInt(), Schema.isBetween({ minimum: 1, maximum: 65_536 }))),
+})
+
 export const ConfigSchema = Schema.Struct({
   listen: Schema.Struct({ host: Schema.String, port: Port }),
   indi: Schema.Struct({ host: Schema.String, port: Port }),
@@ -85,6 +94,7 @@ export const ConfigSchema = Schema.Struct({
   /** How long a cold device may take to connect at start (Pegasus took 40-82 s on Windows). */
   initializeTimeoutMs: Milliseconds(1000, 300_000),
   operationHistory: Schema.Number.pipe(Schema.check(Schema.isInt(), Schema.isBetween({ minimum: 10, maximum: 100_000 }))),
+  record: Schema.optionalKey(Record),
   devices: Schema.Array(Device).pipe(Schema.check(Schema.isBetweenLength(1, 16))),
 })
 
