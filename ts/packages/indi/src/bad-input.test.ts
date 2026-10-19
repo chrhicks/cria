@@ -150,6 +150,58 @@ describe('what the framer and parser do with unexpected input', () => {
     expect(framer().frame(Buffer.from(`<setBLOBVector device="D" name="CCD1" state="Ok">${'x'.repeat(6000)}`), true).stopped).toMatchObject({ scope: 'stream' })
   })
 
+  it('applies the size limit however the bytes arrive: whole in one chunk, or in small ones', () => {
+    const limits = { element: 1000, blob: 5000 }
+    const sized = (tag: string, bytes: number) => {
+      const open = `<${tag} device="D" name="N" state="Ok"><one name="T">`
+      const close = `</one></${tag}>`
+
+      return `${open}${'x'.repeat(bytes - open.length - close.length)}${close}`
+    }
+    const deliver = (wire: string, size: number) => {
+      const framer = new IndiFramer(limits)
+      const results = Array.from({ length: Math.ceil(wire.length / size) }, (_, i) => framer.frame(Buffer.from(wire.slice(i * size, (i + 1) * size)), true))
+
+      return { elements: results.flatMap(result => result.elements), stopped: results.find(result => result.stopped)?.stopped }
+    }
+
+    for (const size of [100_000, 64, 1]) {
+      const over = deliver(sized('defTextVector', 1001), size)
+      const exactly = deliver(sized('defTextVector', 1000), size)
+      const blobOver = deliver(sized('setBLOBVector', 5001), size)
+      const blobExactly = deliver(sized('setBLOBVector', 5000), size)
+
+      expect(over.stopped, `1001 bytes in ${size}`).toMatchObject({ scope: 'stream', reason: expect.stringMatching(/larger than 1000 bytes/) })
+      expect(over.elements).toHaveLength(0)
+      expect(exactly.stopped, `1000 bytes in ${size}`).toBeUndefined()
+      expect(exactly.elements).toHaveLength(1)
+      expect(blobOver.stopped, `BLOB 5001 bytes in ${size}`).toMatchObject({ scope: 'stream', reason: expect.stringMatching(/larger than 5000 bytes/) })
+      expect(blobExactly.stopped, `BLOB 5000 bytes in ${size}`).toBeUndefined()
+    }
+  })
+
+  it('applies the same limit to a tag that never ends and to a comment that never ends', () => {
+    for (const start of ['<defTextVector device="D"', '<!-- ']) {
+      const framer = new IndiFramer({ element: 1000, blob: 5000 })
+
+      expect(framer.frame(Buffer.from(`${start}${'x'.repeat(900)}`), true)).toEqual({ elements: [] })
+      expect(framer.frame(Buffer.from('x'.repeat(200)), true).stopped).toMatchObject({ scope: 'stream', reason: expect.stringMatching(/larger than 1000 bytes/) })
+    }
+  })
+
+  it('drops a complete 9 MiB element that is not a BLOB, delivered whole or in 64 KiB chunks', () => {
+    const wire = Buffer.from(`<defTextVector device="D" name="N" state="Idle" perm="ro"><defText name="T">${'x'.repeat(9 * 1024 * 1024)}</defText></defTextVector>`)
+
+    for (const size of [wire.length, 64 * 1024]) {
+      const framer = new IndiFramer()
+      const results = []
+
+      for (let at = 0; at < wire.length; at += size) results.push(framer.frame(wire.subarray(at, at + size), false))
+      expect(results.flatMap(result => result.elements), `chunks of ${size}`).toHaveLength(0)
+      expect(results.find(result => result.stopped)?.stopped, `chunks of ${size}`).toMatchObject({ scope: 'stream', reason: expect.stringMatching(/larger than 8388608 bytes/) })
+    }
+  })
+
   it('stops at a tag that is not a tag, and reads nothing more', () => {
     const { elements, stopped, framer } = frame('<1bad device="D">')
 

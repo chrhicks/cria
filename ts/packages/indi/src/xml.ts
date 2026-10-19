@@ -191,13 +191,24 @@ export class IndiFramer {
       this.start = open
       const headerEnd = this.buffer.indexOf(GT, open)
 
-      if (headerEnd < 0 || headerEnd >= this.length) return undefined
+      if (headerEnd < 0 || headerEnd >= this.length) {
+        this.within(this.length - open, this.limits.element)
+
+        return undefined
+      }
+
+      this.within(headerEnd + 1 - open, this.limits.element)
       const header = this.buffer.toString('utf8', open + 1, headerEnd)
 
       if (header.startsWith('?') || header.startsWith('!')) {
         const after = this.skipDeclaration(open)
 
-        if (after < 0) return undefined
+        if (after < 0) {
+          this.within(this.length - open, this.limits.element)
+
+          return undefined
+        }
+
         this.start = after
 
         return this.nextElement()
@@ -221,19 +232,25 @@ export class IndiFramer {
 
     if (close < 0 || close + this.closing.length > this.length) {
       this.searchFrom = Math.max(this.start, this.length - this.closing.length)
-      if (this.length - this.start > this.limit)
-        throw new IndiProtocolError(`INDI element is larger than ${this.limit} bytes and has not closed`, 'stream')
+      this.within(this.length - this.start, this.limit)
 
       return undefined
     }
 
     const end = close + this.closing.length
+
+    // The same limit as while waiting, so it does not depend on how the bytes were split into chunks.
+    this.within(end - this.start, this.limit)
     const element = this.buffer.subarray(this.start, end)
 
     this.start = end
     this.closing = undefined
 
     return element
+  }
+
+  private within(bytes: number, limit: number) {
+    if (bytes > limit) throw new IndiProtocolError(`INDI element is larger than ${limit} bytes`, 'stream')
   }
 
   /** Comments and processing instructions carry nothing for a client. */
