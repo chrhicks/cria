@@ -17,7 +17,7 @@ export interface SynthSpec {
   readonly mount?: string
   /** Adds a focuser with this INDI name, so a replay can refuse its moves. None by default. */
   readonly focuser?: string
-  /** Big enough for the stars: a star is 3x3 pixels. */
+  /** Big enough for the stars: see `starCapacity`. */
   readonly sensor: { readonly width: number; readonly height: number }
   readonly exposureSeconds: number
   /** One entry per frame: how many stars it shows (the first that many of a fixed field). A snag is `[12, 12, 12, 0, 0]`. */
@@ -26,6 +26,8 @@ export interface SynthSpec {
   readonly site: { readonly latitudeDegrees: number; readonly longitudeDegrees: number }
   /** Epoch milliseconds the recording starts. */
   readonly startAt: number
+  /** Which side of the pier the mount reports (`TELESCOPE_PIER_SIDE`). The property is absent unless this is given. */
+  readonly pierSide?: 'east' | 'west'
   /** Where the mount points while it tracks. */
   readonly pointing: { readonly raHours: number; readonly decDegrees: number }
   /** The frames the mount tracks for: from `from` to before `until` (null: to the end). Default: all. Off, its RA drifts at the sidereal rate. */
@@ -47,20 +49,39 @@ function rng(seed: number) {
   }
 }
 
-/** A fits frame of noise around 1000, with `stars` bright 3x3 stars at fixed places. */
+const starPitch = 32
+const starMargin = 24
+const starSigma = 2
+const starAmplitude = 20000
+
+function starColumns(width: number): number {
+  return width < 2 * starMargin ? 0 : Math.floor((width - 2 * starMargin) / starPitch) + 1
+}
+
+/**
+ * How many stars a sensor holds. Stars sit on a grid 32 pixels apart, 24 pixels from the edge, so
+ * a star-measuring client finds each one isolated and whole: Gaussians with a sigma of 2 pixels.
+ */
+export function starCapacity(sensor: SynthSpec['sensor']): number {
+  return starColumns(sensor.width) * (sensor.height < 2 * starMargin ? 0 : Math.floor((sensor.height - 2 * starMargin) / starPitch) + 1)
+}
+
+/** A fits frame of noise around 1000, with `stars` Gaussian stars at fixed places on the grid. */
 function render(spec: SynthSpec, index: number, startedAt: number): Buffer {
   const { width, height } = spec.sensor
   const frame = fitsFrame(width, height, { exptime: spec.exposureSeconds, startedAt })
   const noise = rng(1000 + index)
-  const place = rng(7)
   const pixels = new Int32Array(width * height)
+  const columns = starColumns(width)
 
   for (let at = 0; at < pixels.length; at++) pixels[at] = 1000 + Math.floor(noise() * 20)
   for (let star = 0; star < spec.stars[index]!; star++) {
-    const x = 1 + Math.floor(place() * (width - 2))
-    const y = 1 + Math.floor(place() * (height - 2))
+    const cx = starMargin + (star % columns) * starPitch
+    const cy = starMargin + Math.floor(star / columns) * starPitch
 
-    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) pixels[(y + dy) * width + x + dx] = (dx === 0 && dy === 0 ? 40000 : 15000)
+    for (let y = cy - 10; y <= cy + 10; y++)
+      for (let x = cx - 10; x <= cx + 10; x++)
+        pixels[y * width + x]! += Math.round(starAmplitude * Math.exp(-((x - cx) ** 2 + (y - cy) ** 2) / (2 * starSigma ** 2)))
   }
 
   pixels.forEach((value, at) => frame.writeInt16BE(value - 32768, 2880 + at * 2))
@@ -72,6 +93,12 @@ const attribute = (value: string) => value.replace(/&/g, '&amp;').replace(/"/g, 
 
 /** Writes the recording to `into` (created if needed) and returns it. */
 export async function synthesizeTape(spec: SynthSpec, into: string): Promise<string> {
+  const capacity = starCapacity(spec.sensor)
+
+  spec.stars.forEach((count, frame) => {
+    if (count > capacity) throw new Error(`Frame ${frame} asks for ${count} stars; a ${spec.sensor.width}x${spec.sensor.height} sensor holds ${capacity}`)
+  })
+
   const folder = resolve(into)
   const camera = spec.camera ?? 'Synthetic Camera'
   const mount = spec.mount ?? 'Synthetic Mount'
@@ -115,6 +142,8 @@ export async function synthesizeTape(spec: SynthSpec, into: string): Promise<str
     fake.define({ device: spec.focuser, name: 'ABS_FOCUS_POSITION', kind: 'number', perm: 'rw', state: 'Ok', elements: { FOCUS_ABSOLUTE_POSITION: { value: 5000, min: 0, max: 10000, step: 1 } } })
     fake.define({ device: spec.focuser, name: 'FOCUS_ABORT_MOTION', kind: 'switch', perm: 'rw', rule: 'AtMostOne', state: 'Idle', elements: { ABORT: { value: false } } })
   }
+  if (spec.pierSide !== undefined)
+    fake.define({ device: mount, name: 'TELESCOPE_PIER_SIDE', kind: 'switch', perm: 'ro', rule: 'OneOfMany', state: 'Ok', elements: { PIER_EAST: { value: spec.pierSide === 'east' }, PIER_WEST: { value: spec.pierSide === 'west' } } })
   const position = fake.vector(mount, 'EQUATORIAL_EOD_COORD').elements
   const site = fake.vector(mount, 'GEOGRAPHIC_COORD').elements
   const trackState = fake.vector(mount, 'TELESCOPE_TRACK_STATE').elements
