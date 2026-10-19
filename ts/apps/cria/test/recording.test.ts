@@ -42,7 +42,7 @@ afterEach(async () => {
 const only = async (dir: string) => join(dir, (await readdir(dir))[0]!)
 
 async function started(record: object, files?: (folder: string) => Promise<RecordingFiles>) {
-  cria = await startCria(indi.port, [camera], { record: { dir: directory, ...record } }, { recording: { closeBudgetMs: 200, ...(files ? { files } : {}) } })
+  cria = await startCria(indi.port, [camera], { record: { dir: directory, ...record } }, { recording: { budgetMs: 200, ...(files ? { files } : {}) } })
   await cria.waitFor(allReady(['primary']))
 
   return cria
@@ -116,6 +116,49 @@ describe('a stalled disk', () => {
     expect(recorder.latched()).toBe('queue-full')
     expect(Math.max(...peaks)).toBeLessThanOrEqual(4 * 1024 ** 2)
     expect(recorder.queuedBytes()).toBeLessThan(4 * 1024 ** 2)
+  })
+})
+
+describe('a disk that hangs', () => {
+  const opened: RecordingFiles[] = []
+
+  afterEach(async () => {
+    await Promise.allSettled(opened.splice(0).map(files => files.close()))
+  })
+
+  const hanging = (methods: Partial<Record<keyof RecordingFiles, true>>) => async (folder: string): Promise<RecordingFiles> => {
+    const real = await openRecordingFiles(folder)
+
+    opened.push(real)
+    const stall = <A>() => new Promise<A>(() => undefined)
+
+    return {
+      ...real,
+      ...(methods.syncFile ? { syncFile: () => stall<void>() } : {}),
+      ...(methods.appendLine ? { appendLine: () => stall<void>() } : {}),
+      ...(methods.close ? { close: () => stall<void>() } : {}),
+    }
+  }
+
+  it('does not hold up start: Cria observes and captures with no recording', async () => {
+    const before = Date.now()
+    const running = await started({ reserveGb: 0, queueMb: 4 }, hanging({ syncFile: true }))
+
+    expect(Date.now() - before).toBeLessThan(5000)
+    expect(running.service.rig.recorder).toBeUndefined()
+    expect((await running.run('primary', 'capture', { exposureSeconds: 0.2, light: true })).kind).toBe('confirmed')
+  })
+
+  it('does not hold up shutdown, even when the traffic file cannot close until its write returns', async () => {
+    const running = await started({ reserveGb: 0, queueMb: 4 }, hanging({ appendLine: true, close: true }))
+
+    await running.run('primary', 'capture', { exposureSeconds: 0.2, light: true })
+    const before = Date.now()
+
+    await running.stop()
+    cria = undefined
+
+    expect(Date.now() - before).toBeLessThan(3000)
   })
 })
 

@@ -1162,8 +1162,9 @@ may have left a torn line, logs once, and takes no more entries for the rest of
 that run. It never resumes, because a half-written line in the middle of the file
 would corrupt everything after it. Cria keeps observing, and no capture waits on
 the disk. The next Cria start opens a new recording. A recorder that cannot open
-at start is logged and Cria runs unrecorded. Closing waits at most five seconds
-for a stalled disk, then abandons the recording.
+at start, or has not opened after five seconds on a stalled disk, is logged and
+Cria runs unrecorded. Closing waits at most five seconds for a stalled disk, then
+lets go of the recording without waiting for its file.
 
 `verifyRecording(folder)` reports `valid` (no problems), whether Cria `ended`
 cleanly, a torn tail, a count of lines, messages and images, the gaps, and

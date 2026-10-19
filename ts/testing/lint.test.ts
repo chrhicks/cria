@@ -34,7 +34,7 @@ const allowed: Record<string, Partial<Record<Rule, readonly [count: number, why:
     'try-catch': [2, 'a line that is not JSON, and a manifest that cannot be read, are reported as damage, not thrown'],
   },
   'packages/recording/src/recorder.ts': {
-    'try-catch': [3, 'a failed write, a bug building an entry and a failed close each stop recording and never reach Cria or the socket'],
+    'try-catch': [4, 'a failed write, a bug building an entry, a failed close and a manifest that cannot be written each stop recording and never reach Cria or the socket'],
     'wall-clock': [1, 'a recorded line carries its wall-clock time'],
   },
   'apps/cria/src/recording.ts': { 'catch-all': [1, 'a recording that cannot open is logged and Cria runs without it'] },
