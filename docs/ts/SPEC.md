@@ -411,7 +411,7 @@ the same tag in their doc comment.
 | `apps/cria/src/capability/connection.ts` | Capability: connection | writeOnce, confirm; serial port before connecting; device setup after |
 | `apps/cria/src/capability/setup.ts` | Capability: device setup | writeOnce, confirm; the table of setup steps per device kind (see "Device setup") |
 | `apps/cria/src/operation/workflows.ts` | Workflow bodies | One short body per operation kind over one capability, as a table keyed by kind |
-| `apps/cria/src/operation/ledger.ts` | Run (with history), Quarantine | The one owner of operations per rig (see "The ledger") |
+| `apps/cria/src/operation/ledger.ts` | Run (with history), Quarantine | The one owner of operations per rig (see "The ledger"); `onSettled` announces each settled operation once |
 | `apps/cria/src/refusal.ts` | Wire boundary | `Refusal`, a tagged error with a closed `ErrorCode`; the HTTP layer maps it to a status |
 | `apps/cria/src/ids.ts` | Composition | `mint`: new instance, operation, image and binding IDs, and start-up request IDs |
 | `apps/cria/src/image/fits.ts` | Image boundary | FITS (INDI BLOB) to ASCOM ImageBytes v1 |
@@ -1132,7 +1132,15 @@ Each Cria start opens one folder, `<start time>-<instanceId>`, under `dir`:
 - `traffic.jsonl`, one JSON line per event in the order Cria saw them:
   `msg` (`t`, `at`, `conn`, `dir` `in` or `out`, `n` counting from 0 per
   connection and direction, the element's wire `xml`, and `blobs`), `conn` (a
-  TCP session opened or closed), `gap` and `end`. A missing `end` means Cria died.
+  TCP session opened or closed), `op`, `gap` and `end`. A missing `end` means Cria died.
+- `op` is an operation that has just settled, written from the ledger's
+  `onSettled` hook: the operation exactly as protocol 5 shows it, so the packager
+  has Cria's own times for it (`acceptedAt`, `startedAt`, `settledAt`) on the same
+  clock as the INDI lines, and joins a write to its operation by the time window
+  without a clock shared with Vela. Each settled operation is one `op` line. Lines for
+  operations on different devices can swap by a few milliseconds; each carries its
+  own `settledAt`. The `recovery` field is `null`, as at the moment of
+  settling.
 - `blobs/<connection>-<n>-<index>.blob`, one file per image payload, in the
   `msg` line's `blobs` and named by a `ref` on the elided `<oneBLOB .../>` in its
   `xml`. Nothing is hashed on errai.
@@ -1167,7 +1175,7 @@ Cria runs unrecorded. Closing waits at most five seconds for a stalled disk, the
 lets go of the recording without waiting for its file.
 
 `verifyRecording(folder)` reports `valid` (no problems), whether Cria `ended`
-cleanly, a torn tail, a count of lines, messages and images, the gaps, and
+cleanly, a torn tail, a count of lines, messages, operations and images, the gaps, and
 unreferenced files. A torn last line, a gap, a missing `end` and unreferenced files
 are not problems. These are: a line that does not decode, a referenced image
 that is missing, a message count that skips (a deleted line), time running

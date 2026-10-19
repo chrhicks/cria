@@ -224,6 +224,13 @@ function progress(state: LedgerState, input: { readonly id: OperationId; readonl
   return [step(undefined), changed(state, { operations: put(state.operations, operation.id, { ...operation, progress: input.progress }) })]
 }
 
+/** A running operation, ended. `settle` and the announcement of a settle both build it here. */
+function endedOf(operation: Running, input: { readonly outcome: Outcome<OperationResult>; readonly settledAt: number }): Ended {
+  const { progress: _, ...started } = operation
+
+  return { ...started, state: 'settled', settledAt: input.settledAt, outcome: input.outcome }
+}
+
 export function settle(
   rules: Rules,
   state: LedgerState,
@@ -232,8 +239,7 @@ export function settle(
   const operation = state.operations.get(input.id)
 
   if (operation?.state !== 'running') return [step(undefined), state]
-  const { progress: _, ...started } = operation
-  const ended: Ended = { ...started, state: 'settled', settledAt: input.settledAt, outcome: input.outcome }
+  const ended = endedOf(operation, input)
   const domain = known(state.domains, operation.failureDomain)
   const next = openIn(state, operation.failureDomain).find((open): open is Waiting => open.state === 'waiting')
   const following: Running | undefined = next && { ...next, state: 'running', startedAt: input.now, progress: initialProgress }
@@ -380,6 +386,11 @@ export interface LedgerOptions {
   readonly commandsEnabled: boolean
   readonly history: number
   readonly devices: ReadonlyArray<LedgerDevice>
+  /**
+   * Called once, right after an operation settles, with the operation as the
+   * ledger now holds it. Must return at once and not throw.
+   */
+  readonly onSettled?: (operation: Settled) => void
 }
 
 const answer = <A>(result: A | Refusal): Effect.Effect<A, Refusal> => (result instanceof Refusal ? Effect.fail(result) : Effect.succeed(result))
@@ -416,6 +427,21 @@ export function makeLedger(options: LedgerOptions): Effect.Effect<Ledger, never,
         Effect.map(({ done }) => done.result),
       )
 
+    // Settling is the one transition whose result callers also want announced; the pure `settle` stays as it is.
+    const settleAndAnnounce = (input: { readonly id: OperationId; readonly outcome: Outcome<OperationResult>; readonly settledAt: number; readonly now: number }) => {
+      let announced: Settled | undefined
+
+      return apply(current => {
+        const transition = settle(rules, current, input)
+        const running = current.operations.get(input.id)
+
+        // Not read back from the new state: `settle` prunes by age, so an old operation can be gone from it already.
+        announced = running?.state === 'running' ? settledView(transition[1], endedOf(running, input)) : undefined
+
+        return transition
+      }).pipe(Effect.andThen(Effect.sync(() => announced && options.onSettled?.(announced))))
+    }
+
     function perform(after: After): Effect.Effect<void> {
       switch (after.kind) {
         case 'start': {
@@ -425,14 +451,12 @@ export function makeLedger(options: LedgerOptions): Effect.Effect<Ledger, never,
             .start(operation.id, operation)
             .pipe(
               Effect.catchTag('Failed', refused =>
-                apply(current =>
-                  settle(rules, current, {
-                    id: operation.id,
-                    outcome: { kind: 'uncertain', reason: 'unexpected-error', message: `Run refused a start the ledger reserved: ${refused.message}` },
-                    settledAt: Date.now(),
-                    now: Date.now(),
-                  }),
-                ),
+                settleAndAnnounce({
+                  id: operation.id,
+                  outcome: { kind: 'uncertain', reason: 'unexpected-error', message: `Run refused a start the ledger reserved: ${refused.message}` },
+                  settledAt: Date.now(),
+                  now: Date.now(),
+                }),
               ),
             )
         }
@@ -448,7 +472,7 @@ export function makeLedger(options: LedgerOptions): Effect.Effect<Ledger, never,
       if (update.state === 'running') return apply(current => progress(current, { id: update.runId, progress: update.progress }))
       const now = Date.now()
 
-      return apply(current => settle(rules, current, { id: update.runId, outcome: update.outcome, settledAt: update.settledAt, now }))
+      return settleAndAnnounce({ id: update.runId, outcome: update.outcome, settledAt: update.settledAt, now })
     }
 
     for (const run of runs.values()) yield* Effect.forkIn(Stream.runForEach(run.changes, follow), scope)

@@ -165,6 +165,36 @@ describe('shutdown', () => {
   })
 })
 
+describe('settled operations', () => {
+  const operation = { id: 'op-1', requestId: 'req-1', state: 'settled', kind: 'capture', outcome: { kind: 'confirmed', value: { values: {}, image: null } }, settledAt: 1_700_000_000_000 } as const
+
+  it('are lines among the messages, in the order offered, with every field of the operation kept', async () => {
+    const { recorder } = await start()
+
+    recorder.message({ conn: 1, dir: 'out', xml: '<getProperties version="1.7"/>\n', blobs: [] })
+    recorder.operation(operation)
+    recorder.message({ conn: 1, dir: 'in', xml: '<message/>', blobs: [] })
+    await recorder.close()
+
+    const lines = []
+
+    for await (const line of readRecording(recorder.folder)) lines.push(line)
+
+    expect(lines.map(line => line.k)).toEqual(['msg', 'op', 'msg', 'end'])
+    expect(lines[1]).toMatchObject({ k: 'op', operation })
+    expect(await verifyRecording(recorder.folder)).toMatchObject({ valid: true, ended: true, messages: 2, operations: 1 })
+  })
+
+  it('count against the queue like anything else, and stop recording when it is full', async () => {
+    const { recorder } = await start({ queueBytes: 600, files: real => ({ ...real, appendLine: () => new Promise<void>(() => undefined) }) })
+
+    for (let i = 0; i < 10; i += 1) recorder.operation(operation)
+
+    expect(recorder.latched()).toBe('queue-full')
+    expect(recorder.queuedBytes()).toBeLessThanOrEqual(600)
+  })
+})
+
 describe('withRefs', () => {
   it('names each elided payload in turn, whatever else the tag carries', () => {
     expect(withRefs('<x><oneBLOB name="A" size="1" len="1"/><oneBLOB name="B" size="2" format=".fits" /></x>', ['blobs/1-0-0.blob', 'blobs/1-0-1.blob'])).toBe(
