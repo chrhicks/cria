@@ -1,0 +1,27 @@
+{
+  "name": "@cria/indi-replay",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "indi-replay: serves a Cria recording over TCP like indiserver, for running the real Cria against a recorded night",
+  "bin": {
+    "indi-replay": "./dist/main.js"
+  },
+  "exports": {
+    ".": {
+      "@cria/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test.json"
+  },
+  "dependencies": {
+    "@cria/fake-indi": "workspace:*",
+    "@cria/fits": "workspace:*",
+    "@cria/recording": "workspace:*",
+    "effect": "4.0.3"
+  }
+}

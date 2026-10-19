@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { FitsError, fitsToImageBytes } from './fits.js'
+import { FitsError, fitsToImageBytes, flattened, readFitsHeader, withExposure } from './fits.js'
 
 function fits(cards: ReadonlyArray<string>, data: Buffer): Buffer {
   const header = Buffer.from([...cards, 'END'].map(card => card.padEnd(80)).join('').padEnd(2880))
@@ -75,5 +75,49 @@ describe('fitsToImageBytes', () => {
     expect(() => fitsToImageBytes(cube, { width: 1, height: 1 })).toThrow(new FitsError('Only two-dimensional frames are supported (NAXIS 3)'))
     expect(() => fitsToImageBytes(noWidth, { width: 1, height: 1 })).toThrow(new FitsError('FITS header lacks NAXIS1'))
     expect(() => fitsToImageBytes(noEnd, { width: 1, height: 1 })).toThrow(new FitsError('FITS header has no END card'))
+  })
+})
+
+describe('withExposure', () => {
+  const stamped = (extra: ReadonlyArray<string> = []) =>
+    unsigned16([`EXPTIME = ${'1'.padStart(20)}`, `DATE-OBS= '2026-10-15T01:02:03.500'`, `CHECKSUM= 'abcdefgh12345678'`, ...extra, `DATASUM = '123'`])
+
+  it('replaces EXPTIME and DATE-OBS, drops CHECKSUM and DATASUM, and keeps the data bytes', () => {
+    const source = stamped()
+    const copy = withExposure(source, { seconds: 2.5, startedAt: Date.parse('2026-10-18T22:30:05.250Z') })
+    const { cards, dataStart } = readFitsHeader(copy)
+
+    expect(cards.get('EXPTIME')).toBe('2.5')
+    expect(cards.get('DATE-OBS')).toBe('2026-10-18T22:30:05.250')
+    expect([...cards.keys()]).toEqual(['SIMPLE', 'BITPIX', 'NAXIS', 'NAXIS1', 'NAXIS2', 'BZERO', 'BSCALE', 'EXPTIME', 'DATE-OBS'])
+    expect(copy.subarray(dataStart).equals(source.subarray(readFitsHeader(source).dataStart))).toBe(true)
+    expect(fitsToImageBytes(copy, { width: 3, height: 2 })).toMatchObject({ capturedAt: Date.parse('2026-10-18T22:30:05.250Z') })
+  })
+
+  it('adds the two cards before END when the source has neither', () => {
+    const copy = withExposure(unsigned16(), { seconds: 1, startedAt: 0 })
+
+    expect([...readFitsHeader(copy).cards.entries()].slice(-2)).toEqual([['EXPTIME', '1'], ['DATE-OBS', '1970-01-01T00:00:00.000']])
+  })
+
+  it('grows the header by a whole block when it has no room', () => {
+    const crowded = Array.from({ length: 28 }, (_, index) => `KEY${index}`.padEnd(8) + '= 1')
+    const source = unsigned16(crowded)
+    const copy = withExposure(source, { seconds: 1, startedAt: 0 })
+
+    expect(readFitsHeader(source).dataStart).toBe(2880)
+    expect(copy.length).toBe(2880 * 3)
+    expect(readFitsHeader(copy).dataStart).toBe(2880 * 2)
+    expect(fitsToImageBytes(copy, { width: 3, height: 2 }).bytes).toEqual(fitsToImageBytes(source, { width: 3, height: 2 }).bytes)
+  })
+})
+
+describe('flattened', () => {
+  it('sets every pixel to the first one and leaves the header alone', () => {
+    const source = unsigned16()
+    const flat = flattened(source)
+
+    expect(flat.subarray(0, 2880).equals(source.subarray(0, 2880))).toBe(true)
+    expect(flat.subarray(2880, 2880 + 12).toString('hex')).toBe('800180018001800180018001')
   })
 })

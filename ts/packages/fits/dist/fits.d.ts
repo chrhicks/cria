@@ -25,4 +25,22 @@ export declare function fitsToImageBytes(fits: Buffer, expected: {
     readonly width: number;
     readonly height: number;
 }): ConvertedImage;
+export interface Exposure {
+    readonly seconds: number;
+    /** Epoch milliseconds the exposure started. */
+    readonly startedAt: number;
+}
+/**
+ * A copy of `fits` that says it was exposed for `exposure.seconds` from
+ * `exposure.startedAt`: EXPTIME and DATE-OBS are replaced (or added before END),
+ * and CHECKSUM and DATASUM are dropped, because neither would match the new
+ * header. The data bytes are shared byte for byte. A header that needs more room
+ * grows by whole 2880-byte blocks.
+ */
+export declare function withExposure(fits: Buffer, exposure: Exposure): Buffer;
+/**
+ * A copy of `fits` whose every pixel equals its first: a frame with no stars
+ * and the same size, background and header.
+ */
+export declare function flattened(fits: Buffer): Buffer;
 //# sourceMappingURL=fits.d.ts.map
