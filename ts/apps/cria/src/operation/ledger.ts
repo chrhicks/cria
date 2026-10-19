@@ -224,6 +224,13 @@ function progress(state: LedgerState, input: { readonly id: OperationId; readonl
   return [step(undefined), changed(state, { operations: put(state.operations, operation.id, { ...operation, progress: input.progress }) })]
 }
 
+/** A running operation, ended. `settle` and the announcement of a settle both build it here. */
+function endedOf(operation: Running, input: { readonly outcome: Outcome<OperationResult>; readonly settledAt: number }): Ended {
+  const { progress: _, ...started } = operation
+
+  return { ...started, state: 'settled', settledAt: input.settledAt, outcome: input.outcome }
+}
+
 export function settle(
   rules: Rules,
   state: LedgerState,
@@ -232,8 +239,7 @@ export function settle(
   const operation = state.operations.get(input.id)
 
   if (operation?.state !== 'running') return [step(undefined), state]
-  const { progress: _, ...started } = operation
-  const ended: Ended = { ...started, state: 'settled', settledAt: input.settledAt, outcome: input.outcome }
+  const ended = endedOf(operation, input)
   const domain = known(state.domains, operation.failureDomain)
   const next = openIn(state, operation.failureDomain).find((open): open is Waiting => open.state === 'waiting')
   const following: Running | undefined = next && { ...next, state: 'running', startedAt: input.now, progress: initialProgress }
@@ -427,10 +433,10 @@ export function makeLedger(options: LedgerOptions): Effect.Effect<Ledger, never,
 
       return apply(current => {
         const transition = settle(rules, current, input)
-        const [, next] = transition
-        const ended = next.operations.get(input.id)
+        const running = current.operations.get(input.id)
 
-        announced = current.operations.get(input.id)?.state === 'running' && ended?.state === 'settled' ? settledView(next, ended) : undefined
+        // Not read back from the new state: `settle` prunes by age, so an old operation can be gone from it already.
+        announced = running?.state === 'running' ? settledView(transition[1], endedOf(running, input)) : undefined
 
         return transition
       }).pipe(Effect.andThen(Effect.sync(() => announced && options.onSettled?.(announced))))
