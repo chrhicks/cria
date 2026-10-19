@@ -84,6 +84,8 @@ export async function startCria(
   options: { readonly token?: string; readonly recording?: RecordingOptions } = {},
 ): Promise<Cria> {
   const imageDirectory = await mkdtemp(join(tmpdir(), 'cria-test-images-'))
+  // CRIA_TEST_RECORD=1 runs any scenario with recording on, to show recording changes nothing it asserts.
+  const record = process.env.CRIA_TEST_RECORD ? { record: { dir: await mkdtemp(join(tmpdir(), 'cria-test-recordings-')), reserveGb: 0, queueMb: 64 } } : {}
   const config = decodeConfig({
     listen: { host: '127.0.0.1', port: 0 },
     indi: { host: '127.0.0.1', port: indiPort },
@@ -92,6 +94,7 @@ export async function startCria(
     acknowledgeMs: 2000,
     operationTimeoutMs: 20_000,
     devices,
+    ...record,
     ...overrides,
   })
   const service = await startService(config, options)
@@ -178,6 +181,7 @@ export async function startCria(
     stop: async () => {
       await service.stop()
       await rm(imageDirectory, { recursive: true, force: true })
+      if ('record' in record) await rm(record.record.dir, { recursive: true, force: true })
     },
   }
 }

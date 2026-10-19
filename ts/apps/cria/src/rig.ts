@@ -70,6 +70,7 @@ export function makeRig(config: Config, options: { readonly recording?: Recordin
       instanceId,
       commandsEnabled: config.commandsEnabled,
       history: config.operationHistory,
+      ...(recorder ? { onSettled: operation => recorder.operation(operation) } : {}),
       devices: devices.map(device => ({
         id: device.config.id,
         kind: device.config.kind,
