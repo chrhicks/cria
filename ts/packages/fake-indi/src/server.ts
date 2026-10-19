@@ -78,8 +78,18 @@ class Client implements FakeClient {
     this.socket = socket
   }
 
+  /** Whether this property's images are sent: its own `enableBLOB` setting, else the device's, else `Never`. */
   modeFor(device: string, name: string): BlobMode {
     return this.blobModes.get(`${device}.${name}`) ?? this.blobModes.get(`${device}.`) ?? 'Never'
+  }
+
+  /**
+   * Whether everything but images is withheld for `device`. Only the device-wide setting does that:
+   * indiserver 2.2.5 keeps sending a client definitions, updates and deletions of a property it set
+   * to `Only`, and a property's setting does not lift a device-wide `Only`.
+   */
+  takesOnlyImages(device: string): boolean {
+    return this.blobModes.get(`${device}.`) === 'Only'
   }
 
   /** Writes at once unless a large write is in progress; then after it, so elements never interleave. */
@@ -167,7 +177,7 @@ export class FakeIndi {
     const full: FakeVector = { state: 'Idle', ...vector }
 
     this.vectors.set(`${full.device}.${full.name}`, full)
-    this.broadcast(this.definition(full), full.device, full.name)
+    this.broadcast(this.definition(full), full.device)
   }
 
   vector(device: string, name: string): FakeVector {
@@ -191,14 +201,13 @@ export class FakeIndi {
       .join('')
     const message = change.message ? ` message="${escape(change.message)}"` : ''
 
-    this.broadcast(`<set${tag}Vector device="${escape(device)}" name="${escape(name)}" state="${vector.state}"${message}>\n${body}</set${tag}Vector>\n`, device, name)
+    this.broadcast(`<set${tag}Vector device="${escape(device)}" name="${escape(name)}" state="${vector.state}"${message}>\n${body}</set${tag}Vector>\n`, device)
   }
 
   sendBlob(device: string, name: string, element: string, data: Buffer): void {
     this.broadcast(
       `<setBLOBVector device="${device}" name="${name}" state="Ok">\n  <oneBLOB name="${element}" size="${data.length}" format=".fits" len="${data.length}">\n${data.toString('base64').replace(/.{72}/g, '$&\n')}\n  </oneBLOB>\n</setBLOBVector>\n`,
       device,
-      undefined,
       true,
     )
   }
@@ -245,13 +254,13 @@ export class FakeIndi {
   /** The driver process went away: indiserver deletes the device. */
   removeDevice(device: string): void {
     for (const key of [...this.vectors.keys()]) if (key.startsWith(`${device}.`)) this.vectors.delete(key)
-    this.broadcast(`<delProperty device="${escape(device)}"/>\n`, device, '')
+    this.broadcast(`<delProperty device="${escape(device)}"/>\n`, device)
   }
 
   /** One property went away. */
   removeVector(device: string, name: string): void {
     this.vectors.delete(`${device}.${name}`)
-    this.broadcast(`<delProperty device="${escape(device)}" name="${escape(name)}"/>\n`, device, name)
+    this.broadcast(`<delProperty device="${escape(device)}" name="${escape(name)}"/>\n`, device)
   }
 
   onStop(cleanup: () => void): void {
@@ -310,7 +319,7 @@ export class FakeIndi {
         if (attributes.device && attributes.device !== vector.device) continue
         if (attributes.name && attributes.name !== vector.name) continue
         if (this.muted.has(vector.device)) continue
-        if (client.modeFor(vector.device, vector.name) === 'Only') continue
+        if (client.takesOnlyImages(vector.device)) continue
         client.write(this.definition(vector))
       }
 
@@ -378,11 +387,11 @@ export class FakeIndi {
     return `<def${tag}Vector device="${escape(vector.device)}" name="${escape(vector.name)}" label="${escape(vector.label ?? vector.name)}" group="${escape(vector.group ?? 'Main')}" state="${vector.state}" perm="${vector.perm}"${rule} timeout="${vector.timeout ?? 60}">\n${body}</def${tag}Vector>\n`
   }
 
-  /** Everything but an image skips a client whose `enableBLOB` is `Only` for that device or property, as indiserver does. */
-  private broadcast(xml: string, device?: string, property = '', isImage = false) {
+  /** Everything but an image skips a client whose device-wide `enableBLOB` is `Only`, as indiserver does. */
+  private broadcast(xml: string, device?: string, isImage = false) {
     if (device !== undefined && this.muted.has(device)) return
     for (const client of this.clients) {
-      if (!isImage && device !== undefined && client.modeFor(device, property) === 'Only') continue
+      if (!isImage && device !== undefined && client.takesOnlyImages(device)) continue
       client.write(xml)
     }
   }
