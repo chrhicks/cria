@@ -380,6 +380,11 @@ export interface LedgerOptions {
   readonly commandsEnabled: boolean
   readonly history: number
   readonly devices: ReadonlyArray<LedgerDevice>
+  /**
+   * Called once, right after an operation settles, with the operation as the
+   * ledger now holds it. Must return at once and not throw.
+   */
+  readonly onSettled?: (operation: Settled) => void
 }
 
 const answer = <A>(result: A | Refusal): Effect.Effect<A, Refusal> => (result instanceof Refusal ? Effect.fail(result) : Effect.succeed(result))
@@ -416,6 +421,21 @@ export function makeLedger(options: LedgerOptions): Effect.Effect<Ledger, never,
         Effect.map(({ done }) => done.result),
       )
 
+    // Settling is the one transition whose result callers also want announced; the pure `settle` stays as it is.
+    const settleAndAnnounce = (input: { readonly id: OperationId; readonly outcome: Outcome<OperationResult>; readonly settledAt: number; readonly now: number }) => {
+      let announced: Settled | undefined
+
+      return apply(current => {
+        const transition = settle(rules, current, input)
+        const [, next] = transition
+        const ended = next.operations.get(input.id)
+
+        announced = current.operations.get(input.id)?.state === 'running' && ended?.state === 'settled' ? settledView(next, ended) : undefined
+
+        return transition
+      }).pipe(Effect.andThen(Effect.sync(() => announced && options.onSettled?.(announced))))
+    }
+
     function perform(after: After): Effect.Effect<void> {
       switch (after.kind) {
         case 'start': {
@@ -425,14 +445,12 @@ export function makeLedger(options: LedgerOptions): Effect.Effect<Ledger, never,
             .start(operation.id, operation)
             .pipe(
               Effect.catchTag('Failed', refused =>
-                apply(current =>
-                  settle(rules, current, {
-                    id: operation.id,
-                    outcome: { kind: 'uncertain', reason: 'unexpected-error', message: `Run refused a start the ledger reserved: ${refused.message}` },
-                    settledAt: Date.now(),
-                    now: Date.now(),
-                  }),
-                ),
+                settleAndAnnounce({
+                  id: operation.id,
+                  outcome: { kind: 'uncertain', reason: 'unexpected-error', message: `Run refused a start the ledger reserved: ${refused.message}` },
+                  settledAt: Date.now(),
+                  now: Date.now(),
+                }),
               ),
             )
         }
@@ -448,7 +466,7 @@ export function makeLedger(options: LedgerOptions): Effect.Effect<Ledger, never,
       if (update.state === 'running') return apply(current => progress(current, { id: update.runId, progress: update.progress }))
       const now = Date.now()
 
-      return apply(current => settle(rules, current, { id: update.runId, outcome: update.outcome, settledAt: update.settledAt, now }))
+      return settleAndAnnounce({ id: update.runId, outcome: update.outcome, settledAt: update.settledAt, now })
     }
 
     for (const run of runs.values()) yield* Effect.forkIn(Stream.runForEach(run.changes, follow), scope)

@@ -88,6 +88,7 @@ export interface RecordingReport {
   readonly tornTail: boolean
   readonly lines: number
   readonly messages: number
+  readonly operations: number
   readonly images: number
   readonly gaps: ReadonlyArray<GapLine>
   readonly problems: ReadonlyArray<Problem>
@@ -109,6 +110,7 @@ export async function verifyRecording(dir: string): Promise<RecordingReport> {
   const onDisk = await imageFiles(dir)
   let lines = 0
   let messages = 0
+  let operations = 0
   let tornTail = false
   let ended = false
   let gapped = false
@@ -157,6 +159,8 @@ export async function verifyRecording(dir: string): Promise<RecordingReport> {
       checkMessage(item.number, item.line)
     }
 
+    if (item.line.k === 'op') operations += 1
+
     if (item.line.k === 'gap') {
       gapped = true
       gaps.push(item.line)
@@ -171,6 +175,7 @@ export async function verifyRecording(dir: string): Promise<RecordingReport> {
     tornTail,
     lines,
     messages,
+    operations,
     images: named.size,
     gaps,
     problems,
