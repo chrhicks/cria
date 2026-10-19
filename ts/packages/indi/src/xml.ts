@@ -288,11 +288,15 @@ function frameElement(element: Buffer, keepText: boolean): FramedElement {
     problem = describeProblem(error, element)
   }
 
+  // The recording keeps what was on the wire, so a payload is kept whether or not its vector validated: when it
+  // did, the parser already decoded it; when it did not, decode it here (the one cost of a bad BLOB).
+  const elided = keepText ? elideBlobs(element, message === undefined) : undefined
+
   return {
     message,
     ...(problem ? { problem } : {}),
-    xml: keepText ? elideBlobs(element) : '',
-    blobs: keepText ? blobsOf(message) : [],
+    xml: elided?.xml ?? '',
+    blobs: message ? blobsOf(message) : (elided?.blobs ?? []),
   }
 }
 
@@ -305,7 +309,7 @@ function describeProblem(error: IndiProtocolError, bytes: Buffer): ProtocolProbl
   const tag = /^\s*<([A-Za-z]\w*)/.exec(header)?.[1] ?? ''
   const attributes = parseAttributes(/^\s*<[A-Za-z]\w*([^>]*)/.exec(header)?.[1] ?? '')
   // The payload of a BLOB is base64 of an image: never part of what is shown.
-  const text = tag === 'setBLOBVector' ? elideBlobs(bytes) : bytes.toString('utf8', 0, excerptChars * 4)
+  const text = tag === 'setBLOBVector' ? elideBlobs(bytes, false).xml : bytes.toString('utf8', 0, excerptChars * 4)
   const escaped = JSON.stringify(text.slice(0, excerptChars)).slice(1, -1)
 
   return {
@@ -326,9 +330,14 @@ function blobsOf(message: IndiMessage | undefined): Buffer[] {
   return message.vector.elements.flatMap(element => (element.kind === 'blob' ? [element.data] : []))
 }
 
-/** Pure: `element` as text, each `oneBLOB` payload dropped. Walks the bytes the way `parseBlobVector` does. */
-function elideBlobs(element: Buffer): string {
-  if (!element.toString('latin1', 0, 14).startsWith('<setBLOBVector')) return element.toString('utf8')
+/**
+ * Pure: `element` as text with each `oneBLOB` payload dropped, and, if `decode`, those payloads decoded as
+ * `parseBlobVector` does (an empty one for a `oneBLOB` with no payload). Walks the bytes the way it does.
+ */
+function elideBlobs(element: Buffer, decode: boolean): { readonly xml: string; readonly blobs: Buffer[] } {
+  const blobs: Buffer[] = []
+
+  if (!element.toString('latin1', 0, 14).startsWith('<setBLOBVector')) return { xml: element.toString('utf8'), blobs }
 
   const parts: string[] = []
   let kept = 0
@@ -341,10 +350,14 @@ function elideBlobs(element: Buffer): string {
     const openEnd = element.indexOf(GT, open)
 
     from = openEnd + 1
-    if (element[openEnd - 1] === SLASH) continue
+    if (element[openEnd - 1] === SLASH) {
+      if (decode) blobs.push(Buffer.alloc(0))
+      continue
+    }
     const close = element.indexOf('</oneBLOB>', openEnd)
 
     if (close < 0) break
+    if (decode) blobs.push(Buffer.from(element.toString('latin1', openEnd + 1, close), 'base64'))
     parts.push(element.toString('utf8', kept, openEnd), '/>')
     kept = close + 10
     from = kept
@@ -352,7 +365,7 @@ function elideBlobs(element: Buffer): string {
 
   parts.push(element.toString('utf8', kept))
 
-  return parts.join('')
+  return { xml: parts.join(''), blobs }
 }
 
 // ---------------------------------------------------------------- parsing

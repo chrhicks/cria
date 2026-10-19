@@ -79,6 +79,41 @@ describe('what the framer and parser do with unexpected input', () => {
     expect(junk.bytes).toBeGreaterThan(5000)
   })
 
+  it('keeps every BLOB payload for the recording, whether or not the vector validates', () => {
+    const payload = Buffer.from('ABC')
+    const vector = (state: string, body: string) => `<setBLOBVector device="D" name="CCD1" state="${state}">${body}</setBLOBVector>`
+    const one = `<oneBLOB name="CCD1" size="3" format=".fits">${payload.toString('base64')}</oneBLOB>`
+    const empty = '<oneBLOB name="CCD2" size="0" format=".fits"/>'
+
+    const bad = frame(vector('Broken', one)).elements[0]!
+    const mixed = frame(vector('Broken', `${one}${empty}${one}`)).elements[0]!
+    const valid = frame(vector('Ok', `${one}${empty}${one}`)).elements[0]!
+
+    expect(bad.problem).toBeDefined()
+    expect(bad.blobs).toEqual([payload])
+    expect(bad.xml).toBe(vector('Broken', '<oneBLOB name="CCD1" size="3" format=".fits"/>'))
+    // The same payloads in the same positions as a vector that validates.
+    expect(mixed.blobs).toEqual(valid.blobs)
+    expect(valid.blobs.map(blob => blob.length)).toEqual([3, 0, 3])
+  })
+
+  it('keeps a large valid BLOB byte for byte, and a bad one too', () => {
+    const image = Buffer.alloc(3 * 1024 * 1024)
+
+    for (let i = 0; i < image.length; i += 1) image[i] = (i * 31 + (i >> 8)) & 0xff
+    const wire = (state: string) => `<setBLOBVector device="D" name="CCD1" state="${state}"><oneBLOB name="CCD1" size="${image.length}" format=".fits">${image.toString('base64')}</oneBLOB></setBLOBVector>`
+    const chunks = (text: string) => Array.from({ length: Math.ceil(text.length / 65536) }, (_, i) => Buffer.from(text.slice(i * 65536, (i + 1) * 65536)))
+
+    for (const state of ['Ok', 'Broken']) {
+      const framer = new IndiFramer()
+      const elements = chunks(wire(state)).flatMap(chunk => framer.pushFramed(chunk))
+
+      expect(elements).toHaveLength(1)
+      expect(Buffer.compare(elements[0]!.blobs[0]!, image)).toBe(0)
+      expect(elements[0]!.xml).toBe(`<setBLOBVector device="D" name="CCD1" state="${state}"><oneBLOB name="CCD1" size="${image.length}" format=".fits"/></setBLOBVector>`)
+    }
+  })
+
   it('reads invalid UTF-8 as replacement characters without failing, and says so when it is part of a bad element', () => {
     const { elements } = frame(text(Buffer.from([0x61, 0xff, 0xfe, 0x62])))
 
@@ -258,6 +293,23 @@ describe('the client when indiserver sends something unexpected', () => {
       ),
     )
   }
+
+  it('hands the recording the payload of a BLOB vector it could not validate, and keeps the connection', async () => {
+    await session(async ({ warnings, tapped, closed, socket }) => {
+      const first = await socket(1)
+
+      first.write('<setBLOBVector device="Test Focuser" name="CCD1" state="Broken"><oneBLOB name="CCD1" size="3" format=".fits">QUJD</oneBLOB></setBLOBVector>')
+      await until(() => tapped.some(message => message.dir === 'in'))
+
+      const message = tapped.find(item => item.dir === 'in')!
+
+      expect(message.xml).toBe('<setBLOBVector device="Test Focuser" name="CCD1" state="Broken"><oneBLOB name="CCD1" size="3" format=".fits"/></setBLOBVector>')
+      expect(message.blobs.map(blob => blob.toString())).toEqual(['ABC'])
+      expect(warnings).toHaveLength(1)
+      expect(warnings[0]).not.toContain('QUJD')
+      expect(closed.filter(item => item.status === 'closed')).toEqual([])
+    })
+  })
 
   it('skips a bad element, logs it once, keeps the connection and records every byte', async () => {
     await session(async ({ fake, warnings, tapped, closed, property, socket }) => {
