@@ -60,7 +60,7 @@ describe('updates and deletions', () => {
   it('reads an update with its state and values, switches as booleans and text unescaped', () => {
     expect(
       parseServerElement('<setSwitchVector device="Mount" name="TELESCOPE_TRACK_STATE" state="Ok" timeout="0"><oneSwitch name="TRACK_ON">On</oneSwitch><oneSwitch name="TRACK_OFF">Off</oneSwitch></setSwitchVector>'),
-    ).toEqual({ kind: 'update', device: 'Mount', name: 'TELESCOPE_TRACK_STATE', state: 'Ok', values: { TRACK_ON: true, TRACK_OFF: false } })
+    ).toEqual({ kind: 'update', device: 'Mount', name: 'TELESCOPE_TRACK_STATE', state: 'Ok', timeout: 0, values: { TRACK_ON: true, TRACK_OFF: false } })
     expect(parseServerElement('<setTextVector device="A &amp; B" name="X"><oneText name="T">\n  a &lt; b\n</oneText></setTextVector>')).toEqual({
       kind: 'update',
       device: 'A & B',
@@ -83,8 +83,40 @@ describe('updates and deletions', () => {
     expect(parseServerElement('<delProperty device="CCD"/>')).toEqual({ kind: 'delete', device: 'CCD', name: undefined })
   })
 
-  it('does not read what is not a property: messages, ping replies, Cria\'s own commands', () => {
-    for (const xml of ['<message device="CCD" message="hi"/>', '<pingReply uid="1"/>', '<newNumberVector device="CCD" name="X"/>', '']) expect(parseServerElement(xml)).toBeUndefined()
+  it('does not read what a driver does not say: ping replies, Cria\'s own commands', () => {
+    for (const xml of ['<pingReply uid="1"/>', '<newNumberVector device="CCD" name="X"/>', '']) expect(parseServerElement(xml)).toBeUndefined()
+  })
+})
+
+describe('what a driver says in words', () => {
+  it('a message on an update is kept, entities decoded, with the timeout the driver sent', () => {
+    const parsed = parseServerElement(
+      '<setNumberVector device="Focuser Simulator" name="FOCUS_MAX" state="Alert" timeout="60" timestamp="2026-10-19T04:54:03" message="Error: Invalid range for Steps (FOCUS_MAX_VALUE). Valid range is from 1000 to 1e+06. Requested value is -1 &amp; &quot;more&quot;">\n' +
+        '    <oneNumber name="FOCUS_MAX_VALUE">\n100000\n    </oneNumber>\n</setNumberVector>',
+    )
+
+    expect(parsed).toMatchObject({ kind: 'update', state: 'Alert', timeout: 60, values: { FOCUS_MAX_VALUE: '100000' }, message: 'Error: Invalid range for Steps (FOCUS_MAX_VALUE). Valid range is from 1000 to 1e+06. Requested value is -1 & "more"' })
+  })
+
+  it('an update without a message has none', () => {
+    expect(parseServerElement('<setNumberVector device="D" name="N" state="Ok"><oneNumber name="V">1</oneNumber></setNumberVector>')).not.toHaveProperty('message')
+  })
+
+  it('a message on a definition, an image and a deletion is kept', () => {
+    expect(parseServerElement('<defTextVector device="D" name="T" label="T" group="G" state="Ok" perm="rw" timeout="60" message="defmsg"><defText name="V" label="V">v</defText></defTextVector>')).toMatchObject({ kind: 'define', message: 'defmsg' })
+    expect(parseServerElement('<setBLOBVector device="D" name="CCD1" state="Ok" message="blobmsg"><oneBLOB name="CCD1" size="3" format=".fits"/></setBLOBVector>')).toMatchObject({ kind: 'image', message: 'blobmsg' })
+    expect(parseServerElement('<delProperty device="D" name="T" message="delmsg"/>')).toEqual({ kind: 'delete', device: 'D', name: 'T', message: 'delmsg' })
+    expect(parseServerElement('<delProperty device="D" message="gone"/>')).toEqual({ kind: 'delete', device: 'D', name: undefined, message: 'gone' })
+  })
+
+  it('a standalone message is kept with its device, or without one, and with or without text', () => {
+    expect(parseServerElement('<message device="CCD Simulator" timestamp="2026-10-19T04:53:53" message="[INFO] EQUATORIAL_PE snoop active: JNow RA 0.0001 Dec 90.0000 -&gt; J2000"/>')).toEqual({
+      kind: 'message',
+      device: 'CCD Simulator',
+      text: '[INFO] EQUATORIAL_PE snoop active: JNow RA 0.0001 Dec 90.0000 -> J2000',
+    })
+    expect(parseServerElement('<message message="no device"/>')).toEqual({ kind: 'message', device: undefined, text: 'no device' })
+    expect(parseServerElement('<message device="D"/>')).toEqual({ kind: 'message', device: 'D', text: undefined })
   })
 })
 
@@ -101,6 +133,7 @@ describe('number limits a driver changes at runtime', () => {
       device: 'Focuser Simulator',
       name: 'ABS_FOCUS_POSITION',
       state: 'Ok',
+      timeout: 60,
       values: { FOCUS_ABSOLUTE_POSITION: '50000', OTHER: '3' },
       limits: { FOCUS_ABSOLUTE_POSITION: { min: 0, max: 50000, step: 1000 } },
     })
