@@ -102,7 +102,7 @@ describe('images', () => {
     expect(off.text()).toBe('')
     expect(other.text()).toBe('')
     expect(device.text()).toBe(
-      '<setBLOBVector device="CCD" name="CCD1" state="Ok">\n  <oneBLOB name="CCD1" size="6" format=".fits">\ncGl4ZWxz\n  </oneBLOB>\n</setBLOBVector>\n',
+      '<setBLOBVector device="CCD" name="CCD1" state="Ok">\n  <oneBLOB name="CCD1" size="6" format=".fits" len="6">\ncGl4ZWxz\n  </oneBLOB>\n</setBLOBVector>\n',
     )
   })
 
@@ -198,7 +198,7 @@ describe('enableBLOB Only on a whole device', () => {
     await pause(50)
 
     expect(only.text()).toBe(
-      '<setBLOBVector device="CCD" name="CCD1" state="Ok">\n  <oneBLOB name="CCD1" size="6" format=".fits">\ncGl4ZWxz\n  </oneBLOB>\n</setBLOBVector>\n',
+      '<setBLOBVector device="CCD" name="CCD1" state="Ok">\n  <oneBLOB name="CCD1" size="6" format=".fits" len="6">\ncGl4ZWxz\n  </oneBLOB>\n</setBLOBVector>\n',
     )
     expect(also.text()).toContain('<setSwitchVector device="Mount" name="TELESCOPE_PARK" state="Busy">')
     expect(also.text()).toContain('<defTextVector device="Mount" name="MOUNT_INFO"')
