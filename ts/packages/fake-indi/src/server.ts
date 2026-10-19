@@ -7,12 +7,17 @@
  * Deliberately independent of @cria/indi: it parses client XML with its own
  * code, so it can disagree with Cria's parser.
  *
- * Each client is a connection with its own `enableBLOB` modes: `sendBlob`
+ * Each client is a connection with its own subscriptions (`getProperties` and `enableBLOB` name what it hears
+ * about, as in indiserver) and its own `enableBLOB` modes: `sendBlob`
  * broadcasts to every client as it always did, `deliverBlob` sends only to
  * clients whose mode allows it and writes in chunks, so a 50 MB image is never
  * one string or one write.
  */
 import net from 'node:net'
+import { BlobSettings, type BlobMode } from './blob-settings.js'
+import { Interest } from './interest.js'
+
+export type { BlobMode }
 
 export type Value = number | boolean | string
 
@@ -26,6 +31,9 @@ export interface FakeElement {
   format?: string
 }
 
+/** New limits for number elements, as a driver sends them in a `setNumberVector`: only what changed. */
+export type Limits = Record<string, { min?: number; max?: number; step?: number }>
+
 export interface FakeVector {
   readonly device: string
   readonly name: string
@@ -36,6 +44,14 @@ export interface FakeVector {
   readonly label?: string
   readonly group?: string
   readonly timeout?: number
+  /** How many times the driver defines this property in one answer to a device-wide `getProperties`. Default 1. */
+  readonly repeats?: number
+  /**
+   * What the driver sets in its answer to a device-wide `getProperties`, as the telescope simulator does
+   * TELESCOPE_MOUNT_TYPE: right after it defines the property `after` of this device. The set carries the
+   * vector's values and state as they are when asked, with this `timeout` and `message`. An ask that names a property is not answered with it.
+   */
+  readonly answerSet?: { readonly after: string; readonly timeout?: number; readonly message?: string }
   state: 'Idle' | 'Ok' | 'Busy' | 'Alert'
   readonly elements: Record<string, FakeElement>
 }
@@ -51,8 +67,6 @@ export interface FakeClient {
  */
 export type Behaviour = (fake: FakeIndi, vector: FakeVector, values: Record<string, string>, client: FakeClient) => 'default' | 'handled'
 
-export type BlobMode = 'Never' | 'Also' | 'Only'
-
 export interface FakeIndiOptions {
   /** How many received elements `received` keeps, oldest dropped first. Default: all. */
   readonly receivedLimit?: number
@@ -65,8 +79,8 @@ const imageChunkBytes = 54 * 1024
 const maxElementBytes = 1024 * 1024
 
 class Client implements FakeClient {
-  /** `enableBLOB` per property name; `''` is the whole device. */
-  readonly blobModes = new Map<string, BlobMode>()
+  readonly blobs = new BlobSettings()
+  readonly interest = new Interest()
   private tail: Promise<void> = Promise.resolve()
   private queued = 0
 
@@ -76,10 +90,6 @@ class Client implements FakeClient {
   constructor(id: number, socket: net.Socket) {
     this.id = id
     this.socket = socket
-  }
-
-  modeFor(device: string, name: string): BlobMode {
-    return this.blobModes.get(`${device}.${name}`) ?? this.blobModes.get(`${device}.`) ?? 'Never'
   }
 
   /** Writes at once unless a large write is in progress; then after it, so elements never interleave. */
@@ -163,11 +173,20 @@ export class FakeIndi {
     this.muted.delete(device)
   }
 
-  define(vector: Omit<FakeVector, 'state'> & { state?: FakeVector['state'] }): void {
+  /** A driver defines a property. `message` rides on this definition alone: a later answer to a `getProperties` does not repeat it. */
+  define(vector: Omit<FakeVector, 'state'> & { state?: FakeVector['state'] }, options: { readonly message?: string } = {}): void {
     const full: FakeVector = { state: 'Idle', ...vector }
 
     this.vectors.set(`${full.device}.${full.name}`, full)
-    this.broadcast(this.definition(full), full.device)
+    this.broadcast(this.definition(full, options.message), full.device, full.name)
+  }
+
+  /**
+   * A driver's standalone `<message>`: to every client that watches `device` as a whole, or, without a device, to every client.
+   * The text is optional, as it is on the wire.
+   */
+  message(device: string | undefined, text?: string): void {
+    this.broadcast(`<message${device === undefined ? '' : ` device="${escape(device)}"`}${messageAttribute(text)}/>\n`, device)
   }
 
   vector(device: string, name: string): FakeVector {
@@ -178,44 +197,58 @@ export class FakeIndi {
     return found
   }
 
-  /** Changes state and values and tells every client, as a driver's IDSet* does. */
-  update(device: string, name: string, change: { state?: FakeVector['state']; values?: Record<string, Value>; message?: string }): void {
+  /**
+   * Changes state, values and number limits and tells every client who hears of the property, as a driver's
+   * IDSet* does: all elements' values, and min/max/step on the elements whose limits `limits` changed. A driver
+   * may send the vector's `timeout` and a `message` with it; neither is kept.
+   */
+  update(device: string, name: string, change: { state?: FakeVector['state']; values?: Record<string, Value>; limits?: Limits; message?: string; timeout?: number }): void {
     const vector = this.vector(device, name)
 
     if (change.state) vector.state = change.state
     for (const [element, value] of Object.entries(change.values ?? {})) vector.elements[element]!.value = value
+    for (const [element, limits] of Object.entries(change.limits ?? {})) Object.assign(vector.elements[element]!, limits)
 
+    this.broadcast(this.setVector(vector, change), device, name)
+  }
+
+  private setVector(vector: FakeVector, change: { limits?: Limits; message?: string; timeout?: number }): string {
     const tag = tags[vector.kind]
     const body = Object.entries(vector.elements)
-      .map(([element, { value }]) => `  <one${tag} name="${escape(element)}">${format(value)}</one${tag}>\n`)
+      .map(([element, { value }]) => `  <one${tag} name="${escape(element)}"${limitAttributes(change.limits?.[element])}>${format(value)}</one${tag}>\n`)
       .join('')
-    const message = change.message ? ` message="${escape(change.message)}"` : ''
 
-    this.broadcast(`<set${tag}Vector device="${escape(device)}" name="${escape(name)}" state="${vector.state}"${message}>\n${body}</set${tag}Vector>\n`, device)
+    return `<set${tag}Vector device="${escape(vector.device)}" name="${escape(vector.name)}" state="${vector.state}"${change.timeout === undefined ? '' : ` timeout="${change.timeout}"`}${messageAttribute(change.message)}>\n${body}</set${tag}Vector>\n`
   }
 
   sendBlob(device: string, name: string, element: string, data: Buffer): void {
     this.broadcast(
       `<setBLOBVector device="${device}" name="${name}" state="Ok">\n  <oneBLOB name="${element}" size="${data.length}" format=".fits" len="${data.length}">\n${data.toString('base64').replace(/.{72}/g, '$&\n')}\n  </oneBLOB>\n</setBLOBVector>\n`,
       device,
+      name,
+      true,
     )
   }
 
   /**
-   * Sends an image the way indiserver does: only to clients whose `enableBLOB`
-   * mode for this property is `Also` or `Only`, as base64 written in chunks that
+   * Sends an image the way indiserver does: only to clients that hear of the property and whose `enableBLOB`
+   * mode for it is `Also` or `Only`, as base64 written in chunks that
    * wait for the socket to drain. Resolves with how many clients were sent it,
    * once the last chunk is written. Aborting `signal` stops the delivery: an
    * image not yet started is not sent, and one half written closes its
    * connection, because an element cannot be finished or withdrawn.
    */
-  async deliverBlob(device: string, name: string, element: string, data: Buffer, options: { readonly format?: string; readonly signal?: AbortSignal } = {}): Promise<number> {
-    const { format = '.fits', signal } = options
+  async deliverBlob(device: string, name: string, element: string, data: Buffer, options: { readonly format?: string; readonly message?: string; readonly timeout?: number; readonly signal?: AbortSignal } = {}): Promise<number> {
+    const { format = '.fits', message, timeout, signal } = options
 
     if (this.muted.has(device) || signal?.aborted) return 0
 
-    const wanting = [...this.clients].filter(client => client.modeFor(device, name) !== 'Never')
-    const head = `<setBLOBVector device="${escape(device)}" name="${escape(name)}" state="Ok">\n  <oneBLOB name="${escape(element)}" size="${data.length}" format="${escape(format)}">\n`
+    const held = this.vectors.get(`${device}.${name}`)
+
+    // The vector now says Ok, as the image's own `state` does: a client that asks for the definition afterwards is told so.
+    if (held) held.state = 'Ok'
+    const wanting = [...this.clients].filter(client => client.interest.covers(device, name) && client.blobs.wantsImage(device, name))
+    const head = `<setBLOBVector device="${escape(device)}" name="${escape(name)}" state="Ok"${timeout === undefined ? '' : ` timeout="${timeout}"`}${messageAttribute(message)}>\n  <oneBLOB name="${escape(element)}" size="${data.length}" format="${escape(format)}" len="${data.length}">\n`
     const tail = '\n  </oneBLOB>\n</setBLOBVector>\n'
 
     await Promise.all(
@@ -241,15 +274,15 @@ export class FakeIndi {
   }
 
   /** The driver process went away: indiserver deletes the device. */
-  removeDevice(device: string): void {
+  removeDevice(device: string, options: { readonly message?: string } = {}): void {
     for (const key of [...this.vectors.keys()]) if (key.startsWith(`${device}.`)) this.vectors.delete(key)
-    this.broadcast(`<delProperty device="${escape(device)}"/>\n`, device)
+    this.broadcast(`<delProperty device="${escape(device)}"${messageAttribute(options.message)}/>\n`, device)
   }
 
   /** One property went away. */
-  removeVector(device: string, name: string): void {
+  removeVector(device: string, name: string, options: { readonly message?: string } = {}): void {
     this.vectors.delete(`${device}.${name}`)
-    this.broadcast(`<delProperty device="${escape(device)}" name="${escape(name)}"/>\n`, device)
+    this.broadcast(`<delProperty device="${escape(device)}" name="${escape(name)}"${messageAttribute(options.message)}/>\n`, device, name)
   }
 
   onStop(cleanup: () => void): void {
@@ -260,9 +293,9 @@ export class FakeIndi {
     for (const client of this.clients) client.socket.destroy()
   }
 
-  /** Whether `client` asked for this property's images (`enableBLOB` Also or Only). */
+  /** Whether `client` hears of this property and asked for its images (`enableBLOB` Also or Only). */
   wantsBlobs(client: FakeClient, device: string, name: string): boolean {
-    return (client as Client).modeFor(device, name) !== 'Never'
+    return (client as Client).interest.covers(device, name) && (client as Client).blobs.wantsImage(device, name)
   }
 
   private accept(socket: net.Socket) {
@@ -303,13 +336,8 @@ export class FakeIndi {
     const attributes = Object.fromEntries([...openingTag.matchAll(/(\w+)="([^"]*)"/g)].map(match => [match[1], unescape(match[2]!)]))
 
     if (xml.startsWith('<getProperties')) {
-      if (!this.answering) return
-      for (const vector of this.vectors.values()) {
-        if (attributes.device && attributes.device !== vector.device) continue
-        if (attributes.name && attributes.name !== vector.name) continue
-        if (this.muted.has(vector.device)) continue
-        client.write(this.definition(vector))
-      }
+      client.interest.add(attributes.device || undefined, attributes.name || undefined)
+      if (this.answering) this.answer(attributes.device || undefined, attributes.name || undefined)
 
       return
     }
@@ -323,7 +351,10 @@ export class FakeIndi {
     if (xml.startsWith('<enableBLOB')) {
       const mode = />\s*(Never|Also|Only)\s*</.exec(xml)?.[1] as BlobMode | undefined
 
-      if (mode && attributes.device) client.blobModes.set(`${attributes.device}.${attributes.name ?? ''}`, mode)
+      if (mode && attributes.device) {
+        client.blobs.set(attributes.device, attributes.name || undefined, mode)
+        client.interest.add(attributes.device, attributes.name || undefined)
+      }
 
       return
     }
@@ -359,7 +390,7 @@ export class FakeIndi {
   }
 
   /** The vector as a driver defines it, with its current values and state. */
-  definition(vector: FakeVector): string {
+  definition(vector: FakeVector, message?: string): string {
     const tag = tags[vector.kind]
     const rule = vector.rule ? ` rule="${vector.rule}"` : ''
     const body = Object.entries(vector.elements)
@@ -372,13 +403,52 @@ export class FakeIndi {
       })
       .join('')
 
-    return `<def${tag}Vector device="${escape(vector.device)}" name="${escape(vector.name)}" label="${escape(vector.label ?? vector.name)}" group="${escape(vector.group ?? 'Main')}" state="${vector.state}" perm="${vector.perm}"${rule} timeout="${vector.timeout ?? 60}">\n${body}</def${tag}Vector>\n`
+    // A light vector has no permission and no timeout: the property is the driver's to say, never a client's to set.
+    const writable = vector.kind === 'light' ? '' : ` perm="${vector.perm}"${rule} timeout="${vector.timeout ?? 60}"`
+
+    return `<def${tag}Vector device="${escape(vector.device)}" name="${escape(vector.name)}" label="${escape(vector.label ?? vector.name)}" group="${escape(vector.group ?? 'Main')}" state="${vector.state}"${writable}${messageAttribute(message)}>\n${body}</def${tag}Vector>\n`
   }
 
-  private broadcast(xml: string, device?: string) {
-    if (device !== undefined && this.muted.has(device)) return
-    for (const client of this.clients) client.write(xml)
+  /**
+   * The driver's answer to a `getProperties`, delivered as indiserver delivers it: to every client that hears
+   * of each definition, not only the one that asked. A device-wide request is answered with each property once,
+   * then again with those the driver defines more than once (`repeats`); a request for one property, once.
+   * A device-wide request also carries each property's `answerSet`, after the last definition of the property it follows.
+   */
+  private answer(device: string | undefined, name: string | undefined) {
+    const asked = [...this.vectors.values()].filter(vector => (device === undefined || vector.device === device) && (name === undefined || vector.name === name))
+    const passes = name === undefined ? Math.max(1, ...asked.map(vector => vector.repeats ?? 1)) : 1
+
+    for (let pass = 1; pass <= passes; pass++)
+      for (const vector of asked) {
+        if ((vector.repeats ?? 1) < pass) continue
+        this.broadcast(this.definition(vector), vector.device, vector.name)
+        if (name !== undefined || pass < (vector.repeats ?? 1)) continue
+        for (const other of asked) if (other.answerSet?.after === vector.name && other.device === vector.device) this.broadcast(this.setVector(other, other.answerSet), other.device, other.name)
+      }
   }
+
+  /**
+   * Sends `xml` to the clients that hear of `property` of `device`, except one whose latest device-wide `enableBLOB` is
+   * `Only`, as indiserver does. Without a device it goes to every client. An image (`sendBlob`) goes to every client.
+   */
+  private broadcast(xml: string, device?: string, property?: string, isImage = false) {
+    if (device !== undefined && this.muted.has(device)) return
+    for (const client of this.clients) {
+      if (!isImage && ((device !== undefined && !client.interest.covers(device, property)) || client.blobs.withholdsOthers())) continue
+      client.write(xml)
+    }
+  }
+}
+
+function messageAttribute(message: string | undefined): string {
+  return message === undefined ? '' : ` message="${escape(message)}"`
+}
+
+function limitAttributes(limits: Limits[string] | undefined): string {
+  if (!limits) return ''
+
+  return (['min', 'max', 'step'] as const).map(key => (limits[key] === undefined ? '' : ` ${key}="${limits[key]}"`)).join('')
 }
 
 function format(value: Value): string {

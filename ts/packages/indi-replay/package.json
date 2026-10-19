@@ -23,5 +23,8 @@
     "@cria/fits": "workspace:*",
     "@cria/recording": "workspace:*",
     "effect": "4.0.3"
+  },
+  "devDependencies": {
+    "@cria/indi": "workspace:*"
   }
 }

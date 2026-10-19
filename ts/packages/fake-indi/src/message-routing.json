@@ -1,0 +1,1097 @@
+{
+ "indiserver": "libindi 2.2.5-1",
+ "clients": {
+  "silent": [],
+  "everything": [
+   "<getProperties version=\"1.7\"/>"
+  ],
+  "A": [
+   "<getProperties version=\"1.7\" device=\"Scripted A\"/>"
+  ],
+  "A.EMIT": [
+   "<getProperties version=\"1.7\" device=\"Scripted A\" name=\"EMIT\"/>"
+  ],
+  "A.NEW": [
+   "<getProperties version=\"1.7\" device=\"Scripted A\" name=\"NEW\"/>"
+  ],
+  "B": [
+   "<getProperties version=\"1.7\" device=\"Scripted B\"/>"
+  ],
+  "A and B": [
+   "<getProperties version=\"1.7\" device=\"Scripted A\"/>",
+   "<getProperties version=\"1.7\" device=\"Scripted B\"/>"
+  ],
+  "A, B.EMIT": [
+   "<getProperties version=\"1.7\" device=\"Scripted A\"/>",
+   "<getProperties version=\"1.7\" device=\"Scripted B\" name=\"EMIT\"/>"
+  ],
+  "A, enableBLOB A Never": [
+   "<getProperties version=\"1.7\" device=\"Scripted A\"/>",
+   "<enableBLOB device=\"Scripted A\">Never</enableBLOB>"
+  ],
+  "A, enableBLOB A Also": [
+   "<getProperties version=\"1.7\" device=\"Scripted A\"/>",
+   "<enableBLOB device=\"Scripted A\">Also</enableBLOB>"
+  ],
+  "A, enableBLOB A Only": [
+   "<getProperties version=\"1.7\" device=\"Scripted A\"/>",
+   "<enableBLOB device=\"Scripted A\">Only</enableBLOB>"
+  ],
+  "A, enableBLOB A.EMIT Only": [
+   "<getProperties version=\"1.7\" device=\"Scripted A\"/>",
+   "<enableBLOB device=\"Scripted A\" name=\"EMIT\">Only</enableBLOB>"
+  ],
+  "A.EMIT, enableBLOB A.EMIT Only": [
+   "<getProperties version=\"1.7\" device=\"Scripted A\" name=\"EMIT\"/>",
+   "<enableBLOB device=\"Scripted A\" name=\"EMIT\">Only</enableBLOB>"
+  ],
+  "A.EMIT, enableBLOB A Only": [
+   "<getProperties version=\"1.7\" device=\"Scripted A\" name=\"EMIT\"/>",
+   "<enableBLOB device=\"Scripted A\">Only</enableBLOB>"
+  ],
+  "enableBLOB A Also": [
+   "<enableBLOB device=\"Scripted A\">Also</enableBLOB>"
+  ],
+  "enableBLOB A Only": [
+   "<enableBLOB device=\"Scripted A\">Only</enableBLOB>"
+  ],
+  "everything, enableBLOB A Also": [
+   "<getProperties version=\"1.7\"/>",
+   "<enableBLOB device=\"Scripted A\">Also</enableBLOB>"
+  ],
+  "everything, enableBLOB A Never": [
+   "<getProperties version=\"1.7\"/>",
+   "<enableBLOB device=\"Scripted A\">Never</enableBLOB>"
+  ],
+  "everything, enableBLOB A Only": [
+   "<getProperties version=\"1.7\"/>",
+   "<enableBLOB device=\"Scripted A\">Only</enableBLOB>"
+  ],
+  "everything, enableBLOB B Only": [
+   "<getProperties version=\"1.7\"/>",
+   "<enableBLOB device=\"Scripted B\">Only</enableBLOB>"
+  ],
+  "B, enableBLOB A Only": [
+   "<getProperties version=\"1.7\" device=\"Scripted B\"/>",
+   "<enableBLOB device=\"Scripted A\">Only</enableBLOB>"
+  ],
+  "A and B, enableBLOB A Only": [
+   "<getProperties version=\"1.7\" device=\"Scripted A\"/>",
+   "<getProperties version=\"1.7\" device=\"Scripted B\"/>",
+   "<enableBLOB device=\"Scripted A\">Only</enableBLOB>"
+  ],
+  "A and B, enableBLOB A Only, B Also": [
+   "<getProperties version=\"1.7\" device=\"Scripted A\"/>",
+   "<getProperties version=\"1.7\" device=\"Scripted B\"/>",
+   "<enableBLOB device=\"Scripted A\">Only</enableBLOB>",
+   "<enableBLOB device=\"Scripted B\">Also</enableBLOB>"
+  ],
+  "A and B, enableBLOB A Only, then A Also": [
+   "<getProperties version=\"1.7\" device=\"Scripted A\"/>",
+   "<getProperties version=\"1.7\" device=\"Scripted B\"/>",
+   "<enableBLOB device=\"Scripted A\">Only</enableBLOB>",
+   "<enableBLOB device=\"Scripted A\">Also</enableBLOB>"
+  ],
+  "A and B, enableBLOB A Only, B Only": [
+   "<getProperties version=\"1.7\" device=\"Scripted A\"/>",
+   "<getProperties version=\"1.7\" device=\"Scripted B\"/>",
+   "<enableBLOB device=\"Scripted A\">Only</enableBLOB>",
+   "<enableBLOB device=\"Scripted B\">Only</enableBLOB>"
+  ],
+  "A and B, enableBLOB A Only, B Only, then A Never": [
+   "<getProperties version=\"1.7\" device=\"Scripted A\"/>",
+   "<getProperties version=\"1.7\" device=\"Scripted B\"/>",
+   "<enableBLOB device=\"Scripted A\">Only</enableBLOB>",
+   "<enableBLOB device=\"Scripted B\">Only</enableBLOB>",
+   "<enableBLOB device=\"Scripted A\">Never</enableBLOB>"
+  ]
+ },
+ "emissions": [
+  {
+   "title": "a message for a device",
+   "driver": "<message device=\"Scripted A\" timestamp=\"2026-10-19T00:00:00\" message=\"hello &amp; &lt;bye&gt;\"/>",
+   "before": [],
+   "fake": {
+    "op": "message",
+    "device": "Scripted A",
+    "text": "hello & <bye>"
+   },
+   "heard": {
+    "silent": [],
+    "everything": [
+     "<message device=\"Scripted A\" message=\"hello &amp; &lt;bye&gt;\"/>"
+    ],
+    "A": [
+     "<message device=\"Scripted A\" message=\"hello &amp; &lt;bye&gt;\"/>"
+    ],
+    "A.EMIT": [],
+    "A.NEW": [],
+    "B": [],
+    "A and B": [
+     "<message device=\"Scripted A\" message=\"hello &amp; &lt;bye&gt;\"/>"
+    ],
+    "A, B.EMIT": [
+     "<message device=\"Scripted A\" message=\"hello &amp; &lt;bye&gt;\"/>"
+    ],
+    "A, enableBLOB A Never": [
+     "<message device=\"Scripted A\" message=\"hello &amp; &lt;bye&gt;\"/>"
+    ],
+    "A, enableBLOB A Also": [
+     "<message device=\"Scripted A\" message=\"hello &amp; &lt;bye&gt;\"/>"
+    ],
+    "A, enableBLOB A Only": [],
+    "A, enableBLOB A.EMIT Only": [
+     "<message device=\"Scripted A\" message=\"hello &amp; &lt;bye&gt;\"/>"
+    ],
+    "A.EMIT, enableBLOB A.EMIT Only": [],
+    "A.EMIT, enableBLOB A Only": [],
+    "enableBLOB A Also": [
+     "<message device=\"Scripted A\" message=\"hello &amp; &lt;bye&gt;\"/>"
+    ],
+    "enableBLOB A Only": [],
+    "everything, enableBLOB A Also": [
+     "<message device=\"Scripted A\" message=\"hello &amp; &lt;bye&gt;\"/>"
+    ],
+    "everything, enableBLOB A Never": [
+     "<message device=\"Scripted A\" message=\"hello &amp; &lt;bye&gt;\"/>"
+    ],
+    "everything, enableBLOB A Only": [],
+    "everything, enableBLOB B Only": [],
+    "B, enableBLOB A Only": [],
+    "A and B, enableBLOB A Only": [],
+    "A and B, enableBLOB A Only, B Also": [
+     "<message device=\"Scripted A\" message=\"hello &amp; &lt;bye&gt;\"/>"
+    ],
+    "A and B, enableBLOB A Only, then A Also": [
+     "<message device=\"Scripted A\" message=\"hello &amp; &lt;bye&gt;\"/>"
+    ],
+    "A and B, enableBLOB A Only, B Only": [],
+    "A and B, enableBLOB A Only, B Only, then A Never": [
+     "<message device=\"Scripted A\" message=\"hello &amp; &lt;bye&gt;\"/>"
+    ]
+   }
+  },
+  {
+   "title": "a message without a device",
+   "driver": "<message timestamp=\"2026-10-19T00:00:00\" message=\"no device\"/>",
+   "before": [],
+   "fake": {
+    "op": "message",
+    "text": "no device"
+   },
+   "heard": {
+    "silent": [
+     "<message message=\"no device\"/>"
+    ],
+    "everything": [
+     "<message message=\"no device\"/>"
+    ],
+    "A": [
+     "<message message=\"no device\"/>"
+    ],
+    "A.EMIT": [
+     "<message message=\"no device\"/>"
+    ],
+    "A.NEW": [
+     "<message message=\"no device\"/>"
+    ],
+    "B": [
+     "<message message=\"no device\"/>"
+    ],
+    "A and B": [
+     "<message message=\"no device\"/>"
+    ],
+    "A, B.EMIT": [
+     "<message message=\"no device\"/>"
+    ],
+    "A, enableBLOB A Never": [
+     "<message message=\"no device\"/>"
+    ],
+    "A, enableBLOB A Also": [
+     "<message message=\"no device\"/>"
+    ],
+    "A, enableBLOB A Only": [],
+    "A, enableBLOB A.EMIT Only": [
+     "<message message=\"no device\"/>"
+    ],
+    "A.EMIT, enableBLOB A.EMIT Only": [
+     "<message message=\"no device\"/>"
+    ],
+    "A.EMIT, enableBLOB A Only": [],
+    "enableBLOB A Also": [
+     "<message message=\"no device\"/>"
+    ],
+    "enableBLOB A Only": [],
+    "everything, enableBLOB A Also": [
+     "<message message=\"no device\"/>"
+    ],
+    "everything, enableBLOB A Never": [
+     "<message message=\"no device\"/>"
+    ],
+    "everything, enableBLOB A Only": [],
+    "everything, enableBLOB B Only": [],
+    "B, enableBLOB A Only": [],
+    "A and B, enableBLOB A Only": [],
+    "A and B, enableBLOB A Only, B Also": [
+     "<message message=\"no device\"/>"
+    ],
+    "A and B, enableBLOB A Only, then A Also": [
+     "<message message=\"no device\"/>"
+    ],
+    "A and B, enableBLOB A Only, B Only": [],
+    "A and B, enableBLOB A Only, B Only, then A Never": [
+     "<message message=\"no device\"/>"
+    ]
+   }
+  },
+  {
+   "title": "a message for another driver's device",
+   "driver": "<message device=\"Scripted B\" message=\"wrong driver\"/>",
+   "before": [],
+   "fake": {
+    "op": "message",
+    "device": "Scripted B",
+    "text": "wrong driver"
+   },
+   "heard": {
+    "silent": [],
+    "everything": [
+     "<message device=\"Scripted B\" message=\"wrong driver\"/>"
+    ],
+    "A": [],
+    "A.EMIT": [],
+    "A.NEW": [],
+    "B": [
+     "<message device=\"Scripted B\" message=\"wrong driver\"/>"
+    ],
+    "A and B": [
+     "<message device=\"Scripted B\" message=\"wrong driver\"/>"
+    ],
+    "A, B.EMIT": [],
+    "A, enableBLOB A Never": [],
+    "A, enableBLOB A Also": [],
+    "A, enableBLOB A Only": [],
+    "A, enableBLOB A.EMIT Only": [],
+    "A.EMIT, enableBLOB A.EMIT Only": [],
+    "A.EMIT, enableBLOB A Only": [],
+    "enableBLOB A Also": [],
+    "enableBLOB A Only": [],
+    "everything, enableBLOB A Also": [
+     "<message device=\"Scripted B\" message=\"wrong driver\"/>"
+    ],
+    "everything, enableBLOB A Never": [
+     "<message device=\"Scripted B\" message=\"wrong driver\"/>"
+    ],
+    "everything, enableBLOB A Only": [],
+    "everything, enableBLOB B Only": [],
+    "B, enableBLOB A Only": [],
+    "A and B, enableBLOB A Only": [],
+    "A and B, enableBLOB A Only, B Also": [
+     "<message device=\"Scripted B\" message=\"wrong driver\"/>"
+    ],
+    "A and B, enableBLOB A Only, then A Also": [
+     "<message device=\"Scripted B\" message=\"wrong driver\"/>"
+    ],
+    "A and B, enableBLOB A Only, B Only": [],
+    "A and B, enableBLOB A Only, B Only, then A Never": [
+     "<message device=\"Scripted B\" message=\"wrong driver\"/>"
+    ]
+   }
+  },
+  {
+   "title": "a message for a device that does not exist",
+   "driver": "<message device=\"Nope\" message=\"x\"/>",
+   "before": [],
+   "fake": {
+    "op": "message",
+    "device": "Nope",
+    "text": "x"
+   },
+   "heard": {
+    "silent": [],
+    "everything": [
+     "<message device=\"Nope\" message=\"x\"/>"
+    ],
+    "A": [],
+    "A.EMIT": [],
+    "A.NEW": [],
+    "B": [],
+    "A and B": [],
+    "A, B.EMIT": [],
+    "A, enableBLOB A Never": [],
+    "A, enableBLOB A Also": [],
+    "A, enableBLOB A Only": [],
+    "A, enableBLOB A.EMIT Only": [],
+    "A.EMIT, enableBLOB A.EMIT Only": [],
+    "A.EMIT, enableBLOB A Only": [],
+    "enableBLOB A Also": [],
+    "enableBLOB A Only": [],
+    "everything, enableBLOB A Also": [
+     "<message device=\"Nope\" message=\"x\"/>"
+    ],
+    "everything, enableBLOB A Never": [
+     "<message device=\"Nope\" message=\"x\"/>"
+    ],
+    "everything, enableBLOB A Only": [],
+    "everything, enableBLOB B Only": [],
+    "B, enableBLOB A Only": [],
+    "A and B, enableBLOB A Only": [],
+    "A and B, enableBLOB A Only, B Also": [],
+    "A and B, enableBLOB A Only, then A Also": [],
+    "A and B, enableBLOB A Only, B Only": [],
+    "A and B, enableBLOB A Only, B Only, then A Never": []
+   }
+  },
+  {
+   "title": "a message without text",
+   "driver": "<message device=\"Scripted A\"/>",
+   "before": [],
+   "fake": {
+    "op": "message",
+    "device": "Scripted A"
+   },
+   "heard": {
+    "silent": [],
+    "everything": [
+     "<message device=\"Scripted A\"/>"
+    ],
+    "A": [
+     "<message device=\"Scripted A\"/>"
+    ],
+    "A.EMIT": [],
+    "A.NEW": [],
+    "B": [],
+    "A and B": [
+     "<message device=\"Scripted A\"/>"
+    ],
+    "A, B.EMIT": [
+     "<message device=\"Scripted A\"/>"
+    ],
+    "A, enableBLOB A Never": [
+     "<message device=\"Scripted A\"/>"
+    ],
+    "A, enableBLOB A Also": [
+     "<message device=\"Scripted A\"/>"
+    ],
+    "A, enableBLOB A Only": [],
+    "A, enableBLOB A.EMIT Only": [
+     "<message device=\"Scripted A\"/>"
+    ],
+    "A.EMIT, enableBLOB A.EMIT Only": [],
+    "A.EMIT, enableBLOB A Only": [],
+    "enableBLOB A Also": [
+     "<message device=\"Scripted A\"/>"
+    ],
+    "enableBLOB A Only": [],
+    "everything, enableBLOB A Also": [
+     "<message device=\"Scripted A\"/>"
+    ],
+    "everything, enableBLOB A Never": [
+     "<message device=\"Scripted A\"/>"
+    ],
+    "everything, enableBLOB A Only": [],
+    "everything, enableBLOB B Only": [],
+    "B, enableBLOB A Only": [],
+    "A and B, enableBLOB A Only": [],
+    "A and B, enableBLOB A Only, B Also": [
+     "<message device=\"Scripted A\"/>"
+    ],
+    "A and B, enableBLOB A Only, then A Also": [
+     "<message device=\"Scripted A\"/>"
+    ],
+    "A and B, enableBLOB A Only, B Only": [],
+    "A and B, enableBLOB A Only, B Only, then A Never": [
+     "<message device=\"Scripted A\"/>"
+    ]
+   }
+  },
+  {
+   "title": "an update with a message",
+   "driver": "<setTextVector device=\"Scripted A\" name=\"EMIT\" state=\"Alert\" message=\"nope &amp; more\"><oneText name=\"XML\">x</oneText></setTextVector>",
+   "before": [],
+   "fake": {
+    "op": "update",
+    "device": "Scripted A",
+    "name": "EMIT",
+    "state": "Alert",
+    "values": {
+     "XML": "x"
+    },
+    "message": "nope & more"
+   },
+   "heard": {
+    "silent": [],
+    "everything": [
+     "<setTextVector device=\"Scripted A\" name=\"EMIT\" state=\"Alert\" message=\"nope &amp; more\"><oneText name=\"XML\"> x </oneText></setTextVector>"
+    ],
+    "A": [
+     "<setTextVector device=\"Scripted A\" name=\"EMIT\" state=\"Alert\" message=\"nope &amp; more\"><oneText name=\"XML\"> x </oneText></setTextVector>"
+    ],
+    "A.EMIT": [
+     "<setTextVector device=\"Scripted A\" name=\"EMIT\" state=\"Alert\" message=\"nope &amp; more\"><oneText name=\"XML\"> x </oneText></setTextVector>"
+    ],
+    "A.NEW": [],
+    "B": [],
+    "A and B": [
+     "<setTextVector device=\"Scripted A\" name=\"EMIT\" state=\"Alert\" message=\"nope &amp; more\"><oneText name=\"XML\"> x </oneText></setTextVector>"
+    ],
+    "A, B.EMIT": [
+     "<setTextVector device=\"Scripted A\" name=\"EMIT\" state=\"Alert\" message=\"nope &amp; more\"><oneText name=\"XML\"> x </oneText></setTextVector>"
+    ],
+    "A, enableBLOB A Never": [
+     "<setTextVector device=\"Scripted A\" name=\"EMIT\" state=\"Alert\" message=\"nope &amp; more\"><oneText name=\"XML\"> x </oneText></setTextVector>"
+    ],
+    "A, enableBLOB A Also": [
+     "<setTextVector device=\"Scripted A\" name=\"EMIT\" state=\"Alert\" message=\"nope &amp; more\"><oneText name=\"XML\"> x </oneText></setTextVector>"
+    ],
+    "A, enableBLOB A Only": [],
+    "A, enableBLOB A.EMIT Only": [
+     "<setTextVector device=\"Scripted A\" name=\"EMIT\" state=\"Alert\" message=\"nope &amp; more\"><oneText name=\"XML\"> x </oneText></setTextVector>"
+    ],
+    "A.EMIT, enableBLOB A.EMIT Only": [
+     "<setTextVector device=\"Scripted A\" name=\"EMIT\" state=\"Alert\" message=\"nope &amp; more\"><oneText name=\"XML\"> x </oneText></setTextVector>"
+    ],
+    "A.EMIT, enableBLOB A Only": [],
+    "enableBLOB A Also": [
+     "<setTextVector device=\"Scripted A\" name=\"EMIT\" state=\"Alert\" message=\"nope &amp; more\"><oneText name=\"XML\"> x </oneText></setTextVector>"
+    ],
+    "enableBLOB A Only": [],
+    "everything, enableBLOB A Also": [
+     "<setTextVector device=\"Scripted A\" name=\"EMIT\" state=\"Alert\" message=\"nope &amp; more\"><oneText name=\"XML\"> x </oneText></setTextVector>"
+    ],
+    "everything, enableBLOB A Never": [
+     "<setTextVector device=\"Scripted A\" name=\"EMIT\" state=\"Alert\" message=\"nope &amp; more\"><oneText name=\"XML\"> x </oneText></setTextVector>"
+    ],
+    "everything, enableBLOB A Only": [],
+    "everything, enableBLOB B Only": [],
+    "B, enableBLOB A Only": [],
+    "A and B, enableBLOB A Only": [],
+    "A and B, enableBLOB A Only, B Also": [
+     "<setTextVector device=\"Scripted A\" name=\"EMIT\" state=\"Alert\" message=\"nope &amp; more\"><oneText name=\"XML\"> x </oneText></setTextVector>"
+    ],
+    "A and B, enableBLOB A Only, then A Also": [
+     "<setTextVector device=\"Scripted A\" name=\"EMIT\" state=\"Alert\" message=\"nope &amp; more\"><oneText name=\"XML\"> x </oneText></setTextVector>"
+    ],
+    "A and B, enableBLOB A Only, B Only": [],
+    "A and B, enableBLOB A Only, B Only, then A Never": [
+     "<setTextVector device=\"Scripted A\" name=\"EMIT\" state=\"Alert\" message=\"nope &amp; more\"><oneText name=\"XML\"> x </oneText></setTextVector>"
+    ]
+   }
+  },
+  {
+   "title": "an update without a message",
+   "driver": "<setTextVector device=\"Scripted A\" name=\"EMIT\" state=\"Ok\"><oneText name=\"XML\">x</oneText></setTextVector>",
+   "before": [],
+   "fake": {
+    "op": "update",
+    "device": "Scripted A",
+    "name": "EMIT",
+    "state": "Ok",
+    "values": {
+     "XML": "x"
+    }
+   },
+   "heard": {
+    "silent": [],
+    "everything": [
+     "<setTextVector device=\"Scripted A\" name=\"EMIT\" state=\"Ok\"><oneText name=\"XML\"> x </oneText></setTextVector>"
+    ],
+    "A": [
+     "<setTextVector device=\"Scripted A\" name=\"EMIT\" state=\"Ok\"><oneText name=\"XML\"> x </oneText></setTextVector>"
+    ],
+    "A.EMIT": [
+     "<setTextVector device=\"Scripted A\" name=\"EMIT\" state=\"Ok\"><oneText name=\"XML\"> x </oneText></setTextVector>"
+    ],
+    "A.NEW": [],
+    "B": [],
+    "A and B": [
+     "<setTextVector device=\"Scripted A\" name=\"EMIT\" state=\"Ok\"><oneText name=\"XML\"> x </oneText></setTextVector>"
+    ],
+    "A, B.EMIT": [
+     "<setTextVector device=\"Scripted A\" name=\"EMIT\" state=\"Ok\"><oneText name=\"XML\"> x </oneText></setTextVector>"
+    ],
+    "A, enableBLOB A Never": [
+     "<setTextVector device=\"Scripted A\" name=\"EMIT\" state=\"Ok\"><oneText name=\"XML\"> x </oneText></setTextVector>"
+    ],
+    "A, enableBLOB A Also": [
+     "<setTextVector device=\"Scripted A\" name=\"EMIT\" state=\"Ok\"><oneText name=\"XML\"> x </oneText></setTextVector>"
+    ],
+    "A, enableBLOB A Only": [],
+    "A, enableBLOB A.EMIT Only": [
+     "<setTextVector device=\"Scripted A\" name=\"EMIT\" state=\"Ok\"><oneText name=\"XML\"> x </oneText></setTextVector>"
+    ],
+    "A.EMIT, enableBLOB A.EMIT Only": [
+     "<setTextVector device=\"Scripted A\" name=\"EMIT\" state=\"Ok\"><oneText name=\"XML\"> x </oneText></setTextVector>"
+    ],
+    "A.EMIT, enableBLOB A Only": [],
+    "enableBLOB A Also": [
+     "<setTextVector device=\"Scripted A\" name=\"EMIT\" state=\"Ok\"><oneText name=\"XML\"> x </oneText></setTextVector>"
+    ],
+    "enableBLOB A Only": [],
+    "everything, enableBLOB A Also": [
+     "<setTextVector device=\"Scripted A\" name=\"EMIT\" state=\"Ok\"><oneText name=\"XML\"> x </oneText></setTextVector>"
+    ],
+    "everything, enableBLOB A Never": [
+     "<setTextVector device=\"Scripted A\" name=\"EMIT\" state=\"Ok\"><oneText name=\"XML\"> x </oneText></setTextVector>"
+    ],
+    "everything, enableBLOB A Only": [],
+    "everything, enableBLOB B Only": [],
+    "B, enableBLOB A Only": [],
+    "A and B, enableBLOB A Only": [],
+    "A and B, enableBLOB A Only, B Also": [
+     "<setTextVector device=\"Scripted A\" name=\"EMIT\" state=\"Ok\"><oneText name=\"XML\"> x </oneText></setTextVector>"
+    ],
+    "A and B, enableBLOB A Only, then A Also": [
+     "<setTextVector device=\"Scripted A\" name=\"EMIT\" state=\"Ok\"><oneText name=\"XML\"> x </oneText></setTextVector>"
+    ],
+    "A and B, enableBLOB A Only, B Only": [],
+    "A and B, enableBLOB A Only, B Only, then A Never": [
+     "<setTextVector device=\"Scripted A\" name=\"EMIT\" state=\"Ok\"><oneText name=\"XML\"> x </oneText></setTextVector>"
+    ]
+   }
+  },
+  {
+   "title": "a definition with a message",
+   "driver": "<defTextVector device=\"Scripted A\" name=\"NEW\" label=\"New\" group=\"Main\" state=\"Ok\" perm=\"rw\" timeout=\"60\" message=\"defmsg\"><defText name=\"V\" label=\"V\">v</defText></defTextVector>",
+   "before": [],
+   "fake": {
+    "op": "define",
+    "message": "defmsg"
+   },
+   "heard": {
+    "silent": [],
+    "everything": [
+     "<defTextVector device=\"Scripted A\" name=\"NEW\" label=\"New\" group=\"Main\" state=\"Ok\" perm=\"rw\" timeout=\"60\" message=\"defmsg\"><defText name=\"V\" label=\"V\"> v </defText></defTextVector>"
+    ],
+    "A": [
+     "<defTextVector device=\"Scripted A\" name=\"NEW\" label=\"New\" group=\"Main\" state=\"Ok\" perm=\"rw\" timeout=\"60\" message=\"defmsg\"><defText name=\"V\" label=\"V\"> v </defText></defTextVector>"
+    ],
+    "A.EMIT": [],
+    "A.NEW": [
+     "<defTextVector device=\"Scripted A\" name=\"NEW\" label=\"New\" group=\"Main\" state=\"Ok\" perm=\"rw\" timeout=\"60\" message=\"defmsg\"><defText name=\"V\" label=\"V\"> v </defText></defTextVector>"
+    ],
+    "B": [],
+    "A and B": [
+     "<defTextVector device=\"Scripted A\" name=\"NEW\" label=\"New\" group=\"Main\" state=\"Ok\" perm=\"rw\" timeout=\"60\" message=\"defmsg\"><defText name=\"V\" label=\"V\"> v </defText></defTextVector>"
+    ],
+    "A, B.EMIT": [
+     "<defTextVector device=\"Scripted A\" name=\"NEW\" label=\"New\" group=\"Main\" state=\"Ok\" perm=\"rw\" timeout=\"60\" message=\"defmsg\"><defText name=\"V\" label=\"V\"> v </defText></defTextVector>"
+    ],
+    "A, enableBLOB A Never": [
+     "<defTextVector device=\"Scripted A\" name=\"NEW\" label=\"New\" group=\"Main\" state=\"Ok\" perm=\"rw\" timeout=\"60\" message=\"defmsg\"><defText name=\"V\" label=\"V\"> v </defText></defTextVector>"
+    ],
+    "A, enableBLOB A Also": [
+     "<defTextVector device=\"Scripted A\" name=\"NEW\" label=\"New\" group=\"Main\" state=\"Ok\" perm=\"rw\" timeout=\"60\" message=\"defmsg\"><defText name=\"V\" label=\"V\"> v </defText></defTextVector>"
+    ],
+    "A, enableBLOB A Only": [],
+    "A, enableBLOB A.EMIT Only": [
+     "<defTextVector device=\"Scripted A\" name=\"NEW\" label=\"New\" group=\"Main\" state=\"Ok\" perm=\"rw\" timeout=\"60\" message=\"defmsg\"><defText name=\"V\" label=\"V\"> v </defText></defTextVector>"
+    ],
+    "A.EMIT, enableBLOB A.EMIT Only": [],
+    "A.EMIT, enableBLOB A Only": [],
+    "enableBLOB A Also": [
+     "<defTextVector device=\"Scripted A\" name=\"NEW\" label=\"New\" group=\"Main\" state=\"Ok\" perm=\"rw\" timeout=\"60\" message=\"defmsg\"><defText name=\"V\" label=\"V\"> v </defText></defTextVector>"
+    ],
+    "enableBLOB A Only": [],
+    "everything, enableBLOB A Also": [
+     "<defTextVector device=\"Scripted A\" name=\"NEW\" label=\"New\" group=\"Main\" state=\"Ok\" perm=\"rw\" timeout=\"60\" message=\"defmsg\"><defText name=\"V\" label=\"V\"> v </defText></defTextVector>"
+    ],
+    "everything, enableBLOB A Never": [
+     "<defTextVector device=\"Scripted A\" name=\"NEW\" label=\"New\" group=\"Main\" state=\"Ok\" perm=\"rw\" timeout=\"60\" message=\"defmsg\"><defText name=\"V\" label=\"V\"> v </defText></defTextVector>"
+    ],
+    "everything, enableBLOB A Only": [],
+    "everything, enableBLOB B Only": [],
+    "B, enableBLOB A Only": [],
+    "A and B, enableBLOB A Only": [],
+    "A and B, enableBLOB A Only, B Also": [
+     "<defTextVector device=\"Scripted A\" name=\"NEW\" label=\"New\" group=\"Main\" state=\"Ok\" perm=\"rw\" timeout=\"60\" message=\"defmsg\"><defText name=\"V\" label=\"V\"> v </defText></defTextVector>"
+    ],
+    "A and B, enableBLOB A Only, then A Also": [
+     "<defTextVector device=\"Scripted A\" name=\"NEW\" label=\"New\" group=\"Main\" state=\"Ok\" perm=\"rw\" timeout=\"60\" message=\"defmsg\"><defText name=\"V\" label=\"V\"> v </defText></defTextVector>"
+    ],
+    "A and B, enableBLOB A Only, B Only": [],
+    "A and B, enableBLOB A Only, B Only, then A Never": [
+     "<defTextVector device=\"Scripted A\" name=\"NEW\" label=\"New\" group=\"Main\" state=\"Ok\" perm=\"rw\" timeout=\"60\" message=\"defmsg\"><defText name=\"V\" label=\"V\"> v </defText></defTextVector>"
+    ]
+   }
+  },
+  {
+   "title": "a definition without a message",
+   "driver": "<defTextVector device=\"Scripted A\" name=\"NEW\" label=\"New\" group=\"Main\" state=\"Ok\" perm=\"rw\" timeout=\"60\"><defText name=\"V\" label=\"V\">v</defText></defTextVector>",
+   "before": [],
+   "fake": {
+    "op": "define"
+   },
+   "heard": {
+    "silent": [],
+    "everything": [
+     "<defTextVector device=\"Scripted A\" name=\"NEW\" label=\"New\" group=\"Main\" state=\"Ok\" perm=\"rw\" timeout=\"60\"><defText name=\"V\" label=\"V\"> v </defText></defTextVector>"
+    ],
+    "A": [
+     "<defTextVector device=\"Scripted A\" name=\"NEW\" label=\"New\" group=\"Main\" state=\"Ok\" perm=\"rw\" timeout=\"60\"><defText name=\"V\" label=\"V\"> v </defText></defTextVector>"
+    ],
+    "A.EMIT": [],
+    "A.NEW": [
+     "<defTextVector device=\"Scripted A\" name=\"NEW\" label=\"New\" group=\"Main\" state=\"Ok\" perm=\"rw\" timeout=\"60\"><defText name=\"V\" label=\"V\"> v </defText></defTextVector>"
+    ],
+    "B": [],
+    "A and B": [
+     "<defTextVector device=\"Scripted A\" name=\"NEW\" label=\"New\" group=\"Main\" state=\"Ok\" perm=\"rw\" timeout=\"60\"><defText name=\"V\" label=\"V\"> v </defText></defTextVector>"
+    ],
+    "A, B.EMIT": [
+     "<defTextVector device=\"Scripted A\" name=\"NEW\" label=\"New\" group=\"Main\" state=\"Ok\" perm=\"rw\" timeout=\"60\"><defText name=\"V\" label=\"V\"> v </defText></defTextVector>"
+    ],
+    "A, enableBLOB A Never": [
+     "<defTextVector device=\"Scripted A\" name=\"NEW\" label=\"New\" group=\"Main\" state=\"Ok\" perm=\"rw\" timeout=\"60\"><defText name=\"V\" label=\"V\"> v </defText></defTextVector>"
+    ],
+    "A, enableBLOB A Also": [
+     "<defTextVector device=\"Scripted A\" name=\"NEW\" label=\"New\" group=\"Main\" state=\"Ok\" perm=\"rw\" timeout=\"60\"><defText name=\"V\" label=\"V\"> v </defText></defTextVector>"
+    ],
+    "A, enableBLOB A Only": [],
+    "A, enableBLOB A.EMIT Only": [
+     "<defTextVector device=\"Scripted A\" name=\"NEW\" label=\"New\" group=\"Main\" state=\"Ok\" perm=\"rw\" timeout=\"60\"><defText name=\"V\" label=\"V\"> v </defText></defTextVector>"
+    ],
+    "A.EMIT, enableBLOB A.EMIT Only": [],
+    "A.EMIT, enableBLOB A Only": [],
+    "enableBLOB A Also": [
+     "<defTextVector device=\"Scripted A\" name=\"NEW\" label=\"New\" group=\"Main\" state=\"Ok\" perm=\"rw\" timeout=\"60\"><defText name=\"V\" label=\"V\"> v </defText></defTextVector>"
+    ],
+    "enableBLOB A Only": [],
+    "everything, enableBLOB A Also": [
+     "<defTextVector device=\"Scripted A\" name=\"NEW\" label=\"New\" group=\"Main\" state=\"Ok\" perm=\"rw\" timeout=\"60\"><defText name=\"V\" label=\"V\"> v </defText></defTextVector>"
+    ],
+    "everything, enableBLOB A Never": [
+     "<defTextVector device=\"Scripted A\" name=\"NEW\" label=\"New\" group=\"Main\" state=\"Ok\" perm=\"rw\" timeout=\"60\"><defText name=\"V\" label=\"V\"> v </defText></defTextVector>"
+    ],
+    "everything, enableBLOB A Only": [],
+    "everything, enableBLOB B Only": [],
+    "B, enableBLOB A Only": [],
+    "A and B, enableBLOB A Only": [],
+    "A and B, enableBLOB A Only, B Also": [
+     "<defTextVector device=\"Scripted A\" name=\"NEW\" label=\"New\" group=\"Main\" state=\"Ok\" perm=\"rw\" timeout=\"60\"><defText name=\"V\" label=\"V\"> v </defText></defTextVector>"
+    ],
+    "A and B, enableBLOB A Only, then A Also": [
+     "<defTextVector device=\"Scripted A\" name=\"NEW\" label=\"New\" group=\"Main\" state=\"Ok\" perm=\"rw\" timeout=\"60\"><defText name=\"V\" label=\"V\"> v </defText></defTextVector>"
+    ],
+    "A and B, enableBLOB A Only, B Only": [],
+    "A and B, enableBLOB A Only, B Only, then A Never": [
+     "<defTextVector device=\"Scripted A\" name=\"NEW\" label=\"New\" group=\"Main\" state=\"Ok\" perm=\"rw\" timeout=\"60\"><defText name=\"V\" label=\"V\"> v </defText></defTextVector>"
+    ]
+   }
+  },
+  {
+   "title": "a deletion of a property with a message",
+   "driver": "<delProperty device=\"Scripted A\" name=\"NEW\" message=\"delmsg\"/>",
+   "before": [
+    "<defTextVector device=\"Scripted A\" name=\"NEW\" label=\"New\" group=\"Main\" state=\"Ok\" perm=\"rw\" timeout=\"60\"><defText name=\"V\" label=\"V\">v</defText></defTextVector>"
+   ],
+   "fake": {
+    "op": "removeVector",
+    "device": "Scripted A",
+    "name": "NEW",
+    "message": "delmsg",
+    "defined": true
+   },
+   "heard": {
+    "silent": [],
+    "everything": [
+     "<delProperty device=\"Scripted A\" name=\"NEW\" message=\"delmsg\"/>"
+    ],
+    "A": [
+     "<delProperty device=\"Scripted A\" name=\"NEW\" message=\"delmsg\"/>"
+    ],
+    "A.EMIT": [],
+    "A.NEW": [
+     "<delProperty device=\"Scripted A\" name=\"NEW\" message=\"delmsg\"/>"
+    ],
+    "B": [],
+    "A and B": [
+     "<delProperty device=\"Scripted A\" name=\"NEW\" message=\"delmsg\"/>"
+    ],
+    "A, B.EMIT": [
+     "<delProperty device=\"Scripted A\" name=\"NEW\" message=\"delmsg\"/>"
+    ],
+    "A, enableBLOB A Never": [
+     "<delProperty device=\"Scripted A\" name=\"NEW\" message=\"delmsg\"/>"
+    ],
+    "A, enableBLOB A Also": [
+     "<delProperty device=\"Scripted A\" name=\"NEW\" message=\"delmsg\"/>"
+    ],
+    "A, enableBLOB A Only": [],
+    "A, enableBLOB A.EMIT Only": [
+     "<delProperty device=\"Scripted A\" name=\"NEW\" message=\"delmsg\"/>"
+    ],
+    "A.EMIT, enableBLOB A.EMIT Only": [],
+    "A.EMIT, enableBLOB A Only": [],
+    "enableBLOB A Also": [
+     "<delProperty device=\"Scripted A\" name=\"NEW\" message=\"delmsg\"/>"
+    ],
+    "enableBLOB A Only": [],
+    "everything, enableBLOB A Also": [
+     "<delProperty device=\"Scripted A\" name=\"NEW\" message=\"delmsg\"/>"
+    ],
+    "everything, enableBLOB A Never": [
+     "<delProperty device=\"Scripted A\" name=\"NEW\" message=\"delmsg\"/>"
+    ],
+    "everything, enableBLOB A Only": [],
+    "everything, enableBLOB B Only": [],
+    "B, enableBLOB A Only": [],
+    "A and B, enableBLOB A Only": [],
+    "A and B, enableBLOB A Only, B Also": [
+     "<delProperty device=\"Scripted A\" name=\"NEW\" message=\"delmsg\"/>"
+    ],
+    "A and B, enableBLOB A Only, then A Also": [
+     "<delProperty device=\"Scripted A\" name=\"NEW\" message=\"delmsg\"/>"
+    ],
+    "A and B, enableBLOB A Only, B Only": [],
+    "A and B, enableBLOB A Only, B Only, then A Never": [
+     "<delProperty device=\"Scripted A\" name=\"NEW\" message=\"delmsg\"/>"
+    ]
+   }
+  },
+  {
+   "title": "a deletion of a property without a message",
+   "driver": "<delProperty device=\"Scripted A\" name=\"NEW\"/>",
+   "before": [
+    "<defTextVector device=\"Scripted A\" name=\"NEW\" label=\"New\" group=\"Main\" state=\"Ok\" perm=\"rw\" timeout=\"60\"><defText name=\"V\" label=\"V\">v</defText></defTextVector>"
+   ],
+   "fake": {
+    "op": "removeVector",
+    "device": "Scripted A",
+    "name": "NEW",
+    "defined": true
+   },
+   "heard": {
+    "silent": [],
+    "everything": [
+     "<delProperty device=\"Scripted A\" name=\"NEW\"/>"
+    ],
+    "A": [
+     "<delProperty device=\"Scripted A\" name=\"NEW\"/>"
+    ],
+    "A.EMIT": [],
+    "A.NEW": [
+     "<delProperty device=\"Scripted A\" name=\"NEW\"/>"
+    ],
+    "B": [],
+    "A and B": [
+     "<delProperty device=\"Scripted A\" name=\"NEW\"/>"
+    ],
+    "A, B.EMIT": [
+     "<delProperty device=\"Scripted A\" name=\"NEW\"/>"
+    ],
+    "A, enableBLOB A Never": [
+     "<delProperty device=\"Scripted A\" name=\"NEW\"/>"
+    ],
+    "A, enableBLOB A Also": [
+     "<delProperty device=\"Scripted A\" name=\"NEW\"/>"
+    ],
+    "A, enableBLOB A Only": [],
+    "A, enableBLOB A.EMIT Only": [
+     "<delProperty device=\"Scripted A\" name=\"NEW\"/>"
+    ],
+    "A.EMIT, enableBLOB A.EMIT Only": [],
+    "A.EMIT, enableBLOB A Only": [],
+    "enableBLOB A Also": [
+     "<delProperty device=\"Scripted A\" name=\"NEW\"/>"
+    ],
+    "enableBLOB A Only": [],
+    "everything, enableBLOB A Also": [
+     "<delProperty device=\"Scripted A\" name=\"NEW\"/>"
+    ],
+    "everything, enableBLOB A Never": [
+     "<delProperty device=\"Scripted A\" name=\"NEW\"/>"
+    ],
+    "everything, enableBLOB A Only": [],
+    "everything, enableBLOB B Only": [],
+    "B, enableBLOB A Only": [],
+    "A and B, enableBLOB A Only": [],
+    "A and B, enableBLOB A Only, B Also": [
+     "<delProperty device=\"Scripted A\" name=\"NEW\"/>"
+    ],
+    "A and B, enableBLOB A Only, then A Also": [
+     "<delProperty device=\"Scripted A\" name=\"NEW\"/>"
+    ],
+    "A and B, enableBLOB A Only, B Only": [],
+    "A and B, enableBLOB A Only, B Only, then A Never": [
+     "<delProperty device=\"Scripted A\" name=\"NEW\"/>"
+    ]
+   }
+  },
+  {
+   "title": "a deletion of a device with a message",
+   "driver": "<delProperty device=\"Scripted A\" message=\"gone\"/>",
+   "before": [],
+   "fake": {
+    "op": "removeDevice",
+    "device": "Scripted A",
+    "message": "gone"
+   },
+   "heard": {
+    "silent": [],
+    "everything": [
+     "<delProperty device=\"Scripted A\" message=\"gone\"/>"
+    ],
+    "A": [
+     "<delProperty device=\"Scripted A\" message=\"gone\"/>"
+    ],
+    "A.EMIT": [],
+    "A.NEW": [],
+    "B": [],
+    "A and B": [
+     "<delProperty device=\"Scripted A\" message=\"gone\"/>"
+    ],
+    "A, B.EMIT": [
+     "<delProperty device=\"Scripted A\" message=\"gone\"/>"
+    ],
+    "A, enableBLOB A Never": [
+     "<delProperty device=\"Scripted A\" message=\"gone\"/>"
+    ],
+    "A, enableBLOB A Also": [
+     "<delProperty device=\"Scripted A\" message=\"gone\"/>"
+    ],
+    "A, enableBLOB A Only": [],
+    "A, enableBLOB A.EMIT Only": [
+     "<delProperty device=\"Scripted A\" message=\"gone\"/>"
+    ],
+    "A.EMIT, enableBLOB A.EMIT Only": [],
+    "A.EMIT, enableBLOB A Only": [],
+    "enableBLOB A Also": [
+     "<delProperty device=\"Scripted A\" message=\"gone\"/>"
+    ],
+    "enableBLOB A Only": [],
+    "everything, enableBLOB A Also": [
+     "<delProperty device=\"Scripted A\" message=\"gone\"/>"
+    ],
+    "everything, enableBLOB A Never": [
+     "<delProperty device=\"Scripted A\" message=\"gone\"/>"
+    ],
+    "everything, enableBLOB A Only": [],
+    "everything, enableBLOB B Only": [],
+    "B, enableBLOB A Only": [],
+    "A and B, enableBLOB A Only": [],
+    "A and B, enableBLOB A Only, B Also": [
+     "<delProperty device=\"Scripted A\" message=\"gone\"/>"
+    ],
+    "A and B, enableBLOB A Only, then A Also": [
+     "<delProperty device=\"Scripted A\" message=\"gone\"/>"
+    ],
+    "A and B, enableBLOB A Only, B Only": [],
+    "A and B, enableBLOB A Only, B Only, then A Never": [
+     "<delProperty device=\"Scripted A\" message=\"gone\"/>"
+    ]
+   }
+  },
+  {
+   "title": "a deletion of a device",
+   "driver": "<delProperty device=\"Scripted A\"/>",
+   "before": [],
+   "fake": {
+    "op": "removeDevice",
+    "device": "Scripted A"
+   },
+   "heard": {
+    "silent": [],
+    "everything": [
+     "<delProperty device=\"Scripted A\"/>"
+    ],
+    "A": [
+     "<delProperty device=\"Scripted A\"/>"
+    ],
+    "A.EMIT": [],
+    "A.NEW": [],
+    "B": [],
+    "A and B": [
+     "<delProperty device=\"Scripted A\"/>"
+    ],
+    "A, B.EMIT": [
+     "<delProperty device=\"Scripted A\"/>"
+    ],
+    "A, enableBLOB A Never": [
+     "<delProperty device=\"Scripted A\"/>"
+    ],
+    "A, enableBLOB A Also": [
+     "<delProperty device=\"Scripted A\"/>"
+    ],
+    "A, enableBLOB A Only": [],
+    "A, enableBLOB A.EMIT Only": [
+     "<delProperty device=\"Scripted A\"/>"
+    ],
+    "A.EMIT, enableBLOB A.EMIT Only": [],
+    "A.EMIT, enableBLOB A Only": [],
+    "enableBLOB A Also": [
+     "<delProperty device=\"Scripted A\"/>"
+    ],
+    "enableBLOB A Only": [],
+    "everything, enableBLOB A Also": [
+     "<delProperty device=\"Scripted A\"/>"
+    ],
+    "everything, enableBLOB A Never": [
+     "<delProperty device=\"Scripted A\"/>"
+    ],
+    "everything, enableBLOB A Only": [],
+    "everything, enableBLOB B Only": [],
+    "B, enableBLOB A Only": [],
+    "A and B, enableBLOB A Only": [],
+    "A and B, enableBLOB A Only, B Also": [
+     "<delProperty device=\"Scripted A\"/>"
+    ],
+    "A and B, enableBLOB A Only, then A Also": [
+     "<delProperty device=\"Scripted A\"/>"
+    ],
+    "A and B, enableBLOB A Only, B Only": [],
+    "A and B, enableBLOB A Only, B Only, then A Never": [
+     "<delProperty device=\"Scripted A\"/>"
+    ]
+   }
+  },
+  {
+   "title": "an image with a message",
+   "driver": "<setBLOBVector device=\"Scripted A\" name=\"IMG\" state=\"Ok\" timeout=\"60\" message=\"blobmsg\"><oneBLOB name=\"IMG\" size=\"3\" format=\".txt\" len=\"3\">AAAA</oneBLOB></setBLOBVector>",
+   "before": [],
+   "fake": {
+    "op": "image",
+    "device": "Scripted A",
+    "name": "IMG",
+    "element": "IMG",
+    "data": "AAAA",
+    "format": ".txt",
+    "timeout": 60,
+    "message": "blobmsg"
+   },
+   "heard": {
+    "silent": [],
+    "everything": [],
+    "A": [],
+    "A.EMIT": [],
+    "A.NEW": [],
+    "B": [],
+    "A and B": [],
+    "A, B.EMIT": [],
+    "A, enableBLOB A Never": [],
+    "A, enableBLOB A Also": [
+     "<setBLOBVector device=\"Scripted A\" name=\"IMG\" state=\"Ok\" timeout=\"60\" message=\"blobmsg\"><oneBLOB name=\"IMG\" size=\"3\" format=\".txt\" len=\"3\"> AAAA </oneBLOB></setBLOBVector>"
+    ],
+    "A, enableBLOB A Only": [
+     "<setBLOBVector device=\"Scripted A\" name=\"IMG\" state=\"Ok\" timeout=\"60\" message=\"blobmsg\"><oneBLOB name=\"IMG\" size=\"3\" format=\".txt\" len=\"3\"> AAAA </oneBLOB></setBLOBVector>"
+    ],
+    "A, enableBLOB A.EMIT Only": [],
+    "A.EMIT, enableBLOB A.EMIT Only": [],
+    "A.EMIT, enableBLOB A Only": [
+     "<setBLOBVector device=\"Scripted A\" name=\"IMG\" state=\"Ok\" timeout=\"60\" message=\"blobmsg\"><oneBLOB name=\"IMG\" size=\"3\" format=\".txt\" len=\"3\"> AAAA </oneBLOB></setBLOBVector>"
+    ],
+    "enableBLOB A Also": [
+     "<setBLOBVector device=\"Scripted A\" name=\"IMG\" state=\"Ok\" timeout=\"60\" message=\"blobmsg\"><oneBLOB name=\"IMG\" size=\"3\" format=\".txt\" len=\"3\"> AAAA </oneBLOB></setBLOBVector>"
+    ],
+    "enableBLOB A Only": [
+     "<setBLOBVector device=\"Scripted A\" name=\"IMG\" state=\"Ok\" timeout=\"60\" message=\"blobmsg\"><oneBLOB name=\"IMG\" size=\"3\" format=\".txt\" len=\"3\"> AAAA </oneBLOB></setBLOBVector>"
+    ],
+    "everything, enableBLOB A Also": [
+     "<setBLOBVector device=\"Scripted A\" name=\"IMG\" state=\"Ok\" timeout=\"60\" message=\"blobmsg\"><oneBLOB name=\"IMG\" size=\"3\" format=\".txt\" len=\"3\"> AAAA </oneBLOB></setBLOBVector>"
+    ],
+    "everything, enableBLOB A Never": [],
+    "everything, enableBLOB A Only": [
+     "<setBLOBVector device=\"Scripted A\" name=\"IMG\" state=\"Ok\" timeout=\"60\" message=\"blobmsg\"><oneBLOB name=\"IMG\" size=\"3\" format=\".txt\" len=\"3\"> AAAA </oneBLOB></setBLOBVector>"
+    ],
+    "everything, enableBLOB B Only": [
+     "<setBLOBVector device=\"Scripted A\" name=\"IMG\" state=\"Ok\" timeout=\"60\" message=\"blobmsg\"><oneBLOB name=\"IMG\" size=\"3\" format=\".txt\" len=\"3\"> AAAA </oneBLOB></setBLOBVector>"
+    ],
+    "B, enableBLOB A Only": [
+     "<setBLOBVector device=\"Scripted A\" name=\"IMG\" state=\"Ok\" timeout=\"60\" message=\"blobmsg\"><oneBLOB name=\"IMG\" size=\"3\" format=\".txt\" len=\"3\"> AAAA </oneBLOB></setBLOBVector>"
+    ],
+    "A and B, enableBLOB A Only": [
+     "<setBLOBVector device=\"Scripted A\" name=\"IMG\" state=\"Ok\" timeout=\"60\" message=\"blobmsg\"><oneBLOB name=\"IMG\" size=\"3\" format=\".txt\" len=\"3\"> AAAA </oneBLOB></setBLOBVector>"
+    ],
+    "A and B, enableBLOB A Only, B Also": [
+     "<setBLOBVector device=\"Scripted A\" name=\"IMG\" state=\"Ok\" timeout=\"60\" message=\"blobmsg\"><oneBLOB name=\"IMG\" size=\"3\" format=\".txt\" len=\"3\"> AAAA </oneBLOB></setBLOBVector>"
+    ],
+    "A and B, enableBLOB A Only, then A Also": [
+     "<setBLOBVector device=\"Scripted A\" name=\"IMG\" state=\"Ok\" timeout=\"60\" message=\"blobmsg\"><oneBLOB name=\"IMG\" size=\"3\" format=\".txt\" len=\"3\"> AAAA </oneBLOB></setBLOBVector>"
+    ],
+    "A and B, enableBLOB A Only, B Only": [
+     "<setBLOBVector device=\"Scripted A\" name=\"IMG\" state=\"Ok\" timeout=\"60\" message=\"blobmsg\"><oneBLOB name=\"IMG\" size=\"3\" format=\".txt\" len=\"3\"> AAAA </oneBLOB></setBLOBVector>"
+    ],
+    "A and B, enableBLOB A Only, B Only, then A Never": []
+   }
+  },
+  {
+   "title": "a client's ping",
+   "driver": {
+    "client": "everything",
+    "xml": "<pingRequest uid=\"p1\"/>"
+   },
+   "before": [],
+   "fake": {
+    "op": "ping",
+    "client": "everything",
+    "uid": "p1"
+   },
+   "heard": {
+    "silent": [],
+    "everything": [
+     "<pingReply uid=\"p1\"/>"
+    ],
+    "A": [],
+    "A.EMIT": [],
+    "A.NEW": [],
+    "B": [],
+    "A and B": [],
+    "A, B.EMIT": [],
+    "A, enableBLOB A Never": [],
+    "A, enableBLOB A Also": [],
+    "A, enableBLOB A Only": [],
+    "A, enableBLOB A.EMIT Only": [],
+    "A.EMIT, enableBLOB A.EMIT Only": [],
+    "A.EMIT, enableBLOB A Only": [],
+    "enableBLOB A Also": [],
+    "enableBLOB A Only": [],
+    "everything, enableBLOB A Also": [],
+    "everything, enableBLOB A Never": [],
+    "everything, enableBLOB A Only": [],
+    "everything, enableBLOB B Only": [],
+    "B, enableBLOB A Only": [],
+    "A and B, enableBLOB A Only": [],
+    "A and B, enableBLOB A Only, B Also": [],
+    "A and B, enableBLOB A Only, then A Also": [],
+    "A and B, enableBLOB A Only, B Only": [],
+    "A and B, enableBLOB A Only, B Only, then A Never": []
+   }
+  },
+  {
+   "title": "a driver's ping request",
+   "driver": "<pingRequest uid=\"drv1\"/>",
+   "before": [],
+   "fake": {
+    "op": "none"
+   },
+   "heard": {
+    "silent": [],
+    "everything": [],
+    "A": [],
+    "A.EMIT": [],
+    "A.NEW": [],
+    "B": [],
+    "A and B": [],
+    "A, B.EMIT": [],
+    "A, enableBLOB A Never": [],
+    "A, enableBLOB A Also": [],
+    "A, enableBLOB A Only": [],
+    "A, enableBLOB A.EMIT Only": [],
+    "A.EMIT, enableBLOB A.EMIT Only": [],
+    "A.EMIT, enableBLOB A Only": [],
+    "enableBLOB A Also": [],
+    "enableBLOB A Only": [],
+    "everything, enableBLOB A Also": [],
+    "everything, enableBLOB A Never": [],
+    "everything, enableBLOB A Only": [],
+    "everything, enableBLOB B Only": [],
+    "B, enableBLOB A Only": [],
+    "A and B, enableBLOB A Only": [],
+    "A and B, enableBLOB A Only, B Also": [],
+    "A and B, enableBLOB A Only, then A Also": [],
+    "A and B, enableBLOB A Only, B Only": [],
+    "A and B, enableBLOB A Only, B Only, then A Never": []
+   }
+  }
+ ]
+}

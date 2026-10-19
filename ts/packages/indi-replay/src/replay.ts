@@ -15,17 +15,30 @@
  *             value for the rest of the replay (later recorded updates are ignored)
  *   exposure  the camera's exposure properties, driven by the exposure machine
  *
+ * Whoever holds a value, the recording owns a property's limits and definition: a recorded min, max or step,
+ * or a definition that differs from the one held, is relayed to the clients watching the property.
+ *
+ * The driver's words are the recording's too: a message on a definition, an update or a deletion, and a
+ * `<message>` on its own, reach the clients indiserver would have delivered them to. The exception is a
+ * property held by a client or by the exposure machine: the recorded update, and the message on it, is
+ * about a value the replay does not share, so neither is relayed.
+ *
+ * A client's write that the INDI library refuses (a number outside its limits, a one-of-many switch with none or
+ * several on) applies nothing and is answered as the drivers answer it (`validate.ts`). A device-wide getProperties
+ * is answered with the sets the driver sent inside the recorded answer, where it sent them (`answers.ts`).
+ *
  * Writes that would move hardware are refused (Alert, "not in this recording"),
  * and stop and abort requests are confirmed. Nothing is ever simulated beyond
  * what the recording holds.
  */
 import { readFile } from 'node:fs/promises'
-import { FakeIndi, type Behaviour, type FakeVector, type Value } from '@cria/fake-indi'
+import { FakeIndi, type Behaviour, type FakeVector, type Limits, type Value } from '@cria/fake-indi'
 import { flattened, withExposure } from '@cria/fits'
 import { realClock, type Clock } from './clock.js'
 import type { Fault, FaultPhase } from './faults.js'
 import { localSiderealHours } from './sidereal.js'
 import type { Frame, Tape, TapeEvent } from './tape.js'
+import { refusal } from './validate.js'
 import type { Definition } from './xml.js'
 
 export interface ReplayOptions {
@@ -158,21 +171,25 @@ export async function startReplay(tape: Tape, options: ReplayOptions = {}): Prom
   })
 
   const noteSite = (event: TapeEvent) => {
-    if (event.kind === 'delete') return
+    if (event.kind === 'delete' || event.kind === 'message') return
     if (event.kind === 'define' ? event.vector.device !== mount || event.vector.name !== 'GEOGRAPHIC_COORD' : event.device !== mount || event.name !== 'GEOGRAPHIC_COORD') return
     const value = event.kind === 'define' ? event.vector.elements.LONG?.value : event.values.LONG
 
     if (value !== undefined && Number.isFinite(Number(value))) longitude = Number(value)
   }
 
-  const setStore = (device: string, property: string, change: { state?: FakeVector['state']; values: Readonly<Record<string, Value>> }) => {
+  const setStore = (device: string, property: string, change: { state?: FakeVector['state']; values: Readonly<Record<string, Value>>; limits?: Limits; message?: string; timeout?: number }) => {
     const vector = fake.vectors.get(key(device, property))
 
     if (!vector) return
-    const values = Object.fromEntries(Object.entries(change.values).filter(([element]) => element in vector.elements))
+    const known = <T>(entries: Readonly<Record<string, T>>) => Object.fromEntries(Object.entries(entries).filter(([element]) => element in vector.elements))
 
-    fake.update(device, property, { ...(change.state ? { state: change.state } : {}), values })
+    fake.update(device, property, { ...(change.state ? { state: change.state } : {}), values: known(change.values), ...(change.limits ? { limits: known(change.limits) } : {}), ...(change.message === undefined ? {} : { message: change.message }), ...(change.timeout === undefined ? {} : { timeout: change.timeout }) })
   }
+
+  /** What a definition says besides values and state, as text: two definitions with the same shape tell a client the same thing. */
+  const shape = (vector: FakeVector) =>
+    fake.definition({ ...vector, state: 'Idle', elements: Object.fromEntries(Object.entries(vector.elements).map(([name, element]) => [name, { ...element, value: '' }])) })
 
   /** A recorded definition of a property we hold is a driver's answer to a getProperties: it changes nothing but values that differ. */
   const refresh = (existing: FakeVector, definition: Definition) => {
@@ -181,6 +198,9 @@ export async function startReplay(tape: Tape, options: ReplayOptions = {}): Prom
     if (changed.length === 0 && existing.state === definition.state) return
     setStore(existing.device, existing.name, { state: definition.state, values: Object.fromEntries(changed.map(([name, element]) => [name, element.value])) })
   }
+
+  const unchanged = (vector: FakeVector, event: Extract<TapeEvent, { kind: 'update' }>) =>
+    (event.state === undefined || event.state === vector.state) && !event.limits && event.message === undefined && Object.entries(event.values).every(([name, value]) => name in vector.elements && String(vector.elements[name]!.value) === String(value))
 
   /** A client or a fault set this property: it keeps this value against the recording from now on. */
   const pin = (device: string, property: string) => {
@@ -194,37 +214,62 @@ export async function startReplay(tape: Tape, options: ReplayOptions = {}): Prom
   const applyEvent = (event: TapeEvent) => {
     noteSite(event)
 
+    if (event.kind === 'message') {
+      fake.message(event.device, event.text)
+
+      return
+    }
+
     if (event.kind === 'delete') {
-      if (event.name === undefined) fake.removeDevice(event.device)
-      else fake.removeVector(event.device, event.name)
+      const message = event.message === undefined ? {} : { message: event.message }
+
+      if (event.name === undefined) fake.removeDevice(event.device, message)
+      else fake.removeVector(event.device, event.name, message)
 
       return
     }
 
     const slot = event.kind === 'define' ? key(event.vector.device, event.vector.name) : key(event.device, event.name)
+    const held = pinned.has(slot) || owned.has(slot)
 
-    if (pinned.has(slot)) {
-      // The driver went away and is defining the property again: it comes back holding what was written.
-      if (event.kind === 'define' && !fake.vectors.has(slot)) {
-        const restored = clone(event.vector)
+    if (event.kind === 'define') {
+      const existing = fake.vectors.get(slot)
+      const definition = { ...clone(event.vector), ...(tape.repeats.has(slot) ? { repeats: tape.repeats.get(slot)! } : {}), ...(tape.answerSets.has(slot) ? { answerSet: tape.answerSets.get(slot)! } : {}) }
 
-        for (const [name, value] of Object.entries(kept.get(slot) ?? {})) if (name in restored.elements) restored.elements[name]!.value = value
-        fake.define(restored)
+      // The driver went away and is defining the property again: a pinned property comes back holding what was written.
+      for (const [name, value] of Object.entries(kept.get(slot) ?? {})) if (!existing && name in definition.elements) definition.elements[name]!.value = value
+
+      const message = event.message === undefined ? {} : { message: event.message }
+
+      if (!existing) {
+        fake.define(definition, message)
+      } else if (shape(existing) !== shape(definition)) {
+        // The driver defined the property differently (limits, format, permission, labels): clients are told, as indiserver relays it.
+        if (held) {
+          for (const [name, element] of Object.entries(existing.elements)) if (name in definition.elements) definition.elements[name]!.value = element.value
+          definition.state = existing.state
+        }
+        fake.define({ ...definition, ...(existing.repeats === undefined ? {} : { repeats: existing.repeats }) }, message)
+      } else {
+        if (!held) refresh(existing, event.vector)
+        // A definition that carries the driver's words is not only an answer to a getProperties: clients are told it again, with them.
+        if (event.message !== undefined) fake.define(existing, message)
       }
 
       return
     }
 
-    if (event.kind === 'define') {
-      const existing = fake.vectors.get(slot)
+    // A set the driver sends in answer to a getProperties is the replay's to send when asked: from the recording's time it changes nothing the clients do not already hold.
+    if (event.answer && fake.vectors.has(slot) && unchanged(fake.vectors.get(slot)!, event)) return
 
-      if (!existing) fake.define(clone(event.vector))
-      else if (!owned.has(slot)) refresh(existing, event.vector)
+    // A client or the exposure machine holds the values; the driver still owns the limits.
+    if (held) {
+      if (event.limits) setStore(event.device, event.name, { values: {}, limits: event.limits })
 
       return
     }
 
-    if (!owned.has(slot)) setStore(event.device, event.name, { ...(event.state ? { state: event.state } : {}), values: event.values })
+    setStore(event.device, event.name, { ...(event.state ? { state: event.state } : {}), values: event.values, ...(event.limits ? { limits: event.limits } : {}), ...(event.message === undefined ? {} : { message: event.message }), ...(event.timeout === undefined ? {} : { timeout: event.timeout }) })
   }
 
   /** Brings every property to what the drivers had said by recording time `t`, which is epoch time `at`. */
@@ -359,6 +404,8 @@ export async function startReplay(tape: Tape, options: ReplayOptions = {}): Prom
       const stamped = withExposure(source, { seconds: exposure.seconds, startedAt: exposure.startedAt })
       const clients = await fake.deliverBlob(camera, frame.property, frame.element, blanks.has(frame.index) ? flattened(stamped) : stamped, {
         format: frame.format,
+        ...(frame.timeout === undefined ? {} : { timeout: frame.timeout }),
+        ...(frame.message === undefined ? {} : { message: frame.message }),
         signal: exposure.delivery.signal,
       })
 
@@ -425,8 +472,17 @@ export async function startReplay(tape: Tape, options: ReplayOptions = {}): Prom
     }
 
     if (vector.perm === 'ro') return 'handled'
+    const refused = refusal(vector, values)
+
+    if (refused) {
+      fake.update(device, name, { state: refused.state, message: refused.message, timeout: vector.timeout ?? 0 })
+      if (refused.then) fake.update(device, name, { state: refused.then, timeout: vector.timeout ?? 0 })
+
+      return 'handled'
+    }
+
     fake.apply(vector, values)
-    fake.update(device, name, { state: 'Ok' })
+    fake.update(device, name, { state: 'Ok', timeout: vector.timeout ?? 0 })
     pin(device, name)
 
     return 'handled'
