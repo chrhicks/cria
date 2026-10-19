@@ -134,8 +134,8 @@ async function connect(blobs = true) {
   const client = await Client.connect(replay!.port)
 
   clients.push(client)
-  if (blobs) client.send(`<enableBLOB device="${camera}">Also</enableBLOB>`)
   client.send('<getProperties version="1.7"/>')
+  if (blobs) client.send(`<enableBLOB device="${camera}">Also</enableBLOB>`)
   await client.until('every definition', () => client.received('<defSwitchVector device="Synthetic Focuser" name="FOCUS_ABORT_MOTION"').length > 0)
 
   return client
