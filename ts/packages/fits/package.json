@@ -1,0 +1,23 @@
+{
+  "name": "@cria/fits",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "FITS from INDI cameras: the header, conversion to ASCOM ImageBytes v1 and test frames",
+  "exports": {
+    ".": {
+      "@cria/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test.json"
+  },
+  "files": [
+    "dist",
+    "src",
+    "!src/**/*.test.ts"
+  ]
+}

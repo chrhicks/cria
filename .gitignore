@@ -37,4 +37,5 @@ ascom-devices.json
 # dependencies, which get no build step (docs/ts/SPEC.md, "Where the code lives").
 !/ts/packages/primitives/dist/
 !/ts/packages/cria-wire/dist/
+!/ts/packages/fits/dist/
 /ts/packages/*/.dist-check/

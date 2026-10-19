@@ -17,7 +17,7 @@ stage() {
   summary+=("pass $name")
 }
 
-shipped=(packages/primitives/dist packages/cria-wire/dist)
+shipped=(packages/primitives/dist packages/cria-wire/dist packages/fits/dist)
 
 dist_fresh() {
   if [ -n "$(git status --porcelain -- "${shipped[@]}")" ]; then

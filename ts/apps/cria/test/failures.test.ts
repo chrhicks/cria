@@ -5,7 +5,9 @@
  * told and whether the device is blocked.
  */
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { FakeIndi, addCamera, connection, exposeNormally, fitsFrame } from './fake-indi.js'
+import { FakeIndi } from '@cria/fake-indi'
+import { fitsFrame } from '@cria/fits'
+import { addCamera, connection, exposeNormally } from './drivers.js'
 import { Effect, Option } from 'effect'
 import { allReady, noneNotRead, startCria, until, type Cria } from './harness.js'
 

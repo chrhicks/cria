@@ -4,7 +4,7 @@ import { Failed, type Ending, type Report } from '@cria/primitives'
 import { commands, type CommandKind, type DeviceFor, type DeviceKind, type OperationResult, type ParamsOf, type Progress } from '@cria/wire'
 import type { Connection } from '../capability/connection.js'
 import type { CapabilityOf, Equipment } from '../device.js'
-import { FitsError, fitsToImageBytes } from '../image/fits.js'
+import { FitsError, fitsToImageBytes } from '@cria/fits'
 import type { ImageStore } from '../image/store.js'
 import type { Running } from './ledger.js'
 
