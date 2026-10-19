@@ -1,0 +1,179 @@
+/**
+ * Reading a recording, on thuban: replay, the packager and `verifyRecording`.
+ * A final line with no newline is a torn tail (Cria died mid-append) and is
+ * dropped. A terminated line that does not decode is damage in the middle,
+ * which no reader may skip.
+ */
+import { createReadStream } from 'node:fs'
+import { readFile, readdir } from 'node:fs/promises'
+import { join } from 'node:path'
+import { Result, Schema } from 'effect'
+import { Manifest, RecordingLine, blobsDirectory, manifestFile, trafficFile, type GapLine, type MessageLine } from './format.js'
+
+type Item =
+  | { readonly kind: 'line'; readonly number: number; readonly line: RecordingLine }
+  | { readonly kind: 'damaged'; readonly number: number; readonly message: string }
+  | { readonly kind: 'torn'; readonly number: number }
+
+export class DamagedRecordingError extends Error {
+  override readonly name = 'DamagedRecordingError'
+}
+
+const decodeLine = Schema.decodeUnknownResult(RecordingLine)
+const decodeManifest = Schema.decodeUnknownResult(Manifest)
+
+function decode(text: string, number: number): Item {
+  let json: unknown
+
+  try {
+    json = JSON.parse(text)
+  } catch (error) {
+    return { kind: 'damaged', number, message: `not JSON: ${(error as Error).message}` }
+  }
+
+  const decoded = decodeLine(json)
+
+  return Result.isSuccess(decoded) ? { kind: 'line', number, line: decoded.success } : { kind: 'damaged', number, message: String(decoded.failure) }
+}
+
+async function* items(dir: string): AsyncGenerator<Item> {
+  let pending = ''
+  let number = 0
+
+  for await (const chunk of createReadStream(join(dir, trafficFile), { encoding: 'utf8' })) {
+    pending += chunk
+    let end = pending.indexOf('\n')
+
+    while (end >= 0) {
+      number += 1
+      yield decode(pending.slice(0, end), number)
+      pending = pending.slice(end + 1)
+      end = pending.indexOf('\n')
+    }
+  }
+
+  if (pending.length > 0) yield { kind: 'torn', number: number + 1 }
+}
+
+export async function readManifest(dir: string): Promise<Manifest> {
+  const decoded = decodeManifest(JSON.parse(await readFile(join(dir, manifestFile), 'utf8')))
+
+  if (Result.isFailure(decoded)) throw new DamagedRecordingError(`${manifestFile}: ${String(decoded.failure)}`)
+
+  return decoded.success
+}
+
+/** Every line in file order. Drops a torn tail. Throws `DamagedRecordingError` at a damaged line. */
+export async function* readRecording(dir: string): AsyncGenerator<RecordingLine> {
+  for await (const item of items(dir)) {
+    if (item.kind === 'damaged') throw new DamagedRecordingError(`${trafficFile} line ${item.number}: ${item.message}`)
+    if (item.kind === 'line') yield item.line
+  }
+}
+
+export type Problem =
+  | { readonly kind: 'bad-manifest'; readonly message: string }
+  | { readonly kind: 'damaged-line'; readonly line: number; readonly message: string }
+  | { readonly kind: 'missing-image'; readonly line: number; readonly path: string }
+  | { readonly kind: 'message-skipped'; readonly line: number; readonly conn: number; readonly dir: 'in' | 'out'; readonly expected: number; readonly found: number }
+  | { readonly kind: 'time-went-back'; readonly line: number }
+  | { readonly kind: 'line-after-gap'; readonly line: number }
+  | { readonly kind: 'line-after-end'; readonly line: number }
+
+export interface RecordingReport {
+  /** No problems. A torn tail, a gap, a missing `end` and unreferenced files are not problems. */
+  readonly valid: boolean
+  /** Cria shut down cleanly: the last line is `end`. */
+  readonly ended: boolean
+  readonly tornTail: boolean
+  readonly lines: number
+  readonly messages: number
+  readonly images: number
+  readonly gaps: ReadonlyArray<GapLine>
+  readonly problems: ReadonlyArray<Problem>
+  /** Files in `blobs/` that no line names: a crash between an image and its line. Harmless. */
+  readonly orphans: ReadonlyArray<string>
+}
+
+async function imageFiles(dir: string): Promise<ReadonlySet<string>> {
+  const names = await readdir(join(dir, blobsDirectory))
+
+  return new Set(names.map(name => `${blobsDirectory}/${name}`))
+}
+
+export async function verifyRecording(dir: string): Promise<RecordingReport> {
+  const problems: Problem[] = []
+  const gaps: GapLine[] = []
+  const named = new Set<string>()
+  const expected = new Map<string, number>()
+  const onDisk = await imageFiles(dir)
+  let lines = 0
+  let messages = 0
+  let tornTail = false
+  let ended = false
+  let gapped = false
+  let lastTime = 0
+
+  try {
+    await readManifest(dir)
+  } catch (error) {
+    problems.push({ kind: 'bad-manifest', message: (error as Error).message })
+  }
+
+  const check = (number: number, line: RecordingLine) => {
+    if (ended) problems.push({ kind: 'line-after-end', line: number })
+    else if (gapped && line.k !== 'end') problems.push({ kind: 'line-after-gap', line: number })
+    if (line.t < lastTime) problems.push({ kind: 'time-went-back', line: number })
+    lastTime = Math.max(lastTime, line.t)
+  }
+
+  const checkMessage = (number: number, line: MessageLine) => {
+    const key = `${line.conn}:${line.dir}`
+    const next = expected.get(key) ?? 0
+
+    if (line.n !== next) problems.push({ kind: 'message-skipped', line: number, conn: line.conn, dir: line.dir, expected: next, found: line.n })
+    expected.set(key, line.n + 1)
+    for (const path of line.blobs ?? []) {
+      named.add(path)
+      if (!onDisk.has(path)) problems.push({ kind: 'missing-image', line: number, path })
+    }
+  }
+
+  for await (const item of items(dir)) {
+    if (item.kind === 'torn') {
+      tornTail = true
+      continue
+    }
+
+    if (item.kind === 'damaged') {
+      problems.push({ kind: 'damaged-line', line: item.number, message: item.message })
+      continue
+    }
+
+    lines += 1
+    check(item.number, item.line)
+    if (item.line.k === 'msg') {
+      messages += 1
+      checkMessage(item.number, item.line)
+    }
+
+    if (item.line.k === 'gap') {
+      gapped = true
+      gaps.push(item.line)
+    }
+
+    if (item.line.k === 'end') ended = true
+  }
+
+  return {
+    valid: problems.length === 0,
+    ended,
+    tornTail,
+    lines,
+    messages,
+    images: named.size,
+    gaps,
+    problems,
+    orphans: [...onDisk].filter(path => !named.has(path)).sort(),
+  }
+}
