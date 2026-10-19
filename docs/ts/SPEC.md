@@ -1137,8 +1137,9 @@ Each Cria start opens one folder, `<start time>-<instanceId>`, under `dir`:
   `onSettled` hook: the operation exactly as protocol 5 shows it, so the packager
   has Cria's own times for it (`acceptedAt`, `startedAt`, `settledAt`) on the same
   clock as the INDI lines, and joins a write to its operation by the time window
-  without a clock shared with Vela. Each settled operation is one `op` line, in
-  the order they settled. The `recovery` field is `null`, as at the moment of
+  without a clock shared with Vela. Each settled operation is one `op` line. Lines for
+  operations on different devices can swap by a few milliseconds; each carries its
+  own `settledAt`. The `recovery` field is `null`, as at the moment of
   settling.
 - `blobs/<connection>-<n>-<index>.blob`, one file per image payload, in the
   `msg` line's `blobs` and named by a `ref` on the elided `<oneBLOB .../>` in its
