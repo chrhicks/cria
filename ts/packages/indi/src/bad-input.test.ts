@@ -219,7 +219,7 @@ describe('the client when indiserver sends something unexpected', () => {
     readonly socket: (n: number) => Promise<net.Socket>
   }
 
-  async function session(run: (context: Context) => Promise<void>) {
+  async function session(run: (context: Context) => Promise<void>, deviceName = 'Test Focuser') {
     const fake = await fakeIndiserver()
     const warnings: string[] = []
     const tapped: TappedMessage[] = []
@@ -231,7 +231,7 @@ describe('the client when indiserver sends something unexpected', () => {
       Effect.scoped(
         Effect.gen(function* () {
           const client = yield* makeIndiClient({ host: '127.0.0.1', port: fake.port, tap, warn: line => void warnings.push(line) })
-          const focuser = client.device('Test Focuser')
+          const focuser = client.device(deviceName)
           const subscription = yield* focuser.subscribe
 
           yield* Effect.forkScoped(
@@ -298,6 +298,59 @@ describe('the client when indiserver sends something unexpected', () => {
 
       first.write(good())
       await until(() => property('POSITION') !== undefined)
+    })
+  })
+
+  it('forgets and re-requests a property whose device name is not ASCII, exactly as it names it', async () => {
+    const device = 'Review é'
+
+    await session(
+      async ({ fake, warnings, deleted, property, socket }) => {
+        const first = await socket(1)
+        const define = `<defNumberVector device="${device}" name="CCD_TEMPERATURE" state="Idle" perm="ro"><defNumber name="TEMPERATURE" min="-50" max="50" step="1">-5</defNumber></defNumberVector>`
+        const bad = `<setNumberVector device="${device}" name="CCD_TEMPERATURE" state="Ok"><oneNumber name="TEMPERATURE">junk</oneNumber></setNumberVector>`
+
+        first.write(define)
+        await until(() => property('CCD_TEMPERATURE') !== undefined)
+        first.write(bad)
+        await until(() => deleted.length > 0)
+        await until(() => fake.received.join('').includes(`<getProperties version="1.7" device="${device}" name="CCD_TEMPERATURE"/>`))
+
+        expect(property('CCD_TEMPERATURE')).toBeUndefined()
+        expect(deleted).toEqual(['CCD_TEMPERATURE'])
+        expect(warnings).toHaveLength(1)
+        expect(warnings[0]).toContain(`device="${device}" name="CCD_TEMPERATURE"`)
+      },
+      device,
+    )
+  })
+
+  it('names a device the way it reads a good element, invalid UTF-8 included', () => {
+    const element = (wire: Buffer) => new IndiFramer().frame(wire, false).elements[0]!
+    const named = (device: Buffer) =>
+      Buffer.concat([Buffer.from('<setNumberVector device="'), device, Buffer.from('" name="N"><oneNumber name="n">1</oneNumber></setNumberVector>')])
+    const broken = Buffer.from([0x44, 0xff, 0x45])
+
+    // The same bytes, once good and once with the number spoiled: both must name the same device.
+    const good = element(named(broken))
+    const bad = element(Buffer.from(named(broken).toString('latin1').replace('>1<', '>x<'), 'latin1'))
+
+    expect(good.message).toMatchObject({ vector: { device: 'D\ufffdE' } })
+    expect(bad.problem).toMatchObject({ device: 'D\ufffdE', name: 'N' })
+    expect(element(named(Buffer.from('é'))).message).toMatchObject({ vector: { device: 'é' } })
+    expect(element(Buffer.from('<setNumberVector device="é" name="N"><oneNumber name="n">x</oneNumber></setNumberVector>')).problem).toMatchObject({ device: 'é' })
+  })
+
+  it('reads a character reference that is not a character as written, instead of ending the connection', async () => {
+    await session(async ({ warnings, closed, property, socket }) => {
+      const first = await socket(1)
+
+      first.write(`<defTextVector device="Test Focuser" name="NOTE" state="Idle" perm="ro"><defText name="T">a&#x110000;b&#99999999999;</defText></defTextVector>${good()}`)
+      await until(() => property('POSITION') !== undefined)
+
+      expect(closed.filter(item => item.status === 'closed')).toEqual([])
+      expect(warnings).toEqual([])
+      expect(property('NOTE')).toMatchObject({ elements: new Map([['T', expect.objectContaining({ value: 'a&#x110000;b&#99999999999;' })]]) })
     })
   })
 

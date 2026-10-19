@@ -298,9 +298,12 @@ function frameElement(element: Buffer, keepText: boolean): FramedElement {
 
 /** The error path only: where the bad bytes are from and a bounded look at them. */
 function describeProblem(error: IndiProtocolError, bytes: Buffer): ProtocolProblem {
-  const head = bytes.toString('latin1', 0, 4096)
-  const tag = /^\s*<([A-Za-z]\w*)/.exec(head)?.[1] ?? ''
-  const attributes = parseAttributes(/^\s*<[A-Za-z]\w*([^>]*)/.exec(head)?.[1] ?? '')
+  // Attribution must name the property the way parsing does (UTF-8, entities decoded) or the client forgets and
+  // re-requests a property that does not exist. The header is the bytes up to the first '>', as in the parsers.
+  const headerEnd = bytes.indexOf(GT)
+  const header = bytes.toString('utf8', 0, headerEnd < 0 ? bytes.length : headerEnd)
+  const tag = /^\s*<([A-Za-z]\w*)/.exec(header)?.[1] ?? ''
+  const attributes = parseAttributes(/^\s*<[A-Za-z]\w*([^>]*)/.exec(header)?.[1] ?? '')
   // The payload of a BLOB is base64 of an image: never part of what is shown.
   const text = tag === 'setBLOBVector' ? elideBlobs(bytes) : bytes.toString('utf8', 0, excerptChars * 4)
   const escaped = JSON.stringify(text.slice(0, excerptChars)).slice(1, -1)
@@ -442,8 +445,12 @@ function decodeEntities(text: string): string {
   if (!text.includes('&')) return text
 
   return text.replace(/&(#x[0-9a-fA-F]+|#[0-9]+|[a-z]+);/g, (whole, entity: string) => {
-    if (entity.startsWith('#x')) return String.fromCodePoint(Number.parseInt(entity.slice(2), 16))
-    if (entity.startsWith('#')) return String.fromCodePoint(Number.parseInt(entity.slice(1), 10))
+    if (entity.startsWith('#')) {
+      const code = entity.startsWith('#x') ? Number.parseInt(entity.slice(2), 16) : Number.parseInt(entity.slice(1), 10)
+
+      // Not a code point: left as written. A throw here is not a protocol error and would end the connection.
+      return code <= 0x10ffff ? String.fromCodePoint(code) : whole
+    }
 
     return namedEntities[entity] ?? whole
   })
