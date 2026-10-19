@@ -438,6 +438,7 @@ Tests and test tools:
 | `packages/cria-wire/src/*.test.ts` | The command table, branded IDs, every wire schema |
 | `apps/cria/src/**/*.test.ts` | Unit tests beside the code: ledger transitions, workflow table, units, FITS, image store, event stream |
 | `packages/fake-indi/src` | `@cria/fake-indi`: a small INDI server written from the protocol, independent of `@cria/indi`'s parser; answers from its own state (`server.ts`), with generic camera and mount definitions (`devices.ts`) |
+| `packages/indi-replay/src` | `indi-replay`: a recording served like indiserver (see "Replay"): `tape.ts` loads it, `replay.ts` is the server, `synthesize.ts` makes a recording |
 | `apps/cria/test/drivers.ts` | The rig's drivers modelled on that server: ZWO frames, the EAF, dew heaters, mount motion; `am5` models errai's mount (see "Stopping the mount") |
 | `apps/cria/test/harness.ts` | Starts Cria against an INDI server and drives it over HTTP as Vela does |
 | `apps/cria/test/*.test.ts` | Scenarios: fake-driver failures, mount stops, operation lifecycle, HTTP refusals, protocol 5 end to end, shutdown, real simulators, errai replay |
@@ -1021,7 +1022,8 @@ Effect is pinned to exactly 4.0.3 everywhere in this workspace. Tests resolve th
 workspace packages to their sources through the export condition `@cria/source`.
 Consumers never see it.
 
-A consumer adds both packages at the same commit:
+A consumer adds the packages it uses at the same commit (`@cria/fits` the same
+way, from `ts/packages/fits`, when it needs the conversion):
 
 ```json
 "@cria/primitives": "github:chrhicks/cria#<commit>&path:/ts/packages/primitives",
@@ -1188,6 +1190,82 @@ compressed `.z` payload states its size after inflating, so it is not compared),
 a message count that skips (a deleted line), time running
 backwards, and any line after a `gap` (other than `end`) or after `end`.
 
+## Replay
+
+`indi-replay` (`ts/packages/indi-replay`) serves a recording over TCP the way
+`indiserver` does, so the real Cria runs a recorded night against files. It
+touches no equipment and needs no `indiserver`: it is built on `@cria/fake-indi`
+and parses the recording's wire text with its own parser, independent of
+`@cria/indi`. Vela's scenarios start it beside Cria; nothing in Cria changes.
+
+```sh
+indi-replay serve <recording> [--port N] [--camera NAME] [--from K] [--to K] [--faults faults.json]
+indi-replay synthesize <spec.json> <folder>      # a made-up recording, see below
+```
+
+`serve` loads and verifies the whole recording first (a damaged one fails there,
+not mid-night), listens on the loopback interface and prints
+`listening on 127.0.0.1:<port>`. It stops on SIGTERM. In a process,
+`loadTape(folder)` and `startReplay(tape, options)` do the same.
+
+**One camera's frames are the clock.** Replay serves the frames of one camera
+(`CCD1`; by default the one with most frames, else `--camera`) in recorded
+order. Reserving frame *k* brings every property to what the drivers had said
+by the time frame *k* arrived: mount, weather, power and the camera's other
+properties jump together. Between frames nothing moves. What is not astronomy
+(how long an exposure takes, how long a fault lasts, liveness, timeouts) is
+real time, not scaled.
+
+**Discovery and writes.**
+
+- Every `getProperties` is answered from current values, for the whole
+  connection, so Cria's one-second liveness read keeps confirming the readings.
+- A client write is echoed (`Ok`) and honours the property's switch rule. The
+  property then belongs to that write for the rest of the replay: later recorded
+  updates to it are ignored. A recorded definition of a property replay already
+  holds is treated as the driver's answer to a `getProperties`: it changes only
+  values that differ.
+- Writes that would move hardware get `Alert` "not in this recording" and are
+  not echoed: a mount goto, park, home and axis motion, a focuser move, and an
+  exposure on any camera but the one replayed. A stop or abort
+  (`TELESCOPE_ABORT_MOTION`, `FOCUS_ABORT_MOTION`, `CCD_ABORT_EXPOSURE`) is
+  confirmed: the motion properties that were `Busy` go `Idle` and the request
+  answers `Ok`.
+- `enableBLOB` is per client, per device or property. An image goes only to a
+  client that enabled it, written in chunks that wait for the socket.
+
+**An exposure.** Replay checks the camera's geometry (`CCD_FRAME` over
+`CCD_BINNING`, the size of the image Cria receives) against the next source
+frame. A mismatch is `Alert` naming both sizes, and the frame is not used up.
+Otherwise it reserves the frame, brings the rig to that frame's time, goes
+`Busy`, waits the requested time, then sends the frame with `EXPTIME` and
+`DATE-OBS` rewritten in a copied header (`CHECKSUM` and `DATASUM` dropped, the
+pixels untouched) and reports `Ok`. Cria matches a frame to its exposure by those
+two cards, so the recorded values would be skipped as someone else's frame. An
+abort cancels the exposure: no late image is sent, the camera goes `Idle`, and
+the reserved frame stays used. After the last frame, a further exposure gets
+`Busy` then `Alert` "end of recording". `Busy` first, because Cria ignores an
+`Alert` that was already there before its command.
+
+**Sidereal time.** If the recording's mount has no `TIME_LST`, replay defines one
+before any client connects and updates it with each frame, from the frame's
+recorded time and the recorded `GEOGRAPHIC_COORD` longitude. A site Cria writes
+is echoed but does not change it, so the hour angle follows the recording, not
+the clock or Cria's configured site. `testing/replay.test.ts` checks the formula
+against Cria's own.
+
+**Faults** start at a source frame and last real time (`--faults`, or the
+`faults` option): `blank` (frames arrive with every pixel equal), `set` (a
+property takes values and keeps them), `silent` (a device sends nothing and
+answers no `getProperties` for `forMs`) and `disconnect` (every connection is
+closed and new ones refused for `forMs`). Each starts `before-exposure`, or
+`before-blob` to fail during the exposure.
+
+**`synthesizeTape`** (`indi-replay synthesize`) writes a recording in the real
+format with tiny frames, a made-up site and a camera, a mount and optionally a
+focuser from `@cria/fake-indi`. Committed scenarios use only these, so no real
+coordinates enter the repository. It holds no `op` lines.
+
 ## Restarts and crashes
 
 - **Cria restarts.** It gets a new `instanceId`, an empty ledger (operations, request IDs,
@@ -1272,6 +1350,13 @@ effect, because indiserver writes to each client in turn.
    during an exposure; busy while another client exposes.
 7. **errai, replayed.** The real drivers' recorded definitions against the deploy
    config.
+   **Recorded and replayed** (`testing/replay.test.ts`). The simulators make a
+   recording of six captures with the mount slewed between them; the real Cria
+   runs against `indi-replay` on it: every capture confirms and its ImageBytes
+   SHA-256 equals the one the recorded `op` line has, the hour angle at each
+   capture is the recording's, an abort sends no late image, one exposure past
+   the end fails cleanly, and every device stays fresh for as long as it runs
+   (15 s in the suite; `REPLAY_LIVENESS_SECONDS=600` for ten minutes).
 8. **Source rules** (`testing/lint.test.ts`).
 
 `pnpm golden` drives the scenarios in `testing/golden/scenarios.ts` through the
