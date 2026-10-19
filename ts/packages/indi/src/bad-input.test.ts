@@ -183,6 +183,34 @@ describe('the problem log', () => {
     expect(log.total).toBe(1001)
   })
 
+  it('writes one short physical line whatever the driver put in the fields', () => {
+    const { lines, log } = logAt()
+    const hostile = `a\nb\r\t\u001b[31m\u0085\u2028"quoted"${'z'.repeat(10_000)}`
+
+    log.report({ scope: 'element', reason: `Invalid INDI number "${hostile}"`, tag: `defNumberVector${'V'.repeat(10_000)}`, device: hostile, name: hostile, utf8: true, excerpt: `<x>${hostile}</x>`, bytes: 99 }, 'skipped the element')
+
+    expect(lines).toHaveLength(1)
+    expect(lines[0]).not.toMatch(/[\u0000-\u001f\u007f-\u009f\u2028\u2029]/)
+    expect(lines[0]!.length).toBeLessThan(2500)
+    expect(lines[0]).toContain('device="a\\nb\\r\\t\\u001b[31m\\u0085\\u2028\\"quoted\\"')
+    expect(lines[0]).toContain('#1: skipped the element: Invalid INDI number')
+  })
+
+  it('bounds the reason a bad element carries, not only the line it is logged on', () => {
+    const wire = `<setNumberVector device="D" name="N"><oneNumber name="n">${'junk\n'.repeat(10_000)}</oneNumber></setNumberVector>`
+    const problem = new IndiFramer().frame(Buffer.from(wire), true).elements[0]!.problem!
+
+    expect(problem.reason.length).toBeLessThanOrEqual(203)
+    expect(problem.reason).toMatch(/^Invalid INDI number "junk/)
+  })
+
+  it('does not let a long name in the dedupe key grow the log without bound', () => {
+    const { lines, log } = logAt()
+
+    for (let i = 0; i < 3; i += 1) log.report({ ...problem('A'), name: `${'n'.repeat(5000)}${i}` }, 'skipped the element')
+    expect(lines).toHaveLength(1)
+  })
+
   it('caps all the different problems together, and counts the ones it held back', () => {
     const { lines, clock, log } = logAt()
 
@@ -308,6 +336,21 @@ describe('the client when indiserver sends something unexpected', () => {
       expect(warnings).toHaveLength(1)
       expect(warnings[0]).not.toContain('QUJD')
       expect(closed.filter(item => item.status === 'closed')).toEqual([])
+    })
+  })
+
+  it('logs one short physical line for a number made of ten thousand lines of junk', async () => {
+    await session(async ({ warnings, property, socket }) => {
+      const first = await socket(1)
+      const junk = 'junk\n'.repeat(10_000)
+
+      first.write(`<setNumberVector device="Test Focuser" name="POSITION"><oneNumber name="STEPS">${junk}</oneNumber></setNumberVector>${good()}`)
+      await until(() => property('POSITION') !== undefined)
+
+      expect(warnings).toHaveLength(1)
+      expect(warnings[0]).not.toContain('\n')
+      expect(warnings[0]!.length).toBeLessThan(1200)
+      expect(warnings[0]).toContain('Invalid INDI number "junk\\njunk\\n')
     })
   })
 
