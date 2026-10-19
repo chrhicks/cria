@@ -6,7 +6,8 @@
  *   blobs/          one file per BLOB payload, named by connection, ordinal and element index
  *
  * `traffic.jsonl` holds the whole story, so there is one writer of each fact: a
- * dropped stretch is a `gap` line and a clean shutdown is the `end` line. A
+ * dropped stretch is a `gap` line, a settled Cria operation is an `op` line and
+ * a clean shutdown is the `end` line. A
  * recording with no `end` line means Cria died.
  */
 import { Schema } from 'effect'
@@ -48,6 +49,21 @@ export const ConnectionLine = Schema.Struct({
   error: Schema.optionalKey(Schema.String),
 })
 
+/**
+ * Cria's ledger settled an operation. `operation` is the settled operation as
+ * protocol 5 shows it (decode it with `@cria/wire`), so the packager gets Cria's
+ * own times for it on the same clock as the INDI lines. Only what a join needs
+ * is checked here; the rest passes through untouched.
+ */
+export const OperationLine = Schema.Struct({
+  k: Schema.Literal('op'),
+  ...timing,
+  operation: Schema.StructWithRest(
+    Schema.Struct({ id: Schema.String, requestId: Schema.String, state: Schema.Literal('settled') }),
+    [Schema.Record(Schema.String, Schema.Unknown)],
+  ),
+})
+
 /** Recording stopped here, for the rest of this run. Nothing but `end` follows. */
 export const GapLine = Schema.Struct({
   k: Schema.Literal('gap'),
@@ -58,10 +74,12 @@ export const GapLine = Schema.Struct({
 
 export const EndLine = Schema.Struct({ k: Schema.Literal('end'), ...timing })
 
-export const RecordingLine = Schema.Union([MessageLine, ConnectionLine, GapLine, EndLine])
+export const RecordingLine = Schema.Union([MessageLine, ConnectionLine, OperationLine, GapLine, EndLine])
 
 export type MessageLine = typeof MessageLine.Type
 export type ConnectionLine = typeof ConnectionLine.Type
+export type OperationLine = typeof OperationLine.Type
+export type SettledOperation = OperationLine['operation']
 export type GapLine = typeof GapLine.Type
 export type EndLine = typeof EndLine.Type
 export type GapReason = GapLine['reason']

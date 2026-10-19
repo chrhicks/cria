@@ -44,7 +44,7 @@ describe('a sound recording', () => {
 
     expect((await collect()).map(line => line.k)).toEqual(['msg', 'msg', 'end'])
     expect(await readManifest(dir)).toEqual(manifest)
-    expect(await verifyRecording(dir)).toEqual({ valid: true, ended: true, tornTail: false, lines: 3, messages: 2, images: 0, gaps: [], problems: [], orphans: [] })
+    expect(await verifyRecording(dir)).toEqual({ valid: true, ended: true, tornTail: false, lines: 3, messages: 2, operations: 0, images: 0, gaps: [], problems: [], orphans: [] })
   })
 
   it('is valid without an end line: Cria died, which is not damage', async () => {
@@ -60,6 +60,25 @@ describe('a sound recording', () => {
 
     expect(report.valid).toBe(true)
     expect(report.gaps).toEqual([gap(2)])
+  })
+})
+
+describe('an operation line', () => {
+  const op = (t: number, operation: object): RecordingLine => ({ k: 'op', t, at: 1_000 + t, operation }) as RecordingLine
+
+  it('keeps the whole operation, fields the format does not name included', async () => {
+    const operation = { id: 'op-1', requestId: 'req-1', state: 'settled', outcome: { kind: 'stopped' }, extra: [1, { deep: true }] }
+
+    await traffic(msg(0, 1), op(2, operation), end(3))
+
+    expect((await collect())[1]).toEqual(op(2, operation))
+    expect(await verifyRecording(dir)).toMatchObject({ valid: true, messages: 1, operations: 1 })
+  })
+
+  it('is damage when it is not a settled operation with an id and a request ID', async () => {
+    await traffic(op(1, { id: 'op-1', requestId: 'req-1', state: 'running' }), op(2, { requestId: 'req-1', state: 'settled' }))
+
+    expect((await verifyRecording(dir)).problems.map(problem => problem.kind)).toEqual(['damaged-line', 'damaged-line'])
   })
 })
 

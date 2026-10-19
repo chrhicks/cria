@@ -94,6 +94,40 @@ describe('a capture against the CCD simulator, recorded', () => {
   })
 })
 
+describe('settled operations', () => {
+  it('are recorded once each, and equal the settled operations in /v2/state', async () => {
+    const running = await started({ reserveGb: 0, queueMb: 64 })
+
+    await running.run('primary', 'capture', { exposureSeconds: 0.2, light: true })
+    const slow = await running.submit('primary', 'capture', { exposureSeconds: 5, light: true })
+
+    await until('the long capture to be running', async () => {
+      const reply = await running.client.operation(slow.body.id)
+
+      return reply.ok && reply.body.state === 'running'
+    })
+    await running.cancel(slow.body.id)
+    await running.settled(slow.body.id)
+
+    const state = await running.state()
+    const withoutRecovery = (operation: object) => ({ ...operation, recovery: undefined })
+    const settled = state.operations.filter(operation => operation.state === 'settled')
+
+    await until('the recorder to write everything', () => running.service.rig.recorder!.queuedBytes() === 0)
+    await running.stop()
+    cria = undefined
+
+    const recorded = []
+
+    for await (const line of readRecording(await only(directory))) if (line.k === 'op') recorded.push(line.operation)
+
+    expect(settled.slice(-2).map(operation => [operation.kind, operation.outcome.kind])).toEqual([['capture', 'confirmed'], ['capture', 'stopped']])
+    expect(settled.length).toBeGreaterThanOrEqual(3)
+    expect(recorded.map(withoutRecovery)).toEqual(settled.map(withoutRecovery).map(operation => JSON.parse(JSON.stringify(operation))))
+    expect(await verifyRecording(await only(directory))).toMatchObject({ valid: true, ended: true, operations: settled.length })
+  })
+})
+
 describe('a stalled disk', () => {
   const stalled = async (folder: string): Promise<RecordingFiles> => {
     const real = await openRecordingFiles(folder)

@@ -23,7 +23,7 @@
 import type { TappedConnection, TappedMessage, TrafficTap } from '@cria/indi'
 import { join } from 'node:path'
 import { performance } from 'node:perf_hooks'
-import { blobPath, blobsDirectory, manifestFile, type GapReason, type Manifest, type RecordingLine } from './format.js'
+import { blobPath, blobsDirectory, manifestFile, type GapReason, type Manifest, type RecordingLine, type SettledOperation } from './format.js'
 import { openRecordingFiles, type RecordingFiles } from './files.js'
 
 export interface RecordConfig {
@@ -52,6 +52,8 @@ export interface RecorderDeps {
 
 export interface Recorder extends TrafficTap {
   readonly folder: string
+  /** Same contract as the tap: returns at once, never throws. Called from the ledger when an operation settles. */
+  readonly operation: (operation: SettledOperation) => void
   readonly latched: () => GapReason | undefined
   /** Bytes held in the queue, the entry being written included. */
   readonly queuedBytes: () => number
@@ -179,6 +181,12 @@ export async function openRecorder(config: RecordConfig, identity: RecorderIdent
       }),
     connection: connection => guarded(() => accept(perEntryBytes, () => connectionEntry(connection))),
   }
+
+  const operationEntry = (operation: SettledOperation): Entry => ({
+    line: { k: 'op', ...stamp(), operation },
+    images: [],
+    cost: perEntryBytes + JSON.stringify(operation).length,
+  })
 
   const messageEntry = (message: TappedMessage, cost: number): Entry => {
     const key = `${message.conn}:${message.dir}`
@@ -314,6 +322,7 @@ export async function openRecorder(config: RecordConfig, identity: RecorderIdent
     folder,
     message: tap.message,
     connection: tap.connection,
+    operation: operation => guarded(() => accept(perEntryBytes + JSON.stringify(operation).length, () => operationEntry(operation))),
     latched: () => (gate.kind === 'latched' ? gate.reason : undefined),
     queuedBytes: () => queuedBytes,
     close: () =>
