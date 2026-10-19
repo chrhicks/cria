@@ -1,0 +1,18 @@
+{
+  "name": "@cria/fake-indi",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "A small INDI server written from the protocol, independent of @cria/indi's parser: for tests and replay",
+  "exports": {
+    ".": {
+      "@cria/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  }
+}

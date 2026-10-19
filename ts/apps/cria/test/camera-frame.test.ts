@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { afterEach, describe, expect, it } from 'vitest'
-import { FakeIndi, addCamera, zwoFrames } from './fake-indi.js'
+import { FakeIndi } from '@cria/fake-indi'
+import { addCamera, zwoFrames } from './drivers.js'
 import { allReady, noneNotRead, startCria, valueOf, type Cria, type DeviceSpec } from './harness.js'
 
 const camera = 'Fake ASI'

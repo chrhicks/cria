@@ -7,7 +7,7 @@
 import { Effect } from 'effect'
 import type { DeviceSubscription, Property } from '@cria/indi'
 import { Failed, Reading, Uncertain, stoppable, type Ending, type Report } from '@cria/primitives'
-import { readFitsHeader } from '../image/fits.js'
+import { readFitsHeader } from '@cria/fits'
 import { confirmProperty, current, notACommand, numbersApplied, sendOnce, settledNumbers, startMotion, switchConfirmed } from './commands.js'
 import { invalid, liveSnapshot, required, type CapabilityContext } from './context.js'
 import { firstNumberElement, limitElement, numberElement, switchElement, textElement, type DeviceSnapshot } from './fields.js'

@@ -13,10 +13,14 @@
     "start": "node dist/main.js"
   },
   "dependencies": {
+    "@cria/fits": "workspace:*",
     "@cria/indi": "workspace:*",
     "@cria/primitives": "workspace:*",
     "@cria/recording": "workspace:*",
     "@cria/wire": "workspace:*",
     "effect": "4.0.3"
+  },
+  "devDependencies": {
+    "@cria/fake-indi": "workspace:*"
   }
 }
