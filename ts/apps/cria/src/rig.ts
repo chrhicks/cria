@@ -3,6 +3,7 @@
  */
 import { Effect, Option, Schedule, Scope, Stream } from 'effect'
 import { makeIndiClient, type DeviceEvent, type IndiClient, type IndiDevice } from '@cria/indi'
+import type { Recorder } from '@cria/recording'
 import type { FailureDomain, InstanceId } from '@cria/wire'
 import type { CapabilityContext } from './capability/context.js'
 import { switchElement, takeSnapshot } from './capability/fields.js'
@@ -14,6 +15,7 @@ import { mint } from './ids.js'
 import { makeImageStore, type ImageStore } from './image/store.js'
 import { makeLedger, type Ledger } from './operation/ledger.js'
 import { makeWorkflows, workflowFor } from './operation/workflows.js'
+import { makeRecorder, type RecordingOptions } from './recording.js'
 
 export interface RigDevice extends Equipment {
   readonly config: DeviceConfig
@@ -30,12 +32,15 @@ export interface Rig {
   readonly devices: ReadonlyArray<RigDevice>
   readonly ledger: Ledger
   readonly images: ImageStore
+  /** Absent when the config has no `record`, or when it could not open. */
+  readonly recorder: Recorder | undefined
 }
 
-export function makeRig(config: Config): Effect.Effect<Rig, Error, Scope.Scope> {
+export function makeRig(config: Config, options: { readonly recording?: RecordingOptions } = {}): Effect.Effect<Rig, Error, Scope.Scope> {
   return Effect.gen(function* () {
     const instanceId = mint.instanceId()
-    const client = yield* makeIndiClient(config.indi)
+    const recorder = yield* makeRecorder(config, instanceId, options.recording ?? {})
+    const client = yield* makeIndiClient({ ...config.indi, ...(recorder ? { tap: recorder } : {}) })
     const images = yield* makeImageStore({ directory: config.imageDirectory, budgetBytes: config.imageBudgetBytes })
     const timing = { acknowledgeMs: config.acknowledgeMs, operationTimeoutMs: config.operationTimeoutMs, readoutAllowanceMs: config.readoutAllowanceMs }
     const devices: RigDevice[] = []
@@ -89,7 +94,7 @@ export function makeRig(config: Config): Effect.Effect<Rig, Error, Scope.Scope> 
       if (config.commandsEnabled) yield* Effect.forkScoped(keepSetUp(device, ledger, instanceId))
     }
 
-    return { instanceId, config, client, devices, ledger, images }
+    return { instanceId, config, client, devices, ledger, images, recorder }
   })
 }
 

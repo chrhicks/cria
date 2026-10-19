@@ -13,6 +13,7 @@ legacy ([docs/legacy-windows.md](../docs/legacy-windows.md)).
 | --- | --- | --- |
 | `packages/primitives` | Outcome, Reading, writeOnce, confirm, stoppable, retryReads, Run, `quarantineOf` | Types and disciplines; depends only on `effect`, built to move to Vela |
 | `packages/indi` | XML framing, property mirror, `IndiClient` / `IndiDevice` | INDI boundary (no primitive) |
+| `packages/recording` | `@cria/recording`: the recording format, the recorder behind the INDI client's tap, the reader and `verifyRecording` | Recording (off unless `record` is configured) |
 | `packages/cria-wire` | `@cria/wire`: the protocol 5 schemas and the 15-kind command table, shared with Vela | View |
 | `apps/cria/src/capability` | camera, mount, focuser, weather, power, connection | Capabilities |
 | `apps/cria/src/operation` | workflow bodies; the ledger, one owner of operations per rig with one Run per failure domain | Workflows, Run, Quarantine |
@@ -23,6 +24,8 @@ legacy ([docs/legacy-windows.md](../docs/legacy-windows.md)).
 | `apps/cria/test` | scenario tests, fake INDI server | — |
 | `testing/indiserver.ts` | runs a real indiserver with simulators for tests | — |
 | `testing/cria-client.ts` | a typed protocol 5 client for tests; decodes every response strictly | — |
+| `testing/recorder-crash.test.ts` | `kill -9` of a real process at each step of the recorder's write order | — |
+| `testing/measure-recording-stall.ts` | not a test: what recording costs the event loop, healthy and on a stalled disk | — |
 | `testing/rig-supervisor.test.ts` | the rig supervisor against a fake Cria, a temp FIFO and a fake clock | — |
 | `testing/lint.test.ts` | source rules: catches, `try`, `.catch(`, `Date.now()` and timers only at reasoned sites; `verify.sh` strict | — |
 | `testing/source-hook.mjs` | lets `node` run `main.ts` from source, for the shutdown test | — |

@@ -126,6 +126,10 @@ Cria writes to stderr, so journald holds its log under systemd. It logs `cria: i
 
 A capture writes its frame to `imageDirectory` as ImageBytes. The folder is a rolling set. Once it passes `imageBudgetBytes` (10 GiB by default), Cria drops the oldest frames, and a request for a dropped frame gets `410 image-gone`. Cria never keeps a frame for Vela. [SPEC.md, "Image path"](ts/SPEC.md#image-path) has the conversion and the store.
 
+## Recording
+
+With `record` in the config (absent on errai until it is measured and enabled), Cria writes a recording of its INDI traffic into `record.dir`: one folder per Cria start, with a manifest, a `traffic.jsonl`, and one file per camera frame. Frames are the full FITS, about 52 MB each for the ASI2600, so size `reserveGb` and `queueMb` from the disk's measured speed and free space. Recording stops for the rest of a run when its queue is full, the disk would drop below `reserveGb`, or a write fails, and Cria carries on. [SPEC.md, "Recording"](ts/SPEC.md#recording) has the format and the failure rules. To check a recording, run `verifyRecording` from `@cria/recording` on its folder; a missing `end` line means Cria died.
+
 ## Before Cria commands the rig
 
 The checks on errai so far were read-only. [ts/README.md, "Before trying it on the rig"](../ts/README.md#before-trying-it-on-the-rig) lists what has to happen first, and the first session is with Chris present.

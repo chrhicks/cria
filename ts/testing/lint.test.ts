@@ -30,6 +30,14 @@ const allowed: Record<string, Partial<Record<Rule, readonly [count: number, why:
     'try-catch': [1, 'a frame the parser rejects closes the socket from inside a Node data handler'],
     'wall-clock': [5, 'receive times and connection status times; the reconnect backoff resets after 10 s connected'],
   },
+  'packages/recording/src/reader.ts': {
+    'try-catch': [2, 'a line that is not JSON, and a manifest that cannot be read, are reported as damage, not thrown'],
+  },
+  'packages/recording/src/recorder.ts': {
+    'try-catch': [3, 'a failed write, a bug building an entry and a failed close each stop recording and never reach Cria or the socket'],
+    'wall-clock': [1, 'a recorded line carries its wall-clock time'],
+  },
+  'apps/cria/src/recording.ts': { 'catch-all': [1, 'a recording that cannot open is logged and Cria runs without it'] },
   'apps/cria/src/rig.ts': { 'catch-all': [1, 'a refused start-up connect is logged; it ran nothing'] },
   'apps/cria/src/capability/commands.ts': { 'catch-all': [1, 'notACommand: BLOB routing, not a physical command'] },
   'apps/cria/src/capability/camera.ts': {
