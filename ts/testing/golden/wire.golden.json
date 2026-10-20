@@ -6080,5 +6080,709 @@
       "startedAt": "<time>",
       "state": "settled"
     }
+  },
+  {
+    "scenario": "skipped bad update: the focuser temperature reads unavailable until a good definition comes back",
+    "step": 1,
+    "request": "GET /v2/state",
+    "status": 200,
+    "body": {
+      "commandsEnabled": true,
+      "devices": [
+        {
+          "afterOperation": null,
+          "availability": {
+            "ready": true
+          },
+          "bindingId": "<binding-1>",
+          "failureDomain": "fake-ccd",
+          "id": "camera",
+          "kind": "camera",
+          "lastCommandedSetpointC": null,
+          "name": "Fake CCD",
+          "quarantine": {
+            "held": false
+          },
+          "readings": {
+            "activity": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": "idle"
+            },
+            "bayerPattern": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": "grbg"
+            },
+            "binX": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 1
+            },
+            "binY": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 1
+            },
+            "canAbortExposure": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": true
+            },
+            "canGetCoolerPower": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": false
+            },
+            "canSetTemperature": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": true
+            },
+            "connected": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": true
+            },
+            "coolerOn": {
+              "reason": "not-read",
+              "status": "unavailable"
+            },
+            "coolerPowerPercent": {
+              "reason": "not-read",
+              "status": "unavailable"
+            },
+            "exposureMaximum": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 3600
+            },
+            "exposureMinimum": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 0.001
+            },
+            "gain": {
+              "reason": "not-read",
+              "status": "unavailable"
+            },
+            "gainMaximum": {
+              "reason": "not-read",
+              "status": "unavailable"
+            },
+            "gainMinimum": {
+              "reason": "not-read",
+              "status": "unavailable"
+            },
+            "height": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 6
+            },
+            "maxBinX": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 4
+            },
+            "maxBinY": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 4
+            },
+            "name": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": "Fake CCD"
+            },
+            "offset": {
+              "reason": "not-read",
+              "status": "unavailable"
+            },
+            "offsetMaximum": {
+              "reason": "not-read",
+              "status": "unavailable"
+            },
+            "offsetMinimum": {
+              "reason": "not-read",
+              "status": "unavailable"
+            },
+            "pixelHeightMicrons": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 3.76
+            },
+            "pixelWidthMicrons": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 3.76
+            },
+            "sensorHeightPixels": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 6
+            },
+            "sensorWidthPixels": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 8
+            },
+            "setpointC": {
+              "reason": "unsupported",
+              "status": "unavailable"
+            },
+            "startX": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 0
+            },
+            "startY": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 0
+            },
+            "temperatureC": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 20
+            },
+            "width": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 8
+            }
+          }
+        },
+        {
+          "afterOperation": null,
+          "availability": {
+            "ready": true
+          },
+          "bindingId": "<binding-2>",
+          "failureDomain": "fake-focuser",
+          "id": "focuser",
+          "kind": "focuser",
+          "name": "Fake Focuser",
+          "quarantine": {
+            "held": false
+          },
+          "readings": {
+            "absolute": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": true
+            },
+            "connected": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": true
+            },
+            "maxStep": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 50000
+            },
+            "minStep": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 0
+            },
+            "moving": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": false
+            },
+            "name": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": "Fake Focuser"
+            },
+            "position": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 1000
+            },
+            "temperatureC": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 12.5
+            }
+          }
+        }
+      ],
+      "generatedAt": "<time>",
+      "instanceId": "<instance-1>",
+      "operations": [],
+      "protocolVersion": 5,
+      "sequence": "<sequence>"
+    }
+  },
+  {
+    "scenario": "skipped bad update: the focuser temperature reads unavailable until a good definition comes back",
+    "step": 2,
+    "request": "GET /v2/state",
+    "status": 200,
+    "body": {
+      "commandsEnabled": true,
+      "devices": [
+        {
+          "afterOperation": null,
+          "availability": {
+            "ready": true
+          },
+          "bindingId": "<binding-1>",
+          "failureDomain": "fake-ccd",
+          "id": "camera",
+          "kind": "camera",
+          "lastCommandedSetpointC": null,
+          "name": "Fake CCD",
+          "quarantine": {
+            "held": false
+          },
+          "readings": {
+            "activity": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": "idle"
+            },
+            "bayerPattern": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": "grbg"
+            },
+            "binX": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 1
+            },
+            "binY": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 1
+            },
+            "canAbortExposure": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": true
+            },
+            "canGetCoolerPower": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": false
+            },
+            "canSetTemperature": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": true
+            },
+            "connected": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": true
+            },
+            "coolerOn": {
+              "reason": "not-read",
+              "status": "unavailable"
+            },
+            "coolerPowerPercent": {
+              "reason": "not-read",
+              "status": "unavailable"
+            },
+            "exposureMaximum": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 3600
+            },
+            "exposureMinimum": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 0.001
+            },
+            "gain": {
+              "reason": "not-read",
+              "status": "unavailable"
+            },
+            "gainMaximum": {
+              "reason": "not-read",
+              "status": "unavailable"
+            },
+            "gainMinimum": {
+              "reason": "not-read",
+              "status": "unavailable"
+            },
+            "height": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 6
+            },
+            "maxBinX": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 4
+            },
+            "maxBinY": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 4
+            },
+            "name": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": "Fake CCD"
+            },
+            "offset": {
+              "reason": "not-read",
+              "status": "unavailable"
+            },
+            "offsetMaximum": {
+              "reason": "not-read",
+              "status": "unavailable"
+            },
+            "offsetMinimum": {
+              "reason": "not-read",
+              "status": "unavailable"
+            },
+            "pixelHeightMicrons": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 3.76
+            },
+            "pixelWidthMicrons": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 3.76
+            },
+            "sensorHeightPixels": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 6
+            },
+            "sensorWidthPixels": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 8
+            },
+            "setpointC": {
+              "reason": "unsupported",
+              "status": "unavailable"
+            },
+            "startX": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 0
+            },
+            "startY": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 0
+            },
+            "temperatureC": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 20
+            },
+            "width": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 8
+            }
+          }
+        },
+        {
+          "afterOperation": null,
+          "availability": {
+            "ready": true
+          },
+          "bindingId": "<binding-2>",
+          "failureDomain": "fake-focuser",
+          "id": "focuser",
+          "kind": "focuser",
+          "name": "Fake Focuser",
+          "quarantine": {
+            "held": false
+          },
+          "readings": {
+            "absolute": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": true
+            },
+            "connected": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": true
+            },
+            "maxStep": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 50000
+            },
+            "minStep": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 0
+            },
+            "moving": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": false
+            },
+            "name": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": "Fake Focuser"
+            },
+            "position": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 1000
+            },
+            "temperatureC": {
+              "reason": "not-read",
+              "status": "unavailable"
+            }
+          }
+        }
+      ],
+      "generatedAt": "<time>",
+      "instanceId": "<instance-1>",
+      "operations": [],
+      "protocolVersion": 5,
+      "sequence": "<sequence>"
+    }
+  },
+  {
+    "scenario": "skipped bad update: the focuser temperature reads unavailable until a good definition comes back",
+    "step": 3,
+    "request": "GET /v2/state",
+    "status": 200,
+    "body": {
+      "commandsEnabled": true,
+      "devices": [
+        {
+          "afterOperation": null,
+          "availability": {
+            "ready": true
+          },
+          "bindingId": "<binding-1>",
+          "failureDomain": "fake-ccd",
+          "id": "camera",
+          "kind": "camera",
+          "lastCommandedSetpointC": null,
+          "name": "Fake CCD",
+          "quarantine": {
+            "held": false
+          },
+          "readings": {
+            "activity": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": "idle"
+            },
+            "bayerPattern": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": "grbg"
+            },
+            "binX": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 1
+            },
+            "binY": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 1
+            },
+            "canAbortExposure": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": true
+            },
+            "canGetCoolerPower": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": false
+            },
+            "canSetTemperature": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": true
+            },
+            "connected": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": true
+            },
+            "coolerOn": {
+              "reason": "not-read",
+              "status": "unavailable"
+            },
+            "coolerPowerPercent": {
+              "reason": "not-read",
+              "status": "unavailable"
+            },
+            "exposureMaximum": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 3600
+            },
+            "exposureMinimum": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 0.001
+            },
+            "gain": {
+              "reason": "not-read",
+              "status": "unavailable"
+            },
+            "gainMaximum": {
+              "reason": "not-read",
+              "status": "unavailable"
+            },
+            "gainMinimum": {
+              "reason": "not-read",
+              "status": "unavailable"
+            },
+            "height": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 6
+            },
+            "maxBinX": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 4
+            },
+            "maxBinY": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 4
+            },
+            "name": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": "Fake CCD"
+            },
+            "offset": {
+              "reason": "not-read",
+              "status": "unavailable"
+            },
+            "offsetMaximum": {
+              "reason": "not-read",
+              "status": "unavailable"
+            },
+            "offsetMinimum": {
+              "reason": "not-read",
+              "status": "unavailable"
+            },
+            "pixelHeightMicrons": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 3.76
+            },
+            "pixelWidthMicrons": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 3.76
+            },
+            "sensorHeightPixels": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 6
+            },
+            "sensorWidthPixels": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 8
+            },
+            "setpointC": {
+              "reason": "unsupported",
+              "status": "unavailable"
+            },
+            "startX": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 0
+            },
+            "startY": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 0
+            },
+            "temperatureC": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 20
+            },
+            "width": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 8
+            }
+          }
+        },
+        {
+          "afterOperation": null,
+          "availability": {
+            "ready": true
+          },
+          "bindingId": "<binding-2>",
+          "failureDomain": "fake-focuser",
+          "id": "focuser",
+          "kind": "focuser",
+          "name": "Fake Focuser",
+          "quarantine": {
+            "held": false
+          },
+          "readings": {
+            "absolute": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": true
+            },
+            "connected": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": true
+            },
+            "maxStep": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 50000
+            },
+            "minStep": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 0
+            },
+            "moving": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": false
+            },
+            "name": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": "Fake Focuser"
+            },
+            "position": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 1000
+            },
+            "temperatureC": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 13.5
+            }
+          }
+        }
+      ],
+      "generatedAt": "<time>",
+      "instanceId": "<instance-1>",
+      "operations": [],
+      "protocolVersion": 5,
+      "sequence": "<sequence>"
+    }
   }
 ]

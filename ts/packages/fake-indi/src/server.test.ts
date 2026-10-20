@@ -73,6 +73,23 @@ describe('definitions', () => {
     )
   })
 
+  it('raw sends the element as given to the clients that hear of the property, and leaves the fake\'s vector alone', async () => {
+    const heard = await connect()
+    const other = await connect()
+    const bad = '<setNumberVector device="Mount" name="TELESCOPE_PARK" state="Ok"><oneNumber name="PARK">12abc</oneNumber></setNumberVector>\n'
+
+    heard.send('<getProperties version="1.7" device="Mount"/>')
+    other.send('<getProperties version="1.7" device="CCD"/>')
+    await heard.until('the definition', text => text.includes('</defSwitchVector>'))
+    await other.until('the definition', text => text.includes('<defBLOBVector'))
+    fake.raw(bad, 'Mount', 'TELESCOPE_PARK')
+    await heard.until('the raw element', text => text.endsWith(bad))
+    await pause(50)
+
+    expect(other.text()).not.toContain('12abc')
+    expect(fake.vector('Mount', 'TELESCOPE_PARK').elements.PARK!.value).toBe(false)
+  })
+
   it('carry a light vector', async () => {
     fake.define({ device: 'Weather', name: 'WEATHER_STATUS', kind: 'light', perm: 'ro', state: 'Ok', elements: { WEATHER_TEMPERATURE: { value: 'Ok', label: 'Temperature' } } })
     const client = await connect()

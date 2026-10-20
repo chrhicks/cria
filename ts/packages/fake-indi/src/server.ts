@@ -189,6 +189,14 @@ export class FakeIndi {
     this.broadcast(`<message${device === undefined ? '' : ` device="${escape(device)}"`}${messageAttribute(text)}/>\n`, device)
   }
 
+  /**
+   * Sends `xml` exactly as given, to the clients that hear of `property` of `device`, for the element a real driver
+   * sends that the fake would never build itself (a number that is not a number). The fake's own copy of the vector is not touched.
+   */
+  raw(xml: string, device: string, property?: string): void {
+    this.broadcast(xml, device, property)
+  }
+
   vector(device: string, name: string): FakeVector {
     const found = this.vectors.get(`${device}.${name}`)
 
