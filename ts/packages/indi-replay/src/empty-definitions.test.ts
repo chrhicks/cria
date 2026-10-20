@@ -11,8 +11,8 @@ import { loadTape } from './tape.js'
 
 /**
  * Some INDI drivers define properties with no device and no name. The Pegasus PPBA and ZWO AM5 drivers did it
- * on the first real night recorded on the rig: five definitions of four kinds with every attribute empty, in the
- * middle of the drivers' real ones, and once more each time a driver answered a getProperties. indiserver relays
+ * on the first real night recorded on the rig: five definitions of four kinds with an empty device, name, label
+ * and group, in the middle of the drivers' real ones, and once more each time a driver answered a getProperties. indiserver relays
  * them, Cria reads them and goes on, and the recorder keeps them like everything else.
  *
  * Replay holds one property per device and name, so all of them are one property, and every definition after the
@@ -116,7 +116,7 @@ describe('definitions with no device and no name in a recording', () => {
     expect(seen).toEqual({ connections: ['connected'], status: 'connected', power: true, mount: true })
   })
 
-  it('are all served, as the drivers sent them, each kind as its own kind', async () => {
+  it('are served with an empty name wherever the device is empty, and every light reads as a state Cria accepts', async () => {
     const folder = await tapeFromStream(stream, { devices: [{ id: 'primary', kind: 'camera', indiDevice: camera }], sensor: { width: 16, height: 8 }, startAt: Date.UTC(2030, 0, 1) }, join(directory, 'tape'))
 
     replay = await startReplay(await loadTape(folder))
