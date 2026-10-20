@@ -186,6 +186,12 @@ function define(fake: FakeIndi, kind: Kind, behaviours: Map<string, Behaviour>) 
   }
 }
 
+const temperatureProperty = 'FOCUS_TEMPERATURE'
+
+function focuserTemperature(celsius: number) {
+  return { device: focuser, name: temperatureProperty, kind: 'number', perm: 'ro', state: 'Ok', elements: { TEMPERATURE: { value: celsius, min: -50, max: 70 } } } as const
+}
+
 function moveFocuser(finishAfterMs: number | 'never'): Behaviour {
   return (fake, vector, values) => {
     const position = fake.vector(vector.device, 'ABS_FOCUS_POSITION')
@@ -666,6 +672,36 @@ export const scenarios: ReadonlyArray<Scenario> = [
       g.behave(camera, normal)
       await g.cria.waitFor(allReady(['camera']))
       await runAndSettle(g, 'camera', 'capture', { exposureSeconds: 0.05, light: true })
+    },
+  },
+  {
+    name: 'skipped bad update: the focuser temperature reads unavailable until a good definition comes back',
+    devices: ['camera', 'focuser'],
+    fake: fake => fake.define(focuserTemperature(12.5)),
+    run: async g => {
+      const temperatureIs = (status: string) => async () => {
+        const state = await g.cria.state()
+        const readings = state.devices.find(device => device.id === 'focuser')!.readings
+
+        return readings.temperatureC?.status === status
+      }
+      const asked = () => g.fake.received.filter(xml => xml.startsWith('<getProperties') && xml.includes(`name="${temperatureProperty}"`)).length
+
+      await g.wire.state()
+      // The fake stops answering for a moment, so Cria's request for the property stays unanswered while the state is recorded.
+      g.fake.answering = false
+      g.fake.raw(
+        `<setNumberVector device="${focuser}" name="${temperatureProperty}" state="Ok"><oneNumber name="TEMPERATURE">12abc</oneNumber></setNumberVector>\n`,
+        focuser,
+        temperatureProperty,
+      )
+      await g.until('the focuser temperature to read unavailable', temperatureIs('unavailable'))
+      await g.until('Cria to ask the driver for the property', async () => asked() === 1)
+      await g.wire.state()
+      g.fake.answering = true
+      g.fake.define(focuserTemperature(13.5))
+      await g.until('the focuser temperature to read again', temperatureIs('fresh'))
+      await g.wire.state()
     },
   },
 ]
