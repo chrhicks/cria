@@ -36,8 +36,11 @@ const allowed: Record<string, Partial<Record<Rule, readonly [count: number, why:
   'packages/indi-replay/src/replay.ts': { 'try-catch': [1, 'an image that cannot be read ends its exposure in Alert instead of an unhandled rejection in a timer'] },
   'packages/indi-replay/src/tape.ts': { 'try-catch': [1, 'closes the image file after reading its header'] },
   'packages/indi/src/client.ts': {
-    'try-catch': [1, 'a frame the parser rejects closes the socket from inside a Node data handler'],
-    'wall-clock': [5, 'receive times and connection status times; the reconnect backoff resets after 10 s connected'],
+    'try-catch': [1, 'a bug in applying a message closes the socket from inside a Node data handler'],
+    'wall-clock': [6, 'receive times and connection status times; the reconnect backoff resets after 10 s connected; the receive time of a forgotten property'],
+  },
+  'packages/indi/src/xml.ts': {
+    'try-catch': [2, 'an IndiProtocolError from one element or from the framing becomes a problem the client logs, never a throw out of a data handler'],
   },
   'packages/recording/src/reader.ts': {
     'try-catch': [2, 'a line that is not JSON, and a manifest that cannot be read, are reported as damage, not thrown'],
