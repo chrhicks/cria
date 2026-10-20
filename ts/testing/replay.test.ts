@@ -4,6 +4,12 @@
  * them), then the real Cria runs against the recording served by indi-replay.
  * Simulators, files and a fake of indiserver only: no equipment.
  *
+ * The simulated mount takes its time from the machine clock and its idea of
+ * the meridian from its site. A goto across the meridian is a pier flip over
+ * the pole (30 s, past Cria's 20 s operation timeout), and where the mount
+ * starts depends on the time of day. So the night is aimed by hour angle, not
+ * by the right ascension the mount happens to start at.
+ *
  * REPLAY_LIVENESS_SECONDS sets how long the liveness test keeps Cria running
  * (default 15; 600 is the ten-minute check).
  */
@@ -19,13 +25,30 @@ import { readRecording, verifyRecording } from '../packages/recording/src/index.
 import { startIndiServer } from './indiserver.js'
 
 const root = join(import.meta.dirname, '..')
+// A made-up site. Without one the simulated mount keeps sidereal time by a site of its own, which Cria's mount reading (longitude 0) does not share.
+const site = { latitudeDegrees: 40, longitudeDegrees: -100, elevationMeters: 0 }
 const devices: ReadonlyArray<DeviceSpec> = [
   { id: 'primary', kind: 'camera', indiDevice: 'CCD Simulator', connect: true },
-  { id: 'mount', kind: 'mount', indiDevice: 'Telescope Simulator', connect: true },
+  { id: 'mount', kind: 'mount', indiDevice: 'Telescope Simulator', connect: true, site },
 ]
-const watching = devices.map(device => ({ ...device, connect: false }))
+const watching = devices.map(({ site: _site, ...device }) => ({ ...device, connect: false }))
 const captures = 6
 const exposureSeconds = 0.5
+const frameStepDegrees = 5
+
+/**
+ * The hour angle (degrees, west positive) to slew to for each capture. Every one
+ * is 30° to 150° west of the meridian, where the mount starts, so no slew
+ * crosses the meridian; each is five degrees from the last, more than the
+ * seconds between frames move it. The first is the start itself when that is
+ * in range, else the nearest end of the range, so it is never a long way round.
+ */
+function hourAngleSchedule(startDegrees: number, count: number): number[] {
+  const first = Math.min(150, Math.max(30, startDegrees))
+  const step = first < 90 ? frameStepDegrees : -frameStepDegrees
+
+  return Array.from({ length: count }, (_, capture) => first + step * capture)
+}
 
 let scratch: string
 let folder: string
@@ -41,12 +64,19 @@ beforeAll(async () => {
     await cria.waitFor(allReady(['primary', 'mount']))
     await cria.run('mount', 'mount-tracking', { tracking: true })
 
+    const hourAngle = async () => {
+      const mount = await cria.device('mount')
+
+      return (Number(valueOf(mount, 'siderealTimeHours')) - Number(valueOf(mount, 'rightAscensionHours'))) * 15
+    }
+    const schedule = hourAngleSchedule(((await hourAngle()) + 540) % 360 - 180, captures)
+
     for (let capture = 0; capture < captures; capture++) {
-      // Five degrees of right ascension on, so the hour angle differs from one frame to the next by more than the seconds between them.
-      const ra = (Number(valueOf(await cria.device('mount'), 'rightAscensionHours')) * 15 + 5) % 360
+      const mount = await cria.device('mount')
+      const ra = (((Number(valueOf(mount, 'siderealTimeHours')) * 15 - schedule[capture]!) % 360) + 360) % 360
       const slew = await cria.run('mount', 'mount-slew', { rightAscensionDegrees: ra, declinationDegrees: 20, coordinateSystem: 'topocentric' })
 
-      expect(slew.kind).toBe('confirmed')
+      expect([slew.kind, slew.reason, slew.message]).toEqual(['confirmed', null, null])
       expect((await cria.run('primary', 'capture', { exposureSeconds, light: true })).kind).toBe('confirmed')
     }
   } finally {
@@ -91,6 +121,21 @@ describe('the recording the simulators made', () => {
   })
 })
 
+describe('the night the simulators are aimed through', () => {
+  it('stays 30° to 150° west of the meridian, in five degree steps, from any starting hour angle', () => {
+    for (let start = -180; start <= 180; start += 0.5) {
+      const schedule = hourAngleSchedule(start, captures)
+
+      expect(schedule.every(angle => angle >= 30 && angle <= 150), `from ${start}°: ${schedule}`).toBe(true)
+      expect(schedule.slice(1).map((angle, index) => Math.abs(angle - schedule[index]!)), `from ${start}°`).toEqual(Array(captures - 1).fill(frameStepDegrees))
+    }
+  })
+
+  it('starts within 30° of a mount that starts west of the meridian', () => {
+    for (let start = 0; start <= 180; start += 0.5) expect(Math.abs(hourAngleSchedule(start, 1)[0]! - start), `from ${start}°`).toBeLessThanOrEqual(30)
+  })
+})
+
 describe('the real Cria on the replay', () => {
   it('confirms every capture, and each ImageBytes digest is the one recorded for it', async () => {
     const { cria } = await run()
@@ -109,7 +154,12 @@ describe('the real Cria on the replay', () => {
   it('shows the hour angle the recording had at each frame', async () => {
     const { cria, replay } = await run()
     const tape = await loadTape(folder)
-    const longitude = tape.events.flatMap(event => (event.kind === 'define' && event.vector.name === 'GEOGRAPHIC_COORD' ? [Number(event.vector.elements.LONG!.value)] : []))[0]!
+    // The replay serves the latest longitude the recording held, as Cria reads it.
+    const longitude = tape.events.flatMap(event => {
+      if (event.kind === 'define') return event.vector.name === 'GEOGRAPHIC_COORD' ? [Number(event.vector.elements.LONG!.value)] : []
+
+      return event.kind === 'update' && event.name === 'GEOGRAPHIC_COORD' && event.values.LONG !== undefined ? [Number(event.values.LONG)] : []
+    }).at(-1)!
     const recordedRa = (t: number) => {
       const updates = tape.events.filter(event => event.kind === 'update' && event.name === 'EQUATORIAL_EOD_COORD' && event.values.RA !== undefined && event.t <= t)
 
