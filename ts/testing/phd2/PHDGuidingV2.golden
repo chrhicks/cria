@@ -1,0 +1,43 @@
+ConfigVersion=2001
+currentProfile=1
+ServerMode=1
+
+[Update]
+enabled=0
+
+[profile]
+
+[profile/1]
+name=Cria guide
+ExposureDurationMs=2000
+
+[profile/1/frame]
+focalLength=150
+
+[profile/1/camera]
+LastMenuChoice=INDI Camera [ZWO CCD ASI220MM Mini]
+pixelsize=4
+
+[profile/1/scope]
+LastMenuChoice=INDI Mount [ZWO AM5]
+LastAuxMenuChoice=None
+CalibrationDuration=1550
+CalibrationDistance=25
+
+[profile/1/stepguider]
+LastMenuChoice=None
+
+[profile/1/rotator]
+LastMenuChoice=None
+
+[profile/1/indi]
+INDIhost=localhost
+INDIport=7624
+INDIcam=ZWO CCD ASI220MM Mini
+INDIcam_ccd=0
+INDImount=ZWO AM5
+
+[profile/1/guider]
+
+[profile/1/guider/multistar]
+enabled=1

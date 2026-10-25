@@ -1,0 +1,28 @@
+# PHD2 as rig equipment: headless under Xvfb, event server on. User unit: install to
+# ~/.config/systemd/user/ (docs/runtime.md, "PHD2 on errai"). Write the profile first
+# (phd2-profile.mjs) and then enable it; it does nothing to the rig until a client
+# sends a command to port 4400.
+#
+# Port 4400 is PHD2's JSON-RPC event server (4400 + instance - 1; ServerMode is on by
+# default), and ServerMode also opens the older socket server on 4300. PHD2 binds both
+# to every interface, not to 127.0.0.1, and anyone who can reach them can start guiding,
+# move the mount by guide pulses and stop PHD2. Do not enable this unit before errai's
+# firewall closes both ports to everything but errai; docs/runtime.md has the rule.
+#
+# xvfb-run uses a fixed display, :99, with its X authority at %t/phd2.xauth, so
+# x11vnc can find it: `-a` only skips numbers that have a lock file, and would
+# leave x11vnc guessing. Restart=always because PHD2's `shutdown` call and a clean
+# crash exit both look like exit 0 to systemd; `systemctl --user stop phd2` still stops it.
+[Unit]
+Description=PHD2 guiding (headless, under Xvfb)
+StartLimitIntervalSec=0
+After=indiserver.service
+Wants=indiserver.service
+
+[Service]
+ExecStart=/usr/bin/xvfb-run -n 99 -f %t/phd2.xauth -e %t/phd2-xvfb.log -s "-screen 0 1280x1024x24" /usr/bin/phd2 -i 1
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target
