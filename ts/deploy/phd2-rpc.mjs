@@ -4,7 +4,7 @@
 //   node phd2-rpc.mjs state | connect | loop | find-star | guide | dither | stop | disconnect
 //   node phd2-rpc.mjs watch [SECONDS]        send nothing, print events
 //
-// Options: --port N (4400), --host H (127.0.0.1), --wait SECONDS (how long to wait
+// Options: --port N (4400), --wait SECONDS (how long to wait
 // for the answer), --pixels N (dither size, 3), --recalibrate (guide).
 // `guide` and `dither` return once PHD2 reports SettleDone, so the exit code says
 // whether it settled. `stop` returns once get_app_state, a read, says Stopped.
@@ -142,7 +142,7 @@ export function runStep({ host, port, step, watchSeconds, waitSeconds, pollMs = 
 export function parseArgs(args) {
   const [name, ...rest] = args
   const options = {}
-  const flags = { '--port': true, '--host': true, '--wait': true, '--pixels': true, '--recalibrate': false }
+  const flags = { '--port': true, '--wait': true, '--pixels': true, '--recalibrate': false }
   const positional = []
   for (let index = 0; index < rest.length; index++) {
     const arg = rest[index]
@@ -167,12 +167,12 @@ function main() {
   const seconds = number(parsed?.options.seconds, 30)
   const wait = number(parsed?.options.wait, undefined)
   if (!parsed || ![port, pixels, seconds].every(Number.isFinite) || (wait !== undefined && !Number.isFinite(wait)) || pixels <= 0) {
-    console.error(`usage: phd2-rpc.mjs ${[...Object.keys(steps), 'watch [SECONDS]'].join(' | ')} [--port N] [--host H] [--wait SECONDS] [--pixels N] [--recalibrate]`)
+    console.error(`usage: phd2-rpc.mjs ${[...Object.keys(steps), 'watch [SECONDS]'].join(' | ')} [--port N] [--wait SECONDS] [--pixels N] [--recalibrate]`)
     process.exit(1)
   }
   const step = parsed.name === 'watch' ? null : steps[parsed.name]({ pixels, recalibrate: parsed.options.recalibrate === true })
   void runStep(
-    { host: parsed.options.host ?? defaults.host, port, step, watchSeconds: seconds, waitSeconds: wait ?? step?.waitSeconds ?? 0 },
+    { host: defaults.host, port, step, watchSeconds: seconds, waitSeconds: wait ?? step?.waitSeconds ?? 0 },
     { out: line => console.log(line), err: line => console.error(line) },
   ).then(code => process.exit(code))
 }

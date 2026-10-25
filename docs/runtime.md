@@ -119,7 +119,18 @@ sudo nft add chain inet phd2_guard input '{ type filter hook input priority 0; p
 sudo nft add rule inet phd2_guard input tcp dport '{ 4300, 4400 }' iifname != lo drop
 ```
 
-This is not persistent; add it to `/etc/nftables.conf` and enable `nftables.service` to keep it across a reboot. Check it with PHD2 running. On errai: `ss -ltnp | grep -E ':(4300|4400) '` shows PHD2 listening. From thuban: `nc -zv -w 3 errai.local 4400` and the same for 4300 must both fail (time out), and `ssh errai 'node ts/deploy/phd2-rpc.mjs watch 2'` must still print a `Version` event. Cria will reach PHD2 on `127.0.0.1:4400`.
+That adds the rule until the next reboot. To keep it, append the same table to `/etc/nftables.conf` and run `sudo systemctl enable --now nftables`:
+
+```
+table inet phd2_guard {
+  chain input {
+    type filter hook input priority 0; policy accept;
+    tcp dport { 4300, 4400 } iifname != "lo" drop
+  }
+}
+```
+
+Check it with PHD2 running. On errai: `ss -ltnp | grep -E ':(4300|4400) '` shows PHD2 listening. From thuban: `nc -zv -w 3 errai.local 4400` and the same for 4300 must both fail (time out), and `ssh errai 'node ts/deploy/phd2-rpc.mjs watch 2'` must still print a `Version` event. Cria will reach PHD2 on `127.0.0.1:4400`.
 
 ### Install
 
@@ -135,7 +146,7 @@ systemctl --user enable --now phd2          # only after ports 4300 and 4400 are
 
 `phd2-profile.mjs` sets the profile "Cria guide": INDI server `localhost:7624`, camera `ZWO CCD ASI220MM Mini`, mount `ZWO AM5` (pulses over INDI, no ST4 cable), no auxiliary mount, adaptive optics or rotator, focal length 150 mm, pixel size 4 um, 2 s exposures, multi-star on, the calibration pulse and distance the PHD2 wizard would pick (1550 ms, 25 px), the update check off, and it selects the profile. It sets only those keys. A calibration, tuned algorithm settings or another profile in the file stay as they are, so it is safe to run again; when nothing changes it does nothing. It refuses to run while a process called `phd2` or `phd2.bin` exists, because PHD2 rewrites the file when it exits. Before it changes an existing file it copies the file to `~/.PHDGuidingV2.cria-backup-<time>`. `--file PATH` points it elsewhere.
 
-The unit needs `xvfb-run` and `xauth` (errai has both). `xvfb-run` starts Xvfb on `:99` with its X authority in `$XDG_RUNTIME_DIR/phd2.xauth`, then PHD2. If PHD2 exits, `xvfb-run` stops Xvfb and systemd restarts both after 5 s. `systemctl --user stop phd2` stops both. Logs: `journalctl --user -u phd2`, Xvfb's output in `$XDG_RUNTIME_DIR/phd2-xvfb.log`, and PHD2's own debug and guide logs in `~/Documents/PHD2/` (`logger.cpp` `DefaultDir`).
+The unit needs `xvfb-run` and `xauth` (errai has both). `xvfb-run` starts Xvfb on `:99` with its X authority in `$XDG_RUNTIME_DIR/phd2.xauth`, then PHD2. If PHD2 exits, `xvfb-run` stops Xvfb and systemd restarts both after 5 s. `systemctl --user stop phd2` stops both. Logs: `journalctl --user -u phd2`, Xvfb's output in `$XDG_RUNTIME_DIR/phd2-xvfb.log`, and PHD2's own debug and guide logs in `<Documents>/PHD2/` (`logger.cpp` `DefaultDir`). errai has no `~/.config/user-dirs.dirs`, so wxWidgets falls back to the home directory and the logs are in `~/PHD2/` (read from wxWidgets 3.2 behaviour, not checked by running PHD2).
 
 ### Looking at PHD2 with x11vnc
 
@@ -162,7 +173,7 @@ The dark depends on the sensor temperature. Build it at the temperature of the n
 
 ### Step script
 
-`phd2-rpc.mjs` connects to `127.0.0.1:4400` (change with `--port` and `--host`), prints every line PHD2 sends, and sends exactly the one request its subcommand names. It starts nothing on its own and stays connected only until that step is answered.
+`phd2-rpc.mjs` connects to `127.0.0.1:4400` only (`--port` changes the port; there is no host option, because PHD2 stays on errai), prints every line PHD2 sends, and sends exactly the one request its subcommand names. It starts nothing on its own and stays connected only until that step is answered.
 
 | Command | Sends | Waits for |
 |---|---|---|

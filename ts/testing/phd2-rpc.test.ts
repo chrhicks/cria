@@ -94,6 +94,7 @@ describe('steps', () => {
     expect(parseArgs(['guide', 'now'])).toBeNull()
     expect(parseArgs(['restart'])).toBeNull()
     expect(parseArgs(['state', '--port'])).toBeNull()
+    expect(parseArgs(['state', '--host', 'errai'])).toBeNull()
     expect(parseArgs(['watch', '15'])).toEqual({ name: 'watch', options: { seconds: '15' } })
   })
 })
