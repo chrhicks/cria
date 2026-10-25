@@ -1,0 +1,10 @@
+#!/usr/bin/nft -f
+# PHD2 binds 4300 and 4400 on every interface; only errai itself may reach them.
+# Loaded by phd2-guard.service. Touches only this table (Tailscale owns ip filter/nat).
+destroy table inet phd2_guard
+table inet phd2_guard {
+  chain input {
+    type filter hook input priority 0; policy accept;
+    tcp dport { 4300, 4400 } iifname != "lo" drop
+  }
+}

@@ -1,0 +1,13 @@
+[Unit]
+Description=Close PHD2 ports 4300 and 4400 to everything but errai
+Wants=network-pre.target
+Before=network-pre.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/nft -f /etc/phd2-guard.nft
+ExecStop=/usr/bin/nft delete table inet phd2_guard
+
+[Install]
+WantedBy=multi-user.target

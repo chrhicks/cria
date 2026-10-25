@@ -111,26 +111,19 @@ All of this is from the PHD2 2.6.14 source (tag `v2.6.14`, `src/` in https://git
 
 ### Ports 4300 and 4400 listen on every interface
 
-PHD2 does not offer a bind address. Anyone who can reach port 4400 can start and stop guiding, make the mount take guide pulses and send `shutdown`; port 4300 takes pause, resume and dither. The plan says only errai itself may reach PHD2, so **do not enable `phd2.service` until both ports are closed to everything but errai**. On 2026-10-24 no firewall service on errai was active (`systemctl is-active` said inactive for `nftables`, `ufw`, `iptables` and `firewalld`). Rules loaded by hand would not show there, and reading them needs root, so check with `sudo nft list ruleset`. Nothing in this repo changes the firewall. This is the rule to apply on errai, by Chris or with his go-ahead:
+PHD2 does not offer a bind address. Anyone who can reach port 4400 can start and stop guiding, make the mount take guide pulses and send `shutdown`; port 4300 takes pause, resume and dither. The plan says only errai itself may reach PHD2, so **do not enable `phd2.service` until both ports are closed to everything but errai**. On 2026-10-24 no firewall service on errai was active (`systemctl is-active` said inactive for `nftables`, `ufw`, `iptables` and `firewalld`). Rules loaded by hand would not show there, and reading them needs root, so check with `sudo nft list ruleset`. `ts/deploy/phd2-guard.nft` holds the rule and `ts/deploy/phd2-guard.service` is a system unit that loads it at boot, before the network comes up. Install them on errai, by Chris or with his go-ahead (done on 2026-10-25):
 
 ```sh
-sudo nft add table inet phd2_guard
-sudo nft add chain inet phd2_guard input '{ type filter hook input priority 0; policy accept; }'
-sudo nft add rule inet phd2_guard input tcp dport '{ 4300, 4400 }' iifname != lo drop
+sudo install -m 644 ts/deploy/phd2-guard.nft /etc/phd2-guard.nft
+sudo install -m 644 ts/deploy/phd2-guard.service /etc/systemd/system/phd2-guard.service
+sudo systemctl daemon-reload
+sudo systemctl enable --now phd2-guard
+sudo nft list table inet phd2_guard
 ```
 
-That adds the rule until the next reboot. To keep it, append the same table to `/etc/nftables.conf` and run `sudo systemctl enable --now nftables`:
+The rule drops TCP 4300 and 4400 unless the packet arrives on `lo`. The unit touches only its own table: `systemctl stop phd2-guard` deletes `inet phd2_guard` and nothing else. **Do not use `nftables.service` for this.** On errai `/etc/nftables.conf` is Arch's stock firewall, which drops all input except ssh, so enabling that service would cut Vela off from Cria (4319) and INDI (7624). Its stop command also runs `nft flush ruleset`, which removes Tailscale's own `ip filter` and `ip nat` tables until tailscaled restarts.
 
-```
-table inet phd2_guard {
-  chain input {
-    type filter hook input priority 0; policy accept;
-    tcp dport { 4300, 4400 } iifname != "lo" drop
-  }
-}
-```
-
-Check it with PHD2 running. On errai: `ss -ltnp | grep -E ':(4300|4400) '` shows PHD2 listening. From thuban: `nc -zv -w 3 errai.local 4400` and the same for 4300 must both fail (time out), and `ssh errai 'node ts/deploy/phd2-rpc.mjs watch 2'` must still print a `Version` event. Cria will reach PHD2 on `127.0.0.1:4400`.
+Check it with PHD2 running. On errai: `ss -ltnp | grep -E ':(4300|4400) '` shows PHD2 listening. From thuban (no `nc` there): `timeout 5 bash -c 'exec 3<>/dev/tcp/HOST/4400'` and the same for 4300 must both fail, for errai's LAN address and its tailnet name, while 4319 and 7624 still connect, and `ssh errai 'node ts/deploy/phd2-rpc.mjs watch 2'` must still print a `Version` event. Cria will reach PHD2 on `127.0.0.1:4400`.
 
 ### Install
 
