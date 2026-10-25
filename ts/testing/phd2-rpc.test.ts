@@ -6,7 +6,6 @@ import { LineReader, classify, encodeRequest, parseArgs, runStep, settle, steps 
 
 type Handler = (request: { method: string; params?: Record<string, unknown>; id: number }, socket: Socket) => void
 
-/** A stand-in for PHD2's event server: CRLF lines out, one JSON request per line in. */
 class FakePhd2 {
   requests: Array<{ method: string; params?: Record<string, unknown>; id: number }> = []
   raw: string[] = []

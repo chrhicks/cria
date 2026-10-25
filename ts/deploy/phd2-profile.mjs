@@ -1,16 +1,13 @@
 #!/usr/bin/env node
-// phd2-profile: writes the rig's PHD2 equipment profile into PHD2's config file,
-// so nobody clicks through the GUI on a headless box. Run it with PHD2 stopped:
+// phd2-profile: writes the rig's PHD2 equipment profile into PHD2's config file.
+// Run it with PHD2 stopped:
 //
 //   node phd2-profile.mjs [--file ~/.PHDGuidingV2] [--dry-run]
 //
 // PHD2 keeps its settings with wxConfig("PHDGuidingV2"), which on Linux is an INI
 // file: root keys first, then `[group/sub]` headers with `key=value` lines.
 // docs/runtime.md ("PHD2 on errai") cites the PHD2 2.6.14 source for every key.
-// Only the keys listed in `entries` are set. Anything
-// else in the file (a calibration, a tuned algorithm, other profiles) is kept, so
-// running this again after a night of guiding does not undo it. Node built-ins only;
-// the core is `applyProfile`, a pure function from file text to file text.
+// Only the keys in `entries` are set; the rest of the file (a calibration, other profiles) is kept.
 import { copyFileSync, existsSync, readFileSync, readdirSync, renameSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
@@ -37,7 +34,7 @@ export const equipment = {
  * What PHD2's profile wizard stores for calibration: a distance of 25 px (or 20 arcsec,
  * whichever is longer), and the pulse that covers it in 12 steps at declination 0,
  * rounded up to 50 ms (calstep_dialog.cpp GetCalibrationDistance, GetCalibrationStepSize;
- * profile_wizard.cpp WrapUp). Without it PHD2 starts with a 750 ms pulse.
+ * profile_wizard.cpp WrapUp).
  */
 export function calibration({ focalLengthMm, pixelSizeUm, guideRate }) {
   const arcsecPerPixel = (206.265 * pixelSizeUm) / focalLengthMm
@@ -47,7 +44,6 @@ export function calibration({ focalLengthMm, pixelSizeUm, guideRate }) {
 }
 
 /**
- * Every key this script owns. `ifAbsent` keeps a value PHD2 already wrote.
  * @typedef {{ group: string, key: string, value: string, ifAbsent?: true }} Entry
  * @param {number} profileId
  * @returns {Entry[]}
@@ -86,8 +82,6 @@ function profileEntries(profileId) {
 }
 
 /**
- * The file as groups of lines. `''` is the root; a group is created with its
- * parents, so `[profile/1/camera]` is always preceded by `[profile]` and `[profile/1]`.
  * @typedef {{ key: string, value: string } | { raw: string }} Line
  * @typedef {Map<string, Line[]>} Ini
  */

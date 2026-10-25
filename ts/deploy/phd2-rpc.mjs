@@ -1,7 +1,5 @@
 #!/usr/bin/env node
-// phd2-rpc: one step at a time against PHD2's event server, for the supervised
-// night. Run it on errai; it prints every line PHD2 sends and sends only the step
-// you name, nothing else, nothing on its own:
+// phd2-rpc: sends one named step to PHD2's event server and prints every line PHD2 sends:
 //
 //   node phd2-rpc.mjs state | connect | loop | find-star | guide | dither | stop | disconnect
 //   node phd2-rpc.mjs watch [SECONDS]        send nothing, print events
@@ -20,7 +18,6 @@
 import { connect } from 'node:net'
 import { fileURLToPath } from 'node:url'
 
-/** The settle tolerance Chris chose in the rig-guiding spec (2026-10-24). */
 export const settle = { pixels: 1.5, time: 10, timeout: 90 }
 
 export const ditherPixels = 3
