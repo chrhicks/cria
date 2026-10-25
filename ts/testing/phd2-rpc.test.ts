@@ -55,13 +55,13 @@ async function run(name: string, handler: Handler, options: Record<string, unkno
   const out: string[] = []
   const err: string[] = []
   const step = name === 'watch' ? null : steps[name]({ pixels: 3, recalibrate: false, ...options })
-  const code = await runStep({ host: '127.0.0.1', port: fake.port, step, watchSeconds: 0.2, waitSeconds }, { out: line => out.push(line), err: line => err.push(line) })
+  const code = await runStep({ host: '127.0.0.1', port: fake.port, step, watchSeconds: 0.2, waitSeconds, pollMs: 10 }, { out: line => out.push(line), err: line => err.push(line) })
   return { code, out, err }
 }
 
 describe('framing', () => {
   it('ends a request with CRLF and sends one JSON object per line', () => {
-    expect(encodeRequest(7, { method: 'loop', waitSeconds: 1 })).toBe('{"method":"loop","id":7}\r\n')
+    expect(encodeRequest(7, { method: 'loop', done: 'reply', waitSeconds: 1 })).toBe('{"method":"loop","id":7}\r\n')
     expect(encodeRequest(7, steps.connect({ pixels: 3, recalibrate: false }))).toBe('{"method":"set_connected","params":{"connected":true},"id":7}\r\n')
   })
 
@@ -73,8 +73,8 @@ describe('framing', () => {
   })
 
   it('tells replies, events and noise apart', () => {
-    expect(classify('{"jsonrpc":"2.0","result":0,"id":1}')).toEqual({ kind: 'reply', id: 1 })
-    expect(classify('{"jsonrpc":"2.0","error":{"code":1,"message":"no star"},"id":1}')).toEqual({ kind: 'reply', id: 1, error: 'no star' })
+    expect(classify('{"jsonrpc":"2.0","result":0,"id":1}')).toEqual({ kind: 'reply', id: 1, result: 0 })
+    expect(classify('{"jsonrpc":"2.0","error":{"code":1,"message":"no star"},"id":1}')).toMatchObject({ kind: 'reply', id: 1, error: 'no star' })
     expect(classify('{"Event":"GuideStep","Frame":3}')).toMatchObject({ kind: 'event', name: 'GuideStep' })
     expect(classify('not json')).toEqual({ kind: 'other' })
   })
@@ -147,9 +147,23 @@ describe('runStep against a fake PHD2', () => {
   })
 
   it('exits 2 when PHD2 hangs up', async () => {
-    const { code, err } = await run('stop', (_request, socket) => socket.destroy())
+    const { code, err } = await run('loop', (_request, socket) => socket.destroy())
     expect(code).toBe(2)
     expect(err.join('\n')).toContain('PHD2 closed the connection')
+  })
+
+  it('stop is finished only when PHD2 says Stopped, not when it accepts the request', async () => {
+    const states = ['Guiding', 'Guiding', 'Stopped']
+    const { code } = await run('stop', (request, socket) => socket.write(reply(request.id, request.method === 'get_app_state' ? states.shift() : 0)))
+    expect(code).toBe(0)
+    expect(fake?.requests.map(request => request.method)).toEqual(['stop_capture', 'get_app_state', 'get_app_state', 'get_app_state'])
+  })
+
+  it('stop exits 2 and says the outcome is unknown when PHD2 never reports Stopped', async () => {
+    const { code, err } = await run('stop', (request, socket) => socket.write(reply(request.id, 'Guiding')), {}, 0.2)
+    expect(code).toBe(2)
+    expect(err.join('\n')).toContain('no Stopped state within 0.2 s')
+    expect(err.join('\n')).toContain('outcome is unknown')
   })
 
   it('watch sends nothing', async () => {

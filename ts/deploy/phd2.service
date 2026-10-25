@@ -4,10 +4,11 @@
 # sends a command to port 4400.
 #
 # Port 4400 is PHD2's JSON-RPC event server (4400 + instance - 1; ServerMode is on by
-# default). PHD2 binds it to every interface, not to 127.0.0.1, and anyone who can
-# reach it can start guiding, move the mount by guide pulses and send `shutdown`.
-# Contain it with errai's firewall; docs/runtime.md has the rule. This unit does not
-# change the firewall.
+# default), and ServerMode also opens the older socket server on 4300. PHD2 binds both
+# to every interface, not to 127.0.0.1, and anyone who can reach them can start guiding,
+# move the mount by guide pulses and stop PHD2. Do not enable this unit before errai's
+# firewall closes both ports to everything but errai; docs/runtime.md has the rule.
+# This unit does not change the firewall.
 #
 # xvfb-run uses a fixed display, :99, with its X authority at %t/phd2.xauth, so
 # x11vnc can find it: `-a` only skips numbers that have a lock file, and would

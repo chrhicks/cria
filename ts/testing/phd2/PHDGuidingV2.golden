@@ -20,6 +20,15 @@ pixelsize=4
 
 [profile/1/scope]
 LastMenuChoice=INDI Mount [ZWO AM5]
+LastAuxMenuChoice=None
+CalibrationDuration=1550
+CalibrationDistance=25
+
+[profile/1/stepguider]
+LastMenuChoice=None
+
+[profile/1/rotator]
+LastMenuChoice=None
 
 [profile/1/indi]
 INDIhost=localhost

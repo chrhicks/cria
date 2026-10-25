@@ -9,8 +9,11 @@
 // Options: --port N (4400), --host H (127.0.0.1), --wait SECONDS (how long to wait
 // for the answer), --pixels N (dither size, 3), --recalibrate (guide).
 // `guide` and `dither` return once PHD2 reports SettleDone, so the exit code says
-// whether it settled. Exiting does not stop guiding: run `stop`. Exit 0 worked,
-// 1 bad arguments, 2 PHD2 said no, timed out or could not be reached.
+// whether it settled. `stop` returns once get_app_state, a read, says Stopped.
+// Exiting never undoes a step, and a timeout leaves the outcome unknown: PHD2 may
+// still be calibrating or guiding, so check with `state` and do not run the step
+// again blindly. Exit 0 worked, 1 bad arguments, 2 PHD2 said no, timed out or
+// could not be reached.
 //
 // The wire format is in docs/runtime.md ("PHD2 on errai"): requests are one JSON
 // object per line, replies and events are JSON lines ending in CRLF. Node built-ins only.
@@ -25,20 +28,23 @@ export const ditherPixels = 3
 const defaults = { host: '127.0.0.1', port: 4400 }
 
 /**
- * Each subcommand is one JSON-RPC call. `settles` means PHD2 answers at once and
- * reports the outcome later in a SettleDone event.
- * @typedef {{ method: string, params?: object, settles?: true, waitSeconds: number }} Step
+ * Each subcommand is one JSON-RPC call. `done` says what counts as finished:
+ * `reply`, the JSON-RPC reply; `settle`, PHD2 answers at once and reports the
+ * outcome later in a SettleDone event; `stopped`, PHD2 answers once it has been
+ * asked, and get_app_state is read until it says Stopped.
+ * @typedef {{ method: string, params?: object, done: 'reply' | 'settle' | 'stopped', waitSeconds: number }} Step
  * @type {Record<string, (options: { pixels: number, recalibrate: boolean }) => Step>}
  */
 export const steps = {
-  state: () => ({ method: 'get_app_state', waitSeconds: 10 }),
-  connect: () => ({ method: 'set_connected', params: { connected: true }, waitSeconds: 120 }),
-  disconnect: () => ({ method: 'set_connected', params: { connected: false }, waitSeconds: 60 }),
-  loop: () => ({ method: 'loop', waitSeconds: 10 }),
-  'find-star': () => ({ method: 'find_star', waitSeconds: 30 }),
-  guide: ({ recalibrate }) => ({ method: 'guide', params: { settle, recalibrate }, settles: true, waitSeconds: 600 }),
-  dither: ({ pixels }) => ({ method: 'dither', params: { amount: pixels, raOnly: false, settle }, settles: true, waitSeconds: settle.timeout + 30 }),
-  stop: () => ({ method: 'stop_capture', waitSeconds: 10 }),
+  state: () => ({ method: 'get_app_state', done: 'reply', waitSeconds: 10 }),
+  connect: () => ({ method: 'set_connected', params: { connected: true }, done: 'reply', waitSeconds: 120 }),
+  disconnect: () => ({ method: 'set_connected', params: { connected: false }, done: 'reply', waitSeconds: 60 }),
+  loop: () => ({ method: 'loop', done: 'reply', waitSeconds: 10 }),
+  'find-star': () => ({ method: 'find_star', done: 'reply', waitSeconds: 30 }),
+  // PHD2 starts the settle clock after calibration, which takes minutes the first time.
+  guide: ({ recalibrate }) => ({ method: 'guide', params: { settle, recalibrate }, done: 'settle', waitSeconds: 900 }),
+  dither: ({ pixels }) => ({ method: 'dither', params: { amount: pixels, raOnly: false, settle }, done: 'settle', waitSeconds: settle.timeout + 30 }),
+  stop: () => ({ method: 'stop_capture', done: 'stopped', waitSeconds: 30 }),
 }
 
 /** @param {number} id @param {Step} step */
@@ -61,7 +67,7 @@ export class LineReader {
 
 /**
  * @param {string} line
- * @returns {{ kind: 'reply', id: unknown, error?: string } | { kind: 'event', name: string, body: Record<string, unknown> } | { kind: 'other' }}
+ * @returns {{ kind: 'reply', id: unknown, result?: unknown, error?: string } | { kind: 'event', name: string, body: Record<string, unknown> } | { kind: 'other' }}
  */
 export function classify(line) {
   let body
@@ -73,18 +79,19 @@ export function classify(line) {
   if (typeof body !== 'object' || body === null) return { kind: 'other' }
   if (typeof body.Event === 'string') return { kind: 'event', name: body.Event, body }
   if ('id' in body && ('result' in body || 'error' in body)) {
-    return { kind: 'reply', id: body.id, ...(body.error && { error: String(body.error.message ?? JSON.stringify(body.error)) }) }
+    return { kind: 'reply', id: body.id, result: body.result, ...(body.error && { error: String(body.error.message ?? JSON.stringify(body.error)) }) }
   }
   return { kind: 'other' }
 }
 
 /**
- * @param {{ host: string, port: number, step: Step | null, watchSeconds?: number, waitSeconds: number }} request
+ * @param {{ host: string, port: number, step: Step | null, watchSeconds?: number, waitSeconds: number, pollMs?: number }} request
  * @param {{ out: (line: string) => void, err: (line: string) => void }} io
  * @returns {Promise<number>} the exit code
  */
-export function runStep({ host, port, step, watchSeconds, waitSeconds }, { out, err }) {
+export function runStep({ host, port, step, watchSeconds, waitSeconds, pollMs = 1000 }, { out, err }) {
   const requestId = 1
+  const stateId = 2
   return new Promise(resolve => {
     const socket = connect({ host, port })
     const reader = new LineReader()
@@ -98,10 +105,12 @@ export function runStep({ host, port, step, watchSeconds, waitSeconds }, { out, 
       socket.destroy()
       resolve(code)
     }
+    const waiting = () => (step.done === 'settle' && replied ? 'SettleDone' : step.done === 'stopped' && replied ? 'Stopped state' : 'reply')
     const timer = setTimeout(
-      () => (step ? finish(2, `no ${replied ? 'SettleDone' : 'reply'} within ${waitSeconds} s (PHD2 may still be working; run \`state\`)`) : finish(0)),
+      () => (step ? finish(2, `no ${waiting()} within ${waitSeconds} s. The outcome is unknown: PHD2 may still be working. Run \`state\`; do not repeat the step blindly`) : finish(0)),
       (step ? waitSeconds : watchSeconds) * 1000,
     )
+    const askState = () => socket.write(encodeRequest(stateId, { method: 'get_app_state', waitSeconds: 0, done: 'reply' }))
 
     socket.setEncoding('utf8')
     socket.on('connect', () => {
@@ -117,9 +126,14 @@ export function runStep({ host, port, step, watchSeconds, waitSeconds }, { out, 
         if (message.kind === 'reply' && message.id === requestId) {
           if (message.error) return finish(2, `${step.method}: ${message.error}`)
           replied = true
-          if (!step.settles) return finish(0)
+          if (step.done === 'reply') return finish(0)
+          if (step.done === 'stopped') askState()
         }
-        if (message.kind === 'event' && message.name === 'SettleDone' && replied) {
+        if (message.kind === 'reply' && message.id === stateId) {
+          if (message.result === 'Stopped') return finish(0, 'stopped')
+          setTimeout(() => !done && askState(), pollMs)
+        }
+        if (message.kind === 'event' && message.name === 'SettleDone' && replied && step.done === 'settle') {
           return message.body.Status === 0 ? finish(0, 'settled') : finish(2, `did not settle: ${message.body.Error ?? 'no reason given'}`)
         }
       }

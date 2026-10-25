@@ -29,6 +29,21 @@ export const equipment = {
   focalLengthMm: '150',
   pixelSizeUm: '4',
   exposureMs: '2000',
+  /** The AM5's guide rate in sidereal rate, from INDI (rig-guiding spec); sets the calibration pulse. */
+  guideRate: 0.5,
+}
+
+/**
+ * What PHD2's profile wizard stores for calibration: a distance of 25 px (or 20 arcsec,
+ * whichever is longer), and the pulse that covers it in 12 steps at declination 0,
+ * rounded up to 50 ms (calstep_dialog.cpp GetCalibrationDistance, GetCalibrationStepSize;
+ * profile_wizard.cpp WrapUp). Without it PHD2 starts with a 750 ms pulse.
+ */
+export function calibration({ focalLengthMm, pixelSizeUm, guideRate }) {
+  const arcsecPerPixel = (206.265 * pixelSizeUm) / focalLengthMm
+  const distancePx = Math.ceil(Math.max(25, 20 / arcsecPerPixel))
+  const seconds = (distancePx * arcsecPerPixel) / (15 * guideRate)
+  return { distancePx, stepMs: Math.ceil((seconds / 12) * 1000 / 50) * 50 }
 }
 
 /**
@@ -48,6 +63,7 @@ export const entries = profileId => [
 /** @param {number} profileId @returns {Entry[]} */
 function profileEntries(profileId) {
   const p = `profile/${profileId}`
+  const cal = calibration({ focalLengthMm: Number(equipment.focalLengthMm), pixelSizeUm: Number(equipment.pixelSizeUm), guideRate: equipment.guideRate })
   return [
     { group: p, key: 'name', value: profileName },
     { group: p, key: 'ExposureDurationMs', value: equipment.exposureMs },
@@ -55,6 +71,11 @@ function profileEntries(profileId) {
     { group: `${p}/camera`, key: 'LastMenuChoice', value: `INDI Camera [${equipment.camera}]` },
     { group: `${p}/camera`, key: 'pixelsize', value: equipment.pixelSizeUm },
     { group: `${p}/scope`, key: 'LastMenuChoice', value: `INDI Mount [${equipment.mount}]` },
+    { group: `${p}/scope`, key: 'LastAuxMenuChoice', value: 'None' },
+    { group: `${p}/scope`, key: 'CalibrationDuration', value: String(cal.stepMs) },
+    { group: `${p}/scope`, key: 'CalibrationDistance', value: String(cal.distancePx) },
+    { group: `${p}/stepguider`, key: 'LastMenuChoice', value: 'None' },
+    { group: `${p}/rotator`, key: 'LastMenuChoice', value: 'None' },
     { group: `${p}/indi`, key: 'INDIhost', value: equipment.indiHost },
     { group: `${p}/indi`, key: 'INDIport', value: equipment.indiPort },
     { group: `${p}/indi`, key: 'INDIcam', value: equipment.camera },

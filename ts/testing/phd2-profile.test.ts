@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 // @ts-expect-error plain ESM script with JSDoc types, not part of a TypeScript project
-import { applyProfile, phd2Running, run } from '../deploy/phd2-profile.mjs'
+import { applyProfile, calibration, phd2Running, run } from '../deploy/phd2-profile.mjs'
 
 const golden = readFileSync(join(import.meta.dirname, 'phd2/PHDGuidingV2.golden'), 'utf8')
 
@@ -64,6 +64,13 @@ describe('applyProfile', () => {
     expect(result.text).not.toContain('elsewhere')
   })
 
+  it('puts back "None" for the accessories this rig does not have, in a profile someone edited', () => {
+    const edited = applyProfile('').text.replace('[profile/1/rotator]\nLastMenuChoice=None', '[profile/1/rotator]\nLastMenuChoice=INDI Rotator')
+    const result = applyProfile(edited)
+    expect(result.changed).toBe(true)
+    expect(result.text).not.toContain('INDI Rotator')
+  })
+
   it('keeps a ConfigVersion PHD2 already wrote', () => {
     expect(applyProfile('ConfigVersion=2002\n').text).toContain('ConfigVersion=2002')
   })
@@ -71,6 +78,17 @@ describe('applyProfile', () => {
   it('puts a root key before the first group', () => {
     const text = applyProfile('[Update]\nseries=2\n').text
     expect(text.indexOf('ServerMode=1')).toBeLessThan(text.indexOf('[Update]'))
+  })
+})
+
+describe('calibration', () => {
+  it('matches the pulse and distance PHD2 wizard picks for the guide scope: 25 px, 1550 ms', () => {
+    expect(calibration({ focalLengthMm: 150, pixelSizeUm: 4, guideRate: 0.5 })).toEqual({ distancePx: 25, stepMs: 1550 })
+  })
+
+  it('uses 20 arcsec when that is more than 25 px, and a shorter pulse at a faster guide rate', () => {
+    expect(calibration({ focalLengthMm: 1000, pixelSizeUm: 3, guideRate: 0.5 }).distancePx).toBe(33)
+    expect(calibration({ focalLengthMm: 150, pixelSizeUm: 4, guideRate: 1 }).stepMs).toBe(800)
   })
 })
 
