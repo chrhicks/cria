@@ -121,7 +121,7 @@ sudo systemctl enable --now phd2-guard
 sudo nft list table inet phd2_guard
 ```
 
-The rule drops TCP 4300 and 4400 unless the packet arrives on `lo`. The unit touches only its own table: `systemctl stop phd2-guard` deletes `inet phd2_guard` and nothing else. **Do not use `nftables.service` for this.** On errai `/etc/nftables.conf` is Arch's stock firewall, which drops all input except ssh, so enabling that service would cut Vela off from Cria (4319) and INDI (7624). Its stop command also runs `nft flush ruleset`, which removes Tailscale's own `ip filter` and `ip nat` tables until tailscaled restarts.
+The rule drops TCP 4300 and 4400 unless the packet arrives on `lo`. The unit touches only its own table: `systemctl stop phd2-guard` deletes `inet phd2_guard` and nothing else. **Do not use `nftables.service` for this.** On errai `/etc/nftables.conf` is Arch's stock firewall, which drops all input except ssh, so enabling that service would cut Vela off from Cria (4319) and INDI (7624). A unit of its own also keeps the rule separate from any later firewall: stopping it removes only this table.
 
 Check it with PHD2 running. On errai: `ss -ltnp | grep -E ':(4300|4400) '` shows PHD2 listening. From thuban (no `nc` there): `timeout 5 bash -c 'exec 3<>/dev/tcp/HOST/4400'` and the same for 4300 must both fail, for errai's LAN address and its tailnet name, while 4319 and 7624 still connect, and `ssh errai 'node ts/deploy/phd2-rpc.mjs watch 2'` must still print a `Version` event. Cria will reach PHD2 on `127.0.0.1:4400`.
 
