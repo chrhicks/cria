@@ -180,7 +180,8 @@ async function removeSession(root, dir, pick, { now, policy }) {
   if (!isSession(current)) throw new Error('no longer a session folder; not deleting')
   if (current.id !== pick.id) throw new Error('replaced since the scan; not deleting')
 
-  const reason = protection(current, { now, policy })
+  const newest = (await readdir(root)).filter(name => sessionName.test(name)).reduce((latest, name) => (name > latest ? name : latest), '')
+  const reason = protection(current, { now, policy, newest })
 
   if (reason) throw new Error(`${reason} since the scan; not deleting`)
 

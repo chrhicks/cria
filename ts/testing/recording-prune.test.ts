@@ -348,6 +348,25 @@ describe('prune on a real folder', () => {
     expect(existsSync(join(directory, old, 'blobs/1-0-0.blob'))).toBe(true)
   })
 
+  it('does not delete a session that became the newest after the scan', async () => {
+    const old = await makeSession(10, 9, 2)
+    const newer = await makeSession(24, 0.01, 1)
+
+    let calls = 0
+    const status = await run({
+      apply: true,
+      freeMb: 0,
+      targetMb: 1,
+      afterScan: async () => {
+        if (calls++ === 0) await rename(join(directory, newer), join(directory, `${newer}.moved`))
+      },
+    })
+
+    expect(status.deleted).toEqual([])
+    expect(status.reason).toContain('open since the scan')
+    expect(existsSync(join(directory, old, 'blobs/1-0-0.blob'))).toBe(true)
+  })
+
   it('does not delete a fresh folder that replaced the scanned session', async () => {
     const old = await makeSession(10, 9, 2)
 
