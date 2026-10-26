@@ -349,7 +349,7 @@ operation has no deadline field, and Vela cannot read the configured values.
 
 | Operation | Bound |
 |---|---|
-| Capture | The exposure plus `readoutAllowanceMs`. With no frame by then Cria aborts, and with the abort confirmed it settles `failed: unavailable`. |
+| Capture | The exposure plus `readoutAllowanceMs`. With no frame by then Cria aborts, and with the abort confirmed it settles `failed: unavailable`. Frames that were not this exposure settle `failed: rejected` when the camera is then idle, else `uncertain`. |
 | Motion (slew, park, home, focuser move) | `operationTimeoutMs` for the driver to finish the motion, then `failed: unavailable`. |
 | Setting | `acknowledgeMs` for the driver to answer, then up to the confirm deadline (15 s unless the kind sets its own) for the new state; `uncertain` if either passes. |
 | Stop (`mount-stop`, `focuser-halt`) and a Run's stop | `stopWithin`: 20 s for the mount and focuser, 15 s for the camera abort. |
@@ -490,14 +490,36 @@ Behaviour inside the boundary:
 - Cria enables BLOBs for a camera only around its own capture (`enableBLOB Also`
   before the exposure, `Never` after), so PHD2's guide frames do not flow through
   Cria. A capture takes only a `CCD1` BLOB that arrives after its own `Busy` and
-  whose FITS `EXPTIME`, size and `DATE-OBS` (within 0.5 s) match. If only foreign
-  frames come, the capture is uncertain at its deadline.
+  whose FITS `EXPTIME`, size and `DATE-OBS` (within 0.5 s) match. If only
+  frames that are not this exposure come, see "A frame that is not this exposure"
+  below.
 - A capture's deadline is the exposure plus `readoutAllowanceMs`. If no frame
   at all has arrived by then, Cria aborts the exposure, and with the abort
   confirmed the capture is `failed: unavailable`. A ZWO exposure after a frame the
   camera rounded never completes (see "Checked on errai"), so this bounds the
   hang. Without it the wait was the exposure plus `operationTimeoutMs`, 180 s on
   errai.
+
+#### A frame that is not this exposure
+
+At the deadline, if frames arrived but none matched the request (the driver
+exposed for another time, a stale blob, a different size), Cria reads
+`CCD_EXPOSURE` from the mirror at that moment and aborts as usual.
+
+| `CCD_EXPOSURE` at the deadline | Capture ends | Camera |
+|---|---|---|
+| Not Busy (Idle, Ok or Alert) | `failed: rejected`, the message lists what was seen and says the camera is idle and free | Not held. The next capture is accepted at once. The mismatched frame is dropped, never returned or kept. |
+| Busy, or not readable | `uncertain: not-confirmed` | Held until a person recovers it. A stale blob while the camera is Busy is what the hold is for. |
+
+Why this is not a replay of an unknown outcome: "never blindly replay" covers a
+command whose effect Cria cannot tell. Here the effect is known. The camera is
+idle, nothing is in flight, and no frame of ours exists, so exposing again
+cannot add to anything. Seen on errai (2026-10-26): a bias capture of 0.1 s came
+back as the ZWO driver's minimum exposure, 3.2e-5 s. The camera was fine, and
+the old rule held it until a person called recover. The reason is `rejected`,
+the closest existing reason, as for a driver that settles a setting at another
+value, so the wire and the protocol version are unchanged. No frame arriving at
+all stays `failed: unavailable`.
 
 ### INDI properties per reading
 

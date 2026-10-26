@@ -5,7 +5,7 @@
  * told and whether the device is blocked.
  */
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { FakeIndi, addCamera, connection } from '@cria/fake-indi'
+import { FakeIndi, addCamera, connection, type Behaviour } from '@cria/fake-indi'
 import { fitsFrame } from '@cria/fits'
 import { exposeNormally } from './drivers.js'
 import { Effect, Option } from 'effect'
@@ -301,25 +301,73 @@ describe("a capture takes only its own frame (review R1-#7)", () => {
     expect(await firstPixel(operation.image!.original.url)).toBe(0)
   })
 
-  it('when only frames that are not its own arrive, ends uncertain at the deadline', async () => {
-    const strict = await startCria(fake.port, [{ id: 'primary', kind: 'camera', indiDevice: camera }], { acknowledgeMs: 600, readoutAllowanceMs: 1000 })
+  describe('when only frames that are not its own arrive', () => {
+    const mismatched = (afterFrame: (fake: FakeIndi) => void): Behaviour => (fake, vector, values) => {
+      if (vector.name !== 'CCD_EXPOSURE') return exposeNormally()(fake, vector, values)
+      fake.update(camera, vector.name, { state: 'Busy' })
+      setTimeout(() => {
+        fake.sendBlob(camera, 'CCD1', 'CCD1', fitsFrame(8, 6, { exptime: 7 }))
+        afterFrame(fake)
+      }, 100)
 
-    try {
-      await strict.waitFor(allReady(['primary']))
-      fake.behaviour = (fake, vector, values) => {
-        if (vector.name !== 'CCD_EXPOSURE') return exposeNormally()(fake, vector, values)
-        fake.update(camera, vector.name, { state: 'Busy' })
-        setTimeout(() => fake.sendBlob(camera, 'CCD1', 'CCD1', fitsFrame(8, 6, { exptime: 7 })), 100)
-
-        return 'handled'
-      }
-      const operation = await strict.run('primary', 'capture', { exposureSeconds: 0.2, light: true })
-
-      expect(operation).toMatchObject({ kind: 'uncertain', quarantined: true })
-      expect(operation.message).toMatch(/not this exposure/)
-    } finally {
-      await strict.stop()
+      return 'handled'
     }
+
+    const strictCria = () => startCria(fake.port, [{ id: 'primary', kind: 'camera', indiDevice: camera }], { acknowledgeMs: 600, readoutAllowanceMs: 1000 })
+
+    it('fails, without holding the camera, when the camera is idle, and takes the next capture', async () => {
+      const strict = await strictCria()
+
+      try {
+        await strict.waitFor(allReady(['primary']))
+        fake.behaviour = mismatched(fake => fake.update(camera, 'CCD_EXPOSURE', { state: 'Ok', values: { CCD_EXPOSURE_VALUE: 0 } }))
+        const operation = await strict.run('primary', 'capture', { exposureSeconds: 0.2, light: true })
+
+        expect(operation).toMatchObject({ kind: 'failed', reason: 'rejected', quarantined: false })
+        expect(operation.message).toMatch(/not this exposure.*EXPTIME 7.*idle/)
+        expect(operation.image).toBeNull()
+
+        fake.behaviour = exposeNormally()
+        expect(await strict.run('primary', 'capture', { exposureSeconds: 0.2, light: true })).toMatchObject({ kind: 'confirmed', quarantined: false })
+      } finally {
+        await strict.stop()
+      }
+    })
+
+    it('ends uncertain and holds the camera when the camera is still Busy at the deadline', async () => {
+      const strict = await strictCria()
+
+      try {
+        await strict.waitFor(allReady(['primary']))
+        fake.behaviour = mismatched(() => undefined)
+        const operation = await strict.run('primary', 'capture', { exposureSeconds: 0.2, light: true })
+
+        expect(operation).toMatchObject({ kind: 'uncertain', reason: 'not-confirmed', quarantined: true })
+        expect(operation.message).toMatch(/not this exposure/)
+
+        fake.behaviour = exposeNormally()
+        expect((await strict.submit('primary', 'capture', { exposureSeconds: 0.2, light: true })).status).toBe(409)
+      } finally {
+        await strict.stop()
+      }
+    })
+
+    it('ends uncertain and holds the camera when the exposure state cannot be read', async () => {
+      const strict = await strictCria()
+
+      try {
+        await strict.waitFor(allReady(['primary']))
+        const gone = mismatched(fake => fake.removeVector(camera, 'CCD_EXPOSURE'))
+
+        fake.behaviour = (fake, vector, values) => (vector.name === 'CCD_ABORT_EXPOSURE' ? 'handled' : gone(fake, vector, values))
+        const operation = await strict.run('primary', 'capture', { exposureSeconds: 0.2, light: true })
+
+        expect(operation).toMatchObject({ kind: 'uncertain', quarantined: true })
+        expect(operation.message).toMatch(/not this exposure/)
+      } finally {
+        await strict.stop()
+      }
+    }, 30_000)
   })
 })
 
