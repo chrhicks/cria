@@ -271,6 +271,20 @@ describe('prune on a real folder', () => {
     expect(existsSync(join(directory, `${stuck}.pruning`))).toBe(false)
   })
 
+  it('leaves a pinned .pruning leftover alone and reports it', async () => {
+    const stuck = await makeSession(10, 9, 1, { keep: true })
+
+    await rename(join(directory, stuck), join(directory, `${stuck}.pruning`))
+    await makeSession(24, 0.01, 1)
+
+    const status = await run({ apply: true, freeMb: 10, targetMb: 3 })
+
+    expect(status.finishedLeftovers).toEqual([])
+    expect(status.kept).toContainEqual(expect.objectContaining({ name: `${stuck}.pruning`, reason: 'pinned' }))
+    expect(await readFile(join(directory, `${stuck}.pruning`, 'keep'), 'utf8')).toBe('the 2026-10-24 night\n')
+    expect(existsSync(join(directory, `${stuck}.pruning`, 'blobs/1-0-0.blob'))).toBe(true)
+  })
+
   it('does not follow a symlink named like a session', async () => {
     const outside = await mkdtemp(join(tmpdir(), 'recording-prune-outside-'))
 
@@ -429,5 +443,12 @@ describe('the keep marker', () => {
 
     expect(badConfig.status).toBe(2)
     expect(JSON.parse(await readFile(state, 'utf8')).ok).toBe(false)
+
+    await writeFile(state, JSON.stringify({ ok: true, at: 'yesterday' }))
+
+    const badNumber = spawnSync(process.execPath, [script, '--config', join(directory, 'rig.json'), '--state', state, '--headroom-gb', 'bad'], { encoding: 'utf8' })
+
+    expect(badNumber.status).toBe(2)
+    expect(JSON.parse(await readFile(state, 'utf8'))).toMatchObject({ ok: false, reason: expect.stringContaining('--headroom-gb') })
   })
 })

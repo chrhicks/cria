@@ -192,9 +192,23 @@ export async function prune({ dir, reserveBytes, apply, policy, now, freeBytes =
   const root = await realpath(dir)
   const leftovers = await pendingRemovals(root)
 
+  const finished = []
+  const pinnedLeftovers = []
+
   for (const name of leftovers) {
+    const path = join(root, name)
+
+    if (existsSync(join(path, pinFile))) {
+      log(`keeping ${name}: pinned, left over from a failed delete`)
+      pinnedLeftovers.push({ name, gb: gb(await treeBytes(path)), reason: 'pinned' })
+      continue
+    }
+
     log(`${apply ? 'finishing' : 'would finish'} removal of ${name}`)
-    if (apply) await rm(join(root, name), { recursive: true, force: true })
+    if (apply) {
+      await rm(path, { recursive: true, force: true })
+      finished.push(name)
+    }
   }
 
   const plan = planPrune({ entries: await scan(root), freeBytes: await freeBytes(root), reserveBytes, now: now(), policy })
@@ -240,8 +254,8 @@ export async function prune({ dir, reserveBytes, apply, policy, now, freeBytes =
     targetGb: gb(plan.targetBytes),
     deleted: deleted.map(asRow),
     wouldDelete: apply ? [] : plan.remove.map(asRow),
-    kept: plan.skipped.map(skip => ({ name: skip.name, gb: gb(skip.bytes), reason: skip.reason })),
-    finishedLeftovers: apply ? leftovers : [],
+    kept: [...plan.skipped.map(skip => ({ name: skip.name, gb: gb(skip.bytes), reason: skip.reason })), ...pinnedLeftovers],
+    finishedLeftovers: finished,
   }
 }
 
@@ -280,19 +294,15 @@ async function main() {
   const headroomGb = Number(values['headroom-gb'])
   const minAgeDays = Number(values['min-age-days'])
   const log = line => console.log(`recording-prune: ${line}`)
-  let record
-
-  if (!(headroomGb >= 0) || !(minAgeDays >= 0)) {
-    console.error('recording-prune: --headroom-gb and --min-age-days must be numbers of at least 0')
-    process.exit(2)
-  }
-
   const mode = values.apply ? 'apply' : 'dry-run'
   const fail = async (reason, code) => {
     console.error(`recording-prune: ${reason}`)
     await writeStatus(statePath, { at: new Date().toISOString(), mode, ok: false, reason, deleted: [], wouldDelete: [], kept: [] }).catch(() => undefined)
     process.exit(code)
   }
+  let record
+
+  if (!(headroomGb >= 0) || !(minAgeDays >= 0)) await fail('--headroom-gb and --min-age-days must be numbers of at least 0', 2)
 
   try {
     record = readRecordConfig(configPath)
