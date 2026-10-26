@@ -1,5 +1,5 @@
 import { execFileSync, spawnSync } from 'node:child_process'
-import { existsSync } from 'node:fs'
+import { existsSync, renameSync, symlinkSync } from 'node:fs'
 import { mkdir, mkdtemp, readFile, readdir, rename, rm, symlink, utimes, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -191,7 +191,7 @@ describe('prune on a real folder', () => {
     return name
   }
 
-  const run = (options: { apply: boolean; freeMb: number; targetMb: number; afterScan?: () => Promise<void> }) =>
+  const run = (options: { apply: boolean; freeMb: number; targetMb: number; afterScan?: () => Promise<void>; onLog?: (line: string) => void }) =>
     prune({
       dir: directory,
       reserveBytes: 0,
@@ -203,7 +203,10 @@ describe('prune on a real folder', () => {
 
         return options.freeMb * mb
       },
-      log: line => lines.push(line),
+      log: line => {
+        lines.push(line)
+        options.onLog?.(line)
+      },
     })
 
   beforeEach(async () => {
@@ -393,6 +396,67 @@ describe('prune on a real folder', () => {
     expect(existsSync(join(directory, `${old}-moved`, 'blobs/1-0-0.blob'))).toBe(true)
   })
 
+  it('treats the newest valid session, not the newest name, as open when an invalid folder sits beside it', async () => {
+    const old = await makeSession(10, 9, 2)
+    const newer = await makeSession(24, 1, 1)
+
+    await mkdir(join(directory, named(25)))
+    await writeFile(join(directory, named(25), 'manifest.json'), '{}')
+
+    let calls = 0
+    const status = await run({
+      apply: true,
+      freeMb: 0,
+      targetMb: 1,
+      afterScan: async () => {
+        if (calls++ === 0) await rename(join(directory, newer), join(directory, `${newer}.archived`))
+      },
+    })
+
+    expect(status.deleted).toEqual([])
+    expect(status.reason).toContain('open since the scan')
+    expect(existsSync(join(directory, old, 'blobs/1-0-0.blob'))).toBe(true)
+  })
+
+  it('does not finish a leftover through a root that was swapped for a symlink', async () => {
+    const outside = await mkdtemp(join(tmpdir(), 'recording-prune-outside-'))
+    const pinnedLeft = `${named(1)}.pruning`
+    const plainLeft = `${named(2)}.pruning`
+
+    try {
+      for (const base of [directory, outside]) {
+        await mkdir(join(base, pinnedLeft), { recursive: true })
+        await writeFile(join(base, pinnedLeft, 'keep'), 'pinned\n')
+        await mkdir(join(base, plainLeft), { recursive: true })
+        await writeFile(join(base, plainLeft, 'precious'), 'x')
+      }
+      await makeSession(24, 0.01, 1)
+
+      let swapped = false
+
+      await expect(
+        run({
+          apply: true,
+          freeMb: 10,
+          targetMb: 3,
+          onLog: line => {
+            if (swapped || !line.startsWith(`keeping ${pinnedLeft}`)) return
+            swapped = true
+            renameSync(directory, `${directory}-moved`)
+            symlinkSync(outside, directory)
+          },
+        }),
+      ).rejects.toThrow('no longer resolves')
+
+      expect(await readFile(join(outside, plainLeft, 'precious'), 'utf8')).toBe('x')
+      expect(await readFile(join(`${directory}-moved`, plainLeft, 'precious'), 'utf8')).toBe('x')
+    } finally {
+      await rm(directory, { force: true })
+      await rename(`${directory}-moved`, directory).catch(() => undefined)
+      await rm(outside, { recursive: true, force: true })
+    }
+  })
+
   it('does not delete through a root that was swapped for a symlink after the scan', async () => {
     const old = await makeSession(10, 9, 2)
     const elsewhere = await mkdtemp(join(tmpdir(), 'recording-prune-elsewhere-'))
@@ -519,5 +583,12 @@ describe('the keep marker', () => {
 
     expect(badNumber.status).toBe(2)
     expect(JSON.parse(await readFile(state, 'utf8'))).toMatchObject({ ok: false, reason: expect.stringContaining('--headroom-gb') })
+
+    await writeFile(state, JSON.stringify({ ok: true, at: 'yesterday' }))
+
+    const typo = spawnSync(process.execPath, [script, '--config', join(directory, 'rig.json'), '--state', state, '--aply'], { encoding: 'utf8' })
+
+    expect(typo.status).toBe(2)
+    expect(JSON.parse(await readFile(state, 'utf8'))).toMatchObject({ ok: false, reason: 'unknown option --aply' })
   })
 })

@@ -167,20 +167,36 @@ export async function scan(dir) {
   return entries
 }
 
+/** The newest session by name, judged by the same `isSession` test the planner uses. */
+async function newestSession(dir) {
+  let newest
+
+  for (const name of await readdir(dir)) {
+    if (sessionName.test(name) && (newest === undefined || name > newest) && isSession(await inspect(dir, name))) newest = name
+  }
+
+  return newest
+}
+
+/** `dir` must still resolve to the folder the run started with: a swapped root or parent would redirect every delete. */
+async function assertRoot(dir, root) {
+  if ((await realpath(dir)) !== root) throw new Error(`${dir} no longer resolves to ${root}; not deleting`)
+}
+
 /**
  * A rename to `<name>.pruning` first, so a crash never leaves a half-deleted folder that looks like a session.
  * The scan can be minutes old (it sizes every blob). The session is inspected again here and must be the same
  * folder, still a session, and still unprotected under the same rules the planner used.
  */
 async function removeSession(root, dir, pick, { now, policy }) {
-  if ((await realpath(dir)) !== root) throw new Error(`${dir} no longer resolves to ${root}; not deleting`)
+  await assertRoot(dir, root)
 
   const current = await inspect(root, pick.name)
 
   if (!isSession(current)) throw new Error('no longer a session folder; not deleting')
   if (current.id !== pick.id) throw new Error('replaced since the scan; not deleting')
 
-  const newest = (await readdir(root)).filter(name => sessionName.test(name)).reduce((latest, name) => (name > latest ? name : latest), '')
+  const newest = await newestSession(root)
   const reason = protection(current, { now, policy, newest })
 
   if (reason) throw new Error(`${reason} since the scan; not deleting`)
@@ -214,13 +230,13 @@ export async function prune({ dir, reserveBytes, apply, policy, now, freeBytes =
   const mode = apply ? 'apply' : 'dry-run'
   const root = await realpath(dir)
   const leftovers = await pendingRemovals(root)
-
   const finished = []
   const pinnedLeftovers = []
 
   for (const name of leftovers) {
     const path = join(root, name)
 
+    await assertRoot(dir, root)
     if (existsSync(join(path, pinFile))) {
       log(`keeping ${name}: pinned, left over from a failed delete`)
       pinnedLeftovers.push({ name, gb: gb(await treeBytes(path)), reason: 'pinned' })
@@ -229,6 +245,7 @@ export async function prune({ dir, reserveBytes, apply, policy, now, freeBytes =
 
     log(`${apply ? 'finishing' : 'would finish'} removal of ${name}`)
     if (apply) {
+      await assertRoot(dir, root)
       await rm(path, { recursive: true, force: true })
       finished.push(name)
     }
@@ -302,16 +319,15 @@ export async function writeStatus(path, status) {
 }
 
 async function main() {
-  const { values } = parseArgs({
-    options: {
-      apply: { type: 'boolean', default: false },
-      config: { type: 'string' },
-      state: { type: 'string' },
-      'headroom-gb': { type: 'string', default: String(defaults.headroomGb) },
-      'min-age-days': { type: 'string', default: String(defaults.minAgeDays) },
-    },
-    strict: true,
-  })
+  const options = {
+    apply: { type: 'boolean', default: false },
+    config: { type: 'string' },
+    state: { type: 'string' },
+    'headroom-gb': { type: 'string', default: String(defaults.headroomGb) },
+    'min-age-days': { type: 'string', default: String(defaults.minAgeDays) },
+  }
+  const { values, positionals } = parseArgs({ options, allowPositionals: true, strict: false })
+  const unknown = [...Object.keys(values).filter(name => !(name in options)).map(name => `--${name}`), ...positionals]
   const configPath = values.config ?? process.env.CRIA_CONFIG ?? join(homedir(), '.config/cria/rig.json')
   const statePath = values.state ?? defaultStatePath(process.env)
   const headroomGb = Number(values['headroom-gb'])
@@ -325,6 +341,7 @@ async function main() {
   }
   let record
 
+  if (unknown.length > 0) await fail(`unknown option ${unknown.join(', ')}`, 2)
   if (!(headroomGb >= 0) || !(minAgeDays >= 0)) await fail('--headroom-gb and --min-age-days must be numbers of at least 0', 2)
 
   try {
