@@ -490,10 +490,11 @@ Behaviour inside the boundary:
 - Cria enables BLOBs for a camera only around its own capture (`enableBLOB Also`
   before the exposure, `Never` after), so PHD2's guide frames do not flow through
   Cria. A capture takes only a `CCD1` BLOB that arrives after its own `Busy` and
-  whose FITS `EXPTIME`, size and `DATE-OBS` (within 0.5 s) match. If only
+  whose FITS `EXPTIME` (the commanded time; the camera minimum for a bias, see
+  "Capture frame type"), size and `DATE-OBS` (within 0.5 s) match. If only
   frames that are not this exposure come, see "A frame that is not this exposure"
   below.
-- A capture's deadline is the exposure plus `readoutAllowanceMs`. If no frame
+- A capture's deadline is the commanded exposure plus `readoutAllowanceMs`. If no frame
   at all has arrived by then, Cria aborts the exposure, and with the abort
   confirmed the capture is `failed: unavailable`. A ZWO exposure after a frame the
   camera rounded never completes (see "Checked on errai"), so this bounds the
@@ -986,6 +987,31 @@ only when the element is not already on, and confirms the switch before it sends
   that carries it with `400 request-error`. So a client sends `frameType` only for
   `flat` and `bias`, the two types `light` cannot say, and a lights-and-darks
   client works against either Cria.
+- **A bias frame ignores the requested time.** The INDI driver exposes a bias at
+  the camera's minimum whatever it is asked (seen on errai with a ZWO camera,
+  2026-10-26: asked for 0.1 s, it exposed 3.2e-5 s and the FITS `EXPTIME` said so).
+  So for `bias` Cria commands the minimum of `CCD_EXPOSURE_VALUE`, which it reads
+  before every capture, and expects that same value in the returned frame's
+  `EXPTIME`. The request's `exposureSeconds` must still be inside the camera's
+  minimum to maximum, or the capture is `failed: invalid` before any exposure,
+  but it is not used for anything else. The deadline is the minimum plus
+  `readoutAllowanceMs`. Every other frame type (`light`, `flat`, `dark`) commands
+  and expects the requested time. The `EXPTIME` comparison is unchanged: within
+  the larger of 1 ms and 0.5 % of the commanded time. The minimum Cria reads and
+  the `EXPTIME` the driver writes (`3.200000E-05`) parse to the same number, so the
+  comparison needs no special case. Other drivers' bias behaviour is not
+  modelled: a driver that honours the requested time on a bias is rejected like
+  any frame that is not this exposure.
+- **What Vela can read.** Nothing on the wire shows the commanded time. The
+  operation keeps the request as sent, so its `parameters.exposureSeconds` says
+  what Vela asked for (0.1). The returned `Image.exposureSeconds` also echoes the
+  request, for every frame type, including `bias`; this change leaves it so,
+  because the protocol 5 golden pins that value. The commanded time is in the
+  INDI traffic recording (`CCD_EXPOSURE_VALUE` in the `out` message), and for the
+  camera's own `EXPTIME` only in the FITS Cria received, which it does not pass
+  on: Vela gets the image as `application/imagebytes`. Vela does not read
+  `Image.exposureSeconds` today. A client that needs the true bias time has the
+  camera minimum from `readings.exposureMinimum`.
 
 `Image` has `id`, `operationId`, `instanceId`, `deviceId`, `cameraName`,
 `bindingId`, `width`, `height`, `binX`, `binY`, `startX`, `startY`,
