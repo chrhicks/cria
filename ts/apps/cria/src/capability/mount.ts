@@ -195,11 +195,17 @@ export function makeMount(context: CapabilityContext, motion: MountMotionSetting
 
   // A park or home moves the mount without the coordinates going Busy.
   // TELESCOPE_TRACK_STATE is left out: Busy there means tracking, which abort doesn't stop.
-  const abort = Effect.gen(function* () {
-    yield* sendOnce(device, 'TELESCOPE_ABORT_MOTION', { ABORT: true }, timing)
-    yield* confirmNoneBusy(device, motionProperties, 15_000)
-    yield* confirmStationary(device, motion, 15_000)
-  })
+  // `staleAfterAbort` names a property that is not read as motion once the abort is acknowledged:
+  // the AM5 driver leaves TELESCOPE_HOME Busy after a home it has stopped, so for a home the
+  // coordinates standing still over the confirmation window are the evidence, not that flag.
+  const abortWith = (staleAfterAbort: ReadonlyArray<string>) =>
+    Effect.gen(function* () {
+      yield* sendOnce(device, 'TELESCOPE_ABORT_MOTION', { ABORT: true }, timing)
+      yield* confirmNoneBusy(device, motionProperties.filter(name => !staleAfterAbort.includes(name)), 15_000)
+      yield* confirmStationary(device, motion, 15_000)
+    })
+  const abort = abortWith([])
+  const abortHome = abortWith(['TELESCOPE_HOME'])
 
   const idleAndUnparked = (snapshot: DeviceSnapshot, allowParked = false) =>
     Effect.gen(function* () {
@@ -326,7 +332,7 @@ export function makeMount(context: CapabilityContext, motion: MountMotionSetting
       // already home (the AM5 has no at-home indicator to check first).
       start: startMotion(device, 'TELESCOPE_HOME', { [element]: true }, timing, { arrived: property => property.state === 'Ok' }),
       settle: untilSettled(device, 'TELESCOPE_HOME', () => true, timing.operationTimeoutMs),
-      stop: abort,
+      stop: abortHome,
       stopWithin: stopWithinMs,
     })
 
