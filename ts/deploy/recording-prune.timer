@@ -1,0 +1,12 @@
+# User timer for recording-prune.service. Daily at 11:00 local time, when errai is not
+# capturing; Persistent=true runs a missed day at the next boot. Enable with
+# `systemctl --user enable --now recording-prune.timer`.
+[Unit]
+Description=Prune old Cria recordings daily
+
+[Timer]
+OnCalendar=*-*-* 11:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target
