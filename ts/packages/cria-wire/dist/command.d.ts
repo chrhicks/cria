@@ -1,6 +1,15 @@
 /** View: the 15 operation kinds as one table. */
 import { Schema } from 'effect';
 import { type DeviceKind } from './device.js';
+export declare const captureFrameTypes: readonly ['light', 'flat', 'dark', 'bias'];
+export type CaptureFrameType = (typeof captureFrameTypes)[number];
+/** What `light` means for each frame type: true when the shutter is open. */
+export declare const shutterOpen: {
+    readonly light: true;
+    readonly flat: true;
+    readonly dark: false;
+    readonly bias: false;
+};
 interface Row {
     readonly device: DeviceKind | 'any';
     readonly halt: boolean;
@@ -21,6 +30,7 @@ export declare const commands: Table<{
         readonly parameters: Schema.Struct<{
             readonly exposureSeconds: Schema.Number;
             readonly light: Schema.Boolean;
+            readonly frameType: Schema.optionalKey<Schema.Literals<readonly ["light", "flat", "dark", "bias"]>>;
             readonly monochromeOnly: Schema.optionalKey<Schema.Boolean>;
         }>;
     };
@@ -146,6 +156,7 @@ export declare const CommandSchema: Schema.Union<(Schema.Struct<{
     readonly parameters: Schema.Struct<{
         readonly exposureSeconds: Schema.Number;
         readonly light: Schema.Boolean;
+        readonly frameType: Schema.optionalKey<Schema.Literals<readonly ["light", "flat", "dark", "bias"]>>;
         readonly monochromeOnly: Schema.optionalKey<Schema.Boolean>;
     }>;
 }> | Schema.Struct<{

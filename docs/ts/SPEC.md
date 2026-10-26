@@ -936,8 +936,34 @@ Two of their checks matter to Vela:
 - `mount-slew` takes `coordinateSystem` `'topocentric' | 'j2000'`. Any other
   frame is `400 request-error`. A frame other than the mount's own
   (`readings.coordinateSystem`) settles `failed: invalid` before the mount moves.
+- `capture` takes `light` (the shutter is open) and an optional `frameType`
+  (`'light' | 'flat' | 'dark' | 'bias'`) that says which. See "Capture frame type".
 - `camera-configure` takes its region in binned pixels and confirms with the
   geometry the driver holds (see "A subframe is in binned pixels on the wire").
+
+#### Capture frame type
+
+Before the exposure, Cria selects the camera's INDI `CCD_FRAME_TYPE` element for
+the request: `FRAME_LIGHT`, `FRAME_FLAT`, `FRAME_DARK` or `FRAME_BIAS`. It writes
+only when the element is not already on, and confirms the switch before it sends
+`CCD_EXPOSURE`.
+
+- `light` stays required, as in protocol 5 before this field, and keeps its
+  meaning: `true` is an open shutter (`light` and `flat`), `false` a closed one
+  (`dark` and `bias`). `frameType` refines it.
+- A request with no `frameType` is `light` when `light` is `true` and `dark` when
+  it is `false`. A client that has never heard of `frameType` sees no change.
+- A `frameType` that disagrees with `light` (`bias` with `light: true`) is
+  `400 request-error`, and nothing is sent to the camera. So is any other value:
+  Cria has no `dark-flat`, which is a dark at the flats' exposure. A client asks
+  for `dark`.
+- A camera with no `CCD_FRAME_TYPE`, or one without the element, settles
+  `failed: unsupported` before any exposure. The exception is `light` on a camera
+  with no `CCD_FRAME_TYPE`, which captures as it always did.
+- Unknown keys are still refused. A Cria from before `frameType` answers a request
+  that carries it with `400 request-error`. So a client sends `frameType` only for
+  `flat` and `bias`, the two types `light` cannot say, and a lights-and-darks
+  client works against either Cria.
 
 `Image` has `id`, `operationId`, `instanceId`, `deviceId`, `cameraName`,
 `bindingId`, `width`, `height`, `binX`, `binY`, `startX`, `startY`,

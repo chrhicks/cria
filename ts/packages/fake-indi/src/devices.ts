@@ -32,7 +32,7 @@ export function addCamera(
   })
   fake.define({ device, name: 'CCD_EXPOSURE', kind: 'number', perm: 'rw', state: 'Ok', elements: { CCD_EXPOSURE_VALUE: { value: 1, min: 0.001, max: 3600, step: 1 } } })
   fake.define({ device, name: 'CCD_ABORT_EXPOSURE', kind: 'switch', perm: 'rw', rule: 'AtMostOne', state: 'Idle', elements: { ABORT: { value: false } } })
-  fake.define({ device, name: 'CCD_FRAME_TYPE', kind: 'switch', perm: 'rw', rule: 'OneOfMany', state: 'Ok', elements: { FRAME_LIGHT: { value: true }, FRAME_DARK: { value: false } } })
+  fake.define({ device, name: 'CCD_FRAME_TYPE', kind: 'switch', perm: 'rw', rule: 'OneOfMany', state: 'Ok', elements: { FRAME_LIGHT: { value: true }, FRAME_BIAS: { value: false }, FRAME_DARK: { value: false }, FRAME_FLAT: { value: false } } })
   if (!sensor.mono)
     fake.define({ device, name: 'CCD_CFA', kind: 'text', perm: 'ro', state: 'Idle', elements: { CFA_OFFSET_X: { value: '1' }, CFA_OFFSET_Y: { value: '0' }, CFA_TYPE: { value: 'RGGB' } } })
   fake.define({ device, name: 'CCD1', kind: 'blob', perm: 'ro', state: 'Idle', elements: { CCD1: { value: '' } } })

@@ -203,7 +203,10 @@ describe('errai, replayed', () => {
     const written: Array<[string, string, string]> = [
       ['ZWO CCD ASI2600MC Pro', 'CCD_EXPOSURE', 'CCD_EXPOSURE_VALUE'],
       ['ZWO CCD ASI2600MC Pro', 'CCD_ABORT_EXPOSURE', 'ABORT'],
+      ['ZWO CCD ASI2600MC Pro', 'CCD_FRAME_TYPE', 'FRAME_LIGHT'],
+      ['ZWO CCD ASI2600MC Pro', 'CCD_FRAME_TYPE', 'FRAME_FLAT'],
       ['ZWO CCD ASI2600MC Pro', 'CCD_FRAME_TYPE', 'FRAME_DARK'],
+      ['ZWO CCD ASI2600MC Pro', 'CCD_FRAME_TYPE', 'FRAME_BIAS'],
       ['ZWO CCD ASI2600MC Pro', 'CCD_BINNING', 'HOR_BIN'],
       ['ZWO CCD ASI2600MC Pro', 'CCD_FRAME', 'WIDTH'],
       ['ZWO CCD ASI2600MC Pro', 'CCD_CONTROLS', 'Gain'],

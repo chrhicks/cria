@@ -83,6 +83,7 @@ export declare const OperationRequest: Schema.Union<Schema.Struct<{
     readonly parameters: Schema.Struct<{
         readonly exposureSeconds: Schema.Number;
         readonly light: Schema.Boolean;
+        readonly frameType: Schema.optionalKey<Schema.Literals<readonly ["light", "flat", "dark", "bias"]>>;
         readonly monochromeOnly: Schema.optionalKey<Schema.Boolean>;
     }>;
     readonly instanceId: Schema.brand<Schema.String, "InstanceId">;
@@ -280,6 +281,7 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
     readonly parameters: Schema.Struct<{
         readonly exposureSeconds: Schema.Number;
         readonly light: Schema.Boolean;
+        readonly frameType: Schema.optionalKey<Schema.Literals<readonly ["light", "flat", "dark", "bias"]>>;
         readonly monochromeOnly: Schema.optionalKey<Schema.Boolean>;
     }>;
     readonly instanceId: Schema.brand<Schema.String, "InstanceId">;
@@ -614,6 +616,7 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
     readonly parameters: Schema.Struct<{
         readonly exposureSeconds: Schema.Number;
         readonly light: Schema.Boolean;
+        readonly frameType: Schema.optionalKey<Schema.Literals<readonly ["light", "flat", "dark", "bias"]>>;
         readonly monochromeOnly: Schema.optionalKey<Schema.Boolean>;
     }>;
     readonly instanceId: Schema.brand<Schema.String, "InstanceId">;

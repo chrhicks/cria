@@ -1,8 +1,11 @@
 export {
   CommandSchema,
+  captureFrameTypes,
+  shutterOpen,
   HaltCommandSchema,
   commands,
   isHalt,
+  type CaptureFrameType,
   type Command,
   type CommandKind,
   type DeviceFor,
