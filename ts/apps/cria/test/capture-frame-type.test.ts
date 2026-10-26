@@ -1,8 +1,9 @@
 /** The camera's INDI frame type follows the capture request, and requests without a frame type still work. */
+import { Effect, Option } from 'effect'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { FakeIndi, addCamera } from '@cria/fake-indi'
 import { exposeNormally } from './drivers.js'
-import { allReady, startCria, type Cria } from './harness.js'
+import { allReady, startCria, until, type Cria } from './harness.js'
 
 const camera = 'Fake CCD'
 let fake: FakeIndi
@@ -27,6 +28,12 @@ const selected = () =>
     .filter(([, { value }]) => value === true)
     .map(([name]) => name)
 const frameTypeWrites = () => fake.received.filter(xml => xml.startsWith('<new') && xml.includes('name="CCD_FRAME_TYPE"')).length
+const mirrored = (seen: (elements: ReadonlyArray<string> | undefined) => boolean) =>
+  until('Cria to see the frame type change', () => {
+    const property = Option.getOrUndefined(Effect.runSync(cria.service.rig.client.device(camera).property('CCD_FRAME_TYPE')))
+
+    return seen(property && [...property.elements.keys()])
+  })
 const exposures = () => fake.received.filter(xml => xml.includes('name="CCD_EXPOSURE"')).length
 
 describe('capture frame type', () => {
@@ -86,7 +93,7 @@ describe('capture frame type', () => {
 
   it('refuses a calibration frame the camera cannot select, before any exposure', async () => {
     fake.removeVector(camera, 'CCD_FRAME_TYPE')
-    await cria.waitFor(async state => state.devices.find(device => device.id === 'primary')?.availability.ready === true)
+    await mirrored(elements => elements === undefined)
 
     const flat = await cria.run('primary', 'capture', { exposureSeconds: 0.05, light: true, frameType: 'flat' })
     const light = await cria.run('primary', 'capture', { exposureSeconds: 0.05, light: true })
@@ -98,7 +105,7 @@ describe('capture frame type', () => {
 
   it('refuses a type the camera lacks as an element', async () => {
     fake.define({ device: camera, name: 'CCD_FRAME_TYPE', kind: 'switch', perm: 'rw', rule: 'OneOfMany', state: 'Ok', elements: { FRAME_LIGHT: { value: true }, FRAME_DARK: { value: false } } })
-    await cria.waitFor(async state => state.devices.find(device => device.id === 'primary')?.availability.ready === true)
+    await mirrored(elements => elements?.includes('FRAME_BIAS') === false)
 
     const bias = await cria.run('primary', 'capture', { exposureSeconds: 0.05, light: false, frameType: 'bias' })
 
