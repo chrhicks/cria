@@ -254,6 +254,60 @@ A capture writes its frame to `imageDirectory` as ImageBytes. The folder is a ro
 
 With `record` in the config (absent on errai until it is measured and enabled), Cria writes a recording of its INDI traffic into `record.dir`: one folder per Cria start, with a manifest, a `traffic.jsonl`, and one file per camera frame. Frames are the full FITS, about 52 MB each for the ASI2600, so size `reserveGb` and `queueMb` from the disk's measured speed and free space. Recording stops for the rest of a run when its queue is full, the disk would drop below `reserveGb`, or a write fails, and Cria carries on. [SPEC.md, "Recording"](ts/SPEC.md#recording) has the format and the failure rules. To check a recording, run `verifyRecording` from `@cria/recording` on its folder; a missing `end` line means Cria died.
 
+### Pruning old recordings
+
+Nothing in Cria deletes recordings. A night with captures adds 20 to 28 GB, and when free space would drop below `reserveGb` the recorder stops for the rest of that run and does not resume. `ts/deploy/recording-prune.mjs` keeps free space above that line. A systemd user timer runs it daily.
+
+The script reads `record.dir` and `record.reserveGb` from Cria's config (`~/.config/cria/rig.json`, or `--config`, or `CRIA_CONFIG`). It deletes whole session folders, oldest first by the mtime of `traffic.jsonl`, until free space is back at `reserveGb` plus 60 GB. It never touches:
+
+- the newest session, or any session written in the last 30 minutes (Cria has it open);
+- a session younger than 3 days;
+- a session that holds a file named `keep`;
+- anything that is not a session: a name that does not match `<start time>-<instanceId>`, a symlink, or a folder without a `format: 1` manifest whose `recording` is its own name.
+
+It does not count folders. A reboot makes a few tiny folders, and they go by their bytes like any other session. Each delete first looks at the folder again, because Cria may have started a new session or Chris may have pinned this one since the scan. It must still be a session and still not open (the newest, or written in the last 30 minutes), pinned or younger than the age floor. Then it renames the folder to `<name>.pruning` first and then removes it, so a crash leaves nothing that looks like a session, and the next `--apply` run finishes it, unless it holds a `keep` file. Then it stays, and `kept` lists it as `pinned`.
+
+**What it guards against.** errai is a single-user rig PC, so the script is written for ordinary mistakes and ordinary races, not for someone swapping directories under it. It never deletes the session Cria has open, a pinned or young session, or anything outside `record.dir` that it did not recognise as a session (a symlink or a folder with a bad manifest is left alone, so a wrong `record.dir` in the config deletes nothing it should not). It deletes only when run with a bare `--apply`. Any other form (`--apply=false`, a typo, a stray argument, a non-numeric option) is a usage error: nothing is deleted and the status file says why. It does not defend against a root folder, parent or symlink being replaced while it runs.
+
+**Install on errai.** From the checkout Cria runs from:
+
+```sh
+cp ts/deploy/recording-prune.service ts/deploy/recording-prune.timer ~/.config/systemd/user/
+systemctl --user daemon-reload
+systemctl --user enable --now recording-prune.timer
+systemctl --user start recording-prune.service   # one run now
+journalctl --user -u recording-prune.service -n 30
+```
+
+The unit has no `--apply`, so it only reports. Linger must be on for the timer to survive a reboot (`loginctl show-user $USER -p Linger`). To try other numbers by hand, run the script with `--headroom-gb N` or `--min-age-days N`.
+
+**The status file.** Each run writes `$XDG_STATE_HOME/cria/recording-prune.json` (`~/.local/state/cria/recording-prune.json` by default, or `--state`) and logs the same to the journal:
+
+| Field | Meaning |
+| --- | --- |
+| `at`, `mode` | When it ran, and `dry-run` or `apply` |
+| `ok` | `true` when measured free space is at or above the target. `false` when it is below: a dry run deletes nothing, so it reads `false` while the disk is short, even if `wouldDelete` would fix it. A run that fails (bad config, unreadable folder) also writes `ok: false` |
+| `reason` | Present when `ok` is `false`: how short and why (a dry run, sessions kept as `open`, `pinned` or `young`, or a delete that failed) |
+| `freeGb`, `targetGb`, `freeAfterGb` | Free space at the start, the target, and free space after (measured with `--apply`, projected in a dry run) |
+| `wouldDelete`, `deleted` | `{ name, gb }` rows: what a dry run would delete, and what `--apply` deleted |
+| `kept` | The sessions it skipped, with the reason |
+
+`ok: false` means the disk will keep filling. Pin fewer sessions, copy a night off errai and delete it, or lower the age floor. A run that is short still exits 0, so check the file or the journal, not the unit state.
+
+**Pin a session.** `touch <record.dir>/<session>/keep` (put a reason in it if you like). `rm` the file to let it go. Readers ignore the file, and it moves with `mv` and `cp -a`. A pin that is never removed uses disk, so it counts as `pinned` in `kept` every day.
+
+**Turn on deletion.** Read a few days of `wouldDelete` first. Deleting a recording is permanent. Then:
+
+```sh
+systemctl --user edit recording-prune.service
+# add:
+#   [Service]
+#   ExecStart=
+#   ExecStart=/usr/bin/node %h/dev/personal/cria-ts/ts/deploy/recording-prune.mjs --apply
+```
+
+Remove the drop-in (`systemctl --user revert recording-prune.service`) to go back to reporting.
+
 ## Before Cria commands the rig
 
 The checks on errai so far were read-only. [ts/README.md, "Before trying it on the rig"](../ts/README.md#before-trying-it-on-the-rig) lists what has to happen first, and the first session is with Chris present.

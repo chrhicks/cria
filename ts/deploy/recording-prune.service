@@ -1,0 +1,17 @@
+# User unit: install to ~/.config/systemd/user/ with recording-prune.timer (docs/runtime.md,
+# "Recording"). It reads Cria's own config (~/.config/cria/rig.json) for record.dir and
+# record.reserveGb, and writes its status to ~/.local/state/cria/recording-prune.json.
+#
+# It ships without --apply, so it only reports what it would delete. To turn deletion on,
+# run `systemctl --user edit recording-prune.service` and add:
+#   [Service]
+#   ExecStart=
+#   ExecStart=/usr/bin/node %h/dev/personal/cria-ts/ts/deploy/recording-prune.mjs --apply
+[Unit]
+Description=Prune old Cria recordings (dry run unless --apply)
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/node %h/dev/personal/cria-ts/ts/deploy/recording-prune.mjs
+Nice=19
+IOSchedulingClass=idle
