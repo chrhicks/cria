@@ -265,7 +265,7 @@ The script reads `record.dir` and `record.reserveGb` from Cria's config (`~/.con
 - a session that holds a file named `keep`;
 - anything that is not a session: a name that does not match `<start time>-<instanceId>`, a symlink, or a folder without a `format: 1` manifest whose `recording` is its own name.
 
-It does not count folders. A reboot makes a few tiny folders, and they go by their bytes like any other session. Each delete checks again that the folder is still a plain session without a `keep` file, then renames the folder to `<name>.pruning` first and then removes it, so a crash leaves nothing that looks like a session, and the next `--apply` run finishes it, unless it holds a `keep` file. Then it stays, and `kept` lists it as `pinned`.
+It does not count folders. A reboot makes a few tiny folders, and they go by their bytes like any other session. Each delete first inspects the folder again: it must be the same folder the scan saw, still a session, and still not open, pinned or younger than the age floor. Then it renames the folder to `<name>.pruning` first and then removes it, so a crash leaves nothing that looks like a session, and the next `--apply` run finishes it, unless it holds a `keep` file. Then it stays, and `kept` lists it as `pinned`.
 
 **Install on errai.** From the checkout Cria runs from:
 

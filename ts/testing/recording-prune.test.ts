@@ -324,6 +324,56 @@ describe('prune on a real folder', () => {
     expect(existsSync(join(directory, old, 'blobs/1-0-0.blob'))).toBe(true)
   })
 
+  it('does not delete a session that was written to after the scan', async () => {
+    const old = await makeSession(10, 9, 2)
+
+    await makeSession(24, 0.01, 1)
+
+    let calls = 0
+    const status = await run({
+      apply: true,
+      freeMb: 0,
+      targetMb: 1,
+      afterScan: async () => {
+        if (calls++ > 0) return
+        const at = new Date(now)
+
+        await utimes(join(directory, old, 'traffic.jsonl'), at, at)
+      },
+    })
+
+    expect(status.deleted).toEqual([])
+    expect(status.ok).toBe(false)
+    expect(status.reason).toContain('open since the scan')
+    expect(existsSync(join(directory, old, 'blobs/1-0-0.blob'))).toBe(true)
+  })
+
+  it('does not delete a fresh folder that replaced the scanned session', async () => {
+    const old = await makeSession(10, 9, 2)
+
+    await makeSession(24, 0.01, 1)
+
+    let calls = 0
+    const status = await run({
+      apply: true,
+      freeMb: 0,
+      targetMb: 1,
+      afterScan: async () => {
+        if (calls++ > 0) return
+        await rename(join(directory, old), join(directory, `${old}-moved`))
+        await mkdir(join(directory, old, 'blobs'), { recursive: true })
+        await writeFile(join(directory, old, 'manifest.json'), JSON.stringify({ format: 1, recording: old }))
+        await writeFile(join(directory, old, 'traffic.jsonl'), 'fresh\n')
+        await writeFile(join(directory, old, 'blobs/precious'), 'x')
+      },
+    })
+
+    expect(status.deleted).toEqual([])
+    expect(status.reason).toContain('replaced since the scan')
+    expect(await readFile(join(directory, old, 'blobs/precious'), 'utf8')).toBe('x')
+    expect(existsSync(join(directory, `${old}-moved`, 'blobs/1-0-0.blob'))).toBe(true)
+  })
+
   it('does not delete through a root that was swapped for a symlink after the scan', async () => {
     const old = await makeSession(10, 9, 2)
     const elsewhere = await mkdtemp(join(tmpdir(), 'recording-prune-elsewhere-'))

@@ -37,11 +37,24 @@ export const pinFile = 'keep'
 
 /**
  * What the filesystem layer saw in `record.dir`, one per direct child.
- * @typedef {{ name: string, isDirectory: boolean, isSymlink: boolean, manifestOk: boolean, bytes: number, lastWriteMs: number, pinned: boolean }} Entry
+ * @typedef {{ name: string, id: string, isDirectory: boolean, isSymlink: boolean, manifestOk: boolean, bytes: number, lastWriteMs: number, pinned: boolean }} Entry
  * @typedef {{ headroomBytes: number, minAgeMs: number, liveWindowMs: number }} Policy
- * @typedef {{ name: string, bytes: number }} Pick
+ * @typedef {{ name: string, bytes: number, id: string }} Pick
  * @typedef {{ remove: Pick[], skipped: Array<{ name: string, bytes: number, reason: 'open' | 'young' | 'pinned' }>, ignored: string[], freeBytes: number, targetBytes: number, freeAfterBytes: number, ok: boolean, reason?: string }} Plan
  */
+
+const isSession = entry => entry.isDirectory && !entry.isSymlink && entry.manifestOk && sessionName.test(entry.name)
+
+/** Why a session must not be deleted, or undefined. The planner and the delete-time recheck ask the same question. */
+function protection(entry, { now, policy, newest }) {
+  const age = now - entry.lastWriteMs
+
+  if (entry.name === newest || age < policy.liveWindowMs) return 'open'
+  if (entry.pinned) return 'pinned'
+  if (age < policy.minAgeMs) return 'young'
+
+  return undefined
+}
 
 /**
  * Decides which sessions to delete. Pure: the same entries, free space and clock
@@ -52,7 +65,7 @@ export const pinFile = 'keep'
  */
 export function planPrune({ entries, freeBytes, reserveBytes, now, policy }) {
   const targetBytes = reserveBytes + policy.headroomBytes
-  const sessions = entries.filter(entry => entry.isDirectory && !entry.isSymlink && entry.manifestOk && sessionName.test(entry.name))
+  const sessions = entries.filter(isSession)
   const ignored = entries.filter(entry => !sessions.includes(entry)).map(entry => entry.name)
   const newest = sessions.reduce((latest, entry) => (latest === undefined || entry.name > latest ? entry.name : latest), undefined)
   const remove = []
@@ -60,12 +73,11 @@ export function planPrune({ entries, freeBytes, reserveBytes, now, policy }) {
   let free = freeBytes
 
   for (const entry of [...sessions].sort((a, b) => a.lastWriteMs - b.lastWriteMs || (a.name < b.name ? -1 : 1))) {
-    const age = now - entry.lastWriteMs
-    const reason = entry.name === newest || age < policy.liveWindowMs ? 'open' : entry.pinned ? 'pinned' : age < policy.minAgeMs ? 'young' : undefined
+    const reason = protection(entry, { now, policy, newest })
 
     if (reason) skipped.push({ name: entry.name, bytes: entry.bytes, reason })
     else if (free < targetBytes) {
-      remove.push({ name: entry.name, bytes: entry.bytes })
+      remove.push({ name: entry.name, bytes: entry.bytes, id: entry.id })
       free += entry.bytes
     }
   }
@@ -122,26 +134,34 @@ async function lastWrite(path) {
   }
 }
 
+/** What is true of one child of `record.dir` right now. Sizing a session is separate: it reads every blob. */
+async function inspect(dir, name) {
+  const path = join(dir, name)
+  const info = await lstat(path)
+  const isDirectory = info.isDirectory()
+  const candidate = isDirectory && sessionName.test(name)
+
+  return {
+    name,
+    id: `${info.dev}:${info.ino}`,
+    isDirectory,
+    isSymlink: info.isSymbolicLink(),
+    manifestOk: candidate && (await manifestOk(path, name)),
+    bytes: 0,
+    lastWriteMs: candidate ? await lastWrite(path) : info.mtimeMs,
+    pinned: candidate && existsSync(join(path, pinFile)),
+  }
+}
+
 /** @returns {Promise<Entry[]>} */
 export async function scan(dir) {
   const entries = []
 
   for (const name of (await readdir(dir)).sort()) {
-    const path = join(dir, name)
-    const info = await lstat(path)
-    const isDirectory = info.isDirectory()
-    const isSymlink = info.isSymbolicLink()
-    const candidate = isDirectory && sessionName.test(name)
+    const entry = await inspect(dir, name)
 
-    entries.push({
-      name,
-      isDirectory,
-      isSymlink,
-      manifestOk: candidate && (await manifestOk(path, name)),
-      bytes: candidate ? await treeBytes(path) : 0,
-      lastWriteMs: candidate ? await lastWrite(path) : info.mtimeMs,
-      pinned: candidate && existsSync(join(path, pinFile)),
-    })
+    if (sessionName.test(name) && entry.isDirectory) entry.bytes = await treeBytes(join(dir, name))
+    entries.push(entry)
   }
 
   return entries
@@ -149,20 +169,22 @@ export async function scan(dir) {
 
 /**
  * A rename to `<name>.pruning` first, so a crash never leaves a half-deleted folder that looks like a session.
- * The scan can be minutes old (it sizes every blob), so the checks run again here: Chris may have pinned the
- * session since, and `root` must still be the folder the scan read.
+ * The scan can be minutes old (it sizes every blob). The session is inspected again here and must be the same
+ * folder, still a session, and still unprotected under the same rules the planner used.
  */
-async function removeSession(root, dir, name) {
-  const path = join(root, name)
-
+async function removeSession(root, dir, pick, { now, policy }) {
   if ((await realpath(dir)) !== root) throw new Error(`${dir} no longer resolves to ${root}; not deleting`)
 
-  const info = await lstat(path)
+  const current = await inspect(root, pick.name)
 
-  if (!info.isDirectory() || info.isSymbolicLink()) throw new Error('no longer a plain folder; not deleting')
-  if (!(await manifestOk(path, name))) throw new Error('manifest changed since the scan; not deleting')
-  if (existsSync(join(path, pinFile))) throw new Error('pinned since the scan; not deleting')
+  if (!isSession(current)) throw new Error('no longer a session folder; not deleting')
+  if (current.id !== pick.id) throw new Error('replaced since the scan; not deleting')
 
+  const reason = protection(current, { now, policy })
+
+  if (reason) throw new Error(`${reason} since the scan; not deleting`)
+
+  const path = join(root, pick.name)
   const doomed = `${path}${pruningSuffix}`
 
   await rename(path, doomed)
@@ -220,7 +242,7 @@ export async function prune({ dir, reserveBytes, apply, policy, now, freeBytes =
     if (!apply) continue
 
     try {
-      await removeSession(root, dir, pick.name)
+      await removeSession(root, dir, pick, { now: now(), policy })
       deleted.push(pick)
     } catch (error) {
       errors.push(`${pick.name}: ${error instanceof Error ? error.message : String(error)}`)
