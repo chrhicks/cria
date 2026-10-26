@@ -11,6 +11,20 @@ const atLeastOne = Schema.makeFilter((parameters: object) => Object.keys(paramet
 
 const empty = Schema.Struct({})
 
+export const captureFrameTypes = ['light', 'flat', 'dark', 'bias'] as const
+
+export type CaptureFrameType = (typeof captureFrameTypes)[number]
+
+/** What `light` means for each frame type: true when the shutter is open. */
+export const shutterOpen = { light: true, flat: true, dark: false, bias: false } as const satisfies Record<CaptureFrameType, boolean>
+
+const frameTypeMatchesLight = Schema.makeFilter(
+  (parameters: { readonly light: boolean; readonly frameType?: CaptureFrameType }) =>
+    parameters.frameType === undefined ||
+    shutterOpen[parameters.frameType] === parameters.light ||
+    `frameType ${parameters.frameType} needs light ${shutterOpen[parameters.frameType]}`,
+)
+
 interface Row {
   readonly device: DeviceKind | 'any'
   readonly halt: boolean
@@ -37,8 +51,9 @@ export const commands = table({
     parameters: Schema.Struct({
       exposureSeconds: between(0.000001, 3600),
       light: Schema.Boolean,
+      frameType: Schema.optionalKey(Schema.Literals(captureFrameTypes)),
       monochromeOnly: Schema.optionalKey(Schema.Boolean),
-    }),
+    }).pipe(Schema.check(frameTypeMatchesLight)),
   },
   'camera-configure': {
     device: 'camera',

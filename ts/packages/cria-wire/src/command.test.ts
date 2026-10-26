@@ -1,6 +1,6 @@
 import { Schema } from 'effect'
 import { describe, expect, expectTypeOf, it } from 'vitest'
-import { SwitchChannel, commands, isHalt, type DeviceBody, type DeviceFor, type HaltKind, type ParamsOf, type ReadingsOf } from './index.js'
+import { SwitchChannel, captureFrameTypes, commands, shutterOpen, isHalt, type DeviceBody, type DeviceFor, type HaltKind, type ParamsOf, type ReadingsOf } from './index.js'
 
 describe('command table', () => {
   it('makes exactly the stops halts', () => {
@@ -30,5 +30,16 @@ describe('command table', () => {
       readonly readings: ReadingsOf<'switch'>
       readonly channels: ReadonlyArray<typeof SwitchChannel.Type>
     }>()
+  })
+
+  it('takes a capture without a frame type, and refuses one that disagrees with `light`', () => {
+    const decode = Schema.decodeUnknownSync(commands.capture.schema)
+    const capture = (parameters: object) => ({ kind: 'capture', parameters: { exposureSeconds: 1, ...parameters } })
+
+    expect(decode(capture({ light: true }))).toEqual(capture({ light: true }))
+    expect(captureFrameTypes.map(frameType => decode(capture({ light: shutterOpen[frameType], frameType })).parameters.frameType)).toEqual([...captureFrameTypes])
+    expect(() => decode(capture({ light: false, frameType: 'flat' }))).toThrow('frameType flat needs light true')
+    expect(() => decode(capture({ light: true, frameType: 'bias' }))).toThrow('frameType bias needs light false')
+    expect(() => decode(capture({ light: true, frameType: 'dark-flat' }))).toThrow()
   })
 })

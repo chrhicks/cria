@@ -303,6 +303,14 @@ export const scenarios: ReadonlyArray<Scenario> = [
     },
   },
   {
+    name: 'capture a flat and a bias, with their frame types',
+    devices: ['camera'],
+    run: async g => {
+      await runAndSettle(g, 'camera', 'capture', { exposureSeconds: 0.1, light: true, frameType: 'flat' })
+      await runAndSettle(g, 'camera', 'capture', { exposureSeconds: 0.1, light: false, frameType: 'bias' })
+    },
+  },
+  {
     name: 'camera-configure',
     devices: ['camera'],
     run: async g => {
@@ -593,6 +601,15 @@ export const scenarios: ReadonlyArray<Scenario> = [
       await g.submit('camera', 'teleport', {})
       await g.submit('nowhere', 'capture', { exposureSeconds: 1, light: true })
       await g.submit('camera', 'capture', { exposureSeconds: 1, light: true, padding: 'x'.repeat(17 * 1024) })
+    },
+  },
+  {
+    name: 'refused: capture frame type that disagrees with light, or is not one',
+    devices: ['camera'],
+    run: async g => {
+      await g.submit('camera', 'capture', { exposureSeconds: 1, light: true, frameType: 'bias' })
+      await g.submit('camera', 'capture', { exposureSeconds: 1, light: false, frameType: 'flat' })
+      await g.submit('camera', 'capture', { exposureSeconds: 1, light: false, frameType: 'dark-flat' })
     },
   },
   {

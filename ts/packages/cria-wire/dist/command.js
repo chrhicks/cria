@@ -6,6 +6,12 @@ const integer = (minimum, maximum) => Schema.Number.pipe(Schema.check(Schema.isI
 const nonZero = (minimum, maximum) => between(minimum, maximum).pipe(Schema.check(Schema.makeFilter((value) => value !== 0 || 'must not be zero')));
 const atLeastOne = Schema.makeFilter((parameters) => Object.keys(parameters).length > 0 || 'at least one setting is required');
 const empty = Schema.Struct({});
+export const captureFrameTypes = ['light', 'flat', 'dark', 'bias'];
+/** What `light` means for each frame type: true when the shutter is open. */
+export const shutterOpen = { light: true, flat: true, dark: false, bias: false };
+const frameTypeMatchesLight = Schema.makeFilter((parameters) => parameters.frameType === undefined ||
+    shutterOpen[parameters.frameType] === parameters.light ||
+    `frameType ${parameters.frameType} needs light ${shutterOpen[parameters.frameType]}`);
 function table(rows) {
     // Object.fromEntries forgets the keys; Table<T> restores them.
     return Object.fromEntries(Object.entries(rows).map(([kind, row]) => [kind, { ...row, schema: Schema.Struct({ kind: Schema.Literal(kind), parameters: row.parameters }) }]));
@@ -17,8 +23,9 @@ export const commands = table({
         parameters: Schema.Struct({
             exposureSeconds: between(0.000001, 3600),
             light: Schema.Boolean,
+            frameType: Schema.optionalKey(Schema.Literals(captureFrameTypes)),
             monochromeOnly: Schema.optionalKey(Schema.Boolean),
-        }),
+        }).pipe(Schema.check(frameTypeMatchesLight)),
     },
     'camera-configure': {
         device: 'camera',

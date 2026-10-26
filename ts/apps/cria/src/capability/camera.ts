@@ -11,7 +11,7 @@ import { readFitsHeader } from '@cria/fits'
 import { confirmProperty, current, notACommand, numbersApplied, sendOnce, settledNumbers, startMotion, switchConfirmed } from './commands.js'
 import { invalid, liveSnapshot, required, type CapabilityContext } from './context.js'
 import { firstNumberElement, limitElement, numberElement, switchElement, textElement, type DeviceSnapshot } from './fields.js'
-import type { DeviceBody, Image, ParamsOf, Progress, ReadingsOf } from '@cria/wire'
+import type { CaptureFrameType, DeviceBody, Image, ParamsOf, Progress, ReadingsOf } from '@cria/wire'
 
 type R<T> = Reading.Reading<T>
 
@@ -171,7 +171,7 @@ export function makeCamera(context: CapabilityContext, frameGrid: FrameGrid = {}
           return yield* invalid('This consumer needs a mono or unbinned Bayer image')
 
         yield* uploadsToClient(snapshot)
-        yield* frameType(context, snapshot, request.light)
+        yield* frameType(context, snapshot, request.frameType ?? (request.light ? 'light' : 'dark'))
 
         // Subscribe before the exposure starts so even a very short frame's
         // BLOB can't arrive unseen.
@@ -403,12 +403,15 @@ function uploadsToClient(snapshot: DeviceSnapshot): Effect.Effect<void, Failed> 
   return Effect.void
 }
 
-/** Light or dark is part of the requested capture, so Cria sets it when it differs. */
-function frameType(context: CapabilityContext, snapshot: DeviceSnapshot, light: boolean) {
-  const wanted = light ? 'FRAME_LIGHT' : 'FRAME_DARK'
+const indiFrameTypes = { light: 'FRAME_LIGHT', dark: 'FRAME_DARK', flat: 'FRAME_FLAT', bias: 'FRAME_BIAS' } as const satisfies Record<CaptureFrameType, string>
+
+/** The frame type is part of the requested capture, so Cria sets it when it differs. */
+function frameType(context: CapabilityContext, snapshot: DeviceSnapshot, type: CaptureFrameType) {
+  const wanted = indiFrameTypes[type]
   const property = snapshot.property('CCD_FRAME_TYPE')
 
-  if (!property) return light ? Effect.void : Effect.fail(new Failed({ reason: 'unsupported', message: 'Camera has no frame type' }))
+  if (!property) return type === 'light' ? Effect.void : Effect.fail(new Failed({ reason: 'unsupported', message: 'Camera has no frame type' }))
+  if (!property.elements.has(wanted)) return Effect.fail(new Failed({ reason: 'unsupported', message: `Camera has no ${type} frame type` }))
   if (switchElement(wanted)(property) === true) return Effect.void
 
   return switchConfirmed(context.device, 'CCD_FRAME_TYPE', { [wanted]: true }, found => switchElement(wanted)(found) === true, context.timing)

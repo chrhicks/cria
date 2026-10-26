@@ -1428,6 +1428,202 @@
     }
   },
   {
+    "scenario": "capture a flat and a bias, with their frame types",
+    "step": 1,
+    "request": "POST /v2/operations",
+    "sent": {
+      "bindingId": "<binding-1>",
+      "deviceId": "camera",
+      "expectedName": "Fake CCD",
+      "instanceId": "<instance-1>",
+      "kind": "capture",
+      "parameters": {
+        "exposureSeconds": 0.1,
+        "frameType": "flat",
+        "light": true
+      },
+      "requestId": "<request-1>"
+    },
+    "status": 202,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "camera",
+      "expectedName": "Fake CCD",
+      "failureDomain": "fake-ccd",
+      "id": "<operation-1>",
+      "instanceId": "<instance-1>",
+      "kind": "capture",
+      "parameters": {
+        "exposureSeconds": 0.1,
+        "frameType": "flat",
+        "light": true
+      },
+      "progress": {
+        "elapsedSeconds": null,
+        "phase": "preparing"
+      },
+      "requestId": "<request-1>",
+      "startedAt": "<time>",
+      "state": "running"
+    }
+  },
+  {
+    "scenario": "capture a flat and a bias, with their frame types",
+    "step": 2,
+    "request": "GET /v2/operations/<operation-1>",
+    "status": 200,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "camera",
+      "expectedName": "Fake CCD",
+      "failureDomain": "fake-ccd",
+      "id": "<operation-1>",
+      "instanceId": "<instance-1>",
+      "kind": "capture",
+      "outcome": {
+        "kind": "confirmed",
+        "value": {
+          "image": {
+            "binX": 1,
+            "binY": 1,
+            "bindingId": "<binding-1>",
+            "cameraName": "Fake CCD",
+            "capturedAt": "<time>",
+            "capturedAtSource": "camera",
+            "color": "grbg",
+            "deviceId": "camera",
+            "exposureSeconds": 0.1,
+            "height": 6,
+            "id": "<image-1>",
+            "instanceId": "<instance-1>",
+            "operationId": "<operation-1>",
+            "original": {
+              "bytes": 140,
+              "mediaType": "application/imagebytes",
+              "url": "/v2/images/<image-1>/original"
+            },
+            "retainedAt": "<time>",
+            "sha256": "146f86c57bfa413cc92866d35a539fffafee4212e14f8892afa27133b469255d",
+            "startX": 0,
+            "startY": 0,
+            "width": 8
+          },
+          "values": {}
+        }
+      },
+      "parameters": {
+        "exposureSeconds": 0.1,
+        "frameType": "flat",
+        "light": true
+      },
+      "recovery": null,
+      "requestId": "<request-1>",
+      "settledAt": "<time>",
+      "startedAt": "<time>",
+      "state": "settled"
+    }
+  },
+  {
+    "scenario": "capture a flat and a bias, with their frame types",
+    "step": 3,
+    "request": "POST /v2/operations",
+    "sent": {
+      "bindingId": "<binding-1>",
+      "deviceId": "camera",
+      "expectedName": "Fake CCD",
+      "instanceId": "<instance-1>",
+      "kind": "capture",
+      "parameters": {
+        "exposureSeconds": 0.1,
+        "frameType": "bias",
+        "light": false
+      },
+      "requestId": "<request-2>"
+    },
+    "status": 202,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "camera",
+      "expectedName": "Fake CCD",
+      "failureDomain": "fake-ccd",
+      "id": "<operation-2>",
+      "instanceId": "<instance-1>",
+      "kind": "capture",
+      "parameters": {
+        "exposureSeconds": 0.1,
+        "frameType": "bias",
+        "light": false
+      },
+      "progress": {
+        "elapsedSeconds": null,
+        "phase": "preparing"
+      },
+      "requestId": "<request-2>",
+      "startedAt": "<time>",
+      "state": "running"
+    }
+  },
+  {
+    "scenario": "capture a flat and a bias, with their frame types",
+    "step": 4,
+    "request": "GET /v2/operations/<operation-2>",
+    "status": 200,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "camera",
+      "expectedName": "Fake CCD",
+      "failureDomain": "fake-ccd",
+      "id": "<operation-2>",
+      "instanceId": "<instance-1>",
+      "kind": "capture",
+      "outcome": {
+        "kind": "confirmed",
+        "value": {
+          "image": {
+            "binX": 1,
+            "binY": 1,
+            "bindingId": "<binding-1>",
+            "cameraName": "Fake CCD",
+            "capturedAt": "<time>",
+            "capturedAtSource": "camera",
+            "color": "grbg",
+            "deviceId": "camera",
+            "exposureSeconds": 0.1,
+            "height": 6,
+            "id": "<image-2>",
+            "instanceId": "<instance-1>",
+            "operationId": "<operation-2>",
+            "original": {
+              "bytes": 140,
+              "mediaType": "application/imagebytes",
+              "url": "/v2/images/<image-2>/original"
+            },
+            "retainedAt": "<time>",
+            "sha256": "146f86c57bfa413cc92866d35a539fffafee4212e14f8892afa27133b469255d",
+            "startX": 0,
+            "startY": 0,
+            "width": 8
+          },
+          "values": {}
+        }
+      },
+      "parameters": {
+        "exposureSeconds": 0.1,
+        "frameType": "bias",
+        "light": false
+      },
+      "recovery": null,
+      "requestId": "<request-2>",
+      "settledAt": "<time>",
+      "startedAt": "<time>",
+      "state": "settled"
+    }
+  },
+  {
     "scenario": "camera-configure",
     "step": 1,
     "request": "POST /v2/operations",
@@ -4795,6 +4991,84 @@
       "error": {
         "code": "request-too-large",
         "message": "Request body too large"
+      },
+      "instanceId": "<instance-1>"
+    }
+  },
+  {
+    "scenario": "refused: capture frame type that disagrees with light, or is not one",
+    "step": 1,
+    "request": "POST /v2/operations",
+    "sent": {
+      "bindingId": "<binding-1>",
+      "deviceId": "camera",
+      "expectedName": "Fake CCD",
+      "instanceId": "<instance-1>",
+      "kind": "capture",
+      "parameters": {
+        "exposureSeconds": 1,
+        "frameType": "bias",
+        "light": true
+      },
+      "requestId": "<request-1>"
+    },
+    "status": 400,
+    "body": {
+      "error": {
+        "code": "request-error",
+        "message": "frameType bias needs light false\n  at [\"parameters\"]"
+      },
+      "instanceId": "<instance-1>"
+    }
+  },
+  {
+    "scenario": "refused: capture frame type that disagrees with light, or is not one",
+    "step": 2,
+    "request": "POST /v2/operations",
+    "sent": {
+      "bindingId": "<binding-1>",
+      "deviceId": "camera",
+      "expectedName": "Fake CCD",
+      "instanceId": "<instance-1>",
+      "kind": "capture",
+      "parameters": {
+        "exposureSeconds": 1,
+        "frameType": "flat",
+        "light": false
+      },
+      "requestId": "<request-2>"
+    },
+    "status": 400,
+    "body": {
+      "error": {
+        "code": "request-error",
+        "message": "frameType flat needs light true\n  at [\"parameters\"]"
+      },
+      "instanceId": "<instance-1>"
+    }
+  },
+  {
+    "scenario": "refused: capture frame type that disagrees with light, or is not one",
+    "step": 3,
+    "request": "POST /v2/operations",
+    "sent": {
+      "bindingId": "<binding-1>",
+      "deviceId": "camera",
+      "expectedName": "Fake CCD",
+      "instanceId": "<instance-1>",
+      "kind": "capture",
+      "parameters": {
+        "exposureSeconds": 1,
+        "frameType": "dark-flat",
+        "light": false
+      },
+      "requestId": "<request-3>"
+    },
+    "status": 400,
+    "body": {
+      "error": {
+        "code": "request-error",
+        "message": "Expected \"light\" | \"flat\" | \"dark\" | \"bias\"\n  at [\"parameters\"][\"frameType\"]"
       },
       "instanceId": "<instance-1>"
     }
