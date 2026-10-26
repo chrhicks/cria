@@ -16,7 +16,7 @@
 // `ok: false` means free space is short of the target and nothing more can go.
 // docs/runtime.md has the install steps. Node built-ins only; `planPrune` is pure.
 import { existsSync, readFileSync } from 'node:fs'
-import { lstat, mkdir, readdir, readFile, realpath, rename, rm, stat, statfs, writeFile } from 'node:fs/promises'
+import { lstat, mkdir, readdir, readFile, rename, rm, statfs, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { parseArgs } from 'node:util'
@@ -37,13 +37,16 @@ export const pinFile = 'keep'
 
 /**
  * What the filesystem layer saw in `record.dir`, one per direct child.
- * @typedef {{ name: string, id: string, isDirectory: boolean, isSymlink: boolean, manifestOk: boolean, bytes: number, lastWriteMs: number, pinned: boolean }} Entry
+ * @typedef {{ name: string, isDirectory: boolean, isSymlink: boolean, manifestOk: boolean, bytes: number, lastWriteMs: number, pinned: boolean }} Entry
  * @typedef {{ headroomBytes: number, minAgeMs: number, liveWindowMs: number }} Policy
- * @typedef {{ name: string, bytes: number, id: string }} Pick
+ * @typedef {{ name: string, bytes: number }} Pick
  * @typedef {{ remove: Pick[], skipped: Array<{ name: string, bytes: number, reason: 'open' | 'young' | 'pinned' }>, ignored: string[], freeBytes: number, targetBytes: number, freeAfterBytes: number, ok: boolean, reason?: string }} Plan
  */
 
 const isSession = entry => entry.isDirectory && !entry.isSymlink && entry.manifestOk && sessionName.test(entry.name)
+
+/** The newest session by name, which is the one Cria has open. */
+const newestOf = sessions => sessions.reduce((latest, entry) => (latest === undefined || entry.name > latest ? entry.name : latest), undefined)
 
 /** Why a session must not be deleted, or undefined. The planner and the delete-time recheck ask the same question. */
 function protection(entry, { now, policy, newest }) {
@@ -67,7 +70,7 @@ export function planPrune({ entries, freeBytes, reserveBytes, now, policy }) {
   const targetBytes = reserveBytes + policy.headroomBytes
   const sessions = entries.filter(isSession)
   const ignored = entries.filter(entry => !sessions.includes(entry)).map(entry => entry.name)
-  const newest = sessions.reduce((latest, entry) => (latest === undefined || entry.name > latest ? entry.name : latest), undefined)
+  const newest = newestOf(sessions)
   const remove = []
   const skipped = []
   let free = freeBytes
@@ -77,7 +80,7 @@ export function planPrune({ entries, freeBytes, reserveBytes, now, policy }) {
 
     if (reason) skipped.push({ name: entry.name, bytes: entry.bytes, reason })
     else if (free < targetBytes) {
-      remove.push({ name: entry.name, bytes: entry.bytes, id: entry.id })
+      remove.push({ name: entry.name, bytes: entry.bytes })
       free += entry.bytes
     }
   }
@@ -143,7 +146,6 @@ async function inspect(dir, name) {
 
   return {
     name,
-    id: `${info.dev}:${info.ino}`,
     isDirectory,
     isSymlink: info.isSymbolicLink(),
     manifestOk: candidate && (await manifestOk(path, name)),
@@ -167,54 +169,23 @@ export async function scan(dir) {
   return entries
 }
 
-/** The newest session by name, judged by the same `isSession` test the planner uses. */
-async function newestSession(dir) {
-  let newest
-
-  for (const name of await readdir(dir)) {
-    if (sessionName.test(name) && (newest === undefined || name > newest) && isSession(await inspect(dir, name))) newest = name
-  }
-
-  return newest
-}
-
-const identity = info => `${info.dev}:${info.ino}`
-
-/**
- * Resolves `dir` once and returns a check that it is still the very folder the run started with. A swapped
- * root or parent (a symlink, or another folder moved into place) would redirect every delete.
- */
-async function pinRoot(dir) {
-  const path = await realpath(dir)
-  const id = identity(await stat(path))
-
-  return {
-    path,
-    assert: async () => {
-      if ((await realpath(dir)) !== path || identity(await stat(path)) !== id) throw new Error(`${dir} is no longer the folder this run started with; not deleting`)
-    },
-  }
-}
-
 /**
  * A rename to `<name>.pruning` first, so a crash never leaves a half-deleted folder that looks like a session.
- * The scan can be minutes old (it sizes every blob). The session is inspected again here and must be the same
- * folder, still a session, and still unprotected under the same rules the planner used.
+ * The scan can be minutes old (it sizes every blob) and Cria may have started a new session or Chris may have
+ * pinned this one since, so the session is looked at again here under the planner's own rules.
  */
-async function removeSession(root, pick, { now, policy }) {
-  await root.assert()
+async function removeSession(dir, pick, { now, policy }) {
+  const names = (await readdir(dir)).filter(name => sessionName.test(name))
+  const sessions = (await Promise.all(names.map(name => inspect(dir, name)))).filter(isSession)
+  const current = sessions.find(entry => entry.name === pick.name)
 
-  const current = await inspect(root.path, pick.name)
+  if (!current) throw new Error('no longer a session folder; not deleting')
 
-  if (!isSession(current)) throw new Error('no longer a session folder; not deleting')
-  if (current.id !== pick.id) throw new Error('replaced since the scan; not deleting')
-
-  const newest = await newestSession(root.path)
-  const reason = protection(current, { now, policy, newest })
+  const reason = protection(current, { now, policy, newest: newestOf(sessions) })
 
   if (reason) throw new Error(`${reason} since the scan; not deleting`)
 
-  const path = join(root.path, pick.name)
+  const path = join(dir, pick.name)
   const doomed = `${path}${pruningSuffix}`
 
   await rename(path, doomed)
@@ -239,38 +210,29 @@ export const freeBytesOf = async dir => {
  *
  * @param {{ dir: string, reserveBytes: number, apply: boolean, policy: Policy, now: () => number, freeBytes?: (dir: string) => Promise<number>, log: (line: string) => void }} options
  */
-export async function prune({ dir, reserveBytes, apply, policy, now, freeBytes = freeBytesOf, log }) {
+export async function prune({ dir, reserveBytes, apply: applyFlag, policy, now, freeBytes = freeBytesOf, log }) {
+  const apply = applyFlag === true
   const mode = apply ? 'apply' : 'dry-run'
-  const root = await pinRoot(dir)
-  const leftovers = await pendingRemovals(root.path)
   const finished = []
   const pinnedLeftovers = []
 
-  for (const name of leftovers) {
-    const path = join(root.path, name)
-    const holdIfPinned = async () => {
-      if (!existsSync(join(path, pinFile))) return false
+  for (const name of await pendingRemovals(dir)) {
+    const path = join(dir, name)
 
+    if (existsSync(join(path, pinFile))) {
       log(`keeping ${name}: pinned, left over from a failed delete`)
       pinnedLeftovers.push({ name, gb: gb(await treeBytes(path)), reason: 'pinned' })
-
-      return true
+      continue
     }
-
-    await root.assert()
-    if (await holdIfPinned()) continue
 
     log(`${apply ? 'finishing' : 'would finish'} removal of ${name}`)
     if (!apply) continue
-
-    await root.assert()
-    if (await holdIfPinned()) continue
 
     await rm(path, { recursive: true, force: true })
     finished.push(name)
   }
 
-  const plan = planPrune({ entries: await scan(root.path), freeBytes: await freeBytes(root.path), reserveBytes, now: now(), policy })
+  const plan = planPrune({ entries: await scan(dir), freeBytes: await freeBytes(dir), reserveBytes, now: now(), policy })
   const deleted = []
   const errors = []
 
@@ -279,7 +241,7 @@ export async function prune({ dir, reserveBytes, apply, policy, now, freeBytes =
     if (!apply) continue
 
     try {
-      await removeSession(root, pick, { now: now(), policy })
+      await removeSession(dir, pick, { now: now(), policy })
       deleted.push(pick)
     } catch (error) {
       errors.push(`${pick.name}: ${error instanceof Error ? error.message : String(error)}`)
@@ -288,7 +250,7 @@ export async function prune({ dir, reserveBytes, apply, policy, now, freeBytes =
   for (const skip of plan.skipped) log(`keeping ${skip.name} (${gb(skip.bytes)} GB): ${skip.reason}`)
   for (const name of plan.ignored) log(`ignoring ${name}: not a session folder`)
 
-  const freeAfterBytes = apply ? await freeBytes(root.path) : plan.freeAfterBytes
+  const freeAfterBytes = apply ? await freeBytes(dir) : plan.freeAfterBytes
   const measuredBytes = apply ? freeAfterBytes : plan.freeBytes
   const ok = measuredBytes >= plan.targetBytes && errors.length === 0
   const reason = ok

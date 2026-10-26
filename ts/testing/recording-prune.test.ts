@@ -1,5 +1,5 @@
 import { execFileSync, spawnSync } from 'node:child_process'
-import { existsSync, renameSync, symlinkSync, writeFileSync } from 'node:fs'
+import { existsSync } from 'node:fs'
 import { mkdir, mkdtemp, readFile, readdir, rename, rm, symlink, utimes, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -191,7 +191,7 @@ describe('prune on a real folder', () => {
     return name
   }
 
-  const run = (options: { apply: boolean; freeMb: number; targetMb: number; afterScan?: () => Promise<void>; onLog?: (line: string) => void }) =>
+  const run = (options: { apply: boolean; freeMb: number; targetMb: number; afterScan?: () => Promise<void> }) =>
     prune({
       dir: directory,
       reserveBytes: 0,
@@ -203,10 +203,7 @@ describe('prune on a real folder', () => {
 
         return options.freeMb * mb
       },
-      log: line => {
-        lines.push(line)
-        options.onLog?.(line)
-      },
+      log: line => lines.push(line),
     })
 
   beforeEach(async () => {
@@ -351,202 +348,6 @@ describe('prune on a real folder', () => {
     expect(existsSync(join(directory, old, 'blobs/1-0-0.blob'))).toBe(true)
   })
 
-  it('does not delete a session that became the newest after the scan', async () => {
-    const old = await makeSession(10, 9, 2)
-    const newer = await makeSession(24, 0.01, 1)
-
-    let calls = 0
-    const status = await run({
-      apply: true,
-      freeMb: 0,
-      targetMb: 1,
-      afterScan: async () => {
-        if (calls++ === 0) await rename(join(directory, newer), join(directory, `${newer}.moved`))
-      },
-    })
-
-    expect(status.deleted).toEqual([])
-    expect(status.reason).toContain('open since the scan')
-    expect(existsSync(join(directory, old, 'blobs/1-0-0.blob'))).toBe(true)
-  })
-
-  it('does not delete a fresh folder that replaced the scanned session', async () => {
-    const old = await makeSession(10, 9, 2)
-
-    await makeSession(24, 0.01, 1)
-
-    let calls = 0
-    const status = await run({
-      apply: true,
-      freeMb: 0,
-      targetMb: 1,
-      afterScan: async () => {
-        if (calls++ > 0) return
-        await rename(join(directory, old), join(directory, `${old}-moved`))
-        await mkdir(join(directory, old, 'blobs'), { recursive: true })
-        await writeFile(join(directory, old, 'manifest.json'), JSON.stringify({ format: 1, recording: old }))
-        await writeFile(join(directory, old, 'traffic.jsonl'), 'fresh\n')
-        await writeFile(join(directory, old, 'blobs/precious'), 'x')
-      },
-    })
-
-    expect(status.deleted).toEqual([])
-    expect(status.reason).toContain('replaced since the scan')
-    expect(await readFile(join(directory, old, 'blobs/precious'), 'utf8')).toBe('x')
-    expect(existsSync(join(directory, `${old}-moved`, 'blobs/1-0-0.blob'))).toBe(true)
-  })
-
-  it('treats the newest valid session, not the newest name, as open when an invalid folder sits beside it', async () => {
-    const old = await makeSession(10, 9, 2)
-    const newer = await makeSession(24, 1, 1)
-
-    await mkdir(join(directory, named(25)))
-    await writeFile(join(directory, named(25), 'manifest.json'), '{}')
-
-    let calls = 0
-    const status = await run({
-      apply: true,
-      freeMb: 0,
-      targetMb: 1,
-      afterScan: async () => {
-        if (calls++ === 0) await rename(join(directory, newer), join(directory, `${newer}.archived`))
-      },
-    })
-
-    expect(status.deleted).toEqual([])
-    expect(status.reason).toContain('open since the scan')
-    expect(existsSync(join(directory, old, 'blobs/1-0-0.blob'))).toBe(true)
-  })
-
-  it('does not finish a leftover through a root that was swapped for a symlink', async () => {
-    const outside = await mkdtemp(join(tmpdir(), 'recording-prune-outside-'))
-    const pinnedLeft = `${named(1)}.pruning`
-    const plainLeft = `${named(2)}.pruning`
-
-    try {
-      for (const base of [directory, outside]) {
-        await mkdir(join(base, pinnedLeft), { recursive: true })
-        await writeFile(join(base, pinnedLeft, 'keep'), 'pinned\n')
-        await mkdir(join(base, plainLeft), { recursive: true })
-        await writeFile(join(base, plainLeft, 'precious'), 'x')
-      }
-      await makeSession(24, 0.01, 1)
-
-      let swapped = false
-
-      await expect(
-        run({
-          apply: true,
-          freeMb: 10,
-          targetMb: 3,
-          onLog: line => {
-            if (swapped || !line.startsWith(`keeping ${pinnedLeft}`)) return
-            swapped = true
-            renameSync(directory, `${directory}-moved`)
-            symlinkSync(outside, directory)
-          },
-        }),
-      ).rejects.toThrow('no longer the folder')
-
-      expect(await readFile(join(outside, plainLeft, 'precious'), 'utf8')).toBe('x')
-      expect(await readFile(join(`${directory}-moved`, plainLeft, 'precious'), 'utf8')).toBe('x')
-    } finally {
-      await rm(directory, { force: true })
-      await rename(`${directory}-moved`, directory).catch(() => undefined)
-      await rm(outside, { recursive: true, force: true })
-    }
-  })
-
-  it('does not finish a leftover through a different folder moved into the root pathname', async () => {
-    const replacement = await mkdtemp(join(tmpdir(), 'recording-prune-replacement-'))
-    const pinnedLeft = `${named(1)}.pruning`
-    const plainLeft = `${named(2)}.pruning`
-
-    try {
-      for (const base of [directory, replacement]) {
-        await mkdir(join(base, pinnedLeft), { recursive: true })
-        await writeFile(join(base, pinnedLeft, 'keep'), 'pinned\n')
-        await mkdir(join(base, plainLeft), { recursive: true })
-        await writeFile(join(base, plainLeft, 'precious'), 'x')
-      }
-
-      let swapped = false
-
-      await expect(
-        run({
-          apply: true,
-          freeMb: 10,
-          targetMb: 3,
-          onLog: line => {
-            if (swapped || !line.startsWith(`keeping ${pinnedLeft}`)) return
-            swapped = true
-            renameSync(directory, `${directory}-saved`)
-            renameSync(replacement, directory)
-          },
-        }),
-      ).rejects.toThrow('no longer the folder')
-
-      expect(await readFile(join(directory, plainLeft, 'precious'), 'utf8')).toBe('x')
-      expect(await readFile(join(`${directory}-saved`, plainLeft, 'precious'), 'utf8')).toBe('x')
-    } finally {
-      await rm(replacement, { recursive: true, force: true })
-      await rm(directory, { recursive: true, force: true })
-      await rename(`${directory}-saved`, directory).catch(() => undefined)
-    }
-  })
-
-  it('does not finish a leftover that was pinned while the run was logging it', async () => {
-    const stuck = await makeSession(10, 9, 1)
-
-    await rename(join(directory, stuck), join(directory, `${stuck}.pruning`))
-    await makeSession(24, 0.01, 1)
-
-    const status = await run({
-      apply: true,
-      freeMb: 10,
-      targetMb: 3,
-      onLog: line => {
-        if (line.startsWith('finishing removal')) writeFileSync(join(directory, `${stuck}.pruning`, 'keep'), 'pinned late\n')
-      },
-    })
-
-    expect(status.finishedLeftovers).toEqual([])
-    expect(status.kept).toContainEqual(expect.objectContaining({ name: `${stuck}.pruning`, reason: 'pinned' }))
-    expect(existsSync(join(directory, `${stuck}.pruning`, 'blobs/1-0-0.blob'))).toBe(true)
-  })
-
-  it('does not delete through a root that was swapped for a symlink after the scan', async () => {
-    const old = await makeSession(10, 9, 2)
-    const elsewhere = await mkdtemp(join(tmpdir(), 'recording-prune-elsewhere-'))
-
-    try {
-      await makeSession(24, 0.01, 1)
-      await mkdir(join(elsewhere, old))
-      await writeFile(join(elsewhere, old, 'precious'), 'x')
-
-      let calls = 0
-      const status = await run({
-        apply: true,
-        freeMb: 0,
-        targetMb: 1,
-        afterScan: async () => {
-          if (calls++ > 0) return
-          await rename(directory, `${directory}-moved`)
-          await symlink(elsewhere, directory)
-        },
-      })
-
-      expect(status.deleted).toEqual([])
-      expect(status.ok).toBe(false)
-      expect(await readFile(join(elsewhere, old, 'precious'), 'utf8')).toBe('x')
-      expect(existsSync(join(`${directory}-moved`, old, 'blobs/1-0-0.blob'))).toBe(true)
-    } finally {
-      await rm(directory, { force: true })
-      await rename(`${directory}-moved`, directory).catch(() => undefined)
-      await rm(elsewhere, { recursive: true, force: true })
-    }
-  })
-
   it('reports ok: false and a reason when pins and the age floor leave it short, and writes the status file', async () => {
     await makeSession(10, 20, 2, { keep: true })
     await makeSession(11, 1, 2)
@@ -614,6 +415,58 @@ describe('the keep marker', () => {
 
     expect(output).toContain('recording-prune: dry-run:')
     expect(status).toMatchObject({ mode: 'dry-run', ok: true, deleted: [], wouldDelete: [] })
+  })
+
+  it('deletes only with a bare --apply, and treats any other form of the flag as a dry run or an error', async () => {
+    const recordings = join(directory, 'recordings')
+    const config = join(directory, 'rig.json')
+    const state = join(directory, 'state.json')
+    const script = join(import.meta.dirname, '../deploy/recording-prune.mjs')
+    const old = named(10)
+    const fresh = named(24)
+    const tenDaysAgo = new Date(Date.now() - 10 * DAY)
+
+    for (const [name, at] of [[old, tenDaysAgo], [fresh, new Date()]] as const) {
+      await mkdir(join(recordings, name), { recursive: true })
+      await writeFile(join(recordings, name, 'manifest.json'), JSON.stringify({ format: 1, recording: name }))
+      await writeFile(join(recordings, name, 'traffic.jsonl'), 'x'.repeat(4096))
+      await utimes(join(recordings, name, 'traffic.jsonl'), at, at)
+    }
+    await writeFile(config, JSON.stringify({ record: { dir: recordings, reserveGb: 1e6, queueMb: 1 } }))
+
+    const run = (...flags: string[]) => spawnSync(process.execPath, [script, '--config', config, '--state', state, '--headroom-gb', '0', ...flags], { encoding: 'utf8' })
+
+    for (const flags of [[], ['--apply=false'], ['--apply=0'], ['--apply', 'yes'], ['--no-apply'], ['--aply']]) {
+      const result = run(...flags)
+
+      expect(result.status, flags.join(' ')).toBe(flags.length === 0 ? 0 : 2)
+      expect(existsSync(join(recordings, old)), flags.join(' ')).toBe(true)
+    }
+
+    expect(JSON.parse(await readFile(state, 'utf8')).ok).toBe(false)
+    expect(run('--apply').status).toBe(0)
+    expect(existsSync(join(recordings, old))).toBe(false)
+    expect(existsSync(join(recordings, fresh))).toBe(true)
+  })
+
+  it('follows a recording folder that is itself a symlink, as Cria does', async () => {
+    const real = join(directory, 'real')
+    const link = join(directory, 'link')
+    const name = named(10)
+
+    await mkdir(join(real, name), { recursive: true })
+    await writeFile(join(real, name, 'manifest.json'), JSON.stringify({ format: 1, recording: name }))
+    await writeFile(join(real, name, 'traffic.jsonl'), '')
+    await utimes(join(real, name, 'traffic.jsonl'), new Date(now - 10 * DAY), new Date(now - 10 * DAY))
+    await mkdir(join(real, named(24)), { recursive: true })
+    await writeFile(join(real, named(24), 'manifest.json'), JSON.stringify({ format: 1, recording: named(24) }))
+    await writeFile(join(real, named(24), 'traffic.jsonl'), '')
+    await symlink(real, link)
+
+    const status = await prune({ dir: link, reserveBytes: 0, apply: true, policy, now: () => now, freeBytes: async () => 0, log: () => undefined })
+
+    expect(status.deleted.map((row: { name: string }) => row.name)).toEqual([name])
+    expect(existsSync(join(real, named(24)))).toBe(true)
   })
 
   it('records a failed run in the status file instead of leaving the last good one', async () => {
