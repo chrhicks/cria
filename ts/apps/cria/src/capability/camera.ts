@@ -441,9 +441,10 @@ function setControl(
  * exposure can deliver a main-chip BLOB too, so a frame is ours only if it
  * arrives after our CCD_EXPOSURE went Busy and its FITS header matches the
  * request: EXPTIME, size, and a DATE-OBS no earlier than our dispatch. Other
- * frames are skipped; if only those arrive, the outcome is uncertain at the
- * deadline. Alert on CCD_EXPOSURE after our start fails the exposure; losing
- * the driver or the connection makes it uncertain.
+ * frames are skipped; if only those arrive, at the deadline the capture fails
+ * when CCD_EXPOSURE reads not Busy (nothing is in flight, so no quarantine), and
+ * is uncertain when it is Busy or can't be read. Alert on CCD_EXPOSURE after our
+ * start fails the exposure; losing the driver or the connection makes it uncertain.
  */
 function frameArrival(
   context: CapabilityContext,
@@ -488,13 +489,27 @@ function frameArrival(
     }
   })
 
-  const timedOut = () =>
-    skipped.length > 0
-      ? new Uncertain({ reason: 'not-confirmed', message: `Only frames that were not this exposure arrived (${skipped.join('; ')})` })
-      : new Failed({
-          reason: 'unavailable',
-          message: `No frame arrived within the ${exposureSeconds} s exposure and the ${timing.readoutAllowanceMs / 1000} s readout allowance`,
-        })
+  const idle = Effect.map(context.snapshot, snapshot => {
+    const activity = readings(snapshot).activity
+
+    return activity.status === 'fresh' && activity.value === 'idle'
+  })
+
+  const timedOut = Effect.gen(function* () {
+    if (skipped.length === 0)
+      return new Failed({
+        reason: 'unavailable',
+        message: `No frame arrived within the ${exposureSeconds} s exposure and the ${timing.readoutAllowanceMs / 1000} s readout allowance`,
+      })
+
+    const seen = `Only frames that were not this exposure arrived (${skipped.join('; ')})`
+
+    // A camera that is idle holds no frame of ours and can't produce one: the effect is known,
+    // so repeating the exposure is safe. A Busy or unreadable camera may still deliver, or hold, ours.
+    return (yield* idle)
+      ? new Failed({ reason: 'rejected', message: `${seen}; the camera is idle and free` })
+      : new Uncertain({ reason: 'not-confirmed', message: seen })
+  })
 
   return Effect.scoped(
     Effect.gen(function* () {
@@ -502,7 +517,7 @@ function frameArrival(
 
       return yield* wait.pipe(
         Effect.timeoutOption(deadlineMs),
-        Effect.flatMap(found => (found._tag === 'Some' ? Effect.succeed(found.value) : Effect.fail(timedOut()))),
+        Effect.flatMap(found => (found._tag === 'Some' ? Effect.succeed(found.value) : Effect.flatMap(timedOut, Effect.fail))),
       )
     }),
   )
