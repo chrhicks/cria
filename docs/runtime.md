@@ -265,7 +265,7 @@ The script reads `record.dir` and `record.reserveGb` from Cria's config (`~/.con
 - a session that holds a file named `keep`;
 - anything that is not a session: a name that does not match `<start time>-<instanceId>`, a symlink, or a folder without a `format: 1` manifest whose `recording` is its own name.
 
-It does not count folders. A reboot makes a few tiny folders, and they go by their bytes like any other session. Each delete renames the folder to `<name>.pruning` first and then removes it, so a crash leaves nothing that looks like a session, and the next `--apply` run finishes it.
+It does not count folders. A reboot makes a few tiny folders, and they go by their bytes like any other session. Each delete checks again that the folder is still a plain session without a `keep` file, then renames the folder to `<name>.pruning` first and then removes it, so a crash leaves nothing that looks like a session, and the next `--apply` run finishes it.
 
 **Install on errai.** From the checkout Cria runs from:
 
@@ -284,8 +284,8 @@ The unit has no `--apply`, so it only reports. Linger must be on for the timer t
 | Field | Meaning |
 | --- | --- |
 | `at`, `mode` | When it ran, and `dry-run` or `apply` |
-| `ok` | `true` when free space is at or above the target; `false` when it is short |
-| `reason` | Present when `ok` is `false`: how short, and how many sessions it had to keep as `open`, `pinned` or `young` |
+| `ok` | `true` when measured free space is at or above the target. `false` when it is below: a dry run deletes nothing, so it reads `false` while the disk is short, even if `wouldDelete` would fix it. A run that fails (bad config, unreadable folder) also writes `ok: false` |
+| `reason` | Present when `ok` is `false`: how short and why (a dry run, sessions kept as `open`, `pinned` or `young`, or a delete that failed) |
 | `freeGb`, `targetGb`, `freeAfterGb` | Free space at the start, the target, and free space after (measured with `--apply`, projected in a dry run) |
 | `wouldDelete`, `deleted` | `{ name, gb }` rows: what a dry run would delete, and what `--apply` deleted |
 | `kept` | The sessions it skipped, with the reason |

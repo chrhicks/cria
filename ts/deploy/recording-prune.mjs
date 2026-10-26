@@ -16,7 +16,7 @@
 // `ok: false` means free space is short of the target and nothing more can go.
 // docs/runtime.md has the install steps. Node built-ins only; `planPrune` is pure.
 import { existsSync, readFileSync } from 'node:fs'
-import { lstat, mkdir, readdir, readFile, rename, rm, statfs, writeFile } from 'node:fs/promises'
+import { lstat, mkdir, readdir, readFile, realpath, rename, rm, statfs, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { parseArgs } from 'node:util'
@@ -147,11 +147,25 @@ export async function scan(dir) {
   return entries
 }
 
-/** A rename to `<name>.pruning` first, so a crash never leaves a half-deleted folder that looks like a session. */
-async function removeSession(dir, name) {
-  const doomed = join(dir, `${name}${pruningSuffix}`)
+/**
+ * A rename to `<name>.pruning` first, so a crash never leaves a half-deleted folder that looks like a session.
+ * The scan can be minutes old (it sizes every blob), so the checks run again here: Chris may have pinned the
+ * session since, and `root` must still be the folder the scan read.
+ */
+async function removeSession(root, dir, name) {
+  const path = join(root, name)
 
-  await rename(join(dir, name), doomed)
+  if ((await realpath(dir)) !== root) throw new Error(`${dir} no longer resolves to ${root}; not deleting`)
+
+  const info = await lstat(path)
+
+  if (!info.isDirectory() || info.isSymbolicLink()) throw new Error('no longer a plain folder; not deleting')
+  if (!(await manifestOk(path, name))) throw new Error('manifest changed since the scan; not deleting')
+  if (existsSync(join(path, pinFile))) throw new Error('pinned since the scan; not deleting')
+
+  const doomed = `${path}${pruningSuffix}`
+
+  await rename(path, doomed)
   await rm(doomed, { recursive: true, force: true })
 }
 
@@ -175,14 +189,15 @@ export const freeBytesOf = async dir => {
  */
 export async function prune({ dir, reserveBytes, apply, policy, now, freeBytes = freeBytesOf, log }) {
   const mode = apply ? 'apply' : 'dry-run'
-  const leftovers = await pendingRemovals(dir)
+  const root = await realpath(dir)
+  const leftovers = await pendingRemovals(root)
 
   for (const name of leftovers) {
     log(`${apply ? 'finishing' : 'would finish'} removal of ${name}`)
-    if (apply) await rm(join(dir, name), { recursive: true, force: true })
+    if (apply) await rm(join(root, name), { recursive: true, force: true })
   }
 
-  const plan = planPrune({ entries: await scan(dir), freeBytes: await freeBytes(dir), reserveBytes, now: now(), policy })
+  const plan = planPrune({ entries: await scan(root), freeBytes: await freeBytes(root), reserveBytes, now: now(), policy })
   const deleted = []
   const errors = []
 
@@ -191,7 +206,7 @@ export async function prune({ dir, reserveBytes, apply, policy, now, freeBytes =
     if (!apply) continue
 
     try {
-      await removeSession(dir, pick.name)
+      await removeSession(root, dir, pick.name)
       deleted.push(pick)
     } catch (error) {
       errors.push(`${pick.name}: ${error instanceof Error ? error.message : String(error)}`)
@@ -200,9 +215,18 @@ export async function prune({ dir, reserveBytes, apply, policy, now, freeBytes =
   for (const skip of plan.skipped) log(`keeping ${skip.name} (${gb(skip.bytes)} GB): ${skip.reason}`)
   for (const name of plan.ignored) log(`ignoring ${name}: not a session folder`)
 
-  const freeAfterBytes = apply ? await freeBytes(dir) : plan.freeAfterBytes
-  const ok = freeAfterBytes >= plan.targetBytes && errors.length === 0
-  const reason = ok ? undefined : errors.length ? `could not delete: ${errors.join('; ')}` : (plan.reason ?? `free space is ${gb(freeAfterBytes)} GB after deleting, target ${gb(plan.targetBytes)} GB`)
+  const freeAfterBytes = apply ? await freeBytes(root) : plan.freeAfterBytes
+  const measuredBytes = apply ? freeAfterBytes : plan.freeBytes
+  const ok = measuredBytes >= plan.targetBytes && errors.length === 0
+  const reason = ok
+    ? undefined
+    : errors.length
+      ? `could not delete: ${errors.join('; ')}`
+      : !plan.ok
+        ? plan.reason
+        : apply
+          ? `free space is ${gb(freeAfterBytes)} GB after deleting, target ${gb(plan.targetBytes)} GB`
+          : `free space is ${gb(plan.freeBytes)} GB, below the target ${gb(plan.targetBytes)} GB; dry run, so nothing was deleted (it would delete ${plan.remove.length})`
   const asRow = pick => ({ name: pick.name, gb: gb(pick.bytes) })
 
   return {
@@ -263,28 +287,40 @@ async function main() {
     process.exit(2)
   }
 
+  const mode = values.apply ? 'apply' : 'dry-run'
+  const fail = async (reason, code) => {
+    console.error(`recording-prune: ${reason}`)
+    await writeStatus(statePath, { at: new Date().toISOString(), mode, ok: false, reason, deleted: [], wouldDelete: [], kept: [] }).catch(() => undefined)
+    process.exit(code)
+  }
+
   try {
     record = readRecordConfig(configPath)
   } catch (error) {
-    console.error(`recording-prune: ${configPath}: ${error instanceof Error ? error.message : String(error)}`)
-    process.exit(2)
+    await fail(`${configPath}: ${error instanceof Error ? error.message : String(error)}`, 2)
   }
 
   if (!record) {
     log(`${configPath} has no record section; nothing to prune`)
-    await writeStatus(statePath, { at: new Date().toISOString(), mode: values.apply ? 'apply' : 'dry-run', ok: true, reason: 'recording is off in the config', deleted: [], wouldDelete: [], kept: [] })
+    await writeStatus(statePath, { at: new Date().toISOString(), mode, ok: true, reason: 'recording is off in the config', deleted: [], wouldDelete: [], kept: [] })
 
     return
   }
 
-  const status = await prune({
-    dir: record.dir,
-    reserveBytes: record.reserveBytes,
-    apply: values.apply,
-    policy: { headroomBytes: headroomGb * GiB, minAgeMs: minAgeDays * DAY_MS, liveWindowMs: defaults.liveWindowMs },
-    now: Date.now,
-    log,
-  })
+  let status
+
+  try {
+    status = await prune({
+      dir: record.dir,
+      reserveBytes: record.reserveBytes,
+      apply: values.apply,
+      policy: { headroomBytes: headroomGb * GiB, minAgeMs: minAgeDays * DAY_MS, liveWindowMs: defaults.liveWindowMs },
+      now: Date.now,
+      log,
+    })
+  } catch (error) {
+    await fail(`failed: ${error instanceof Error ? error.message : String(error)}`, 1)
+  }
 
   await writeStatus(statePath, status)
   log(`${status.mode}: free ${status.freeGb} GB, target ${status.targetGb} GB, ${status.mode === 'apply' ? `deleted ${status.deleted.length}` : `would delete ${status.wouldDelete.length}`}; free after ${status.freeAfterGb} GB`)

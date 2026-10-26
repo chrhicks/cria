@@ -1,6 +1,6 @@
-import { execFileSync } from 'node:child_process'
+import { execFileSync, spawnSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
-import { mkdir, mkdtemp, readFile, readdir, rm, symlink, utimes, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, readdir, rename, rm, symlink, utimes, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
@@ -191,14 +191,18 @@ describe('prune on a real folder', () => {
     return name
   }
 
-  const run = (options: { apply: boolean; freeMb: number; targetMb: number }) =>
+  const run = (options: { apply: boolean; freeMb: number; targetMb: number; afterScan?: () => Promise<void> }) =>
     prune({
       dir: directory,
       reserveBytes: 0,
       apply: options.apply,
       policy: { headroomBytes: options.targetMb * mb, minAgeMs: 3 * DAY, liveWindowMs: defaults.liveWindowMs },
       now: () => now,
-      freeBytes: async () => options.freeMb * mb,
+      freeBytes: async () => {
+        await options.afterScan?.()
+
+        return options.freeMb * mb
+      },
       log: line => lines.push(line),
     })
 
@@ -221,6 +225,8 @@ describe('prune on a real folder', () => {
     expect(status.mode).toBe('dry-run')
     expect(status.wouldDelete.map((row: { name: string }) => row.name)).toEqual([oldest])
     expect(status.deleted).toEqual([])
+    expect(status.ok).toBe(false)
+    expect(status.reason).toContain('dry run, so nothing was deleted (it would delete 1)')
     expect(existsSync(join(directory, oldest))).toBe(true)
     expect(lines.some(line => line.startsWith('would delete ' + oldest))).toBe(true)
   })
@@ -251,8 +257,6 @@ describe('prune on a real folder', () => {
 
   it('finishes a leftover .pruning folder from a crashed run', async () => {
     const stuck = await makeSession(10, 9, 1)
-    const { rename } = await import('node:fs/promises')
-
     await rename(join(directory, stuck), join(directory, `${stuck}.pruning`))
     await makeSession(24, 0.01, 1)
 
@@ -282,6 +286,59 @@ describe('prune on a real folder', () => {
       expect(await readFile(join(outside, 'precious'), 'utf8')).toBe('x')
     } finally {
       await rm(outside, { recursive: true, force: true })
+    }
+  })
+
+  it('does not delete a session that was pinned after the scan', async () => {
+    const old = await makeSession(10, 9, 2)
+
+    await makeSession(24, 0.01, 1)
+
+    let calls = 0
+    const status = await run({
+      apply: true,
+      freeMb: 0,
+      targetMb: 1,
+      afterScan: async () => {
+        if (calls++ === 0) await writeFile(join(directory, old, 'keep'), 'pinned while running\n')
+      },
+    })
+
+    expect(status.deleted).toEqual([])
+    expect(status.ok).toBe(false)
+    expect(status.reason).toContain('pinned since the scan')
+    expect(existsSync(join(directory, old, 'blobs/1-0-0.blob'))).toBe(true)
+  })
+
+  it('does not delete through a root that was swapped for a symlink after the scan', async () => {
+    const old = await makeSession(10, 9, 2)
+    const elsewhere = await mkdtemp(join(tmpdir(), 'recording-prune-elsewhere-'))
+
+    try {
+      await makeSession(24, 0.01, 1)
+      await mkdir(join(elsewhere, old))
+      await writeFile(join(elsewhere, old, 'precious'), 'x')
+
+      let calls = 0
+      const status = await run({
+        apply: true,
+        freeMb: 0,
+        targetMb: 1,
+        afterScan: async () => {
+          if (calls++ > 0) return
+          await rename(directory, `${directory}-moved`)
+          await symlink(elsewhere, directory)
+        },
+      })
+
+      expect(status.deleted).toEqual([])
+      expect(status.ok).toBe(false)
+      expect(await readFile(join(elsewhere, old, 'precious'), 'utf8')).toBe('x')
+      expect(existsSync(join(`${directory}-moved`, old, 'blobs/1-0-0.blob'))).toBe(true)
+    } finally {
+      await rm(directory, { force: true })
+      await rename(`${directory}-moved`, directory).catch(() => undefined)
+      await rm(elsewhere, { recursive: true, force: true })
     }
   })
 
@@ -352,5 +409,25 @@ describe('the keep marker', () => {
 
     expect(output).toContain('recording-prune: dry-run:')
     expect(status).toMatchObject({ mode: 'dry-run', ok: true, deleted: [], wouldDelete: [] })
+  })
+
+  it('records a failed run in the status file instead of leaving the last good one', async () => {
+    const state = join(directory, 'state.json')
+    const script = join(import.meta.dirname, '../deploy/recording-prune.mjs')
+
+    await writeStatus(state, { ok: true, at: 'yesterday' })
+    await writeFile(join(directory, 'rig.json'), JSON.stringify({ record: { dir: join(directory, 'missing'), reserveGb: 0, queueMb: 1 } }))
+
+    const missing = spawnSync(process.execPath, [script, '--config', join(directory, 'rig.json'), '--state', state], { encoding: 'utf8' })
+
+    expect(missing.status).toBe(1)
+    expect(JSON.parse(await readFile(state, 'utf8'))).toMatchObject({ ok: false, mode: 'dry-run' })
+
+    await writeFile(state, JSON.stringify({ ok: true, at: 'yesterday' }))
+
+    const badConfig = spawnSync(process.execPath, [script, '--config', join(directory, 'nope.json'), '--state', state], { encoding: 'utf8' })
+
+    expect(badConfig.status).toBe(2)
+    expect(JSON.parse(await readFile(state, 'utf8')).ok).toBe(false)
   })
 })
