@@ -38,6 +38,27 @@ export function exposeNormally(width = 8, height = 6): Behaviour {
 }
 
 /**
+ * indi_asi_ccd's bias, as seen on errai (2026-10-26): with CCD_FRAME_TYPE on
+ * FRAME_BIAS the driver ignores the requested time and exposes for the minimum of
+ * CCD_EXPOSURE_VALUE, so the frame's EXPTIME is the minimum. Other frame types
+ * expose for the time asked. `exposed` collects the EXPTIME of each frame sent.
+ */
+export function biasAtMinimum(minimum: number, exposed: number[] = []): Behaviour {
+  const normal = exposeNormally()
+
+  return (fake, vector, values) => {
+    if (vector.name !== 'CCD_EXPOSURE') return normal(fake, vector, values)
+
+    const bias = fake.vector(vector.device, 'CCD_FRAME_TYPE').elements.FRAME_BIAS?.value === true
+    const seconds = bias ? minimum : Number(values.CCD_EXPOSURE_VALUE)
+
+    exposed.push(seconds)
+
+    return normal(fake, vector, { ...values, CCD_EXPOSURE_VALUE: seconds })
+  }
+}
+
+/**
  * indi_asi_ccd's frame and binning, as measured on errai (2026-10-15):
  *
  * - CCD_FRAME is in unbinned sensor pixels; an image is the frame divided by the binning;

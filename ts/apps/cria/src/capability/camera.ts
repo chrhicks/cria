@@ -165,13 +165,16 @@ export function makeCamera(context: CapabilityContext, frameGrid: FrameGrid = {}
         if (request.exposureSeconds < minimum || request.exposureSeconds > maximum)
           return yield* invalid(`Exposure ${request.exposureSeconds} s is outside ${minimum}-${maximum} s`)
 
+        const type = request.frameType ?? (request.light ? 'light' : 'dark')
+        // A bias frame has no exposure time: the driver exposes at its minimum whatever is asked.
+        const exposureSeconds = type === 'bias' ? minimum : request.exposureSeconds
         const color = colorAtOrigin(yield* required(camera.bayerPattern, 'sensor colour'), geometry)
 
         if (color !== 'mono' && (request.monochromeOnly || geometry.binX !== 1 || geometry.binY !== 1))
           return yield* invalid('This consumer needs a mono or unbinned Bayer image')
 
         yield* uploadsToClient(snapshot)
-        yield* frameType(context, snapshot, request.frameType ?? (request.light ? 'light' : 'dark'))
+        yield* frameType(context, snapshot, type)
 
         // Subscribe before the exposure starts so even a very short frame's
         // BLOB can't arrive unseen.
@@ -183,10 +186,10 @@ export function makeCamera(context: CapabilityContext, frameGrid: FrameGrid = {}
         const fits = yield* stoppable({
           command: `exposure on ${device.name}`,
           start: Effect.gen(function* () {
-            yield* startMotion(device, 'CCD_EXPOSURE', { CCD_EXPOSURE_VALUE: request.exposureSeconds }, timing)
+            yield* startMotion(device, 'CCD_EXPOSURE', { CCD_EXPOSURE_VALUE: exposureSeconds }, timing)
             yield* report({ phase: 'exposing' })
           }),
-          settle: frameArrival(context, events, report, dispatchedAt, request.exposureSeconds, geometry),
+          settle: frameArrival(context, events, report, dispatchedAt, exposureSeconds, geometry),
           stop: abort,
           stopWithin: 15_000,
           // An exposure error with the abort confirmed leaves an idle camera and no frame:
