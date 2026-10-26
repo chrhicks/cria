@@ -1,5 +1,5 @@
 import { execFileSync, spawnSync } from 'node:child_process'
-import { existsSync, renameSync, symlinkSync } from 'node:fs'
+import { existsSync, renameSync, symlinkSync, writeFileSync } from 'node:fs'
 import { mkdir, mkdtemp, readFile, readdir, rename, rm, symlink, utimes, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -446,7 +446,7 @@ describe('prune on a real folder', () => {
             symlinkSync(outside, directory)
           },
         }),
-      ).rejects.toThrow('no longer resolves')
+      ).rejects.toThrow('no longer the folder')
 
       expect(await readFile(join(outside, plainLeft, 'precious'), 'utf8')).toBe('x')
       expect(await readFile(join(`${directory}-moved`, plainLeft, 'precious'), 'utf8')).toBe('x')
@@ -455,6 +455,64 @@ describe('prune on a real folder', () => {
       await rename(`${directory}-moved`, directory).catch(() => undefined)
       await rm(outside, { recursive: true, force: true })
     }
+  })
+
+  it('does not finish a leftover through a different folder moved into the root pathname', async () => {
+    const replacement = await mkdtemp(join(tmpdir(), 'recording-prune-replacement-'))
+    const pinnedLeft = `${named(1)}.pruning`
+    const plainLeft = `${named(2)}.pruning`
+
+    try {
+      for (const base of [directory, replacement]) {
+        await mkdir(join(base, pinnedLeft), { recursive: true })
+        await writeFile(join(base, pinnedLeft, 'keep'), 'pinned\n')
+        await mkdir(join(base, plainLeft), { recursive: true })
+        await writeFile(join(base, plainLeft, 'precious'), 'x')
+      }
+
+      let swapped = false
+
+      await expect(
+        run({
+          apply: true,
+          freeMb: 10,
+          targetMb: 3,
+          onLog: line => {
+            if (swapped || !line.startsWith(`keeping ${pinnedLeft}`)) return
+            swapped = true
+            renameSync(directory, `${directory}-saved`)
+            renameSync(replacement, directory)
+          },
+        }),
+      ).rejects.toThrow('no longer the folder')
+
+      expect(await readFile(join(directory, plainLeft, 'precious'), 'utf8')).toBe('x')
+      expect(await readFile(join(`${directory}-saved`, plainLeft, 'precious'), 'utf8')).toBe('x')
+    } finally {
+      await rm(replacement, { recursive: true, force: true })
+      await rm(directory, { recursive: true, force: true })
+      await rename(`${directory}-saved`, directory).catch(() => undefined)
+    }
+  })
+
+  it('does not finish a leftover that was pinned while the run was logging it', async () => {
+    const stuck = await makeSession(10, 9, 1)
+
+    await rename(join(directory, stuck), join(directory, `${stuck}.pruning`))
+    await makeSession(24, 0.01, 1)
+
+    const status = await run({
+      apply: true,
+      freeMb: 10,
+      targetMb: 3,
+      onLog: line => {
+        if (line.startsWith('finishing removal')) writeFileSync(join(directory, `${stuck}.pruning`, 'keep'), 'pinned late\n')
+      },
+    })
+
+    expect(status.finishedLeftovers).toEqual([])
+    expect(status.kept).toContainEqual(expect.objectContaining({ name: `${stuck}.pruning`, reason: 'pinned' }))
+    expect(existsSync(join(directory, `${stuck}.pruning`, 'blobs/1-0-0.blob'))).toBe(true)
   })
 
   it('does not delete through a root that was swapped for a symlink after the scan', async () => {
@@ -589,6 +647,20 @@ describe('the keep marker', () => {
     const typo = spawnSync(process.execPath, [script, '--config', join(directory, 'rig.json'), '--state', state, '--aply'], { encoding: 'utf8' })
 
     expect(typo.status).toBe(2)
-    expect(JSON.parse(await readFile(state, 'utf8'))).toMatchObject({ ok: false, reason: 'unknown option --aply' })
+    expect(JSON.parse(await readFile(state, 'utf8'))).toMatchObject({ ok: false, reason: expect.stringContaining('--aply') })
+
+    for (const bad of ['', 'Infinity', '-1', '1e3']) {
+      await writeFile(state, JSON.stringify({ ok: true, at: 'yesterday' }))
+
+      const result = spawnSync(process.execPath, [script, '--config', join(directory, 'rig.json'), '--state', state, '--min-age-days', bad], { encoding: 'utf8' })
+
+      expect(result.status, `--min-age-days '${bad}'`).toBe(2)
+      expect(JSON.parse(await readFile(state, 'utf8')).ok).toBe(false)
+    }
+
+    const falsy = spawnSync(process.execPath, [script, '--config', join(directory, 'rig.json'), '--state', state, '--apply=false'], { encoding: 'utf8' })
+
+    expect(falsy.status).toBe(2)
+    expect(JSON.parse(await readFile(state, 'utf8'))).toMatchObject({ ok: false, mode: 'dry-run' })
   })
 })

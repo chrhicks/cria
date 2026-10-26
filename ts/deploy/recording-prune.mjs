@@ -16,7 +16,7 @@
 // `ok: false` means free space is short of the target and nothing more can go.
 // docs/runtime.md has the install steps. Node built-ins only; `planPrune` is pure.
 import { existsSync, readFileSync } from 'node:fs'
-import { lstat, mkdir, readdir, readFile, realpath, rename, rm, statfs, writeFile } from 'node:fs/promises'
+import { lstat, mkdir, readdir, readFile, realpath, rename, rm, stat, statfs, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { parseArgs } from 'node:util'
@@ -178,9 +178,22 @@ async function newestSession(dir) {
   return newest
 }
 
-/** `dir` must still resolve to the folder the run started with: a swapped root or parent would redirect every delete. */
-async function assertRoot(dir, root) {
-  if ((await realpath(dir)) !== root) throw new Error(`${dir} no longer resolves to ${root}; not deleting`)
+const identity = info => `${info.dev}:${info.ino}`
+
+/**
+ * Resolves `dir` once and returns a check that it is still the very folder the run started with. A swapped
+ * root or parent (a symlink, or another folder moved into place) would redirect every delete.
+ */
+async function pinRoot(dir) {
+  const path = await realpath(dir)
+  const id = identity(await stat(path))
+
+  return {
+    path,
+    assert: async () => {
+      if ((await realpath(dir)) !== path || identity(await stat(path)) !== id) throw new Error(`${dir} is no longer the folder this run started with; not deleting`)
+    },
+  }
 }
 
 /**
@@ -188,20 +201,20 @@ async function assertRoot(dir, root) {
  * The scan can be minutes old (it sizes every blob). The session is inspected again here and must be the same
  * folder, still a session, and still unprotected under the same rules the planner used.
  */
-async function removeSession(root, dir, pick, { now, policy }) {
-  await assertRoot(dir, root)
+async function removeSession(root, pick, { now, policy }) {
+  await root.assert()
 
-  const current = await inspect(root, pick.name)
+  const current = await inspect(root.path, pick.name)
 
   if (!isSession(current)) throw new Error('no longer a session folder; not deleting')
   if (current.id !== pick.id) throw new Error('replaced since the scan; not deleting')
 
-  const newest = await newestSession(root)
+  const newest = await newestSession(root.path)
   const reason = protection(current, { now, policy, newest })
 
   if (reason) throw new Error(`${reason} since the scan; not deleting`)
 
-  const path = join(root, pick.name)
+  const path = join(root.path, pick.name)
   const doomed = `${path}${pruningSuffix}`
 
   await rename(path, doomed)
@@ -228,30 +241,36 @@ export const freeBytesOf = async dir => {
  */
 export async function prune({ dir, reserveBytes, apply, policy, now, freeBytes = freeBytesOf, log }) {
   const mode = apply ? 'apply' : 'dry-run'
-  const root = await realpath(dir)
-  const leftovers = await pendingRemovals(root)
+  const root = await pinRoot(dir)
+  const leftovers = await pendingRemovals(root.path)
   const finished = []
   const pinnedLeftovers = []
 
   for (const name of leftovers) {
-    const path = join(root, name)
+    const path = join(root.path, name)
+    const holdIfPinned = async () => {
+      if (!existsSync(join(path, pinFile))) return false
 
-    await assertRoot(dir, root)
-    if (existsSync(join(path, pinFile))) {
       log(`keeping ${name}: pinned, left over from a failed delete`)
       pinnedLeftovers.push({ name, gb: gb(await treeBytes(path)), reason: 'pinned' })
-      continue
+
+      return true
     }
+
+    await root.assert()
+    if (await holdIfPinned()) continue
 
     log(`${apply ? 'finishing' : 'would finish'} removal of ${name}`)
-    if (apply) {
-      await assertRoot(dir, root)
-      await rm(path, { recursive: true, force: true })
-      finished.push(name)
-    }
+    if (!apply) continue
+
+    await root.assert()
+    if (await holdIfPinned()) continue
+
+    await rm(path, { recursive: true, force: true })
+    finished.push(name)
   }
 
-  const plan = planPrune({ entries: await scan(root), freeBytes: await freeBytes(root), reserveBytes, now: now(), policy })
+  const plan = planPrune({ entries: await scan(root.path), freeBytes: await freeBytes(root.path), reserveBytes, now: now(), policy })
   const deleted = []
   const errors = []
 
@@ -260,7 +279,7 @@ export async function prune({ dir, reserveBytes, apply, policy, now, freeBytes =
     if (!apply) continue
 
     try {
-      await removeSession(root, dir, pick, { now: now(), policy })
+      await removeSession(root, pick, { now: now(), policy })
       deleted.push(pick)
     } catch (error) {
       errors.push(`${pick.name}: ${error instanceof Error ? error.message : String(error)}`)
@@ -269,7 +288,7 @@ export async function prune({ dir, reserveBytes, apply, policy, now, freeBytes =
   for (const skip of plan.skipped) log(`keeping ${skip.name} (${gb(skip.bytes)} GB): ${skip.reason}`)
   for (const name of plan.ignored) log(`ignoring ${name}: not a session folder`)
 
-  const freeAfterBytes = apply ? await freeBytes(root) : plan.freeAfterBytes
+  const freeAfterBytes = apply ? await freeBytes(root.path) : plan.freeAfterBytes
   const measuredBytes = apply ? freeAfterBytes : plan.freeBytes
   const ok = measuredBytes >= plan.targetBytes && errors.length === 0
   const reason = ok
@@ -326,14 +345,22 @@ async function main() {
     'headroom-gb': { type: 'string', default: String(defaults.headroomGb) },
     'min-age-days': { type: 'string', default: String(defaults.minAgeDays) },
   }
-  const { values, positionals } = parseArgs({ options, allowPositionals: true, strict: false })
-  const unknown = [...Object.keys(values).filter(name => !(name in options)).map(name => `--${name}`), ...positionals]
+  let values
+  let usage
+
+  try {
+    values = parseArgs({ options, strict: true }).values
+  } catch (error) {
+    usage = error instanceof Error ? error.message : String(error)
+    values = parseArgs({ options, strict: false, allowPositionals: true }).values
+  }
   const configPath = values.config ?? process.env.CRIA_CONFIG ?? join(homedir(), '.config/cria/rig.json')
   const statePath = values.state ?? defaultStatePath(process.env)
-  const headroomGb = Number(values['headroom-gb'])
-  const minAgeDays = Number(values['min-age-days'])
+  const plainNumber = text => (/^\d+(\.\d+)?$/.test(text) ? Number(text) : NaN)
+  const headroomGb = plainNumber(values['headroom-gb'])
+  const minAgeDays = plainNumber(values['min-age-days'])
   const log = line => console.log(`recording-prune: ${line}`)
-  const mode = values.apply ? 'apply' : 'dry-run'
+  const mode = values.apply === true ? 'apply' : 'dry-run'
   const fail = async (reason, code) => {
     console.error(`recording-prune: ${reason}`)
     await writeStatus(statePath, { at: new Date().toISOString(), mode, ok: false, reason, deleted: [], wouldDelete: [], kept: [] }).catch(() => undefined)
@@ -341,8 +368,8 @@ async function main() {
   }
   let record
 
-  if (unknown.length > 0) await fail(`unknown option ${unknown.join(', ')}`, 2)
-  if (!(headroomGb >= 0) || !(minAgeDays >= 0)) await fail('--headroom-gb and --min-age-days must be numbers of at least 0', 2)
+  if (usage) await fail(usage, 2)
+  if (!(headroomGb >= 0) || !(minAgeDays >= 0)) await fail('--headroom-gb and --min-age-days must be plain numbers of at least 0', 2)
 
   try {
     record = readRecordConfig(configPath)
@@ -363,7 +390,7 @@ async function main() {
     status = await prune({
       dir: record.dir,
       reserveBytes: record.reserveBytes,
-      apply: values.apply,
+      apply: values.apply === true,
       policy: { headroomBytes: headroomGb * GiB, minAgeMs: minAgeDays * DAY_MS, liveWindowMs: defaults.liveWindowMs },
       now: Date.now,
       log,
