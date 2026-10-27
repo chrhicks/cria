@@ -1369,7 +1369,8 @@ For each named session, in this order, stopping at the first failure:
    to 5 still run and the tool prints what it would delete. A session that is open is refused before step 1.
    A young or pinned session is archived and kept on errai.
    With `--source-dir` (a local folder standing in for errai), a staging or archive folder that is, holds or sits inside the
-   source folder is refused before anything is removed, because the run replaces stale staging folders.
+   source folder is refused before anything is removed, because the run replaces stale staging folders. For any
+   source, an archive folder that is, or sits inside, the staging folder is refused for the same reason.
 
 **Which frames are kept.** Vela's frame records (`traces/frames.jsonl`, read-only) carry `provenance.imageId`, the
 id of Cria's image, and `provenance.operationId`. A frame is Vela's save when its outcome is `saved`. `save-failed` is

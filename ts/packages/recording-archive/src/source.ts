@@ -108,6 +108,14 @@ export function localSource(directory: string): Source {
   }
 }
 
+/** The archive may hold the staging folder (the default), but must not be, or sit inside, staging: cleanup of a staged session would remove it. */
+export async function assertArchiveOutsideStaging(stagingDirectory: string, archiveDirectory: string): Promise<void> {
+  const staging = await realpath(stagingDirectory)
+  const path = relative(staging, await realpath(archiveDirectory))
+
+  if (path === '' || (!path.startsWith('..') && !path.startsWith('/'))) throw new ArchiveError(`the archive folder ${archiveDirectory} is, or is inside, the staging folder ${stagingDirectory}`)
+}
+
 /**
  * A local source must not overlap staging or the archive: the run removes stale staging folders and replaces
  * archive files, and either would then reach the source itself. Compared by real path, so a symlink does not hide it.

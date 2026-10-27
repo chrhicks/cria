@@ -330,6 +330,18 @@ describe('archiving a session', () => {
     }
   })
 
+  it('refuses an archive folder that is or sits inside staging, which cleanup would empty', async () => {
+    await session(older)
+    await session(newest)
+    await usual()
+    const staging = join(root, 'staging')
+
+    for (const archiveDir of [staging, join(staging, older, 'archive'), join(staging, 'inner')]) {
+      expect(await archiveSession(older, options({ apply: true, stagingDir: staging, archiveDir }))).toMatchObject({ state: 'refused', ok: false, source: 'untouched' })
+      expect(await names(errai)).toEqual([older, newest])
+    }
+  })
+
   it('refuses a second run on a session whose lock is held', async () => {
     await session(older)
     await session(newest)
