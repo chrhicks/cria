@@ -352,7 +352,7 @@ operation has no deadline field, and Vela cannot read the configured values.
 | Capture | The exposure plus `readoutAllowanceMs`. With no frame by then Cria aborts, and with the abort confirmed it settles `failed: unavailable`. Frames that were not this exposure settle `failed: rejected` when the camera is then idle, else `uncertain`. |
 | Motion (slew, park, home, focuser move) | `operationTimeoutMs` for the driver to finish the motion, then `failed: unavailable`. |
 | Setting | `acknowledgeMs` for the driver to answer, then up to the confirm deadline (15 s unless the kind sets its own) for the new state; `uncertain` if either passes. |
-| Stop (`mount-stop`, `focuser-halt`) and a Run's stop | `stopWithin`: 20 s for the mount and focuser, 15 s for the camera abort. |
+| Stop (`mount-stop`, `focuser-halt`) and a Run's stop | `stopWithin`: 20 s for the mount and focuser, 15 s for the camera abort. A stopped home is confirmed from the coordinates, not `TELESCOPE_HOME` (see "Stopping the mount"). |
 | `device-connect` | `initializeTimeoutMs` for the driver to acknowledge the connect and again for the device to read connected, then `uncertain`. Device setup follows under its own writes' bounds. |
 
 These bounds are per kind, not one guarantee stated in code: nothing enforces a
@@ -650,6 +650,30 @@ again until it is confirmed or the 20 s pass, and `mount-stop` gives up at 20 s.
 Unconfirmed, the outcome is `uncertain: stop-not-confirmed`, never `confirmed`.
 This covers `mount-stop`, cancelling a slew, park, home, `mount-axis` or
 `mount-rotate`, and SIGTERM.
+
+**A stop during home.** indi_lx200am5 turns `TELESCOPE_HOME` `Busy` when a home
+starts and does not mark the coordinates `Busy` while the mount homes. After an
+abort it answers `Ok` at once and can leave `TELESCOPE_HOME` `Busy` for good
+(seen on errai, 2026-10-26: no further update of it in 25 s, the coordinates
+`Idle` and unmoved throughout, tracking off). The `Busy` flag on `TELESCOPE_HOME`
+is therefore not evidence of motion once the abort is acknowledged, and for a
+home it is not read. A home that a client stopped is confirmed when, after the
+abort is acknowledged:
+
+1. none of the other motion properties (the coordinates, park, `TELESCOPE_MOTION_WE`,
+   `TELESCOPE_MOTION_NS`) is `Busy`, and
+2. the coordinates pass the two-read test above: not `Busy`, and still over the
+   confirmation window. The coordinates, not the `Busy` flag, are the evidence.
+
+Then the home settles `stopped`, as a confirmed stop of any other motion does,
+and the mount is not held: the next mount command is accepted at once. It stays
+`uncertain: stop-not-confirmed` and the mount held when the abort is not
+acknowledged, when the coordinates change over the window, when they cannot be
+read or stop updating, or when any other motion property is still `Busy`. The
+timeouts are the same as for any stop, and the abort is resent as before. Only a
+home is treated this way. A slew, park, `mount-axis`, `mount-rotate` and
+`mount-stop` still require every motion property, `TELESCOPE_HOME` included, to
+be not `Busy`.
 
 **A rotate leads its stop.** The mount keeps going for about `stopLatencyMs`
 (900 ms, measured on the AM5) at the axis rate after Cria sees it reach a target,
