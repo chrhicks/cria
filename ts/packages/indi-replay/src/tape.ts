@@ -7,7 +7,7 @@
 import { open } from 'node:fs/promises'
 import { join } from 'node:path'
 import { readFitsHeader } from '@cria/fits'
-import { readManifest, readRecording, verifyRecording, type Manifest } from '@cria/recording'
+import { readManifest, readRecording, verifyRecording, type Manifest, type PrunedFrame } from '@cria/recording'
 import { AnswerCounter, type AnswerSet } from './answers.js'
 import { RepeatCounter } from './repeats.js'
 import { parseClientAsk, parseServerElement, type ServerElement } from './xml.js'
@@ -19,8 +19,7 @@ export class TapeError extends Error {
 /** One thing a driver said, with when Cria heard it: `t` on the recording's monotonic clock, `at` in epoch milliseconds. */
 export type TapeEvent = { readonly t: number; readonly at: number; readonly answer?: true } & Exclude<ServerElement, { readonly kind: 'image' }>
 
-/** One image the camera delivered, and what its FITS header says about its size. */
-export interface Frame {
+interface FrameBase {
   readonly index: number
   readonly device: string
   readonly property: string
@@ -33,9 +32,21 @@ export interface Frame {
   readonly at: number
   /** The image file, absolute. */
   readonly path: string
+}
+
+/** One image the camera delivered, and what its FITS header says about its size. */
+export interface ImageFrame extends FrameBase {
   readonly width: number
   readonly height: number
+  readonly pruned?: undefined
 }
+
+/** An image the recording's `pruned-frames.json` says was removed on purpose: its place in the order is kept, its pixels and size are gone. */
+export interface PrunedImageFrame extends FrameBase {
+  readonly pruned: PrunedFrame
+}
+
+export type Frame = ImageFrame | PrunedImageFrame
 
 export interface Tape {
   readonly directory: string
@@ -81,7 +92,8 @@ export async function loadTape(directory: string, options: { readonly camera?: s
 
   const manifest = await readManifest(directory)
   const events: TapeEvent[] = []
-  const images = new Map<string, Array<{ t: number; at: number; element: string; format: string; path: string; timeout?: number; message?: string }>>()
+  const images = new Map<string, Array<{ t: number; at: number; element: string; format: string; path: string; pruned?: PrunedFrame; timeout?: number; message?: string }>>()
+  const pruned = new Map(report.prunedImages.map(frame => [frame.path, frame]))
   const repeats = new RepeatCounter()
   const answers = new AnswerCounter()
 
@@ -114,7 +126,7 @@ export async function loadTape(directory: string, options: { readonly camera?: s
       if (!(line.blobs ?? []).includes(image.ref)) throw new TapeError(`${directory}: an image in the XML of message ${line.n} is not one of the message's recorded images: ${image.ref}`)
       const list = images.get(element.device) ?? []
 
-      list.push({ t: line.t, at: line.at, element: image.element, format: image.format, path: join(directory, image.ref), ...(element.timeout === undefined ? {} : { timeout: element.timeout }), ...(element.message === undefined ? {} : { message: element.message }) })
+      list.push({ t: line.t, at: line.at, element: image.element, format: image.format, path: join(directory, image.ref), ...(pruned.has(image.ref) ? { pruned: pruned.get(image.ref)! } : {}), ...(element.timeout === undefined ? {} : { timeout: element.timeout }), ...(element.message === undefined ? {} : { message: element.message }) })
       images.set(element.device, list)
     }
   }
@@ -127,9 +139,10 @@ export async function loadTape(directory: string, options: { readonly camera?: s
   const frames: Frame[] = []
 
   for (const image of served) {
-    const size = await frameSize(image.path)
+    const { pruned: removed, ...kept } = image
+    const base = { index: frames.length, device: camera, property: mainChip, ...kept }
 
-    frames.push({ index: frames.length, device: camera, property: mainChip, ...image, ...size })
+    frames.push(removed ? { ...base, pruned: removed } : { ...base, ...(await frameSize(kept.path)) })
   }
 
   const { sets, indexes } = answers.found()

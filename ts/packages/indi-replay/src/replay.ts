@@ -56,6 +56,7 @@ export type ReplayEvent = { readonly at: number } & (
   | { readonly kind: 'reserved'; readonly frame: number; readonly seconds: number }
   | { readonly kind: 'delivered'; readonly frame: number; readonly clients: number }
   | { readonly kind: 'aborted'; readonly frame: number }
+  | { readonly kind: 'pruned'; readonly frame: number; readonly reason: string }
   | { readonly kind: 'refused'; readonly device: string; readonly property: string; readonly message: string }
   | { readonly kind: 'ended' }
   | { readonly kind: 'fault'; readonly fault: Fault }
@@ -372,7 +373,8 @@ export async function startReplay(tape: Tape, options: ReplayOptions = {}): Prom
     const frame = tape.frames[next]!
     const size = configuredSize()
 
-    if (size === undefined || size.width !== frame.width || size.height !== frame.height) {
+    // A pruned frame's size went with its image, so there is nothing to check the camera's geometry against.
+    if (frame.pruned === undefined && (size === undefined || size.width !== frame.width || size.height !== frame.height)) {
       const set = size === undefined ? 'unreadable' : `${size.width}x${size.height}`
 
       exposureState('Alert', { message: `frame ${frame.index} is ${frame.width}x${frame.height}; the camera is set to ${set}` })
@@ -398,6 +400,14 @@ export async function startReplay(tape: Tape, options: ReplayOptions = {}): Prom
 
     if (!current(exposure)) return
     runFaults(frame.index, 'before-blob')
+
+    if (frame.pruned !== undefined) {
+      phase = { kind: 'idle' }
+      record({ kind: 'pruned', frame: frame.index, reason: frame.pruned.reason })
+      exposureState('Alert', { message: `frame ${frame.index} was pruned from this recording: ${frame.pruned.reason}` })
+
+      return
+    }
 
     try {
       const source = await readFile(frame.path)

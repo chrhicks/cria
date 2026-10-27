@@ -21,7 +21,7 @@ export class DamagedRecordingError extends Error {
 
 const decodeLine = Schema.decodeUnknownResult(RecordingLine)
 const decodeManifest = Schema.decodeUnknownResult(Manifest)
-const decodePrunedFrames = Schema.decodeUnknownResult(PrunedFrames)
+const decodePrunedFramesText = Schema.decodeUnknownResult(Schema.fromJsonString(PrunedFrames))
 
 function decode(text: string, number: number): Item {
   let json: unknown
@@ -64,40 +64,34 @@ export async function readManifest(dir: string): Promise<Manifest> {
   return decoded.success
 }
 
+/** The list as the file says it, or why the file is damaged. No file is an empty list. */
+async function prunedFramesResult(dir: string): Promise<Result.Result<ReadonlyArray<PrunedFrame>, string>> {
+  if (!(await readdir(dir)).includes(prunedFramesFile)) return Result.succeed([])
+
+  const decoded = decodePrunedFramesText(await readFile(join(dir, prunedFramesFile), 'utf8'))
+
+  if (Result.isFailure(decoded)) return Result.fail(`${prunedFramesFile}: ${String(decoded.failure)}`)
+
+  const paths = new Set<string>()
+
+  for (const { path } of decoded.success.frames) {
+    if (paths.has(path)) return Result.fail(`${prunedFramesFile}: ${path} is listed twice`)
+    paths.add(path)
+  }
+
+  return Result.succeed(decoded.success.frames)
+}
+
 /**
  * The blobs removed on purpose, from `pruned-frames.json`. No file is an empty list. A file that is not JSON,
  * does not match the shape or lists a path twice throws `DamagedRecordingError`, never an empty list.
  */
 export async function readPrunedFrames(dir: string): Promise<ReadonlyArray<PrunedFrame>> {
-  let text: string
+  const result = await prunedFramesResult(dir)
 
-  try {
-    text = await readFile(join(dir, prunedFramesFile), 'utf8')
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return []
-    throw error
-  }
+  if (Result.isFailure(result)) throw new DamagedRecordingError(result.failure)
 
-  let json: unknown
-
-  try {
-    json = JSON.parse(text)
-  } catch (error) {
-    throw new DamagedRecordingError(`${prunedFramesFile}: not JSON: ${(error as Error).message}`)
-  }
-
-  const decoded = decodePrunedFrames(json)
-
-  if (Result.isFailure(decoded)) throw new DamagedRecordingError(`${prunedFramesFile}: ${String(decoded.failure)}`)
-
-  const paths = new Set<string>()
-
-  for (const { path } of decoded.success.frames) {
-    if (paths.has(path)) throw new DamagedRecordingError(`${prunedFramesFile}: ${path} is listed twice`)
-    paths.add(path)
-  }
-
-  return decoded.success.frames
+  return result.success
 }
 
 /** Every line in file order. Drops a torn tail. Throws `DamagedRecordingError` at a damaged line. */
@@ -186,12 +180,10 @@ export async function verifyRecording(dir: string): Promise<RecordingReport> {
     problems.push({ kind: 'bad-manifest', message: (error as Error).message })
   }
 
-  try {
-    for (const frame of await readPrunedFrames(dir)) pruned.set(frame.path, frame)
-  } catch (error) {
-    if (!(error instanceof DamagedRecordingError)) throw error
-    problems.push({ kind: 'bad-pruned-frames', message: error.message })
-  }
+  const listed = await prunedFramesResult(dir)
+
+  if (Result.isFailure(listed)) problems.push({ kind: 'bad-pruned-frames', message: listed.failure })
+  else for (const frame of listed.success) pruned.set(frame.path, frame)
 
   const check = (number: number, line: RecordingLine) => {
     if (ended) problems.push({ kind: 'line-after-end', line: number })
@@ -211,9 +203,9 @@ export async function verifyRecording(dir: string): Promise<RecordingReport> {
     for (const path of line.blobs ?? []) {
       named.add(path)
       if (!onDisk.has(path)) {
-        const listed = pruned.get(path)
+        const removed = pruned.get(path)
 
-        if (listed) prunedImages.set(path, listed)
+        if (removed) prunedImages.set(path, removed)
         else problems.push({ kind: 'missing-image', line: number, path })
         continue
       }
