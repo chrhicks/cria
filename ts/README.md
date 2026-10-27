@@ -15,6 +15,7 @@ legacy ([docs/legacy-windows.md](../docs/legacy-windows.md)).
 | `packages/indi` | XML framing, property mirror, `IndiClient` / `IndiDevice` | INDI boundary (no primitive) |
 | `packages/indi-replay` | `indi-replay`: serves a recording over TCP like indiserver, for running the real Cria against a recorded night; `synthesizeTape` | — |
 | `packages/recording` | `@cria/recording`: the recording format, the recorder behind the INDI client's tap, the reader and `verifyRecording` | Recording (off unless `record` is configured) |
+| `packages/recording-archive` | `cria-archive`: copies a finished recording from errai to thuban, keeps the frames Vela saved and the autofocus samples, packs it as tar + zstd, checks the pack replays, then deletes errai's copy with `--apply` (docs/runtime.md, "Archiving recordings to thuban") | — |
 | `packages/cria-wire` | `@cria/wire`: the protocol 5 schemas and the 15-kind command table, shared with Vela | View |
 | `apps/cria/src/capability` | camera, mount, focuser, weather, power, connection | Capabilities |
 | `apps/cria/src/operation` | workflow bodies; the ledger, one owner of operations per rig with one Run per failure domain | Workflows, Run, Quarantine |
@@ -49,6 +50,7 @@ pnpm install
 pnpm verify      # build, typecheck, committed dist/, wire golden, every test: about 2 min
 pnpm test        # every test, about 75 s; starts its own indiservers on free ports
 pnpm build       # primitives, indi, then the service, into dist/
+pnpm archive SESSION...        # archive a finished recording (dry run unless --apply)
 pnpm replay serve <recording>   # indi-replay from source: a recording served like indiserver (docs/ts/SPEC.md, "Replay")
 node apps/cria/dist/main.js deploy/rig.errai.json
 ```

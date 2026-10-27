@@ -42,6 +42,8 @@ const allowed: Record<string, Partial<Record<Rule, readonly [count: number, why:
   'packages/indi/src/xml.ts': {
     'try-catch': [2, 'an IndiProtocolError from one element or from the framing becomes a problem the client logs, never a throw out of a data handler'],
   },
+  'packages/recording-archive/src/archive.ts': { 'try-catch': [1, 'a failed step becomes the session\'s status, so one bad session does not stop the next; the lock is released in finally'] },
+  'packages/recording-archive/src/main.ts': { 'try-catch': [1, 'a bad option is a usage error, exit 2, not a stack trace'] },
   'packages/recording/src/reader.ts': {
     'try-catch': [2, 'a line that is not JSON, and a manifest that cannot be read, are reported as damage, not thrown'],
   },

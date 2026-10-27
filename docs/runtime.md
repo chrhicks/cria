@@ -308,6 +308,38 @@ systemctl --user edit recording-prune.service
 
 Remove the drop-in (`systemctl --user revert recording-prune.service`) to go back to reporting.
 
+### Archiving recordings to thuban
+
+`cria-archive` is stage 2 of recording housekeeping. It runs on thuban, copies one finished session off errai, keeps the frames Vela saved and every autofocus sample, packs it as `tar` + `zstd` into `/mnt/storage/cria-archive/`, proves the pack replays on its own, and only then deletes the session on errai. The steps, the rules for which frames are kept and the status file are in [SPEC.md, "Archiving a recording"](ts/SPEC.md#archiving-a-recording). It has no timer yet.
+
+It needs `ssh errai` to work without a prompt (`BatchMode`), `tar`, `zstd` and `sha256sum` on thuban, `tar`, `find` and `sha256sum` on errai, and Vela's records on thuban (`~/.local/share/vela/traces/frames.jsonl` and `autofocus.jsonl`, read only).
+
+**Run it by hand.** From `ts/` on thuban, after `pnpm install`:
+
+```sh
+pnpm archive 2026-10-24T23-14-00-<instanceId>            # steps 1 to 5; prints what it would delete
+pnpm archive --apply 2026-10-24T23-14-00-<instanceId>    # the same, then deletes it on errai
+```
+
+`ssh errai ls /home/chicks/cria-recordings` lists the folders. The first line of each step is logged as `<session>: n/6 ...`. Options:
+
+| Option | Default | Meaning |
+| --- | --- | --- |
+| `--apply` | off | Delete the session on errai after it is archived. Needs the guards below to pass |
+| `--host`, `--remote-dir` | `errai`, `/home/chicks/cria-recordings` | Where the sessions are |
+| `--source-dir DIR` | | Use a folder on this machine instead of ssh, to rehearse on a copy |
+| `--archive-dir` | `/mnt/storage/cria-archive` | Where the packs go |
+| `--staging` | `<archive-dir>/.staging` | Working copy. Keep it on the archive's filesystem so step 5 is a rename |
+| `--vela-dir` | `~/.local/share/vela` | Vela's data folder |
+| `--rig-id` | any | Only read Vela records of this rig |
+| `--min-age-days` | 3 | A session younger than this is archived but kept on errai |
+| `--allow-unmatched` | off | Archive even when some Vela frames could not be matched |
+| `--state` | `~/.local/state/cria/recording-archive.json` | Status file |
+
+**Free space.** Staging holds one full session (20 to 28 GB) and then the pack (about the kept frames, roughly 35 percent smaller than raw FITS). Sessions are processed one after another.
+
+**When it stops.** `needs-review` means nothing was archived and nothing was deleted; read `unmatched` in the status, fix the cause or pass `--allow-unmatched`. `failed` leaves the staging folder for a look; the next run for the same session starts clean. A lock file in staging from a crashed run blocks that session until it is removed. A run that fails at the delete step is finished by running the same command again: the pack is already in the archive, so only step 6 runs.
+
 ## Before Cria commands the rig
 
 The checks on errai so far were read-only. [ts/README.md, "Before trying it on the rig"](../ts/README.md#before-trying-it-on-the-rig) lists what has to happen first, and the first session is with Chris present.
