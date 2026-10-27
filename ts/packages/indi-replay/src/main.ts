@@ -64,7 +64,7 @@ async function serve(args: ReadonlyArray<string>) {
   })
 
   console.log(`listening on 127.0.0.1:${replay.port}`)
-  console.error(`serving ${tape.frames.length} frames of ${tape.camera} from ${tape.directory}`)
+  console.error(`serving ${tape.frames.length} frames of ${tape.camera} from ${tape.directory}, ${tape.frames.filter(frame => frame.pruned !== undefined).length} of them pruned`)
 
   for (const signal of ['SIGINT', 'SIGTERM'] as const) process.once(signal, () => void replay.stop().then(() => process.exit(0)))
 }

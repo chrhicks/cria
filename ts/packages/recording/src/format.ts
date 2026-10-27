@@ -4,6 +4,7 @@
  *   manifest.json   written once at start; nothing rewrites it
  *   traffic.jsonl   one line per event, in the order Cria saw them
  *   blobs/          one file per BLOB payload, named by connection, ordinal and element index
+ *   pruned-frames.json   optional; written after the fact by a tool that removes blobs on purpose
  *
  * `traffic.jsonl` holds the whole story, so there is one writer of each fact: a
  * dropped stretch is a `gap` line, a settled Cria operation is an `op` line and
@@ -103,3 +104,19 @@ export type Manifest = typeof Manifest.Type
 export const manifestFile = 'manifest.json'
 export const trafficFile = 'traffic.jsonl'
 export const blobsDirectory = 'blobs'
+
+export const prunedFramesFile = 'pruned-frames.json'
+
+/** An image file removed on purpose, so its absence is not damage. */
+export const PrunedFrame = Schema.Struct({
+  path: BlobPath,
+  /** For a person to read. */
+  reason: Schema.String.pipe(Schema.check(Schema.isNonEmpty())),
+  /** Wall-clock epoch milliseconds when the file was removed. */
+  prunedAt: Milliseconds,
+})
+
+export const PrunedFrames = Schema.Struct({ format: Schema.Literal(1), frames: Schema.Array(PrunedFrame) })
+
+export type PrunedFrame = typeof PrunedFrame.Type
+export type PrunedFrames = typeof PrunedFrames.Type

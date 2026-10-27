@@ -1,7 +1,7 @@
 import { mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises'
 import net from 'node:net'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { join, relative } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { fitsToImageBytes, readFitsHeader } from '@cria/fits'
 import type { Clock } from './clock.js'
@@ -130,6 +130,26 @@ async function serve(options: { faults?: ReadonlyArray<Fault>; spec?: SynthSpec;
   return { tape, folder }
 }
 
+/** Removes the images of the given frames on purpose: deletes the files and lists them, as the archive pipeline will. */
+async function prune(folder: string, frames: ReadonlyArray<number>, reason = 'not saved by Vela') {
+  const whole = await loadTape(folder)
+  const paths = frames.map(index => relative(folder, whole.frames[index]!.path))
+
+  for (const path of paths) await rm(join(folder, path))
+  await writeFile(join(folder, 'pruned-frames.json'), JSON.stringify({ format: 1, frames: paths.map(path => ({ path, reason, prunedAt: 1_800_000_000_000 })) }))
+}
+
+async function servePruned(frames: ReadonlyArray<number>, reason?: string) {
+  const folder = await synthesizeTape(spec, join(directory, 'tape'))
+
+  await prune(folder, frames, reason)
+  const tape = await loadTape(folder)
+
+  replay = await startReplay(tape, { clock })
+
+  return { tape, folder }
+}
+
 async function connect(blobs = true) {
   const client = await Client.connect(replay!.port)
 
@@ -164,7 +184,7 @@ describe('loading a recording', () => {
     const { tape } = await serve()
 
     expect(tape.camera).toBe(camera)
-    expect(tape.frames.map(frame => [frame.index, frame.width, frame.height, frame.format])).toEqual(
+    expect(tape.frames.flatMap(frame => (frame.pruned === undefined ? [[frame.index, frame.width, frame.height, frame.format]] : []))).toEqual(
       [0, 1, 2, 3, 4, 5].map(index => [index, sensor.width, sensor.height, '.fits']),
     )
     expect(tape.kinds.get(mount)).toBe('mount')
@@ -494,6 +514,61 @@ describe('an exposure', () => {
     clock.advance(10_000)
     await client.quiet()
     expect(images(client)).toHaveLength(2)
+  })
+})
+
+describe('a pruned frame', () => {
+  it('loads as a frame with no size, and the images around it load as before', async () => {
+    const { tape } = await servePruned([1], 'duplicate of a saved frame')
+
+    expect(tape.frames.map(frame => [frame.index, frame.pruned?.reason])).toEqual([[0, undefined], [1, 'duplicate of a saved frame'], [2, undefined], [3, undefined], [4, undefined], [5, undefined]])
+  })
+
+  it('still refuses an image that is missing and not listed', async () => {
+    const folder = await synthesizeTape(spec, join(directory, 'tape'))
+
+    await prune(folder, [1])
+    await rm(join(folder, (await loadTape(folder)).frames[2]!.path.replace(`${folder}/`, '')))
+    await expect(loadTape(folder)).rejects.toThrow(TapeError)
+  })
+
+  it('refuses a list that is malformed', async () => {
+    const folder = await synthesizeTape(spec, join(directory, 'tape'))
+
+    await writeFile(join(folder, 'pruned-frames.json'), '{"format":1,"frames":[{"path":"blobs/1-0-0.blob"}]}')
+    await expect(loadTape(folder)).rejects.toThrow(/pruned-frames\.json/)
+  })
+
+  it('keeps its place: Busy for the time asked, then Alert with the reason, no image, and the next frame follows', async () => {
+    await servePruned([1], 'duplicate of a saved frame')
+    const client = await connect()
+
+    await begin(client, 1)
+    clock.advance(1000)
+    await client.until('frame 0', () => images(client).length === 1)
+
+    await begin(client, 1)
+    expect(states(client, camera, 'CCD_EXPOSURE').at(-1)).toBe('Busy')
+    clock.advance(1000)
+    await client.until('Alert', () => states(client, camera, 'CCD_EXPOSURE').at(-1) === 'Alert')
+    expect(client.received(`<setNumberVector device="${camera}" name="CCD_EXPOSURE" state="Alert"`).at(-1)).toContain('frame 1 was pruned from this recording: duplicate of a saved frame')
+    expect(replay!.phase()).toBe('idle')
+    expect(replay!.cursor()).toBe(2)
+    expect(replay!.events().map(event => event.kind)).toEqual(['reserved', 'delivered', 'reserved', 'pruned'])
+
+    await begin(client, 1)
+    clock.advance(1000)
+    await client.until('frame 2', () => images(client).length === 2)
+    expect(pixels(images(client)[1]!)).toEqual(pixels(await readFile((await loadTape(join(directory, 'tape'))).frames[2]!.path)))
+    expect(images(client)).toHaveLength(2)
+  })
+
+  it('uses a listed image that is still on disk', async () => {
+    const folder = await synthesizeTape(spec, join(directory, 'tape'))
+    const path = relative(folder, (await loadTape(folder)).frames[1]!.path)
+
+    await writeFile(join(folder, 'pruned-frames.json'), JSON.stringify({ format: 1, frames: [{ path, reason: 'x', prunedAt: 1 }] }))
+    expect((await loadTape(folder)).frames[1]!.pruned).toBeUndefined()
   })
 })
 

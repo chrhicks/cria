@@ -388,10 +388,10 @@ the same tag in their doc comment.
 | `packages/indi/src/client.ts` | INDI boundary | The TCP connection, paced reconnect, `send`, BLOB routing, and `IndiDevice` |
 | `packages/indi/src/tap.ts` | INDI boundary | `TrafficTap`: what the client tells a recorder about each element sent and received |
 | `packages/indi/src/index.ts` | | The package's exports |
-| `packages/recording/src/format.ts` | View | The recording on disk: manifest and the line union `msg`, `conn`, `gap`, `end` as Effect Schemas |
+| `packages/recording/src/format.ts` | View | The recording on disk: manifest, the line union `msg`, `conn`, `gap`, `end` and the pruned-frames list as Effect Schemas |
 | `packages/recording/src/recorder.ts` | Composition | The recorder: byte-bounded queue, one consumer, write order, latch-off (see "Recording") |
 | `packages/recording/src/files.ts` | | The recorder's only contact with the disk, as one interface tests can stall, fill or kill |
-| `packages/recording/src/reader.ts` | | `readRecording`, `readManifest` and `verifyRecording` |
+| `packages/recording/src/reader.ts` | | `readRecording`, `readManifest`, `readPrunedFrames` and `verifyRecording` |
 | `packages/cria-wire/src/values.ts` | View | `Reading`, `Outcome`, `Timestamp`, `Json` as wire schemas |
 | `packages/cria-wire/src/ids.ts` | View | Branded IDs: `InstanceId`, `OperationId`, `ImageId`, `BindingId` (UUIDs), `DeviceId`, `FailureDomain`, `RequestId` |
 | `packages/cria-wire/src/command.ts` | View | The 15 operation kinds as one table: device kind, halt, parameter bounds |
@@ -1265,6 +1265,10 @@ Each Cria start opens one folder, `<start time>-<instanceId>`, under `dir`:
 - `blobs/<connection>-<n>-<index>.blob`, one file per image payload, in the
   `msg` line's `blobs` and named by a `ref` on the elided `<oneBLOB .../>` in its
   `xml`. Nothing is hashed on errai.
+- `pruned-frames.json`, optional. Cria never writes it. A tool that removes image
+  files from a finished recording (the archive pipeline) writes it first and
+  deletes the files after, so the list is never behind the disk. See "Pruned
+  frames".
 
 The tap sits in `@cria/indi`'s client, after the framer, so recording reuses the
 bytes and decoded images Cria already parsed. `xml` is the element's wire text,
@@ -1296,13 +1300,42 @@ Cria runs unrecorded. Closing waits at most five seconds for a stalled disk, the
 lets go of the recording without waiting for its file.
 
 `verifyRecording(folder)` reports `valid` (no problems), whether Cria `ended`
-cleanly, a torn tail, a count of lines, messages, operations and images, the gaps, and
-unreferenced files. A torn last line, a gap, a missing `end` and unreferenced files
-are not problems. These are: a line that does not decode, a referenced image
-that is missing or whose size differs from the `size` its `oneBLOB` states (a
+cleanly, a torn tail, a count of lines, messages, operations and images, the gaps,
+unreferenced files, and the pruned frames (`prunedImages`: listed and missing,
+`prunedStillPresent`: listed and on disk). A torn last line, a gap, a missing `end`,
+unreferenced files and pruned frames are not problems. These are: a line that does
+not decode, a pruned-frames list that is malformed, a referenced image
+that is missing and not listed as pruned or whose size differs from the `size` its `oneBLOB` states (a
 compressed `.z` payload states its size after inflating, so it is not compared),
 a message count that skips (a deleted line), time running
 backwards, and any line after a `gap` (other than `end`) or after `end`.
+
+### Pruned frames
+
+A finished recording may lose image files on purpose. `traffic.jsonl` is never
+rewritten, so its `msg` lines still name the removed files. `pruned-frames.json`
+says which ones were removed and why, so a reader can tell an intentional gap
+from damage:
+
+```json
+{ "format": 1, "frames": [ { "path": "blobs/1-12-0.blob", "reason": "not saved by Vela", "prunedAt": 1792000000000 } ] }
+```
+
+`path` is a `blobs/` path as in a `msg` line's `blobs`. `reason` is a non-empty
+text for a person to read. `prunedAt` is the wall-clock epoch milliseconds when
+the file was removed. The writer replaces the whole file (write a temporary file,
+rename it), so a reader sees the old list or the new one.
+
+- No file means no frame was pruned. A file that is not JSON, does not match the
+  shape, has a `format` other than 1, or lists a path twice is damage: a reader
+  fails with a clear error, and never reads it as an empty list.
+- A named image that is missing is an intentional gap when the list names its
+  path, and `missing-image` damage when it does not. The list never excuses
+  anything else: a wrong size, a skipped message or a bad line is still damage.
+- A listed path whose file still exists is not a problem. A pruning tool that
+  stops between writing the list and deleting the file leaves exactly this. The
+  file wins: readers use the image and report the path as still present.
+- A listed path that no `msg` line names is ignored.
 
 ## Replay
 
@@ -1360,6 +1393,19 @@ abort cancels the exposure: no late image is sent, the camera goes `Idle`, and
 the reserved frame stays used. After the last frame, a further exposure gets
 `Busy` then `Alert` "end of recording". `Busy` first, because Cria ignores an
 `Alert` that was already there before its command.
+
+**A pruned frame** (see "Pruned frames") keeps its place in the order. Replay
+reserves it like any frame: the rig jumps to its time, the camera goes `Busy` for
+the requested time, and then `CCD_EXPOSURE` goes `Alert` with a message naming the
+frame and its reason, and no image is sent. The cursor moves on, so the next
+exposure gets the next frame. The geometry check is skipped, because the image
+that held the size is gone. Replay does not skip the frame, which would hand Cria
+a later frame at an earlier frame's time and move every later frame's rig state.
+It does not send a blank image either, because it would be invented pixels of an
+unknown size; "nothing is simulated beyond what the recording holds". Cria sees a
+failed exposure on an idle camera, as it would from a camera that lost a frame.
+`loadTape` still fails on a recording with unlisted missing images or a malformed
+list.
 
 **Sidereal time.** If the recording's mount has no `TIME_LST`, replay defines one
 before any client connects and updates it with each frame, from the frame's
