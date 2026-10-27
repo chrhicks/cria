@@ -2,7 +2,7 @@ import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { DamagedRecordingError, readManifest, readRecording, verifyRecording } from './reader.js'
+import { DamagedRecordingError, readManifest, readPrunedFrames, readRecording, verifyRecording } from './reader.js'
 import type { Manifest, RecordingLine } from './format.js'
 
 const manifest: Manifest = {
@@ -44,7 +44,7 @@ describe('a sound recording', () => {
 
     expect((await collect()).map(line => line.k)).toEqual(['msg', 'msg', 'end'])
     expect(await readManifest(dir)).toEqual(manifest)
-    expect(await verifyRecording(dir)).toEqual({ valid: true, ended: true, tornTail: false, lines: 3, messages: 2, operations: 0, images: 0, gaps: [], problems: [], orphans: [] })
+    expect(await verifyRecording(dir)).toEqual({ valid: true, ended: true, tornTail: false, lines: 3, messages: 2, operations: 0, images: 0, gaps: [], prunedImages: [], prunedStillPresent: [], problems: [], orphans: [] })
   })
 
   it('is valid without an end line: Cria died, which is not damage', async () => {
@@ -192,5 +192,93 @@ describe('images', () => {
     await traffic(msg(0, 1, { xml: stated(4).replace(' size="4"', ''), blobs: ['blobs/1-0-0.blob'] }))
 
     expect((await verifyRecording(dir)).valid).toBe(true)
+  })
+})
+
+describe('pruned frames', () => {
+  const first = 'blobs/1-0-0.blob'
+  const second = 'blobs/1-1-0.blob'
+  const entry = (path: string, extra: object = {}) => ({ path, reason: 'not saved by Vela', prunedAt: 5_000, ...extra })
+  const list = (...frames: object[]) => writeFile(join(dir, 'pruned-frames.json'), JSON.stringify({ format: 1, frames }))
+  const twoImages = () => traffic(msg(0, 1, { blobs: [first] }), msg(1, 2, { blobs: [second] }), end(3))
+
+  it('passes an image that is missing and listed, and reports it', async () => {
+    await writeFile(join(dir, second), 'x')
+    await list(entry(first))
+    await twoImages()
+
+    expect(await verifyRecording(dir)).toMatchObject({ valid: true, images: 2, problems: [], prunedImages: [entry(first)], prunedStillPresent: [] })
+  })
+
+  it('fails an image that is missing and not listed, when another is listed', async () => {
+    await list(entry(first))
+    await twoImages()
+
+    expect((await verifyRecording(dir)).problems).toEqual([{ kind: 'missing-image', line: 2, path: second }])
+  })
+
+  it('fails a missing image when no list exists', async () => {
+    await twoImages()
+
+    expect((await verifyRecording(dir)).problems.map(problem => problem.kind)).toEqual(['missing-image', 'missing-image'])
+  })
+
+  it('does not excuse any other damage on the same recording', async () => {
+    await list(entry(first))
+    await traffic(msg(0, 1, { blobs: [first] }), msg(2, 2), end(3))
+
+    expect((await verifyRecording(dir)).problems).toEqual([{ kind: 'message-skipped', line: 2, conn: 1, dir: 'in', expected: 1, found: 2 }])
+  })
+
+  it('uses a listed image that is still on disk, and says so', async () => {
+    await writeFile(join(dir, first), 'x')
+    await writeFile(join(dir, second), 'x')
+    await list(entry(first))
+    await twoImages()
+
+    expect(await verifyRecording(dir)).toMatchObject({ valid: true, prunedImages: [], prunedStillPresent: [first] })
+  })
+
+  it('still checks the size of a listed image that is on disk', async () => {
+    await writeFile(join(dir, first), 'abc')
+    await list(entry(first))
+    await traffic(msg(0, 1, { xml: `<setBLOBVector device="CCD" name="CCD1" state="Ok"><oneBLOB name="CCD1" size="4" format=".fits" ref="${first}"/></setBLOBVector>`, blobs: [first] }))
+
+    expect((await verifyRecording(dir)).problems).toEqual([{ kind: 'image-size', line: 1, path: first, expected: 4, found: 3 }])
+  })
+
+  it('ignores an entry that no line names', async () => {
+    await list(entry('blobs/9-9-9.blob'))
+    await traffic(msg(0, 1), end(2))
+
+    expect(await verifyRecording(dir)).toMatchObject({ valid: true, prunedImages: [], prunedStillPresent: [] })
+  })
+
+  it('reads no list as an empty list', async () => {
+    expect(await readPrunedFrames(dir)).toEqual([])
+  })
+
+  describe.each([
+    ['text that is not JSON', 'not json'],
+    ['an empty file', ''],
+    ['another format', JSON.stringify({ format: 2, frames: [] })],
+    ['a bare array', JSON.stringify([entry(first)])],
+    ['an entry with no reason', JSON.stringify({ format: 1, frames: [{ path: first, prunedAt: 5 }] })],
+    ['an entry with an empty reason', JSON.stringify({ format: 1, frames: [entry(first, { reason: '' })] })],
+    ['an entry with no time', JSON.stringify({ format: 1, frames: [{ path: first, reason: 'x' }] })],
+    ['a negative time', JSON.stringify({ format: 1, frames: [entry(first, { prunedAt: -1 })] })],
+    ['a path outside the blobs folder', JSON.stringify({ format: 1, frames: [entry('../../etc/passwd')] })],
+    ['a path listed twice', JSON.stringify({ format: 1, frames: [entry(first), entry(first, { reason: 'again' })] })],
+  ])('a list that is %s', (_, text) => {
+    it('is damage, not an empty list', async () => {
+      await writeFile(join(dir, 'pruned-frames.json'), text)
+      await twoImages()
+
+      await expect(readPrunedFrames(dir)).rejects.toThrow(DamagedRecordingError)
+      const report = await verifyRecording(dir)
+
+      expect(report.valid).toBe(false)
+      expect(report.problems.filter(problem => problem.kind === 'bad-pruned-frames')).toHaveLength(1)
+    })
   })
 })
