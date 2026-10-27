@@ -40,14 +40,14 @@ async function replayFirstFrame(directory: string): Promise<CheckResult['replaye
   await settled('the camera definitions', () => received.includes(`<defNumberVector device="${tape.camera}" name="CCD_EXPOSURE"`))
   socket.write(`<newNumberVector device="${tape.camera}" name="CCD_EXPOSURE"><oneNumber name="CCD_EXPOSURE_VALUE">${exposureSeconds}</oneNumber></newNumberVector>\n`)
   await settled('the frame', () => replay.events().some(event => event.kind === 'delivered' || event.kind === 'pruned'))
+
+  const pruned = frame.pruned !== undefined
+
+  if (!pruned) await settled('the image to reach the client', () => received.includes('</setBLOBVector>'))
   socket.destroy()
   await replay.stop()
 
-  const pruned = frame.pruned !== undefined
-  const event = replay.events().find(candidate => candidate.kind === (pruned ? 'pruned' : 'delivered'))
-
-  if (event === undefined) throw new ArchiveError(`replay of ${directory}: frame ${frame.index} was not ${pruned ? 'answered as pruned' : 'delivered'}`)
-  if (!pruned && !received.includes('<setBLOBVector')) throw new ArchiveError(`replay of ${directory}: frame ${frame.index} was delivered but no image reached the client`)
+  if (!replay.events().some(candidate => candidate.kind === (pruned ? 'pruned' : 'delivered'))) throw new ArchiveError(`replay of ${directory}: frame ${frame.index} was not ${pruned ? 'answered as pruned' : 'delivered'}`)
 
   return { index: frame.index, pruned }
 }

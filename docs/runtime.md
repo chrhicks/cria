@@ -312,7 +312,7 @@ Remove the drop-in (`systemctl --user revert recording-prune.service`) to go bac
 
 `cria-archive` is stage 2 of recording housekeeping. It runs on thuban, copies one finished session off errai, keeps the frames Vela saved and every autofocus sample, packs it as `tar` + `zstd` into `/mnt/storage/cria-archive/`, proves the pack replays on its own, and only then deletes the session on errai. The steps, the rules for which frames are kept and the status file are in [SPEC.md, "Archiving a recording"](ts/SPEC.md#archiving-a-recording). It has no timer yet.
 
-It needs `ssh errai` to work without a prompt (`BatchMode`), `tar`, `zstd` and `sha256sum` on thuban, `tar`, `find` and `sha256sum` on errai, and Vela's records on thuban (`~/.local/share/vela/traces/frames.jsonl` and `autofocus.jsonl`, read only).
+It needs `ssh errai` to work without a prompt (`BatchMode`), `tar`, `zstd` and `sha256sum` on thuban, `tar`, `find`, `sha256sum`, `nice` and `ionice` on errai (the hash and the copy run at idle priority, so the recorder on the same disk does not wait), and Vela's records on thuban (`~/.local/share/vela/traces/frames.jsonl` and `autofocus.jsonl`, read only).
 
 **Run it by hand.** From `ts/` on thuban, after `pnpm install`:
 
@@ -321,7 +321,7 @@ pnpm archive 2026-10-24T23-14-00-<instanceId>            # steps 1 to 5; prints 
 pnpm archive --apply 2026-10-24T23-14-00-<instanceId>    # the same, then deletes it on errai
 ```
 
-`ssh errai ls /home/chicks/cria-recordings` lists the folders. The first line of each step is logged as `<session>: n/6 ...`. Options:
+`ssh errai ls /home/chicks/cria-recordings` lists the folders. Each step logs a line `<session>: n/6 ...`. The scripts run on errai through `sh -c`, whatever the login shell is. Options:
 
 | Option | Default | Meaning |
 | --- | --- | --- |

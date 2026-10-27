@@ -19,6 +19,12 @@ export const spawnSsh =
 
 const quote = (text: string) => `'${text.replaceAll("'", `'\\''`)}'`
 
+/** ssh hands the command to the remote user's login shell, which may be fish; the scripts are POSIX sh. */
+const posix = (script: string) => `sh -c ${quote(script)}`
+
+/** The reads of whole sessions (hash, copy) run at idle priority, so Cria's recorder on the same disk does not wait for them. */
+const idle = 'nice -n 19 ionice -c 3'
+
 async function collect(child: ChildProcess, input?: string): Promise<string> {
   let out = ''
   let err = ''
@@ -36,7 +42,7 @@ async function collect(child: ChildProcess, input?: string): Promise<string> {
 
 export function sshSource(options: { spawnRemote: SpawnRemote; directory: string }): Source {
   const { spawnRemote, directory } = options
-  const run = (script: string, input?: string) => collect(spawnRemote(script), input)
+  const run = (script: string, input?: string) => collect(spawnRemote(posix(script)), input)
   const inside = (name: string) => {
     assertSessionName(name)
 
@@ -75,7 +81,7 @@ export function sshSource(options: { spawnRemote: SpawnRemote; directory: string
 
       if (paths.length === 0) return hashes
 
-      const out = await run(`${inside(name)} && xargs -0 sha256sum --`, paths.map(path => `${path}\0`).join(''))
+      const out = await run(`${inside(name)} && ${idle} xargs -0 sha256sum --`, paths.map(path => `${path}\0`).join(''))
 
       for (const line of out.split('\n').filter(text => text !== '')) {
         const match = /^([0-9a-f]{64}) [ *](.+)$/.exec(line)
@@ -89,7 +95,7 @@ export function sshSource(options: { spawnRemote: SpawnRemote; directory: string
     fetch: async (name, into) => {
       assertSessionName(name)
       await mkdir(into, { recursive: true })
-      const sender = spawnRemote(`tar -C ${quote(directory)} -cf - ${quote(name)}`)
+      const sender = spawnRemote(posix(`${idle} tar -C ${quote(directory)} -cf - ${quote(name)}`))
       const receiver = spawn('tar', ['-xf', '-', '-C', into], { stdio: ['pipe', 'ignore', 'pipe'] })
       let senderError = ''
       let receiverError = ''
