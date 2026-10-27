@@ -662,18 +662,30 @@ abort is acknowledged:
 
 1. none of the other motion properties (the coordinates, park, `TELESCOPE_MOTION_WE`,
    `TELESCOPE_MOTION_NS`) is `Busy`, and
-2. the coordinates pass the two-read test above: not `Busy`, and still over the
-   confirmation window. The coordinates, not the `Busy` flag, are the evidence.
+2. the coordinates pass the two-read test above: not `Busy`, and two reads
+   `positionReadMs` apart differ by at most `stationaryDegrees` on each axis.
+   The coordinates, not the `Busy` flag, are the evidence.
+
+Still means within that tolerance, not unchanged. A mount drifting under it is
+accepted as stopped by the shared stillness check: 0.01°/s is 0.015° over the
+1.5 s between reads, inside 0.02° (a synthetic probe, not seen on the rig). A
+real home moves far faster, and the `home-stop` test drifts the coordinates at
+0.1°/s to show a stop that stays unconfirmed.
 
 Then the home settles `stopped`, as a confirmed stop of any other motion does,
 and the mount is not held: the next mount command is accepted at once. It stays
 `uncertain: stop-not-confirmed` and the mount held when the abort is not
-acknowledged, when the coordinates change over the window, when they cannot be
-read or stop updating, or when any other motion property is still `Busy`. The
+acknowledged, when the coordinates move by more than the tolerance over the
+window, when they cannot be read or stop updating, or when any other motion
+property is still `Busy`. The
 timeouts are the same as for any stop, and the abort is resent as before. Only a
-home is treated this way. A slew, park, `mount-axis`, `mount-rotate` and
-`mount-stop` still require every motion property, `TELESCOPE_HOME` included, to
-be not `Busy`.
+home is treated this way. The stop of a slew or a park, and `mount-stop`, still
+require every motion property, `TELESCOPE_HOME` included, to be not `Busy`. The
+stop of `mount-axis` and `mount-rotate` is the axis halt: it requires
+`TELESCOPE_MOTION_WE` to be not `Busy` with the direction cleared, then the same
+two-read test, and does not read `TELESCOPE_HOME`. Starting a home, slew, park,
+`mount-axis` or `mount-rotate` is refused as busy only when the coordinates are
+`Busy`.
 
 **A rotate leads its stop.** The mount keeps going for about `stopLatencyMs`
 (900 ms, measured on the AM5) at the axis rate after Cria sees it reach a target,
@@ -1024,8 +1036,9 @@ only when the element is not already on, and confirms the switch before it sends
   the larger of 1 ms and 0.5 % of the commanded time. The minimum Cria reads and
   the `EXPTIME` the driver writes (`3.200000E-05`) parse to the same number, so the
   comparison needs no special case. Other drivers' bias behaviour is not
-  modelled: a driver that honours the requested time on a bias is rejected like
-  any frame that is not this exposure.
+  modelled: a bias frame whose `EXPTIME` is not the commanded minimum is
+  rejected like any frame that is not this exposure, and a driver that honours
+  the minimum command succeeds.
 - **What Vela can read.** Nothing on the wire shows the commanded time. The
   operation keeps the request as sent, so its `parameters.exposureSeconds` says
   what Vela asked for (0.1). The returned `Image.exposureSeconds` also echoes the
