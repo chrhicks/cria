@@ -670,7 +670,7 @@ Still means within that tolerance, not unchanged. A mount drifting under it is
 accepted as stopped by the shared stillness check: 0.01°/s is 0.015° over the
 1.5 s between reads, inside 0.02° (a synthetic probe, not seen on the rig). A
 real home moves far faster, and the `home-stop` test drifts the coordinates at
-0.1°/s to show a stop that stays unconfirmed.
+1.5°/s (0.01 h of RA every 100 ms) to show a stop that stays unconfirmed.
 
 Then the home settles `stopped`, as a confirmed stop of any other motion does,
 and the mount is not held: the next mount command is accepted at once. It stays
