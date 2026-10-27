@@ -1,5 +1,5 @@
 export { archiveSession, archiveSessions, type RunOptions, type RunStatus, type SessionStatus } from './archive.js'
 export { checkArchive, type CheckResult } from './check.js'
 export { planFrames, type Evidence, type FramePlan, type Unmatched } from './plan.js'
-export { localSource, protection, sessionName, type Policy, type Source, type SourceEntry } from './source.js'
+export { assertSeparate, localSource, protection, sessionName, type Policy, type Source, type SourceEntry } from './source.js'
 export { sshSource, spawnSsh, type SpawnRemote } from './source-ssh.js'

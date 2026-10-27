@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, readFile, readdir, rm, stat, utimes, writeFile, appendFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, readdir, rm, stat, symlink, utimes, writeFile, appendFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
@@ -308,6 +308,26 @@ describe('archiving a session', () => {
 
     expect(status).toMatchObject({ state: 'failed', ok: false, source: 'untouched' })
     expect(await names(errai)).toEqual([older, newest])
+  })
+
+  it('refuses staging or archive folders that overlap the source, before it removes anything', async () => {
+    await session(older)
+    await session(newest)
+    await usual()
+    await writeFile(join(errai, older, 'keep'), 'pinned')
+    await symlink(errai, join(root, 'errai-link'))
+
+    for (const over of [
+      { stagingDir: errai },
+      { stagingDir: join(root, 'errai-link') },
+      { stagingDir: join(errai, 'staging') },
+      { archiveDir: join(errai, 'archive') },
+      { stagingDir: root },
+    ]) {
+      expect(await archiveSession(older, options({ apply: true, ...over }))).toMatchObject({ state: 'refused', ok: false, source: 'untouched' })
+      expect((await verifyRecording(join(errai, older))).valid).toBe(true)
+      expect(await readFile(join(errai, older, 'keep'), 'utf8')).toBe('pinned')
+    }
   })
 
   it('refuses a second run on a session whose lock is held', async () => {

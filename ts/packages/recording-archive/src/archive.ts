@@ -21,7 +21,7 @@ import { readRecordingEvidence, readVelaEvidence } from './evidence.js'
 import { ArchiveError, differences, differentHashes, hashFiles, ifMissing, listFiles, sha256File, type SourceFile } from './files.js'
 import { moveFile, pack, unpack } from './pack.js'
 import { planFrames, type Unmatched } from './plan.js'
-import { protection, type Policy, type Source } from './source.js'
+import { assertSeparate, protection, type Policy, type Source } from './source.js'
 
 const ArchiveRecord = Schema.Struct({
   format: Schema.Literal(1),
@@ -252,6 +252,21 @@ export async function archiveSession(name: string, o: RunOptions): Promise<Sessi
 
   await mkdir(o.stagingDir, { recursive: true })
   await mkdir(o.archiveDir, { recursive: true })
+
+  if (o.source.directory !== undefined) {
+    const overlap = await assertSeparate(o.source.directory, { staging: o.stagingDir, archive: o.archiveDir }).then(
+      () => undefined,
+      (error: unknown) => (error instanceof ArchiveError ? error : Promise.reject(error)),
+    )
+
+    if (overlap) {
+      status.state = 'refused'
+      status.reason = overlap.message
+      log(`refused: ${status.reason}`)
+
+      return status
+    }
+  }
 
   const lockPath = join(o.stagingDir, `${name}.lock`)
   const lock = await open(lockPath, 'wx').then(
