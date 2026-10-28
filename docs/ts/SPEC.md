@@ -392,6 +392,7 @@ the same tag in their doc comment.
 | `packages/recording/src/recorder.ts` | Composition | The recorder: byte-bounded queue, one consumer, write order, latch-off (see "Recording") |
 | `packages/recording/src/files.ts` | | The recorder's only contact with the disk, as one interface tests can stall, fill or kill |
 | `packages/recording/src/reader.ts` | | `readRecording`, `readManifest`, `readPrunedFrames` and `verifyRecording` |
+| `packages/recording-archive/src/` | | `cria-archive`: the plan of which frames to keep (`plan.ts`, pure), the evidence it reads (`evidence.ts`), the source (errai over ssh or a local folder), pack, check and the six steps (see "Archiving a recording") |
 | `packages/cria-wire/src/values.ts` | View | `Reading`, `Outcome`, `Timestamp`, `Json` as wire schemas |
 | `packages/cria-wire/src/ids.ts` | View | Branded IDs: `InstanceId`, `OperationId`, `ImageId`, `BindingId` (UUIDs), `DeviceId`, `FailureDomain`, `RequestId` |
 | `packages/cria-wire/src/command.ts` | View | The 15 operation kinds as one table: device kind, halt, parameter bounds |
@@ -1336,6 +1337,70 @@ rename it), so a reader sees the old list or the new one.
   stops between writing the list and deleting the file leaves exactly this. The
   file wins: readers use the image and report the path as still present.
 - A listed path that no `msg` line names is ignored.
+
+### Archiving a recording
+
+`cria-archive` (`packages/recording-archive`) runs on thuban, never on errai. It moves one finished
+session from errai to the archive in `/mnt/storage/cria-archive/` as a `tar` + `zstd` file that replays on
+its own, and then, only when told, deletes the session on errai. It is stage 2 of recording housekeeping;
+the stage-1 prune (`ts/deploy/recording-prune.mjs`) stays as the safety net on errai.
+
+For each named session, in this order, stopping at the first failure:
+
+1. **Copy.** `ssh errai` streams the folder to a staging folder (`<archive>/.staging`). sha256 of every file is taken
+   on errai before the copy and again on the staged copy, and the file list and sizes must match. errai's inventory
+   is read again after the copy and must not have changed. The source is only read.
+2. **Keep.** The staged copy must pass `verifyRecording`. Then every frame Vela saved and every autofocus sample is
+   kept as Cria's own blob (the full FITS Cria saw, not Vela's rebuilt file). Every other blob is listed in
+   `pruned-frames.json` (reason, `prunedAt`) and its file is removed from the staged copy. The list is written first,
+   so it is never behind the disk. `traffic.jsonl` is never rewritten.
+3. **Pack.** The staged copy becomes `<session>.tar.zst`, with its sha256.
+4. **Check.** The pack is unpacked into a temp folder. `verifyRecording` must say `valid` with no listed file still
+   present, and a short replay (`loadTape`, `startReplay`) serves the first frame: a kept frame arrives as its
+   file's bytes and a pruned one is answered with an Alert, as in "Pruned frames". A session with no images skips
+   the replay.
+5. **Move.** The pack moves to the archive (a rename on the same filesystem, a hashed copy across filesystems), then
+   `<session>.archive.json` is written: the pack's sha256 and size, the frame counts, and every file path and size
+   the source held. The record's presence means the archive is complete. A run that finds the record skips steps 1 to 5.
+6. **Delete on errai**, only with `--apply`. The stage-1 guards run again first: it never deletes the session Cria has
+   open (the newest, or written in the last 30 minutes), one younger than 3 days (`--min-age-days`), or one holding a
+   `keep` file. Then errai's inventory and the sha256 of `manifest.json` and `traffic.jsonl` must still equal the
+   record. The delete is a rename to `<session>.pruning` and then a remove, as in stage 1. Without `--apply`, steps 1
+   to 5 still run and the tool prints what it would delete. A session that is open is refused before step 1.
+   A young or pinned session is archived and kept on errai.
+   With `--source-dir` (a local folder standing in for errai), a staging or archive folder that is, holds or sits inside the
+   source folder is refused before anything is removed, because the run replaces stale staging folders. For any
+   source, an archive folder that is, or sits inside, the staging folder is refused for the same reason.
+
+**Which frames are kept.** Vela's frame records (`traces/frames.jsonl`, read-only) carry `provenance.imageId`, the
+id of Cria's image, and `provenance.operationId`. A frame is Vela's save when its outcome is `saved`. `save-failed` is
+kept too, because the recording then holds the only copy. The recording holds the other half of the key: a `capture`
+`op` line whose outcome names that image. The `op` line does not name the blob file, so the blob is the image message
+from the same camera that arrived between the operation's `startedAt` and `settledAt`. If that window holds more than
+one image, the FITS `EXPTIME` and `DATE-OBS` choose; if they cannot, the frame is unmatched. On the two 2026-10-19
+recordings this matched all 30 captures to exactly one blob each. A record with no image id falls back to
+`capturedAt` and `exposureSeconds`, counted as `matchedByTime`. Autofocus records (`traces/autofocus.jsonl`) name no
+image, only each sample's `capturedAt`, which equals the image's `capturedAt` in Cria's `op` line to the millisecond.
+
+**Unmatched frames.** Anything it cannot match is reported, never guessed: a saved Vela frame inside the session's
+time span whose image is not in the recording, an operation id that disagrees, a window with several candidate files,
+an image file two captures claim, an autofocus sample with no capture at that time, and a session with captures but no
+Vela record at all (it would prune every frame). Any of these stops the run before packing, with the session
+`needs-review` and nothing archived or deleted. `--allow-unmatched` archives anyway; the unmatched list stays in the
+status. A Vela record from a time before or after the session is not this session's and is ignored.
+
+**Pruned reasons.** `not saved by Vela` (Vela has a record and did not save it), `no Vela record of this capture`
+(framing, plate-solve or test shots Vela did not log), `no capture operation delivered this image`, and `not named by
+traffic.jsonl` (a leftover file). Only paths of the form `blobs/<n>-<n>-<n>.blob` can be listed; any other file in
+`blobs/` is dropped without a list entry.
+
+**Status.** Each run writes `$XDG_STATE_HOME/cria/recording-archive.json` (or `--state`) and logs the same lines:
+`{ at, mode, ok, archiveDir, sessions: [{ name, state, ok, reason?, frames: { kept, pruned, unmatched, autofocusKept,
+matchedByTime, prunedByReason }, unmatched: [...], bytes: { source, kept, pruned, archive }, archive, source,
+sourceReason? }] }`. `state` is `archived`, `already-archived`, `needs-review`, `refused` or `failed`. `source` is
+`deleted`, `would-delete`, `kept` (with the guard in `sourceReason`) or `untouched`. The exit code is 0 when every
+session is `ok`, 1 when any is not, and 2 for a usage error. One run holds a lock per session
+(`<staging>/<session>.lock`), so two runs cannot write the same staging folder.
 
 ## Replay
 

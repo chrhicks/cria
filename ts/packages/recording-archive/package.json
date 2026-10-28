@@ -1,0 +1,27 @@
+{
+  "name": "@cria/recording-archive",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "cria-archive: copies a finished recording from errai to thuban, keeps the frames Vela saved and the autofocus samples, packs it as tar + zstd and checks the pack replays",
+  "bin": {
+    "cria-archive": "./dist/main.js"
+  },
+  "exports": {
+    ".": {
+      "@cria/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test.json"
+  },
+  "dependencies": {
+    "@cria/fits": "workspace:*",
+    "@cria/indi-replay": "workspace:*",
+    "@cria/recording": "workspace:*",
+    "effect": "4.0.3"
+  }
+}
