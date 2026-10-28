@@ -336,7 +336,7 @@ describe('archiving a session', () => {
     await usual()
     const staging = join(root, 'staging')
 
-    for (const archiveDir of [staging, join(staging, older, 'archive'), join(staging, 'inner')]) {
+    for (const archiveDir of [staging, join(staging, older, 'archive'), join(staging, 'inner'), join(staging, '..inside')]) {
       expect(await archiveSession(older, options({ apply: true, stagingDir: staging, archiveDir }))).toMatchObject({ state: 'refused', ok: false, source: 'untouched' })
       expect(await names(errai)).toEqual([older, newest])
     }

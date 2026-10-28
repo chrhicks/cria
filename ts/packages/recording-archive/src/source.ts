@@ -4,7 +4,7 @@
  * The rules for what may leave the source are the stage-1 prune rules (`ts/deploy/recording-prune.mjs`).
  */
 import { cp, lstat, mkdir, readdir, realpath, rename, rm } from 'node:fs/promises'
-import { join, relative } from 'node:path'
+import { isAbsolute, join, relative, sep } from 'node:path'
 import { ArchiveError, hashFiles, ifMissing, listFiles, type SourceFile } from './files.js'
 
 export const sessionName = /^\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}(?:-\d{3})?Z?-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
@@ -108,12 +108,15 @@ export function localSource(directory: string): Source {
   }
 }
 
+/** A relative path leaves its base only through a `..` segment or as an absolute path; `..inside` is a child. */
+const escapes = (path: string) => path === '..' || path.startsWith(`..${sep}`) || isAbsolute(path)
+
 /** The archive may hold the staging folder (the default), but must not be, or sit inside, staging: cleanup of a staged session would remove it. */
 export async function assertArchiveOutsideStaging(stagingDirectory: string, archiveDirectory: string): Promise<void> {
   const staging = await realpath(stagingDirectory)
   const path = relative(staging, await realpath(archiveDirectory))
 
-  if (path === '' || (!path.startsWith('..') && !path.startsWith('/'))) throw new ArchiveError(`the archive folder ${archiveDirectory} is, or is inside, the staging folder ${stagingDirectory}`)
+  if (path === '' || !escapes(path)) throw new ArchiveError(`the archive folder ${archiveDirectory} is, or is inside, the staging folder ${stagingDirectory}`)
 }
 
 /**
@@ -125,7 +128,7 @@ export async function assertSeparate(sourceDirectory: string, others: Readonly<R
   const inside = (parent: string, child: string) => {
     const path = relative(parent, child)
 
-    return path === '' || (!path.startsWith('..') && !path.startsWith('/'))
+    return path === '' || !escapes(path)
   }
 
   for (const [label, directory] of Object.entries(others)) {

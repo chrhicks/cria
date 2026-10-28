@@ -114,7 +114,12 @@ export function sshSource(options: { spawnRemote: SpawnRemote; directory: string
     },
     remove: async name => {
       assertSessionName(name)
-      await run(`cd ${quote(directory)} && mv -- ${quote(name)} ${quote(`${name}${pruningSuffix}`)} && rm -rf -- ${quote(`${name}${pruningSuffix}`)}`)
+      // A leftover `.pruning` entry is refused, never merged: `mv` onto an existing directory would move the session into it
+      // and the `rm -rf` would take whatever else it held. `-T` makes `mv` treat the target as a name, not a directory.
+      const doomed = quote(`${name}${pruningSuffix}`)
+      await run(
+        `cd ${quote(directory)} && if [ -e ${doomed} ] || [ -L ${doomed} ]; then echo "${name}${pruningSuffix} already exists; remove it by hand first" >&2; exit 3; fi && mv -T -- ${quote(name)} ${doomed} && rm -rf -- ${doomed}`,
+      )
     },
   }
 }

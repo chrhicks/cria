@@ -64,6 +64,15 @@ describe('the ssh source, with sh standing in for ssh', () => {
     expect(await readdir(remote)).toEqual([])
   })
 
+  it('refuses to delete when a .pruning entry already exists, and leaves both untouched', async () => {
+    await mkdir(join(remote, `${name}.pruning`))
+    await writeFile(join(remote, `${name}.pruning`, 'other-only-copy'), 'precious')
+
+    await expect(source().remove(name)).rejects.toThrow(/already exists/)
+    expect(await readFile(join(remote, `${name}.pruning`, 'other-only-copy'), 'utf8')).toBe('precious')
+    expect(await readFile(join(remote, name, 'blobs', '1-0-0.blob'), 'utf8')).toBe('image')
+  })
+
   it('refuses a name that is not a session folder before it reaches a shell', async () => {
     await expect(source().remove("x'; rm -rf /; '")).rejects.toThrow(/not a session folder name/)
     await expect(source().fetch('../etc', local)).rejects.toThrow(/not a session folder name/)
