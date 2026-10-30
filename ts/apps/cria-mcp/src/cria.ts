@@ -50,7 +50,7 @@ const make = Effect.fnUntraced(function* (target: CriaTarget) {
     const request = withToken(HttpClientRequest.get(new URL(path, target.origin).href).pipe(HttpClientRequest.acceptJson))
 
     return Effect.gen(function* () {
-      const response = yield* http.execute(request).pipe(Effect.mapError(error => lost('transport', error.message)))
+      const response = yield* http.execute(request).pipe(Effect.mapError(error => lost('transport', `no response from Cria (${error.reason._tag})`)))
       const json = yield* response.json.pipe(Effect.mapError(() => lost('not-protocol-5', `HTTP ${response.status} with a body that is not JSON`)))
 
       if (response.status >= 200 && response.status < 300)

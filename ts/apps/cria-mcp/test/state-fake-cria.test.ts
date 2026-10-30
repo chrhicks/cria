@@ -53,6 +53,15 @@ describe('state against a fake Cria', () => {
     }),
   )
 
+  it.live('refuses to start when CRIA_URL carries credentials, and does not print them', () =>
+    Effect.gen(function* () {
+      const failure = yield* startMcp({ CRIA_URL: 'http://fixture-user:fixture-password@127.0.0.1:9' }).pipe(Effect.flip)
+
+      expect(failure.message).toContain('must not carry credentials')
+      expect(failure.message).not.toContain('fixture-password')
+    }),
+  )
+
   describe('lost: no readable protocol 5 answer', () => {
     const lost = (result: { structuredContent?: any }, why: string, ...fragments: string[]) => {
       expect(result.structuredContent).toMatchObject({ kind: 'lost', route: 'GET /v2/state', why })
@@ -80,7 +89,10 @@ describe('state against a fake Cria', () => {
         const port = yield* freePort
         const mcp = yield* startMcp({ CRIA_URL: `http://127.0.0.1:${port}`, CRIA_REPLY_TIMEOUT: '2 seconds' })
 
-        lost(yield* callState(mcp.url), 'transport')
+        const result = yield* callState(mcp.url)
+
+        lost(result, 'transport')
+        expect(result.structuredContent.message).not.toContain(String(port))
       }),
     )
 
