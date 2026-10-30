@@ -1,0 +1,24 @@
+{
+  "name": "@cria/mcp",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Cria MCP server: a thin adapter that turns Cria's protocol 5 routes into agent tools",
+  "bin": {
+    "cria-mcp": "./dist/main.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test.json",
+    "start": "node dist/main.js"
+  },
+  "dependencies": {
+    "@cria/wire": "workspace:*",
+    "@effect/platform-node": "4.0.3",
+    "effect": "4.0.3"
+  },
+  "devDependencies": {
+    "@cria/fake-indi": "workspace:*",
+    "@cria/service": "workspace:*"
+  }
+}
