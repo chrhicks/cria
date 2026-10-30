@@ -1,7 +1,7 @@
 /** View: the 15 operation kinds as one table. */
 import { Schema } from 'effect';
 import { coordinateFrames } from './device.js';
-const between = (minimum, maximum) => Schema.Number.pipe(Schema.check(Schema.isBetween({ minimum, maximum })));
+const between = (minimum, maximum) => Schema.Finite.pipe(Schema.check(Schema.isBetween({ minimum, maximum })));
 const integer = (minimum, maximum) => Schema.Number.pipe(Schema.check(Schema.isInt(), Schema.isBetween({ minimum, maximum })));
 const nonZero = (minimum, maximum) => between(minimum, maximum).pipe(Schema.check(Schema.makeFilter((value) => value !== 0 || 'must not be zero')));
 const atLeastOne = Schema.makeFilter((parameters) => Object.keys(parameters).length > 0 || 'at least one setting is required');

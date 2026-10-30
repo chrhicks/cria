@@ -28,7 +28,7 @@ export declare const commands: Table<{
         readonly device: "camera";
         readonly halt: false;
         readonly parameters: Schema.Struct<{
-            readonly exposureSeconds: Schema.Number;
+            readonly exposureSeconds: Schema.Finite;
             readonly light: Schema.Boolean;
             readonly frameType: Schema.optionalKey<Schema.Literals<readonly ["light", "flat", "dark", "bias"]>>;
             readonly monochromeOnly: Schema.optionalKey<Schema.Boolean>;
@@ -53,7 +53,7 @@ export declare const commands: Table<{
         readonly halt: false;
         readonly parameters: Schema.Struct<{
             readonly coolerOn: Schema.optionalKey<Schema.Boolean>;
-            readonly setpointC: Schema.optionalKey<Schema.Number>;
+            readonly setpointC: Schema.optionalKey<Schema.Finite>;
         }>;
     };
     readonly 'focuser-move': {
@@ -74,8 +74,8 @@ export declare const commands: Table<{
         readonly device: "mount";
         readonly halt: false;
         readonly parameters: Schema.Struct<{
-            readonly rightAscensionDegrees: Schema.Number;
-            readonly declinationDegrees: Schema.Number;
+            readonly rightAscensionDegrees: Schema.Finite;
+            readonly declinationDegrees: Schema.Finite;
             readonly coordinateSystem: Schema.Literals<readonly ["topocentric", "j2000"]>;
         }>;
     };
@@ -90,16 +90,16 @@ export declare const commands: Table<{
         readonly device: "mount";
         readonly halt: false;
         readonly parameters: Schema.Struct<{
-            readonly rateDegreesPerSecond: Schema.Number;
-            readonly durationSeconds: Schema.Number;
+            readonly rateDegreesPerSecond: Schema.Finite;
+            readonly durationSeconds: Schema.Finite;
         }>;
     };
     readonly 'mount-rotate': {
         readonly device: "mount";
         readonly halt: false;
         readonly parameters: Schema.Struct<{
-            readonly rateDegreesPerSecond: Schema.Number;
-            readonly distanceDegrees: Schema.Number;
+            readonly rateDegreesPerSecond: Schema.Finite;
+            readonly distanceDegrees: Schema.Finite;
         }>;
     };
     readonly 'mount-home': {
@@ -127,7 +127,7 @@ export declare const commands: Table<{
         readonly halt: false;
         readonly parameters: Schema.Struct<{
             readonly channelId: Schema.Number;
-            readonly value: Schema.Number;
+            readonly value: Schema.Finite;
         }>;
     };
     readonly 'device-connect': {
@@ -154,7 +154,7 @@ export declare const CommandSchema: Schema.Union<(Schema.Struct<{
 }> | Schema.Struct<{
     readonly kind: Schema.Literal<"capture">;
     readonly parameters: Schema.Struct<{
-        readonly exposureSeconds: Schema.Number;
+        readonly exposureSeconds: Schema.Finite;
         readonly light: Schema.Boolean;
         readonly frameType: Schema.optionalKey<Schema.Literals<readonly ["light", "flat", "dark", "bias"]>>;
         readonly monochromeOnly: Schema.optionalKey<Schema.Boolean>;
@@ -163,7 +163,7 @@ export declare const CommandSchema: Schema.Union<(Schema.Struct<{
     readonly kind: Schema.Literal<"cooling">;
     readonly parameters: Schema.Struct<{
         readonly coolerOn: Schema.optionalKey<Schema.Boolean>;
-        readonly setpointC: Schema.optionalKey<Schema.Number>;
+        readonly setpointC: Schema.optionalKey<Schema.Finite>;
     }>;
 }> | Schema.Struct<{
     readonly kind: Schema.Literal<"device-connect">;
@@ -183,8 +183,8 @@ export declare const CommandSchema: Schema.Union<(Schema.Struct<{
 }> | Schema.Struct<{
     readonly kind: Schema.Literal<"mount-axis">;
     readonly parameters: Schema.Struct<{
-        readonly rateDegreesPerSecond: Schema.Number;
-        readonly durationSeconds: Schema.Number;
+        readonly rateDegreesPerSecond: Schema.Finite;
+        readonly durationSeconds: Schema.Finite;
     }>;
 }> | Schema.Struct<{
     readonly kind: Schema.Literal<"mount-home">;
@@ -195,14 +195,14 @@ export declare const CommandSchema: Schema.Union<(Schema.Struct<{
 }> | Schema.Struct<{
     readonly kind: Schema.Literal<"mount-rotate">;
     readonly parameters: Schema.Struct<{
-        readonly rateDegreesPerSecond: Schema.Number;
-        readonly distanceDegrees: Schema.Number;
+        readonly rateDegreesPerSecond: Schema.Finite;
+        readonly distanceDegrees: Schema.Finite;
     }>;
 }> | Schema.Struct<{
     readonly kind: Schema.Literal<"mount-slew">;
     readonly parameters: Schema.Struct<{
-        readonly rightAscensionDegrees: Schema.Number;
-        readonly declinationDegrees: Schema.Number;
+        readonly rightAscensionDegrees: Schema.Finite;
+        readonly declinationDegrees: Schema.Finite;
         readonly coordinateSystem: Schema.Literals<readonly ["topocentric", "j2000"]>;
     }>;
 }> | Schema.Struct<{
@@ -220,7 +220,7 @@ export declare const CommandSchema: Schema.Union<(Schema.Struct<{
     readonly kind: Schema.Literal<"switch-set">;
     readonly parameters: Schema.Struct<{
         readonly channelId: Schema.Number;
-        readonly value: Schema.Number;
+        readonly value: Schema.Finite;
     }>;
 }>)[]>;
 export declare const HaltCommandSchema: Schema.Union<(Schema.Struct<{

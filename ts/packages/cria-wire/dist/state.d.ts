@@ -1283,7 +1283,7 @@ export declare const State: Schema.Struct<{
     } | {
         readonly kind: Schema.Literal<"capture">;
         readonly parameters: Schema.Struct<{
-            readonly exposureSeconds: Schema.Number;
+            readonly exposureSeconds: Schema.Finite;
             readonly light: Schema.Boolean;
             readonly frameType: Schema.optionalKey<Schema.Literals<readonly ["light", "flat", "dark", "bias"]>>;
             readonly monochromeOnly: Schema.optionalKey<Schema.Boolean>;
@@ -1306,7 +1306,7 @@ export declare const State: Schema.Struct<{
         readonly kind: Schema.Literal<"cooling">;
         readonly parameters: Schema.Struct<{
             readonly coolerOn: Schema.optionalKey<Schema.Boolean>;
-            readonly setpointC: Schema.optionalKey<Schema.Number>;
+            readonly setpointC: Schema.optionalKey<Schema.Finite>;
         }>;
         readonly instanceId: Schema.brand<Schema.String, "InstanceId">;
         readonly requestId: Schema.brand<Schema.String, "RequestId">;
@@ -1382,8 +1382,8 @@ export declare const State: Schema.Struct<{
     } | {
         readonly kind: Schema.Literal<"mount-axis">;
         readonly parameters: Schema.Struct<{
-            readonly rateDegreesPerSecond: Schema.Number;
-            readonly durationSeconds: Schema.Number;
+            readonly rateDegreesPerSecond: Schema.Finite;
+            readonly durationSeconds: Schema.Finite;
         }>;
         readonly instanceId: Schema.brand<Schema.String, "InstanceId">;
         readonly requestId: Schema.brand<Schema.String, "RequestId">;
@@ -1436,8 +1436,8 @@ export declare const State: Schema.Struct<{
     } | {
         readonly kind: Schema.Literal<"mount-rotate">;
         readonly parameters: Schema.Struct<{
-            readonly rateDegreesPerSecond: Schema.Number;
-            readonly distanceDegrees: Schema.Number;
+            readonly rateDegreesPerSecond: Schema.Finite;
+            readonly distanceDegrees: Schema.Finite;
         }>;
         readonly instanceId: Schema.brand<Schema.String, "InstanceId">;
         readonly requestId: Schema.brand<Schema.String, "RequestId">;
@@ -1456,8 +1456,8 @@ export declare const State: Schema.Struct<{
     } | {
         readonly kind: Schema.Literal<"mount-slew">;
         readonly parameters: Schema.Struct<{
-            readonly rightAscensionDegrees: Schema.Number;
-            readonly declinationDegrees: Schema.Number;
+            readonly rightAscensionDegrees: Schema.Finite;
+            readonly declinationDegrees: Schema.Finite;
             readonly coordinateSystem: Schema.Literals<readonly ["topocentric", "j2000"]>;
         }>;
         readonly instanceId: Schema.brand<Schema.String, "InstanceId">;
@@ -1531,7 +1531,7 @@ export declare const State: Schema.Struct<{
         readonly kind: Schema.Literal<"switch-set">;
         readonly parameters: Schema.Struct<{
             readonly channelId: Schema.Number;
-            readonly value: Schema.Number;
+            readonly value: Schema.Finite;
         }>;
         readonly instanceId: Schema.brand<Schema.String, "InstanceId">;
         readonly requestId: Schema.brand<Schema.String, "RequestId">;
@@ -1618,7 +1618,7 @@ export declare const State: Schema.Struct<{
     } | {
         readonly kind: Schema.Literal<"capture">;
         readonly parameters: Schema.Struct<{
-            readonly exposureSeconds: Schema.Number;
+            readonly exposureSeconds: Schema.Finite;
             readonly light: Schema.Boolean;
             readonly frameType: Schema.optionalKey<Schema.Literals<readonly ["light", "flat", "dark", "bias"]>>;
             readonly monochromeOnly: Schema.optionalKey<Schema.Boolean>;
@@ -1683,7 +1683,7 @@ export declare const State: Schema.Struct<{
         readonly kind: Schema.Literal<"cooling">;
         readonly parameters: Schema.Struct<{
             readonly coolerOn: Schema.optionalKey<Schema.Boolean>;
-            readonly setpointC: Schema.optionalKey<Schema.Number>;
+            readonly setpointC: Schema.optionalKey<Schema.Finite>;
         }>;
         readonly instanceId: Schema.brand<Schema.String, "InstanceId">;
         readonly requestId: Schema.brand<Schema.String, "RequestId">;
@@ -1927,8 +1927,8 @@ export declare const State: Schema.Struct<{
     } | {
         readonly kind: Schema.Literal<"mount-axis">;
         readonly parameters: Schema.Struct<{
-            readonly rateDegreesPerSecond: Schema.Number;
-            readonly durationSeconds: Schema.Number;
+            readonly rateDegreesPerSecond: Schema.Finite;
+            readonly durationSeconds: Schema.Finite;
         }>;
         readonly instanceId: Schema.brand<Schema.String, "InstanceId">;
         readonly requestId: Schema.brand<Schema.String, "RequestId">;
@@ -2107,8 +2107,8 @@ export declare const State: Schema.Struct<{
     } | {
         readonly kind: Schema.Literal<"mount-rotate">;
         readonly parameters: Schema.Struct<{
-            readonly rateDegreesPerSecond: Schema.Number;
-            readonly distanceDegrees: Schema.Number;
+            readonly rateDegreesPerSecond: Schema.Finite;
+            readonly distanceDegrees: Schema.Finite;
         }>;
         readonly instanceId: Schema.brand<Schema.String, "InstanceId">;
         readonly requestId: Schema.brand<Schema.String, "RequestId">;
@@ -2169,8 +2169,8 @@ export declare const State: Schema.Struct<{
     } | {
         readonly kind: Schema.Literal<"mount-slew">;
         readonly parameters: Schema.Struct<{
-            readonly rightAscensionDegrees: Schema.Number;
-            readonly declinationDegrees: Schema.Number;
+            readonly rightAscensionDegrees: Schema.Finite;
+            readonly declinationDegrees: Schema.Finite;
             readonly coordinateSystem: Schema.Literals<readonly ["topocentric", "j2000"]>;
         }>;
         readonly instanceId: Schema.brand<Schema.String, "InstanceId">;
@@ -2412,7 +2412,7 @@ export declare const State: Schema.Struct<{
         readonly kind: Schema.Literal<"switch-set">;
         readonly parameters: Schema.Struct<{
             readonly channelId: Schema.Number;
-            readonly value: Schema.Number;
+            readonly value: Schema.Finite;
         }>;
         readonly instanceId: Schema.brand<Schema.String, "InstanceId">;
         readonly requestId: Schema.brand<Schema.String, "RequestId">;
