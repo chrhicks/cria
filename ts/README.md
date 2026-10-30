@@ -25,6 +25,7 @@ legacy ([docs/legacy-windows.md](../docs/legacy-windows.md)).
 | `apps/cria/src/wire` | projection into protocol 5, HTTP, SSE | View and wire boundary |
 | `apps/cria/src/rig.ts`, `device.ts`, `ids.ts`, `service.ts`, `main.ts`, `config.ts` | composition | — |
 | `apps/cria/src/refusal.ts` | `Refusal`: a closed error code the HTTP layer maps to a status | Wire boundary |
+| `apps/cria-mcp` | `cria-mcp`: a thin MCP server that turns Cria's routes into agent tools, over Streamable HTTP on loopback; so far one tool, `state`. `CRIA_URL`, `CRIA_MCP_PORT`, optional `CRIA_TOKEN` and `CRIA_REPLY_TIMEOUT` | — |
 | `apps/cria/test` | scenario tests; `drivers.ts` models the rig's INDI drivers on `@cria/fake-indi` | — |
 | `testing/indiserver.ts` | runs a real indiserver with simulators for tests | — |
 | `testing/cria-client.ts` | a typed protocol 5 client for tests; decodes every response strictly | — |
