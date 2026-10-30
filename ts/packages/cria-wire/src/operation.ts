@@ -46,7 +46,8 @@ export const OperationResult = Schema.Struct({
 
 export type OperationResult = typeof OperationResult.Type
 
-const identity = {
+/** The five fields that identify a request to a device, shared by `OperationRequest` and every operation state. */
+export const requestIdentity = {
   instanceId: InstanceId,
   requestId: RequestId,
   deviceId: DeviceId,
@@ -55,7 +56,7 @@ const identity = {
 }
 
 /** What Vela sends: its identity for the request, then one command, flat. */
-export const OperationRequest = Schema.Union(CommandSchema.members.map(command => Schema.Struct({ ...identity, ...command.fields })))
+export const OperationRequest = Schema.Union(CommandSchema.members.map(command => Schema.Struct({ ...requestIdentity, ...command.fields })))
 
 export type OperationRequest = typeof OperationRequest.Type
 
@@ -66,7 +67,7 @@ export const Progress = Schema.Struct({
 
 export type Progress = typeof Progress.Type
 
-const accepted = { id: OperationId, ...identity, failureDomain: FailureDomain, acceptedAt: Timestamp }
+const accepted = { id: OperationId, ...requestIdentity, failureDomain: FailureDomain, acceptedAt: Timestamp }
 
 const settled = {
   ...accepted,

@@ -2,7 +2,7 @@
 import { Schema } from 'effect'
 import { coordinateFrames, type DeviceKind } from './device.js'
 
-const between = (minimum: number, maximum: number) => Schema.Number.pipe(Schema.check(Schema.isBetween({ minimum, maximum })))
+const between = (minimum: number, maximum: number) => Schema.Finite.pipe(Schema.check(Schema.isBetween({ minimum, maximum })))
 const integer = (minimum: number, maximum: number) =>
   Schema.Number.pipe(Schema.check(Schema.isInt(), Schema.isBetween({ minimum, maximum })))
 const nonZero = (minimum: number, maximum: number) =>
