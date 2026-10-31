@@ -91,6 +91,6 @@ describe('INDI to ASCOM conventions', () => {
 
   it('computes local sidereal time (GMST at J2000.0 is 18.697 h)', () => {
     expect(localSiderealHours(Date.parse('2000-01-01T12:00:00Z'), 0)).toBeCloseTo(18.697374558, 6)
-    expect(localSiderealHours(Date.parse('2000-01-01T12:00:00Z'), -75)).toBeCloseTo(13.697374558, 6)
+    expect(localSiderealHours(Date.parse('2000-01-01T12:00:00Z'), -112.07)).toBeCloseTo(11.226041225, 6)
   })
 })
