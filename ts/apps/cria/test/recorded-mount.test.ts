@@ -98,23 +98,28 @@ describe('an axis motion when the mount loses power (errai, 2026-10-29 evening)'
 })
 
 describe('an axis motion at Home, answered Idle (errai, 2026-10-30 evening)', () => {
-  it('is not an acknowledgement: the rotate ends uncertain, Cria stops once, and the mount is held', async () => {
+  it('is a refusal, not silence: the rotate fails rejected, nothing is stopped or held', async () => {
     await start({ rotateIdleAtPole: true }, 90)
+    const started = Date.now()
     const ending = await cria.run('mount', 'mount-rotate', { rateDegreesPerSecond: 720 * sidereal, distanceDegrees: 20 })
 
-    expect([ending.kind, ending.reason, ending.quarantined]).toEqual(['uncertain', 'no-acknowledgement', true])
-    // The start was written once. The driver's Idle was an answer, but not the Busy that says the motion began.
-    expect(sent('TELESCOPE_MOTION_WE').filter(line => line.includes('=On'))).toEqual(['MOTION_EAST=On'])
-    expect(sent('TELESCOPE_MOTION_WE').filter(line => !line.includes('=On')).length).toBeGreaterThan(0)
+    expect([ending.kind, ending.reason, ending.quarantined]).toEqual(['failed', 'rejected', false])
+    expect(ending.message).toContain('the driver answered Idle and did not start MOTION_EAST (it stayed Off)')
+    // The driver answered in 41 ms and Cria did not wait for the 600 ms acknowledgement deadline.
+    expect(Date.now() - started).toBeLessThan(500)
+    // The start was written once and nothing was sent after it: the driver said it did not start.
+    expect(sent('TELESCOPE_MOTION_WE')).toEqual(['MOTION_EAST=On'])
     expect(fake.vector(mount, 'TELESCOPE_MOTION_WE').state).toBe('Idle')
     expect(model.moving()).toBe(false)
-    expect(await held()).toBe(true)
+    expect(await held()).toBe(false)
+    expect((await cria.run('mount', 'mount-tracking', { tracking: true })).kind).toBe('confirmed')
   }, 45_000)
 
-  it('the same rotate away from the pole starts normally', async () => {
+  it('the same rotate away from the pole starts as before: Busy is the answer', async () => {
     await start({ rotateIdleAtPole: true }, 80)
     const ending = await cria.run('mount', 'mount-rotate', { rateDegreesPerSecond: 60 * sidereal, distanceDegrees: 1 })
 
     expect([ending.kind, ending.quarantined]).toEqual(['confirmed', false])
+    expect(sent('TELESCOPE_MOTION_WE').filter(line => line.includes('=On'))).toEqual(['MOTION_EAST=On'])
   }, 45_000)
 })

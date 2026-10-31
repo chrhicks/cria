@@ -4,7 +4,9 @@
  * decided in one place:
  *
  * - the driver's first update of the property after our send is its answer:
- *   Busy, Ok or Idle accept the command, Alert rejects it;
+ *   Busy, Ok or Idle accept the command, Alert rejects it; an axis motion's
+ *   start is also refused by an Idle or Ok update that shows the requested
+ *   switch not applied (see `Motion.refused`);
  * - while waiting for a motion or exposure, Alert fails it, and the device or
  *   the indiserver connection disappearing makes it uncertain.
  */
@@ -50,13 +52,22 @@ function answerOf(device: IndiDevice, property: string, motion: Motion | undefin
     const alertBefore = Option.getOrUndefined(yield* device.property(property))?.state === 'Alert'
 
     return Effect.gen(function* () {
+      // The wait starts after the send has returned, so an update received before this moment cannot
+      // be the driver's answer to it: it never counts as a refusal.
+      const sentAt = yield* Clock.currentTimeMillis
+
       while (true) {
         const event = yield* subscription.next
 
         if (event.type === 'property' && event.origin === 'set' && event.property.name === property) {
           const routine = event.property.state !== 'Busy' && event.property.state !== 'Alert'
 
-          if (motion && routine && !motion.arrived?.(event.property)) continue
+          if (motion && routine && !motion.arrived?.(event.property)) {
+            const refusal = event.property.receivedAt > sentAt ? motion.refused?.(event.property) : undefined
+
+            if (refusal) return { kind: 'rejected', message: refusal } satisfies Answer<Property>
+            continue
+          }
           if (alertBefore && event.property.state === 'Alert') continue
           if (event.property.state === 'Alert')
             return { kind: 'rejected', message: event.property.message ?? 'the driver reported Alert' } satisfies Answer<Property>
@@ -77,6 +88,25 @@ function answerOf(device: IndiDevice, property: string, motion: Motion | undefin
 interface Motion {
   /** The property shows the motion already complete. */
   readonly arrived?: (property: Property) => boolean
+  /**
+   * A routine (not Busy, not Alert) update received after the send shows the motion refused: the message
+   * says so. Only for a start the driver always answers Busy, so that an Idle update that does not show the
+   * requested switch on cannot be a poll.
+   */
+  readonly refused?: (property: Property) => string | undefined
+}
+
+/**
+ * An axis motion start `element` that an Idle or Ok answer shows not applied: the switch is Off. The driver
+ * answered, and what it answered is that it did not start (errai's AM5 at Home, 2026-10-30).
+ */
+export const switchNotStarted = (element: string) => (property: Property) =>
+  switchElementOn(property, element) === false ? `the driver answered ${property.state} and did not start ${element} (it stayed Off)` : undefined
+
+function switchElementOn(property: Property, element: string) {
+  const found = property.elements.get(element)
+
+  return found?.kind === 'switch' ? found.on : undefined
 }
 
 function write(device: IndiDevice, property: string, values: Values, timing: Timing, motion?: Motion): WriteOnce<Property, never> {
