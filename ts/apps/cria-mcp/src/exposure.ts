@@ -47,7 +47,7 @@ export const routes = {
     description: 'One operation by id: waiting, running with its progress, or settled with its outcome (confirmed, failed, stopped or uncertain) exactly as Cria reports it.',
   },
   wait: {
-    description: `Reads an operation once a second until it settles or maxSeconds (1 to ${waitCapSeconds}, default ${waitCapSeconds}) have passed, and returns the last read. An operation still running at the deadline is a normal answer: call wait again in your next call. A failed read ends the wait with that failure.`,
+    description: `Reads an operation once a second until it settles or maxSeconds (1 to ${waitCapSeconds}, default ${waitCapSeconds}) have passed, and returns the last read. An operation still running at the deadline is a normal answer: call wait again in your next call. A failed read ends the wait with that failure. wait is also the way to pause: code-mode has no setTimeout, so to act a few seconds into an operation (for example a mount-stop part way through a mount-rotate), call wait on that operation with a short maxSeconds; it returns early if the operation settles first.`,
   },
   cancel: {
     description: 'Ask Cria to cancel an operation. Returns the operation as Cria reports it. Cria may refuse it, and a refusal comes back unchanged.',
