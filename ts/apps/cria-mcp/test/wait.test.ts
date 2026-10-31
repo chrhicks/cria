@@ -19,6 +19,9 @@ const criaReading = (reads: ReadonlyArray<Effect.Effect<Operation, CriaLost>>, t
     Cria.of({
       state: nothing,
       request: () => nothing,
+      submit: () => nothing,
+      cancel: () => nothing,
+      recover: () => nothing,
       original: () => nothing,
       operation: () =>
         Effect.gen(function* () {

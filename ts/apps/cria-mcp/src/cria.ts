@@ -1,6 +1,6 @@
 import { Context, Data, Duration, Effect, Layer, Option, Redacted, Schema, Stream, type Scope } from 'effect'
 import { HttpClient, HttpClientRequest, type HttpClientResponse } from 'effect/http'
-import { ErrorBody, Operation, State, type ImageId, type InstanceId, type OperationId, type RequestId } from '@cria/wire'
+import { Device, ErrorBody, Operation, OperationRequest, RecoveryRequest, State, type DeviceId, type ImageId, type InstanceId, type OperationId, type RequestId } from '@cria/wire'
 
 const strict = { onExcessProperty: 'error' } as const
 
@@ -37,6 +37,12 @@ export class Cria extends Context.Service<Cria, {
   readonly state: Effect.Effect<State, CriaError>
   /** GET /v2/operations/{id} */
   readonly operation: (id: OperationId) => Effect.Effect<Operation, CriaError>
+  /** POST /v2/operations. Sent once: a lost answer is `CriaLost`, never a second send. */
+  readonly submit: (request: OperationRequest) => Effect.Effect<Operation, CriaError>
+  /** POST /v2/operations/{id}/cancel. Sent once. */
+  readonly cancel: (id: OperationId) => Effect.Effect<Operation, CriaError>
+  /** POST /v2/devices/{id}/recover. Sent once. */
+  readonly recover: (id: DeviceId, request: RecoveryRequest) => Effect.Effect<Device, CriaError>
   /** GET /v2/requests/{instanceId}/{requestId} */
   readonly request: (instanceId: InstanceId, requestId: RequestId) => Effect.Effect<Operation, CriaError>
   /**
@@ -56,7 +62,13 @@ const make = Effect.fnUntraced(function* (target: CriaTarget) {
     onSome: token => HttpClientRequest.bearerToken(Redacted.value(token)),
   })
 
-  const get = (path: string) => withToken(HttpClientRequest.get(new URL(path, target.origin).href))
+  const url = (path: string) => new URL(path, target.origin).href
+  const get = (path: string) => withToken(HttpClientRequest.get(url(path)))
+  const post = (path: string, body?: unknown) => {
+    const request = withToken(HttpClientRequest.post(url(path)))
+
+    return body === undefined ? request : HttpClientRequest.bodyJsonUnsafe(request, body)
+  }
   const lostAt = (route: string) => (why: (typeof lostReasons)[number], message: string) => new CriaLost({ route, why, message })
 
   const refusal = (response: HttpClientResponse.HttpClientResponse, lost: ReturnType<typeof lostAt>) =>
@@ -77,9 +89,13 @@ const make = Effect.fnUntraced(function* (target: CriaTarget) {
 
   const succeeded = (response: HttpClientResponse.HttpClientResponse) => response.status >= 200 && response.status < 300
 
-  const exchange = <S extends Schema.Top & { readonly DecodingServices: never }>(path: string, schema: S): Effect.Effect<S['Type'], CriaError> => {
-    const lost = lostAt(`GET ${path}`)
-    const request = get(path).pipe(HttpClientRequest.acceptJson)
+  const exchange = <S extends Schema.Top & { readonly DecodingServices: never }>(
+    route: string,
+    build: HttpClientRequest.HttpClientRequest,
+    schema: S,
+  ): Effect.Effect<S['Type'], CriaError> => {
+    const lost = lostAt(route)
+    const request = build.pipe(HttpClientRequest.acceptJson)
 
     return Effect.gen(function* () {
       const response = yield* http.execute(request).pipe(Effect.mapError(error => lost('transport', `no response from Cria (${error.reason._tag})`)))
@@ -116,10 +132,17 @@ const make = Effect.fnUntraced(function* (target: CriaTarget) {
     }).pipe(timeLimit(lost))
   }
 
+  const read = <S extends Schema.Top & { readonly DecodingServices: never }>(path: string, schema: S) => exchange(`GET ${path}`, get(path), schema)
+  const send = <S extends Schema.Top & { readonly DecodingServices: never }>(path: string, schema: S, body?: unknown) =>
+    exchange(`POST ${path}`, post(path, body), schema)
+
   return Cria.of({
-    state: exchange('/v2/state', State),
-    operation: id => exchange(`/v2/operations/${id}`, Operation),
-    request: (instanceId, requestId) => exchange(`/v2/requests/${instanceId}/${encodeURIComponent(requestId)}`, Operation),
+    state: read('/v2/state', State),
+    operation: id => read(`/v2/operations/${id}`, Operation),
+    submit: request => send('/v2/operations', Operation, Schema.encodeSync(OperationRequest)(request)),
+    cancel: id => send(`/v2/operations/${id}/cancel`, Operation),
+    recover: (id, request) => send(`/v2/devices/${id}/recover`, Device, Schema.encodeSync(RecoveryRequest)(request)),
+    request: (instanceId, requestId) => read(`/v2/requests/${instanceId}/${encodeURIComponent(requestId)}`, Operation),
     original,
   })
 })

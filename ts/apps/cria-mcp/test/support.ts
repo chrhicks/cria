@@ -35,7 +35,7 @@ export type FakeHandler = (request: IncomingMessage, response: ServerResponse) =
 
 export interface FakeCria {
   readonly origin: string
-  readonly requests: Array<{ readonly method: string | undefined; readonly url: string | undefined; readonly headers: IncomingMessage['headers'] }>
+  readonly requests: Array<{ readonly method: string | undefined; readonly url: string | undefined; readonly headers: IncomingMessage['headers']; readonly body: string }>
 }
 
 /** A stand-in HTTP server for Cria. It answers whatever the test tells it to, so it can be laxer than the real one. */
@@ -46,8 +46,13 @@ export const startFakeCria = (handler: FakeHandler): Effect.Effect<FakeCria, nev
         new Promise<{ server: Server; cria: FakeCria }>(resolve => {
           const requests: FakeCria['requests'] = []
           const server = createServer((request, response) => {
-            requests.push({ method: request.method, url: request.url, headers: request.headers })
-            handler(request, response)
+            const chunks: Array<Buffer> = []
+
+            request.on('data', chunk => void chunks.push(chunk))
+            request.on('end', () => {
+              requests.push({ method: request.method, url: request.url, headers: request.headers, body: Buffer.concat(chunks).toString('utf8') })
+              handler(request, response)
+            })
           })
 
           server.listen(0, '127.0.0.1', () => {

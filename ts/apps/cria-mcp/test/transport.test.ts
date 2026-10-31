@@ -25,11 +25,12 @@ describe('Streamable HTTP, as Executor speaks it', () => {
       const listed = yield* client.listTools
       const tools = listed.message?.result.tools as Array<{ name: string; inputSchema: { type: string }; annotations: Record<string, boolean> }>
 
-      expect(tools.map(tool => tool.name)).toEqual(['state', 'operation', 'wait', 'request', 'image'])
-      for (const tool of tools) {
-        expect(tool.inputSchema.type, tool.name).toBe('object')
+      const reads = ['state', 'operation', 'wait', 'request', 'image']
+
+      expect(tools.map(tool => tool.name)).toEqual(expect.arrayContaining(reads))
+      for (const tool of tools) expect(tool.inputSchema.type, tool.name).toBe('object')
+      for (const tool of tools.filter(tool => reads.includes(tool.name)))
         expect(tool.annotations, tool.name).toMatchObject({ readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false })
-      }
 
       const called = yield* client.callTool('state', {})
 
