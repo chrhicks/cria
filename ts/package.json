@@ -5,7 +5,7 @@
   "description": "Cria on Linux: a TypeScript INDI client that serves Vela",
   "scripts": {
     "build": "pnpm -r build",
-    "test": "vitest run",
+    "test": "vitest run && pnpm golden",
     "typecheck": "pnpm -r typecheck",
     "archive": "node --conditions=@cria/source --import ./testing/source-hook.mjs packages/recording-archive/src/main.ts",
     "replay": "node --conditions=@cria/source --import ./testing/source-hook.mjs packages/indi-replay/src/main.ts",

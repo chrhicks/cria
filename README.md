@@ -20,7 +20,7 @@ pnpm install
 pnpm verify
 ```
 
-`pnpm verify` runs `ts/verify.sh`: build, typecheck, the committed `dist/` check, the wire golden, and every test. It exits with the failing stage's exit code. Run `./verify.sh` from `ts/` directly to read that code yourself. `pnpm golden` checks the wire alone against `ts/testing/golden/wire.golden.json`. No test touches hardware. [Testing](docs/testing.md) and [ts/README.md](ts/README.md) say what each check proves.
+`pnpm verify` runs `ts/verify.sh`: build, typecheck, the committed `dist/` check, and `pnpm test` (every test, then the wire golden). It exits with the failing stage's exit code. Run `./verify.sh` from `ts/` directly to read that code yourself. `pnpm test` includes the golden; `pnpm golden` checks the wire alone against `ts/testing/golden/wire.golden.json`. No test touches hardware. [Testing](docs/testing.md) and [ts/README.md](ts/README.md) say what each check proves.
 
 ## Layout
 

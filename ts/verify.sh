@@ -31,5 +31,5 @@ dist_fresh() {
 stage build pnpm build
 stage typecheck pnpm typecheck
 stage 'committed dist' dist_fresh
-stage golden pnpm golden
-stage tests pnpm test
+# pnpm test runs the unit suite, then the wire golden.
+stage 'tests and golden' pnpm test

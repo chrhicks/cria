@@ -48,8 +48,8 @@ Node 24 or later, pnpm, and for the tests libindi with its simulators
 ```sh
 cd ts
 pnpm install
-pnpm verify      # build, typecheck, committed dist/, wire golden, every test: about 2 min
-pnpm test        # every test, about 75 s; starts its own indiservers on free ports
+pnpm verify      # build, typecheck, committed dist/, pnpm test: about 2 min
+pnpm test        # every test, then the wire golden, about 90 s; starts its own indiservers on free ports
 pnpm build       # primitives, indi, then the service, into dist/
 pnpm archive SESSION...        # archive a finished recording (dry run unless --apply)
 pnpm replay serve <recording>   # indi-replay from source: a recording served like indiserver (docs/ts/SPEC.md, "Replay")
@@ -64,8 +64,8 @@ it until Vela adopts `@cria/wire`. The tests use their own typed client
 ## Verification
 
 `pnpm verify` runs `verify.sh`: build, typecheck, a check that the committed
-`dist/` of the shared packages matches a fresh build, the wire golden, then the
-full suite. Build runs first because `apps/cria` typechecks against the
+`dist/` of the shared packages matches a fresh build, then `pnpm test` (the
+full suite, then the wire golden). Build runs first because `apps/cria` typechecks against the
 `dist/` of `@cria/indi`, which git does not hold, so `pnpm verify` passes on a
 fresh clone. It prints pass or FAIL per stage and exits with the failing stage's
 code. Run it before every commit that touches `ts/`.
@@ -81,7 +81,7 @@ node testing/mutate.mjs apps/cria/src/wire/sse.ts 'sentRevision = snapshotRevisi
 It exits 0 when the tests went red (the mutant was killed) and always restores
 the file.
 
-`pnpm golden` (about 15 s) drives a fixed list of scenarios through the typed
+`pnpm golden` (about 15 s; `pnpm test` runs it after the unit suite) drives a fixed list of scenarios through the typed
 client against Cria on the fake INDI server: every operation kind, the
 admission and lookup refusals, cancel, stop pre-emption, an unacknowledged
 command and its recovery, image download. It records each response, replaces IDs, times

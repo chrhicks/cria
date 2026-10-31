@@ -12,7 +12,7 @@ pnpm install
 ./verify.sh
 ```
 
-`pnpm verify` runs the same script. `verify.sh` runs five stages in order: build, typecheck, the committed `dist/` check, the wire golden, and the full suite. It prints `pass` or `FAIL` per stage and exits with the failing stage's exit code. It takes about 2 minutes.
+`pnpm verify` runs the same script. `verify.sh` runs four stages in order: build, typecheck, the committed `dist/` check, and `pnpm test` (the full suite, then the wire golden). It prints `pass` or `FAIL` per stage and exits with the failing stage's exit code. It takes about 2 minutes.
 
 Read the exit code of `./verify.sh` itself. Do not pipe it into `tee` or `tail`. A pipe once reported a failing suite as passing, because a pipe returns the exit code of its last command.
 
@@ -91,7 +91,7 @@ A camera, focuser, weather or switch device ends `uncertain` and is not held (cr
 
 ## Check the wire with the golden
 
-`pnpm golden` drives a fixed list of scenarios through the typed client against Cria on the fake INDI server. It replaces IDs, times and durations with placeholders and compares the result with `ts/testing/golden/wire.golden.json`. On a mismatch it prints what changed per scenario and step, and exits 1.
+`pnpm golden` (which `pnpm test` also runs, after the unit suite) drives a fixed list of scenarios through the typed client against Cria on the fake INDI server. It replaces IDs, times and durations with placeholders and compares the result with `ts/testing/golden/wire.golden.json`. On a mismatch it prints what changed per scenario and step, and exits 1.
 
 `pnpm golden:update` rewrites the golden. Run it only for an intentional wire change that Vela agreed to, and commit the golden with that change. A refactor that needs it has changed behavior.
 
