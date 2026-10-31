@@ -218,7 +218,7 @@ describe('quarantine and recovery', () => {
     expect(resultOf(cancel(after, id(1)))).toMatchObject({ state: 'settled', outcome: lost })
   })
 
-  it('still holds the mount when only a camera ended uncertain beside it', () => {
+  it('admits the next mount command after a confirmed one', () => {
     const after = stateOf(ended(stateOf(admitted(empty, 1, tracking)), 1, confirmed))
 
     expect(resultOf(admitted(after, 2, tracking))).toMatchObject({ state: 'running' })

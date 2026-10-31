@@ -755,8 +755,9 @@ disabled, setup does not run.
 or `UPLOAD_MODE already sends frames to Cria`. Until setup has run on a
 connection, the device's availability is `starting` with the message
 `Waiting for device setup`, so Vela does not command a mount that would refuse
-its goto. A step that is not confirmed ends the operation `uncertain`; the
-device is then `blocked` with the step named in the message, as
+its goto. A step that is not confirmed ends the operation `uncertain`. On a mount the
+device is then `blocked` with the step named in the message (any other device
+stays usable, see Quarantine), as
 `Blocked until a person recovers it: setup: TIME_UTC on ZWO AM5: no answer within 5s`,
 until a person recovers it. A step the driver refuses ends it `failed` and the
 device stays ready; the next capture or goto says why it fails. These reuse

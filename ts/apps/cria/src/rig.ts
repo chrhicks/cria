@@ -103,8 +103,8 @@ export function makeRig(config: Config, options: { readonly recording?: Recordin
  * Start-up, for devices configured with `connect`: once the driver has defined
  * the device, connect it (setting its serial port first if configured) as an
  * ordinary device-connect operation through the ledger (review R1-#11). So it
- * is single-flight with Vela's operations, quarantines the device if it ends
- * uncertain, and shows in the operation list. Never retried.
+ * is single-flight with Vela's operations, holds a mount if it ends uncertain
+ * (no other kind is held), and shows in the operation list. Never retried.
  */
 function prepare(device: RigDevice, ledger: Ledger, config: Config, instanceId: InstanceId) {
   const indi = device.indi
