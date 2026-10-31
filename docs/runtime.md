@@ -56,7 +56,7 @@ Cria never restarts a driver and never connects a device on its own. Chris asked
 
 It does nothing at all while Cria is unreachable (and must see Cria and the hardware agree for two polls after it returns), while commands are disabled, and, for the restart, when every device is unavailable (indiserver is down, not one driver). It never switches power, and never sends motion, exposure or any other command. It logs one line per decision to stdout, so `journalctl --user -u rig-supervisor` shows every action.
 
-**Why these limits.** A restart ends anything in flight on that driver as `uncertain: driver-lost` and holds the device. The checks above make sure nothing Cria knows about is in flight, and a held device is left for a person. An exposure started by another INDI client (PHD2 on the guide camera) shows in the readings as `exposing`, which also blocks a restart.
+**Why these limits.** A restart ends anything in flight on that driver as `uncertain: driver-lost`, which holds a mount (other devices stay usable). The checks above make sure nothing Cria knows about is in flight, and a held mount is left for a person. An exposure started by another INDI client (PHD2 on the guide camera) shows in the readings as `exposing`, which also blocks a restart.
 
 **What it cannot see.** Cria does not clear its copy of a device's properties when its connection to indiserver drops. If `indiserver` itself restarts while a camera is unpowered, that camera should read `stale`, not `unavailable` (read from the code, not seen on the rig), and the supervisor does not touch it (it only acts on `unavailable`). Restart Cria (`systemctl --user restart cria`) after powering it. This does not happen at boot, when Cria starts with an empty copy.
 
