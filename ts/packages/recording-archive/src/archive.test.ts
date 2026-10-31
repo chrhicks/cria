@@ -34,7 +34,7 @@ afterEach(() => rm(root, { recursive: true, force: true }))
 /** A session in errai's folder with `frames` images and, after each image, the `capture` op line Cria's ledger writes. */
 async function session(name: string, over: { age?: number } = {}) {
   const folder = await synthesizeTape(
-    { sensor: { width: 64, height: 48 }, exposureSeconds: exposure, stars: Array.from({ length: frames }, () => 0), site: { latitudeDegrees: 40, longitudeDegrees: -75 }, startAt, pointing: { raHours: 3, decDegrees: 30 } },
+    { sensor: { width: 64, height: 48 }, exposureSeconds: exposure, stars: Array.from({ length: frames }, () => 0), site: { latitudeDegrees: 33.45, longitudeDegrees: -112.07 }, startAt, pointing: { raHours: 3, decDegrees: 30 } },
     join(errai, name),
   )
   const lines = (await readFile(join(folder, 'traffic.jsonl'), 'utf8')).split('\n').filter(line => line !== '')

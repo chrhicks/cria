@@ -246,17 +246,17 @@
             "elevationMeters": {
               "observedAt": "<time>",
               "status": "fresh",
-              "value": 0
+              "value": 331
             },
             "latitudeDegrees": {
               "observedAt": "<time>",
               "status": "fresh",
-              "value": 40
+              "value": 33.45
             },
             "longitudeDegrees": {
               "observedAt": "<time>",
               "status": "fresh",
-              "value": -75
+              "value": -112.07
             },
             "name": {
               "observedAt": "<time>",
@@ -901,17 +901,17 @@
             "elevationMeters": {
               "observedAt": "<time>",
               "status": "fresh",
-              "value": 0
+              "value": 331
             },
             "latitudeDegrees": {
               "observedAt": "<time>",
               "status": "fresh",
-              "value": 40
+              "value": 33.45
             },
             "longitudeDegrees": {
               "observedAt": "<time>",
               "status": "fresh",
-              "value": -75
+              "value": -112.07
             },
             "name": {
               "observedAt": "<time>",
@@ -3364,7 +3364,7 @@
           "image": null,
           "values": {
             "connected": true,
-            "setup": "sent GEOGRAPHIC_COORD LAT=40 LONG=285 ELEV=0; sent TIME_UTC UTC=<utc> OFFSET=0.00"
+            "setup": "sent GEOGRAPHIC_COORD LAT=33.45 LONG=247.93 ELEV=331; sent TIME_UTC UTC=<utc> OFFSET=0.00"
           }
         }
       },
@@ -3924,17 +3924,17 @@
         "elevationMeters": {
           "observedAt": "<time>",
           "status": "fresh",
-          "value": 0
+          "value": 331
         },
         "latitudeDegrees": {
           "observedAt": "<time>",
           "status": "fresh",
-          "value": 40
+          "value": 33.45
         },
         "longitudeDegrees": {
           "observedAt": "<time>",
           "status": "fresh",
-          "value": -75
+          "value": -112.07
         },
         "name": {
           "observedAt": "<time>",

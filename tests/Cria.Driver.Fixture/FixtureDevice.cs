@@ -52,8 +52,8 @@ internal sealed class FixtureDevice : IDevice
         Set(2, "equatorialsystem", "maxswitch");
         Set(5d, "rightascension", "siderealtime");
         Set(30d, "declination");
-        Set(40d, "sitelatitude");
-        Set(-75d, "sitelongitude");
+        Set(33.45d, "sitelatitude");
+        Set(-112.07d, "sitelongitude");
         Set(100d, "siteelevation");
         values["axisrates"] = new[] { new { minimum = .01, maximum = 10d } };
     }

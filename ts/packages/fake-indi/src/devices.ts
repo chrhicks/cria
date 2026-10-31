@@ -76,7 +76,7 @@ export function addMount(fake: FakeIndi, device: string): void {
     state: 'Idle',
     elements: Object.fromEntries(multiples.map((label, index) => [`${index + 1}x`, { value: index === 9, label }])),
   })
-  fake.define({ device, name: 'GEOGRAPHIC_COORD', kind: 'number', perm: 'rw', state: 'Idle', elements: { LAT: { value: 40, min: -90, max: 90 }, LONG: { value: 285, max: 360 }, ELEV: { value: 0, min: -200, max: 10000 } } })
+  fake.define({ device, name: 'GEOGRAPHIC_COORD', kind: 'number', perm: 'rw', state: 'Idle', elements: { LAT: { value: 33.45, min: -90, max: 90 }, LONG: { value: 247.93, max: 360 }, ELEV: { value: 331, min: -200, max: 10000 } } })
   // The AM5's own clock, unset, as errai showed it.
   fake.define({ device, name: 'TIME_UTC', kind: 'text', perm: 'rw', state: 'Ok', elements: { UTC: { value: '2000-01-01T00:56:31' }, OFFSET: { value: '0.00' } } })
 }

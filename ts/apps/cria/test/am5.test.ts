@@ -4,7 +4,7 @@ import { am5, type Am5Options, type FakeAm5 } from './drivers.js'
 import { allReady, startCria, until, valueOf, type Cria, type DeviceSpec } from './harness.js'
 
 const mount = 'ZWO AM5'
-const site = { latitudeDegrees: 40.0, longitudeDegrees: -75, elevationMeters: 0 }
+const site = { latitudeDegrees: 33.45, longitudeDegrees: -112.07, elevationMeters: 331 }
 const sidereal = 15.041067 / 3600
 let fake: FakeIndi
 let model: FakeAm5
@@ -36,7 +36,7 @@ describe('a goto on an AM5 that needs its site and time', () => {
     const operation = await cria.run('mount', 'mount-slew', { rightAscensionDegrees: 31, declinationDegrees: 45, coordinateSystem: 'topocentric' })
 
     expect([operation.kind, operation.message]).toEqual(['confirmed', null])
-    expect(sent('GEOGRAPHIC_COORD')).toEqual(['LAT=40 LONG=285 ELEV=0'])
+    expect(sent('GEOGRAPHIC_COORD')).toEqual(['LAT=33.45 LONG=247.93 ELEV=331'])
     expect(sent('TIME_UTC')).toEqual([expect.stringMatching(/^UTC=\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d OFFSET=0\.00$/)])
     expect(fake.received.findIndex(xml => xml.includes('name="GEOGRAPHIC_COORD"'))).toBeLessThan(fake.received.findIndex(xml => xml.includes('name="TIME_UTC"')))
   })

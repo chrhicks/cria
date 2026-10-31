@@ -751,7 +751,7 @@ disabled, setup does not run.
 
 **What it reports.** No wire change. The `device-connect` outcome's values carry
 `setup`, one string of what each step did, for example
-`sent GEOGRAPHIC_COORD LAT=40 LONG=285 ELEV=0; sent TIME_UTC UTC=2026-10-16T00:21:47 OFFSET=0.00`
+`sent GEOGRAPHIC_COORD LAT=33.45 LONG=247.93 ELEV=331; sent TIME_UTC UTC=2026-10-16T00:21:47 OFFSET=0.00`
 or `UPLOAD_MODE already sends frames to Cria`. Until setup has run on a
 connection, the device's availability is `starting` with the message
 `Waiting for device setup`, so Vela does not command a mount that would refuse
@@ -1187,7 +1187,7 @@ stop the process. `ts/deploy/rig.errai.json` is the rig's config:
       "frameGrid": { "width": 8, "height": 2 } },
     { "id": "mount", "kind": "mount", "indiDevice": "ZWO AM5", "connect": false,
       "port": "/dev/serial/by-id/usb-ZWO_Systems_ZWO_Device_123456-if00",
-      "site": { "latitudeDegrees": 40.0, "longitudeDegrees": -75, "elevationMeters": 0 } },
+      "site": { "latitudeDegrees": 33.45, "longitudeDegrees": -112.07, "elevationMeters": 331 } },
     { "id": "switch", "kind": "switch", "indiDevice": "Pegasus PPBA",
       "channels": [
         { "name": "12V ports", "property": "POWER_CHANNELS", "element": "POWER_CHANNEL_1" },

@@ -5,7 +5,7 @@ import { allReady, startCria, until, type Cria } from './harness.js'
 
 const camera = 'Fake CCD'
 const mount = 'ZWO AM5'
-const site = { latitudeDegrees: 40.0, longitudeDegrees: -75, elevationMeters: 12 }
+const site = { latitudeDegrees: 33.45, longitudeDegrees: -112.07, elevationMeters: 331 }
 let fake: FakeIndi
 let cria: Cria
 
@@ -64,7 +64,7 @@ describe('a mount', () => {
     await cria.waitFor(allReady(['mount']))
 
     expect(writes('GEOGRAPHIC_COORD').map(xml => [...xml.matchAll(/name="(\w+)">\s*([^<\s]+)/g)].map(([, name, value]) => `${name}=${value}`))).toEqual([
-      ['LAT=40', 'LONG=285', 'ELEV=12'],
+      ['LAT=33.45', 'LONG=247.93', 'ELEV=331'],
     ])
     expect(fake.vector(mount, 'TIME_UTC').elements.UTC!.value).toMatch(/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d$/)
     expect(Math.abs(Date.parse(`${String(fake.vector(mount, 'TIME_UTC').elements.UTC!.value)}Z`) - Date.now())).toBeLessThan(15_000)
