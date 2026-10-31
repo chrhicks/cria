@@ -60,6 +60,35 @@ Every Cria session on errai records its INDI traffic (`~/cria-recordings`). The 
 
 What the recordings do not hold, so no recorded case exists: a camera exposure with no answer, an Alert on an exposure, a camera abort that left the exposure Busy, a connection drop, a driver crash, a focuser that stopped short, a readback that never matched on a camera, focuser, relay or dew write. Of 1,462 exposures, 63 focuser moves and 22 camera aborts, every one was answered within 1.1 s and arrived.
 
+## Serving a case to a test Vela
+
+A person can meet any case in a browser: one command starts a fake errai rig (both cameras, the EAF, the AM5 and the Pegasus box on the fake INDI server) with one failure, and the real Cria on it. Point a test Vela's Cria address at it and send the command the scenario names. Nothing touches errai, the rig or any hardware, and the scenarios are the ones `apps/cria/test/scenarios.test.ts` runs, so what the list promises is tested.
+
+```sh
+cd ts
+pnpm install                              # once
+pnpm fake-rig list                        # every scenario, what to do in Vela, what you should see
+pnpm fake-rig serve camera-silent         # Cria on http://127.0.0.1:4320
+pnpm fake-rig serve focuser-short --host 0.0.0.0 --port 4320   # reachable from another machine; use only on a network you trust
+CRIA_TOKEN=secret pnpm fake-rig serve mount-power-cut           # Cria asks for this bearer token
+```
+
+`serve` prints the scenario, what to try and what to expect, then `listening on http://HOST:PORT`, and runs until you stop it (Ctrl-C). `--acknowledge-ms N` shortens the 5 s a command waits for the driver's answer (the default is errai's). The failure stays: every matching command meets it again, and a restart gives the devices a fresh state and clears a held mount. This Cria speaks wire protocol 5, so the Vela must be one that does (the one that shows the uncertain warning, vela#208).
+
+| Scenario | Source | Do in Vela | Vela shows |
+| --- | --- | --- | --- |
+| `camera-silent` | derived | start a capture on the primary camera | `uncertain` (no acknowledgement) on the camera: the warning; camera not held |
+| `focuser-short` | derived | move the focuser to 31000 | `uncertain` (stopped at 31150, short of 31000): the warning; focuser not held |
+| `focuser-silent` | derived | move the focuser to 31000 | `uncertain` (no acknowledgement): the warning; focuser not held |
+| `switch-ignored` | derived | switch channel 0 (12 V ports) off | after 15 s `uncertain` (driver still shows the old value): the warning; switch not held |
+| `weather-silent` | derived | connect the weather device | after 8 s `uncertain` (no acknowledgement): the warning; not held |
+| `guide-loop` | recorded | capture on the primary camera while watching the guide camera | the guide camera gets a frame every 2.75 s unasked; the capture confirms; no warning |
+| `mount-home-stop` | recorded | send the mount Home, stop it a second later | `stopped` once the mount is still; not held |
+| `mount-power-cut` | recorded | rotate the mount; power is cut a second after it starts | `uncertain` (stop not confirmed) after repeated stops; **mount held** until Clear hold |
+| `mount-pole-rotate` | recorded | rotate the mount (it starts at Home) | `uncertain` (no acknowledgement after 5 s); **mount held** until Clear hold |
+
+A camera, focuser, weather or switch device ends `uncertain` and is not held (cria#34); only the mount holds. The first five scenarios are the ones that show the non-mount warning, and all five are derived, because the recordings hold no real failure of those devices (see "Cases from recorded failures").
+
 ## Check the wire with the golden
 
 `pnpm golden` drives a fixed list of scenarios through the typed client against Cria on the fake INDI server. It replaces IDs, times and durations with placeholders and compares the result with `ts/testing/golden/wire.golden.json`. On a mismatch it prints what changed per scenario and step, and exits 1.
