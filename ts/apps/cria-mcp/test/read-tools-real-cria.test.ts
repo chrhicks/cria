@@ -2,33 +2,17 @@ import { createHash } from 'node:crypto'
 import { readFile, readdir } from 'node:fs/promises'
 import { describe, expect, it } from '@effect/vitest'
 import { Effect, Schema } from 'effect'
-import { FakeIndi, addCamera, addMount, type Behaviour } from '@cria/fake-indi'
-import { fitsFrame } from '@cria/fits'
+import { FakeIndi, addCamera, addMount } from '@cria/fake-indi'
 import { Image, Operation, type OperationRequest } from '@cria/wire'
 import { makeCriaClient } from '../../../testing/cria-client.js'
+import { exposesAndSendsFrame } from './fake-rig.js'
 import { callTool, startMcp, startRealCria } from './support.js'
 
 const strict = { onExcessProperty: 'error' } as const
 
-/** A camera that finishes an exposure after its duration and sends a frame. */
-const exposesAndSendsFrame: Behaviour = (fake, vector, values) => {
-  if (vector.name !== 'CCD_EXPOSURE') return 'default'
-  const seconds = Number(values.CCD_EXPOSURE_VALUE)
-  const startedAt = Date.now()
-
-  fake.update(vector.device, vector.name, { state: 'Busy', values: { CCD_EXPOSURE_VALUE: seconds } })
-  setTimeout(() => {
-    if (fake.vector(vector.device, 'CCD_EXPOSURE').state !== 'Busy') return
-    fake.sendBlob(vector.device, 'CCD1', 'CCD1', fitsFrame(8, 6, { exptime: seconds, startedAt }))
-    fake.update(vector.device, 'CCD_EXPOSURE', { state: 'Ok', values: { CCD_EXPOSURE_VALUE: 0 } })
-  }, seconds * 1000).unref()
-
-  return 'handled'
-}
-
 /**
  * A real Cria process on a fake INDI camera, with commands enabled: they reach only the fake.
- * The test sends them through Cria's own HTTP API, because command tools are not part of this server yet.
+ * This test sends them through Cria's own HTTP API, so the read tools are checked without the command tools.
  */
 const rig = Effect.gen(function* () {
   const fake = yield* Effect.acquireRelease(
