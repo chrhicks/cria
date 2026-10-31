@@ -9,10 +9,16 @@ const mountBinding = BindingId.make(uuid(2))
 const cameraBinding = BindingId.make(uuid(3))
 const mount = { id: DeviceId.make('mount'), kind: 'mount', name: 'ZWO AM5', failureDomain: FailureDomain.make('zwo-am5') } as const
 const camera = { id: DeviceId.make('camera'), kind: 'camera', name: 'Fake CCD', failureDomain: FailureDomain.make('fake-ccd') } as const
-const rules: Rules = { instanceId, commandsEnabled: true, history: 3, devices: new Map([mount, camera].map(device => [device.id, device])) }
+const focuser = { id: DeviceId.make('focuser'), kind: 'focuser', name: 'Fake Focuser', failureDomain: FailureDomain.make('fake-focuser') } as const
+const relay = { id: DeviceId.make('switch'), kind: 'switch', name: 'Fake Relay', failureDomain: FailureDomain.make('fake-relay') } as const
+const focuserBinding = BindingId.make(uuid(5))
+const relayBinding = BindingId.make(uuid(6))
+const rules: Rules = { instanceId, commandsEnabled: true, history: 3, devices: new Map([mount, camera, focuser, relay].map(device => [device.id, device])) }
 const empty = initialState([
   [mount.failureDomain, mountBinding],
   [camera.failureDomain, cameraBinding],
+  [focuser.failureDomain, focuserBinding],
+  [relay.failureDomain, relayBinding],
 ])
 
 const slew = { kind: 'mount-slew', parameters: { rightAscensionDegrees: 120, declinationDegrees: 10, coordinateSystem: 'topocentric' } } as const
@@ -21,7 +27,15 @@ const tracking = { kind: 'mount-tracking', parameters: { tracking: true } } as c
 const confirmed = { kind: 'confirmed', value: { values: {}, image: null } } as const
 const lost = { kind: 'uncertain', reason: 'no-acknowledgement', message: 'no answer' } as const
 
-const request = (n: number, command: Command, device: typeof mount | typeof camera = mount, bindingId = mountBinding): Submission => ({
+type Device = typeof mount | typeof camera | typeof focuser | typeof relay
+const bindingOf = new Map<string, BindingId>([
+  [mount.id, mountBinding],
+  [camera.id, cameraBinding],
+  [focuser.id, focuserBinding],
+  [relay.id, relayBinding],
+])
+
+const request = (n: number, command: Command, device: Device = mount, bindingId = mountBinding): Submission => ({
   instanceId,
   requestId: RequestId.make(`r${n}`),
   deviceId: device.id,
@@ -30,8 +44,8 @@ const request = (n: number, command: Command, device: typeof mount | typeof came
   ...command,
 })
 
-function admitted(state: LedgerState, n: number, command: Command, device: typeof mount | typeof camera = mount) {
-  return admit(rules, state, { submission: request(n, command, device, device === mount ? mountBinding : cameraBinding), id: OperationId.make(uuid(100 + n)), now: n })
+function admitted(state: LedgerState, n: number, command: Command, device: Device = mount) {
+  return admit(rules, state, { submission: request(n, command, device, bindingOf.get(device.id)!), id: OperationId.make(uuid(100 + n)), now: n })
 }
 
 const id = (n: number) => OperationId.make(uuid(100 + n))
@@ -189,7 +203,25 @@ describe('quarantine and recovery', () => {
     const stopped = stateOf(ended(stateOf(admitted(held, 2, stop)), 2, confirmed))
 
     expect(resultOf(admitted(stopped, 3, tracking))).toMatchObject({ code: 'device-blocked', message: 'Blocked until recovered: no answer' })
-    expect(resultOf(snapshot(stopped)).facts(mount.failureDomain).quarantine).toEqual({ held: true, reason: 'no answer', since: 51 })
+    expect(resultOf(snapshot(rules, stopped)).facts(mount.failureDomain).quarantine).toEqual({ held: true, reason: 'no answer', since: 51 })
+  })
+
+  it.each([
+    ['camera', camera, { kind: 'capture', parameters: { exposureSeconds: 1, light: true } }],
+    ['focuser', focuser, { kind: 'focuser-move', parameters: { position: 1000 } }],
+    ['switch', relay, { kind: 'switch-set', parameters: { channelId: 0, value: 1 } }],
+  ] as const)('does not hold a %s after an uncertain ending: the next command is admitted', (_name, device, command) => {
+    const after = stateOf(ended(stateOf(admitted(empty, 1, command as Command, device)), 1, lost))
+
+    expect(resultOf(snapshot(rules, after)).facts(device.failureDomain).quarantine).toEqual({ held: false })
+    expect(resultOf(admitted(after, 2, command as Command, device))).toMatchObject({ state: 'running' })
+    expect(resultOf(cancel(after, id(1)))).toMatchObject({ state: 'settled', outcome: lost })
+  })
+
+  it('still holds the mount when only a camera ended uncertain beside it', () => {
+    const after = stateOf(ended(stateOf(admitted(empty, 1, tracking)), 1, confirmed))
+
+    expect(resultOf(admitted(after, 2, tracking))).toMatchObject({ state: 'running' })
   })
 
   it('refuses a recovery while a stop is open, and a stale binding', () => {
@@ -207,6 +239,15 @@ describe('quarantine and recovery', () => {
 })
 
 describe('retention', () => {
+  it('prunes a non-mount uncertain ending like any other, but keeps the mount one', () => {
+    const cameraOps = [1, 2, 3, 4, 5].reduce(
+      (state, n) => stateOf(ended(stateOf(admitted(state, n, { kind: 'capture', parameters: { exposureSeconds: 1, light: true } }, camera)), n, n === 1 ? lost : confirmed)),
+      empty,
+    )
+
+    expect(states(cameraOps).map(([operation]) => operation)).toEqual([id(3), id(4), id(5)])
+  })
+
   it('drops the oldest settled operations beyond history, never a quarantining one, and keeps every request ID', () => {
     const steps = [2, 3, 4, 5].reduce(
       (state, n) => stateOf(ended(stateOf(admitted(state, n, stop)), n, confirmed)),
@@ -221,18 +262,18 @@ describe('retention', () => {
     ])
     expect(resultOf(admitted(steps, 2, stop))).toMatchObject({ code: 'result-expired' })
     expect(resultOf(cancel(steps, id(2)))).toMatchObject({ code: 'result-expired' })
-    expect(prune(3, steps)).toBe(steps)
+    expect(prune(rules, steps)).toBe(steps)
   })
 })
 
 describe('snapshot', () => {
   it('counts snapshots from 1 and carries the revision of the state it read', () => {
     const changed = stateOf(admitted(empty, 1, tracking))
-    const first = snapshot(changed)
-    const second = snapshot(stateOf(first))
+    const first = snapshot(rules, changed)
+    const second = snapshot(rules, stateOf(first))
 
     expect([resultOf(first).sequence, resultOf(second).sequence, resultOf(first).revision]).toEqual([1, 2, 1])
     expect(stateOf(second).revision).toBe(1)
-    expect(resultOf(snapshot(empty)).sequence).toBe(1)
+    expect(resultOf(snapshot(rules, empty)).sequence).toBe(1)
   })
 })

@@ -129,19 +129,27 @@ function known<K, V>(map: ReadonlyMap<K, V>, key: K): V {
 const openIn = (state: LedgerState, failureDomain: FailureDomain): ReadonlyArray<Open> =>
   [...state.operations.values()].filter((operation): operation is Open => operation.failureDomain === failureDomain && operation.state !== 'settled')
 
-function quarantineIn(state: LedgerState, failureDomain: FailureDomain): QuarantineState {
+/** Only a mount holds: its position is a step count Cria cannot read back. Any other device is simply commanded again. */
+const holdsDevice = (rules: Rules, operation: Stored) => rules.devices.get(operation.deviceId)?.kind === 'mount'
+
+function quarantineIn(rules: Rules, state: LedgerState, failureDomain: FailureDomain): QuarantineState {
   const { binding } = known(state.domains, failureDomain)
 
-  return quarantineOf([...state.operations.values()].filter((operation): operation is Ended => operation.state === 'settled' && operation.bindingId === binding))
+  return quarantineOf(
+    [...state.operations.values()].filter((operation): operation is Ended => operation.state === 'settled' && operation.bindingId === binding && holdsDevice(rules, operation)),
+  )
 }
 
-const blocks = (state: LedgerState, operation: Stored) =>
-  operation.state === 'settled' && operation.outcome.kind === 'uncertain' && operation.bindingId === known(state.domains, operation.failureDomain).binding
+const blocks = (rules: Rules, state: LedgerState, operation: Stored) =>
+  operation.state === 'settled' &&
+  operation.outcome.kind === 'uncertain' &&
+  holdsDevice(rules, operation) &&
+  operation.bindingId === known(state.domains, operation.failureDomain).binding
 
-function factsOf(state: LedgerState, failureDomain: FailureDomain): DomainFacts {
+function factsOf(rules: Rules, state: LedgerState, failureDomain: FailureDomain): DomainFacts {
   const { binding, recentlySettled } = known(state.domains, failureDomain)
 
-  return { binding, quarantine: quarantineIn(state, failureDomain), busy: openIn(state, failureDomain).length > 0, recentlySettled }
+  return { binding, quarantine: quarantineIn(rules, state, failureDomain), busy: openIn(state, failureDomain).length > 0, recentlySettled }
 }
 
 const settledView = (state: LedgerState, operation: Ended): Settled => ({
@@ -208,7 +216,7 @@ export function admit(
     return record({ ...accepted, state: 'waiting' }, running && !isHalt(running) ? [{ kind: 'stop', operation: running }] : [])
   }
 
-  const quarantine = quarantineIn(state, device.failureDomain)
+  const quarantine = quarantineIn(rules, state, device.failureDomain)
 
   if (quarantine.held) return refused(refuse('device-blocked', `Blocked until recovered: ${quarantine.reason}`))
   if (open.length > 0) return refused(refuse('device-busy', 'The device is running another operation'))
@@ -245,7 +253,7 @@ export function settle(
   const following: Running | undefined = next && { ...next, state: 'running', startedAt: input.now, progress: initialProgress }
   const operations = put(state.operations, ended.id, ended)
   const settledState = prune(
-    rules.history,
+    rules,
     changed(state, {
       operations: following ? put(operations, following.id, following) : operations,
       domains: put(state.domains, operation.failureDomain, { ...domain, recentlySettled: [...domain.recentlySettled, { id: ended.id, settledAt: ended.settledAt }].slice(-settledKept) }),
@@ -259,9 +267,9 @@ export function settle(
   return [step(undefined, [...resolve, ...start]), settledState]
 }
 
-export function prune(history: number, state: LedgerState): LedgerState {
-  const finished = [...state.operations.values()].filter(operation => operation.state === 'settled' && !blocks(state, operation))
-  const excess = finished.length - history
+export function prune(rules: Rules, state: LedgerState): LedgerState {
+  const finished = [...state.operations.values()].filter(operation => operation.state === 'settled' && !blocks(rules, state, operation))
+  const excess = finished.length - rules.history
 
   if (excess <= 0) return state
   const dropped = new Set(finished.slice(0, excess).map(operation => operation.id))
@@ -313,12 +321,12 @@ export function recover(
     recoveredBindings: put(state.recoveredBindings, domain.binding, { at: input.at, note: input.recovery.note }),
   })
 
-  return [step(factsOf(recovered, device.failureDomain)), recovered]
+  return [step(factsOf(rules, recovered, device.failureDomain)), recovered]
 }
 
-export function snapshot(state: LedgerState): Transition<LedgerSnapshot> {
+export function snapshot(rules: Rules, state: LedgerState): Transition<LedgerSnapshot> {
   const all = [...state.operations.values()]
-  const hidden = new Set(all.filter(operation => operation.state === 'settled' && !blocks(state, operation)).slice(0, -settledShown))
+  const hidden = new Set(all.filter(operation => operation.state === 'settled' && !blocks(rules, state, operation)).slice(0, -settledShown))
   const next = { ...state, sequence: state.sequence + 1 }
 
   return [
@@ -326,7 +334,7 @@ export function snapshot(state: LedgerState): Transition<LedgerSnapshot> {
       sequence: next.sequence,
       revision: state.revision,
       operations: all.filter(operation => !hidden.has(operation)).map(operation => view(state, operation)),
-      facts: failureDomain => factsOf(state, failureDomain),
+      facts: failureDomain => factsOf(rules, state, failureDomain),
     }),
     next,
   ]
@@ -347,7 +355,7 @@ function byRequest(rules: Rules, state: LedgerState, instanceId: InstanceId, req
 function deviceFacts(rules: Rules, state: LedgerState, deviceId: DeviceId): DomainFacts | Refusal {
   const device = rules.devices.get(deviceId)
 
-  return device ? factsOf(state, device.failureDomain) : refuse('not-found', `No device ${deviceId}`)
+  return device ? factsOf(rules, state, device.failureDomain) : refuse('not-found', `No device ${deviceId}`)
 }
 
 function fingerprintOf(submission: Submission): string {
@@ -504,7 +512,7 @@ export function makeLedger(options: LedgerOptions): Effect.Effect<Ledger, never,
           return yield* answer(yield* apply(current => recover(rules, current, input)))
         }),
       facts: deviceId => read(current => deviceFacts(rules, current, deviceId)),
-      snapshot: apply(snapshot),
+      snapshot: apply(current => snapshot(rules, current)),
       revisions: Stream.fromPubSub(revisions),
     }
   })

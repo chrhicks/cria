@@ -5692,7 +5692,7 @@
     }
   },
   {
-    "scenario": "no acknowledgement: uncertain, held by quarantine, then recovered",
+    "scenario": "no acknowledgement: uncertain, the camera is not held, the next capture runs, a recovery is still accepted",
     "step": 1,
     "request": "POST /v2/operations",
     "sent": {
@@ -5731,7 +5731,7 @@
     }
   },
   {
-    "scenario": "no acknowledgement: uncertain, held by quarantine, then recovered",
+    "scenario": "no acknowledgement: uncertain, the camera is not held, the next capture runs, a recovery is still accepted",
     "step": 2,
     "request": "GET /v2/operations/<operation-1>",
     "status": 200,
@@ -5761,7 +5761,7 @@
     }
   },
   {
-    "scenario": "no acknowledgement: uncertain, held by quarantine, then recovered",
+    "scenario": "no acknowledgement: uncertain, the camera is not held, the next capture runs, a recovery is still accepted",
     "step": 3,
     "request": "GET /v2/state",
     "status": 200,
@@ -5769,11 +5769,9 @@
       "commandsEnabled": true,
       "devices": [
         {
-          "afterOperation": null,
+          "afterOperation": "<operation-1>",
           "availability": {
-            "message": "Blocked until a person recovers it: CCD_EXPOSURE on Fake CCD: no answer within 600ms",
-            "ready": false,
-            "reason": "blocked"
+            "ready": true
           },
           "bindingId": "<binding-1>",
           "failureDomain": "fake-ccd",
@@ -5782,9 +5780,7 @@
           "lastCommandedSetpointC": null,
           "name": "Fake CCD",
           "quarantine": {
-            "held": true,
-            "reason": "CCD_EXPOSURE on Fake CCD: no answer within 600ms",
-            "since": "<time>"
+            "held": false
           },
           "readings": {
             "activity": {
@@ -5969,7 +5965,7 @@
     }
   },
   {
-    "scenario": "no acknowledgement: uncertain, held by quarantine, then recovered",
+    "scenario": "no acknowledgement: uncertain, the camera is not held, the next capture runs, a recovery is still accepted",
     "step": 4,
     "request": "POST /v2/operations",
     "sent": {
@@ -5979,23 +5975,93 @@
       "instanceId": "<instance-1>",
       "kind": "capture",
       "parameters": {
-        "exposureSeconds": 1,
+        "exposureSeconds": 0.05,
         "light": true
       },
       "requestId": "<request-2>"
     },
-    "status": 409,
+    "status": 202,
     "body": {
-      "error": {
-        "code": "device-blocked",
-        "message": "Blocked until recovered: CCD_EXPOSURE on Fake CCD: no answer within 600ms"
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "camera",
+      "expectedName": "Fake CCD",
+      "failureDomain": "fake-ccd",
+      "id": "<operation-2>",
+      "instanceId": "<instance-1>",
+      "kind": "capture",
+      "parameters": {
+        "exposureSeconds": 0.05,
+        "light": true
       },
-      "instanceId": "<instance-1>"
+      "progress": {
+        "elapsedSeconds": null,
+        "phase": "preparing"
+      },
+      "requestId": "<request-2>",
+      "startedAt": "<time>",
+      "state": "running"
     }
   },
   {
-    "scenario": "no acknowledgement: uncertain, held by quarantine, then recovered",
+    "scenario": "no acknowledgement: uncertain, the camera is not held, the next capture runs, a recovery is still accepted",
     "step": 5,
+    "request": "GET /v2/operations/<operation-2>",
+    "status": 200,
+    "body": {
+      "acceptedAt": "<time>",
+      "bindingId": "<binding-1>",
+      "deviceId": "camera",
+      "expectedName": "Fake CCD",
+      "failureDomain": "fake-ccd",
+      "id": "<operation-2>",
+      "instanceId": "<instance-1>",
+      "kind": "capture",
+      "outcome": {
+        "kind": "confirmed",
+        "value": {
+          "image": {
+            "binX": 1,
+            "binY": 1,
+            "bindingId": "<binding-1>",
+            "cameraName": "Fake CCD",
+            "capturedAt": "<time>",
+            "capturedAtSource": "camera",
+            "color": "grbg",
+            "deviceId": "camera",
+            "exposureSeconds": 0.05,
+            "height": 6,
+            "id": "<image-1>",
+            "instanceId": "<instance-1>",
+            "operationId": "<operation-2>",
+            "original": {
+              "bytes": 140,
+              "mediaType": "application/imagebytes",
+              "url": "/v2/images/<image-1>/original"
+            },
+            "retainedAt": "<time>",
+            "sha256": "146f86c57bfa413cc92866d35a539fffafee4212e14f8892afa27133b469255d",
+            "startX": 0,
+            "startY": 0,
+            "width": 8
+          },
+          "values": {}
+        }
+      },
+      "parameters": {
+        "exposureSeconds": 0.05,
+        "light": true
+      },
+      "recovery": null,
+      "requestId": "<request-2>",
+      "settledAt": "<time>",
+      "startedAt": "<time>",
+      "state": "settled"
+    }
+  },
+  {
+    "scenario": "no acknowledgement: uncertain, the camera is not held, the next capture runs, a recovery is still accepted",
+    "step": 6,
     "request": "POST /v2/devices/camera/recover",
     "sent": {
       "bindingId": "<binding-2>",
@@ -6013,8 +6079,8 @@
     }
   },
   {
-    "scenario": "no acknowledgement: uncertain, held by quarantine, then recovered",
-    "step": 6,
+    "scenario": "no acknowledgement: uncertain, the camera is not held, the next capture runs, a recovery is still accepted",
+    "step": 7,
     "request": "POST /v2/devices/camera/recover",
     "sent": {
       "bindingId": "<binding-1>",
@@ -6032,8 +6098,8 @@
     }
   },
   {
-    "scenario": "no acknowledgement: uncertain, held by quarantine, then recovered",
-    "step": 7,
+    "scenario": "no acknowledgement: uncertain, the camera is not held, the next capture runs, a recovery is still accepted",
+    "step": 8,
     "request": "POST /v2/devices/camera/recover",
     "sent": {
       "bindingId": "<binding-1>",
@@ -6051,8 +6117,8 @@
     }
   },
   {
-    "scenario": "no acknowledgement: uncertain, held by quarantine, then recovered",
-    "step": 8,
+    "scenario": "no acknowledgement: uncertain, the camera is not held, the next capture runs, a recovery is still accepted",
+    "step": 9,
     "request": "POST /v2/devices/camera/recover",
     "sent": {
       "bindingId": "<binding-1>",
@@ -6062,11 +6128,9 @@
     },
     "status": 200,
     "body": {
-      "afterOperation": null,
+      "afterOperation": "<operation-2>",
       "availability": {
-        "message": "Waiting for a reading after the last operation",
-        "ready": false,
-        "reason": "refreshing"
+        "ready": true
       },
       "bindingId": "<binding-3>",
       "failureDomain": "fake-ccd",
@@ -6228,8 +6292,8 @@
     }
   },
   {
-    "scenario": "no acknowledgement: uncertain, held by quarantine, then recovered",
-    "step": 9,
+    "scenario": "no acknowledgement: uncertain, the camera is not held, the next capture runs, a recovery is still accepted",
+    "step": 10,
     "request": "GET /v2/operations/<operation-1>",
     "status": 200,
     "body": {
@@ -6255,101 +6319,6 @@
         "note": "Chris checked the camera: idle"
       },
       "requestId": "<request-1>",
-      "settledAt": "<time>",
-      "startedAt": "<time>",
-      "state": "settled"
-    }
-  },
-  {
-    "scenario": "no acknowledgement: uncertain, held by quarantine, then recovered",
-    "step": 10,
-    "request": "POST /v2/operations",
-    "sent": {
-      "bindingId": "<binding-3>",
-      "deviceId": "camera",
-      "expectedName": "Fake CCD",
-      "instanceId": "<instance-1>",
-      "kind": "capture",
-      "parameters": {
-        "exposureSeconds": 0.05,
-        "light": true
-      },
-      "requestId": "<request-3>"
-    },
-    "status": 202,
-    "body": {
-      "acceptedAt": "<time>",
-      "bindingId": "<binding-3>",
-      "deviceId": "camera",
-      "expectedName": "Fake CCD",
-      "failureDomain": "fake-ccd",
-      "id": "<operation-2>",
-      "instanceId": "<instance-1>",
-      "kind": "capture",
-      "parameters": {
-        "exposureSeconds": 0.05,
-        "light": true
-      },
-      "progress": {
-        "elapsedSeconds": null,
-        "phase": "preparing"
-      },
-      "requestId": "<request-3>",
-      "startedAt": "<time>",
-      "state": "running"
-    }
-  },
-  {
-    "scenario": "no acknowledgement: uncertain, held by quarantine, then recovered",
-    "step": 11,
-    "request": "GET /v2/operations/<operation-2>",
-    "status": 200,
-    "body": {
-      "acceptedAt": "<time>",
-      "bindingId": "<binding-3>",
-      "deviceId": "camera",
-      "expectedName": "Fake CCD",
-      "failureDomain": "fake-ccd",
-      "id": "<operation-2>",
-      "instanceId": "<instance-1>",
-      "kind": "capture",
-      "outcome": {
-        "kind": "confirmed",
-        "value": {
-          "image": {
-            "binX": 1,
-            "binY": 1,
-            "bindingId": "<binding-3>",
-            "cameraName": "Fake CCD",
-            "capturedAt": "<time>",
-            "capturedAtSource": "camera",
-            "color": "grbg",
-            "deviceId": "camera",
-            "exposureSeconds": 0.05,
-            "height": 6,
-            "id": "<image-1>",
-            "instanceId": "<instance-1>",
-            "operationId": "<operation-2>",
-            "original": {
-              "bytes": 140,
-              "mediaType": "application/imagebytes",
-              "url": "/v2/images/<image-1>/original"
-            },
-            "retainedAt": "<time>",
-            "sha256": "146f86c57bfa413cc92866d35a539fffafee4212e14f8892afa27133b469255d",
-            "startX": 0,
-            "startY": 0,
-            "width": 8
-          },
-          "values": {}
-        }
-      },
-      "parameters": {
-        "exposureSeconds": 0.05,
-        "light": true
-      },
-      "recovery": null,
-      "requestId": "<request-3>",
       "settledAt": "<time>",
       "startedAt": "<time>",
       "state": "settled"
