@@ -11,7 +11,7 @@ import { am5, type Am5Options, type FakeAm5 } from './drivers.js'
 import { allReady, startCria, until, type Cria } from './harness.js'
 
 const mount = 'ZWO AM5'
-const site = { latitudeDegrees: 40.0, longitudeDegrees: -75, elevationMeters: 0 }
+const site = { latitudeDegrees: 33.45, longitudeDegrees: -112.07, elevationMeters: 331 }
 const sidereal = 15.041067 / 3600
 let fake: FakeIndi
 let model: FakeAm5

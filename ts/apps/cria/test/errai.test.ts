@@ -103,7 +103,7 @@ describe('errai, replayed', () => {
       deployConfig.devices.map((device: { id: string }) => [device.id, { ready: true }]),
     )
     expect(written.toSorted()).toEqual([
-      ['ZWO AM5', 'GEOGRAPHIC_COORD', 'LAT=40 LONG=285 ELEV=0'],
+      ['ZWO AM5', 'GEOGRAPHIC_COORD', 'LAT=33.45 LONG=247.93 ELEV=331'],
       ['ZWO AM5', 'TIME_UTC', expect.stringMatching(/^UTC=\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d OFFSET=0\.00$/)],
       ['ZWO CCD ASI2600MC Pro', 'UPLOAD_MODE', 'UPLOAD_CLIENT=On'],
     ])

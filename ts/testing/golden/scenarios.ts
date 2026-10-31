@@ -11,7 +11,7 @@ const focuser = 'Fake Focuser'
 const box = 'Fake PPB'
 const sidereal = 15.041067 / 3600
 const slew = { rightAscensionDegrees: 120, declinationDegrees: 10, coordinateSystem: 'topocentric' }
-const site = { latitudeDegrees: 40.0, longitudeDegrees: -75, elevationMeters: 0 }
+const site = { latitudeDegrees: 33.45, longitudeDegrees: -112.07, elevationMeters: 331 }
 
 type Kind = DeviceSpec['kind']
 

@@ -387,7 +387,7 @@ describe('the keep marker', () => {
         sensor: { width: 160, height: 128 },
         exposureSeconds: 2,
         stars: [6, 6, 0],
-        site: { latitudeDegrees: 40, longitudeDegrees: -75 },
+        site: { latitudeDegrees: 33.45, longitudeDegrees: -112.07 },
         startAt: Date.UTC(2026, 2, 1, 4, 0, 0),
         pointing: { raHours: 3, decDegrees: 30 },
       },

@@ -88,7 +88,7 @@ const camera = 'Synthetic Camera'
 const mount = 'Synthetic Mount'
 const focuser = 'Synthetic Focuser'
 const startAt = Date.UTC(2026, 2, 1, 4, 0, 0)
-const longitude = -75
+const longitude = -112.07
 
 const sensor = { width: 160, height: 128 }
 
@@ -97,7 +97,7 @@ const spec: SynthSpec = {
   sensor,
   exposureSeconds: 2,
   stars: [6, 6, 6, 0, 0, 0],
-  site: { latitudeDegrees: 40, longitudeDegrees: longitude },
+  site: { latitudeDegrees: 33.45, longitudeDegrees: longitude },
   startAt,
   pointing: { raHours: 3, decDegrees: 30 },
   tracking: { from: 0, until: 3 },

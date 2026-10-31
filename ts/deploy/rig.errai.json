@@ -20,7 +20,7 @@
       "indiDevice": "ZWO AM5",
       "connect": false,
       "port": "/dev/serial/by-id/usb-ZWO_Systems_ZWO_Device_123456-if00",
-      "site": { "latitudeDegrees": 40.0, "longitudeDegrees": -75, "elevationMeters": 0 }
+      "site": { "latitudeDegrees": 33.45, "longitudeDegrees": -112.07, "elevationMeters": 331 }
     },
     {
       "id": "weather",

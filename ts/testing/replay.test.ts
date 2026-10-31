@@ -178,7 +178,7 @@ describe('the real Cria on the replay', () => {
   })
 
   it('computes sidereal time the way Cria does', () => {
-    for (const [epoch, longitude] of [[Date.UTC(2026, 9, 18, 22), -75], [Date.UTC(2026, 0, 1), 10], [Date.UTC(2030, 5, 30, 3, 14, 15), 179.9]] as const)
+    for (const [epoch, longitude] of [[Date.UTC(2026, 9, 18, 22), -112.07], [Date.UTC(2026, 0, 1), 10], [Date.UTC(2030, 5, 30, 3, 14, 15), 179.9]] as const)
       expect(localSiderealHours(epoch, longitude)).toBeCloseTo(criaSiderealHours(epoch, longitude), 12)
   })
 

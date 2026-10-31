@@ -51,7 +51,7 @@ export interface Scenario {
   readonly drive: (rig: Rig) => Promise<Ending>
 }
 
-const site = { latitudeDegrees: 40.0, longitudeDegrees: -75, elevationMeters: 0 }
+const site = { latitudeDegrees: 33.45, longitudeDegrees: -112.07, elevationMeters: 331 }
 const channels = [
   { name: '12V ports', property: 'POWER_CHANNELS', element: 'POWER_CHANNEL_1' },
   { name: 'Dew A', property: 'DEW_CHANNELS', element: 'DEW_CHANNEL_1' },

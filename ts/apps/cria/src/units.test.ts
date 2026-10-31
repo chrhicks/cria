@@ -61,12 +61,12 @@ describe('configuration', () => {
   it("checks a mount's site ranges and refuses a site on a device that is not a mount", () => {
     const withSite = (kind: string, site: object) =>
       decodeConfig({ listen: { host: '127.0.0.1', port: 0 }, indi: { host: '127.0.0.1', port: 7624 }, imageDirectory: '/tmp/cria', devices: [{ id: 'mount', kind, indiDevice: 'ZWO AM5', site }] })
-    const errai = { latitudeDegrees: 40.0, longitudeDegrees: -75, elevationMeters: 0 }
+    const site = { latitudeDegrees: 33.45, longitudeDegrees: -112.07, elevationMeters: 331 }
 
-    expect(withSite('mount', errai).devices[0]!.site).toEqual(errai)
-    expect(() => withSite('mount', { ...errai, longitudeDegrees: 285 })).toThrow('Expected a value between -180 and 180\n  at ["devices"][0]["site"]["longitudeDegrees"]')
-    expect(() => withSite('mount', { ...errai, latitudeDegrees: 91 })).toThrow('Expected a value between -90 and 90\n  at ["devices"][0]["site"]["latitudeDegrees"]')
-    expect(() => withSite('camera', errai)).toThrow('mount: site and motion apply to a mount only')
+    expect(withSite('mount', site).devices[0]!.site).toEqual(site)
+    expect(() => withSite('mount', { ...site, longitudeDegrees: 247.93 })).toThrow('Expected a value between -180 and 180\n  at ["devices"][0]["site"]["longitudeDegrees"]')
+    expect(() => withSite('mount', { ...site, latitudeDegrees: 91 })).toThrow('Expected a value between -90 and 90\n  at ["devices"][0]["site"]["latitudeDegrees"]')
+    expect(() => withSite('camera', site)).toThrow('mount: site and motion apply to a mount only')
   })
 
   it("checks a focuser's travel window and refuses one on a device that is not a focuser", () => {
