@@ -12,7 +12,7 @@ import { Effect, Option } from 'effect'
 import { selectedSwitch, type IndiDevice, type Property } from '@cria/indi'
 import { Failed, Reading, Uncertain, confirm, stoppable, type Ending } from '@cria/primitives'
 import type { MountMotionSettings } from '../config.js'
-import { confirmNoneBusy, confirmProperty, sendOnce, startMotion, switchConfirmed, untilSettled } from './commands.js'
+import { confirmNoneBusy, confirmProperty, sendOnce, startMotion, switchConfirmed, switchNotStarted, untilSettled } from './commands.js'
 import { invalid, liveSnapshot, required, type CapabilityContext } from './context.js'
 import { numberElement, switchElement, type DeviceSnapshot } from './fields.js'
 import type { DeviceSetup, StepOutcome } from './setup.js'
@@ -398,7 +398,7 @@ export function makeMount(context: CapabilityContext, motion: MountMotionSetting
 
       yield* stoppable({
         command: `axis motion on ${device.name}`,
-        start: startMotion(device, 'TELESCOPE_MOTION_WE', { [direction]: true }, timing),
+        start: startMotion(device, 'TELESCOPE_MOTION_WE', { [direction]: true }, timing, { refused: switchNotStarted(direction) }),
         // A normal finish stops the axis too; a second stop after a cancel is harmless.
         settle: Effect.andThen(
           until(Effect.map(ra, now => angularDelta(now, start))),
