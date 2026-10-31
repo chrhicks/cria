@@ -219,6 +219,17 @@ export interface Am5Options {
   readonly requireSiteAndTime?: boolean
   /** A fault: the mount acknowledges a stop and never stops. */
   readonly neverStops?: boolean
+  /**
+   * After an acknowledged abort, TELESCOPE_HOME stays Busy (default: true, as on all three
+   * stopped homes on errai, 2026-10-26 and 2026-10-27). False: the abort sets it Idle.
+   */
+  readonly homeStaysBusyAfterAbort?: boolean
+  /**
+   * A fault recorded once on errai (2026-10-30 evening): with the mount at Home (Dec 90), a
+   * TELESCOPE_MOTION_WE start is answered Idle 41 ms later with both elements Off, never Busy,
+   * and nothing moves. Other starts (Dec 80, Dec 87) were answered Busy.
+   */
+  readonly rotateIdleAtPole?: boolean
 }
 
 export interface FakeAm5 {
@@ -228,6 +239,11 @@ export interface FakeAm5 {
   readonly position: () => { readonly ra: number; readonly dec: number }
   /** Where it was when the last halt or abort arrived. */
   readonly haltedAt: () => { readonly ra: number; readonly dec: number } | undefined
+  /**
+   * The mount loses power, as on errai on 2026-10-29 evening (see `Am5Options` and the
+   * behaviour below): the motors stop for good and the driver's serial line fails.
+   */
+  readonly cutPower: () => void
 }
 
 /**
@@ -244,7 +260,18 @@ export interface FakeAm5 {
  *   decelerates. A cancelled 3°/s slew coasted about 3.6° over 2 s, and an 8x
  *   rotate overshot by its rate times 0.9 s; where that time goes was not
  *   measured, so it is all modelled after the stop arrives;
- * - with tracking off, RA advances at the sidereal rate.
+ * - with tracking off, RA advances at the sidereal rate;
+ * - a home (TELESCOPE_HOME) goes to Dec 90 with the coordinates Idle throughout, and
+ *   tracking drops 365 ms in; the driver sets TELESCOPE_HOME Ok and says "Arrived at
+ *   home." on arrival, but after an acknowledged abort it left TELESCOPE_HOME Busy
+ *   for good, all three times a home was stopped (2026-10-26 23:33 twice, 2026-10-27
+ *   01:28); the mount coasted about 2 s after the abort and then stood still;
+ * - with the mount's power cut (2026-10-29 evening, mid axis motion), the driver
+ *   reports `Serial write error` twice and `Error reading RA/DEC` once a second and
+ *   sets the coordinates Alert, frozen at the last position, for as long as the line
+ *   is dead. A stop of the axis motion is answered by `Error stopping W/E motion.` and
+ *   Alert on TELESCOPE_MOTION_WE. No other write was sent in that window, so what the
+ *   dead line does to any other write is not recorded: the fake leaves it unanswered.
  */
 export function am5(fake: FakeIndi, device: string, options: Am5Options = {}): FakeAm5 {
   const slewSpeed = options.slewDegreesPerSecond ?? 3
@@ -259,12 +286,16 @@ export function am5(fake: FakeIndi, device: string, options: Am5Options = {}): F
   let target: { ra: number; dec: number } | undefined
   let stopping: { latencyLeftMs: number } | undefined
   let halted: { ra: number; dec: number } | undefined
+  let homing = false
+  let unpowered = false
 
   const moving = () => velocity.ra !== 0 || velocity.dec !== 0
   const toward = (from: number, to: number) => Math.sign(to - from) * slewSpeed
 
   const tick = setInterval(() => {
     const seconds = tickMs / 1000
+
+    if (unpowered) return
 
     if (stopping && !options.neverStops) {
       if (stopping.latencyLeftMs > 0) stopping.latencyLeftMs -= tickMs
@@ -283,7 +314,13 @@ export function am5(fake: FakeIndi, device: string, options: Am5Options = {}): F
       velocity = { ra: position.ra === target.ra ? 0 : velocity.ra, dec: position.dec === target.dec ? 0 : velocity.dec }
       if (!moving()) {
         target = undefined
-        fake.update(device, 'EQUATORIAL_EOD_COORD', { state: 'Ok', values: { RA: position.ra / 15, DEC: position.dec } })
+        if (homing) {
+          // The coordinates are never Busy during a home, and stay Idle after it.
+          homing = false
+          fake.update(device, 'EQUATORIAL_EOD_COORD', { state: 'Idle', values: { RA: position.ra / 15, DEC: position.dec } })
+          fake.message(device, '[INFO] Arrived at home.')
+          fake.update(device, 'TELESCOPE_HOME', { state: 'Ok', values: { GO: false } })
+        } else fake.update(device, 'EQUATORIAL_EOD_COORD', { state: 'Ok', values: { RA: position.ra / 15, DEC: position.dec } })
       }
 
       return
@@ -294,26 +331,54 @@ export function am5(fake: FakeIndi, device: string, options: Am5Options = {}): F
   }, tickMs)
 
   const publish = setInterval(() => {
+    if (unpowered) return
     const ra = position.ra / 15
 
     if (Math.abs(Number(published().RA!.value) - ra) > 0.1 / 3600 / 15 || Math.abs(Number(published().DEC!.value) - position.dec) > 0.1 / 3600)
       fake.update(device, 'EQUATORIAL_EOD_COORD', { values: { RA: ra, DEC: position.dec } })
   }, options.publishEveryMs ?? 1000)
 
+  let serialErrors: NodeJS.Timeout | undefined
+  const cutPower = () => {
+    unpowered = true
+    velocity = { ra: 0, dec: 0 }
+    target = undefined
+    stopping = undefined
+    homing = false
+    serialErrors = setInterval(() => {
+      for (const text of ['[ERROR] Serial write error: Write Error: Input/output error.', '[ERROR] Serial write error: Write Error: Input/output error.', '[ERROR] Error reading RA/DEC.']) fake.message(device, text)
+      // The coordinates keep their last values, twice, as recorded.
+      fake.update(device, 'EQUATORIAL_EOD_COORD', { state: 'Alert' })
+      fake.update(device, 'EQUATORIAL_EOD_COORD', { state: 'Alert' })
+    }, 1000)
+    serialErrors.unref()
+  }
+
   tick.unref()
   publish.unref()
   fake.onStop(() => {
     clearInterval(tick)
     clearInterval(publish)
+    clearInterval(serialErrors)
   })
 
   const stop = () => {
     halted = { ...position }
     target = undefined
+    homing = false
     stopping = { latencyLeftMs: stopLatencyMs }
   }
 
   const behaviour: Behaviour = (fake, vector, values) => {
+    if (unpowered) {
+      if (vector.name === 'TELESCOPE_MOTION_WE' && values.MOTION_EAST !== 'On' && values.MOTION_WEST !== 'On') {
+        fake.message(device, '[ERROR] Error stopping W/E motion.')
+        fake.update(device, vector.name, { state: 'Alert', values: { MOTION_EAST: false, MOTION_WEST: false } })
+      }
+
+      return 'handled'
+    }
+
     if (vector.name === 'GEOGRAPHIC_COORD' || vector.name === 'TIME_UTC') {
       written.add(vector.name)
 
@@ -335,8 +400,31 @@ export function am5(fake: FakeIndi, device: string, options: Am5Options = {}): F
       return 'handled'
     }
 
+    if (vector.name === 'TELESCOPE_HOME') {
+      if (values.GO !== 'On') return 'default'
+
+      target = { ra: position.ra, dec: 90 }
+      velocity = { ra: 0, dec: toward(position.dec, 90) }
+      stopping = undefined
+      homing = true
+      fake.update(device, vector.name, { state: 'Busy', values: { GO: true } })
+      setTimeout(() => {
+        if (!homing) return
+        fake.update(device, 'TELESCOPE_TRACK_STATE', { state: 'Idle', values: { TRACK_ON: false, TRACK_OFF: true } })
+        fake.update(device, 'EQUATORIAL_EOD_COORD', { state: 'Idle' })
+      }, 365).unref()
+
+      return 'handled'
+    }
+
     if (vector.name === 'TELESCOPE_MOTION_WE') {
       const direction = values.MOTION_EAST === 'On' ? 1 : values.MOTION_WEST === 'On' ? -1 : 0
+
+      if (direction !== 0 && options.rotateIdleAtPole && position.dec >= 90) {
+        setTimeout(() => fake.update(device, vector.name, { state: 'Idle', values: { MOTION_EAST: false, MOTION_WEST: false } }), 41).unref()
+
+        return 'handled'
+      }
 
       if (direction === 0) {
         if (moving()) stop()
@@ -359,6 +447,7 @@ export function am5(fake: FakeIndi, device: string, options: Am5Options = {}): F
     if (vector.name === 'TELESCOPE_ABORT_MOTION') {
       if (moving()) stop()
       if (fake.vector(device, 'EQUATORIAL_EOD_COORD').state === 'Busy') fake.update(device, 'EQUATORIAL_EOD_COORD', { state: 'Idle' })
+      if (!(options.homeStaysBusyAfterAbort ?? true) && fake.vector(device, 'TELESCOPE_HOME').state === 'Busy') fake.update(device, 'TELESCOPE_HOME', { state: 'Idle' })
       if (fake.vector(device, 'TELESCOPE_MOTION_WE').state === 'Busy')
         fake.update(device, 'TELESCOPE_MOTION_WE', { state: 'Idle', values: { MOTION_EAST: false, MOTION_WEST: false } })
       fake.update(device, vector.name, { state: 'Ok' })
@@ -369,7 +458,7 @@ export function am5(fake: FakeIndi, device: string, options: Am5Options = {}): F
     return 'default'
   }
 
-  return { behaviour, moving, position: () => position, haltedAt: () => halted }
+  return { behaviour, moving, position: () => position, haltedAt: () => halted, cutPower }
 }
 
 /**
@@ -378,8 +467,13 @@ export function am5(fake: FakeIndi, device: string, options: Am5Options = {}): F
  * allows 0 to 60000, and backlash compensation is off. A target outside the
  * position's own range goes Alert without moving, as libindi's focuser
  * interface answers it; any other target goes Busy and arrives after `moveMs`.
+ *
+ * `stopsShortBy` is DERIVED, not recorded (all 63 moves in the recordings of
+ * 2026-10-19 to 2026-10-31 arrived at their target): the move ends Ok that many
+ * steps short of the target, the closest the recordings come to "a focuser move
+ * that stops short".
  */
-export function addEaf(fake: FakeIndi, device: string, options: { position?: number; moveMs?: number } = {}): Behaviour {
+export function addEaf(fake: FakeIndi, device: string, options: { position?: number; moveMs?: number; stopsShortBy?: number } = {}): Behaviour {
   const moveMs = options.moveMs ?? 100
 
   fake.define(connection(device))
@@ -408,11 +502,87 @@ export function addEaf(fake: FakeIndi, device: string, options: { position?: num
       return 'handled'
     }
 
+    const from = Number(position.elements.FOCUS_ABSOLUTE_POSITION!.value)
+    const reached = target - Math.sign(target - from) * (options.stopsShortBy ?? 0)
+
     fake.update(device, position.name, { state: 'Busy' })
     setTimeout(() => {
       if (position.state !== 'Busy') return
-      fake.update(device, position.name, { state: 'Ok', values: { FOCUS_ABSOLUTE_POSITION: target } })
+      fake.update(device, position.name, { state: 'Ok', values: { FOCUS_ABSOLUTE_POSITION: reached } })
     }, moveMs).unref()
+
+    return 'handled'
+  }
+}
+
+/**
+ * Another client (PHD2) looping exposures on a camera Cria is not using, as recorded on
+ * errai on 2026-10-27 between 00:31 and 02:07 UTC (1,027 frames on the guide camera): the
+ * client writes CCD_EXPOSURE for 2 s; the driver answers Busy three times at once, counts
+ * down once a second and then every 100 ms, reads out for 0.85 s (Busy 0), warns about
+ * the missing focal length and aperture, delivers the frame, sets CCD_EXPOSURE Ok, and the
+ * client writes the next exposure 57 ms later (a 2.75 s period). Cria never wrote
+ * CCD_EXPOSURE on that camera. Returns the number of frames sent so far, and a stop.
+ */
+export function guideLoop(
+  fake: FakeIndi,
+  device: string,
+  options: { exposureSeconds?: number; readoutMs?: number; gapMs?: number; width?: number; height?: number } = {},
+): { readonly frames: () => number; readonly stop: () => void } {
+  const exposure = options.exposureSeconds ?? 2
+  const readoutMs = options.readoutMs ?? 850
+  const gapMs = options.gapMs ?? 57
+  let frames = 0
+  let running = true
+  const sleep = (ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms).unref())
+  const busy = (value: number) => fake.update(device, 'CCD_EXPOSURE', { state: 'Busy', values: { CCD_EXPOSURE_VALUE: value } })
+
+  const loop = async () => {
+    while (running) {
+      const startedAt = Date.now()
+
+      busy(exposure)
+      busy(exposure)
+      busy(exposure)
+
+      for (let left = exposure; left > 0.15 && running; ) {
+        const step = left > 1 ? 1 : 0.1
+
+        await sleep(step * 1000)
+        left = Math.max(0, left - step)
+        if (left > 0.15) busy(left)
+      }
+      await sleep(readoutMs)
+      if (!running) return
+      busy(0)
+      fake.message(device, '[WARNING] Telescope focal length is missing.')
+      fake.message(device, '[WARNING] Telescope aperture is missing.')
+      fake.sendBlob(device, 'CCD1', 'CCD1', fitsFrame(options.width ?? 8, options.height ?? 6, { exptime: exposure, startedAt }))
+      fake.update(device, 'CCD_EXPOSURE', { state: 'Ok', values: { CCD_EXPOSURE_VALUE: 0 } })
+      frames++
+      await sleep(gapMs)
+    }
+  }
+
+  void loop()
+  fake.onStop(() => {
+    running = false
+  })
+
+  return { frames: () => frames, stop: () => void (running = false) }
+}
+
+/**
+ * DERIVED, not recorded (no recorded switch write went unapplied): a power box that
+ * acknowledges a write to `property` with Ok and keeps the old values, the closest the
+ * recordings come to "a switch or dew write that does not read back" (the Pegasus
+ * box's dew duty being set back to 0 under auto dew, `pegasusDew`, is the recorded
+ * relative).
+ */
+export function appliesNothing(property: string): Behaviour {
+  return (fake, vector) => {
+    if (vector.name !== property) return 'default'
+    fake.update(vector.device, vector.name, { state: 'Ok' })
 
     return 'handled'
   }
