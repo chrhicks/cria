@@ -39,9 +39,9 @@ export class Cria extends Context.Service<Cria, {
   readonly operation: (id: OperationId) => Effect.Effect<Operation, CriaError>
   /** POST /v2/operations. Sent once: a lost answer is `CriaLost`, never a second send. */
   readonly submit: (request: OperationRequest) => Effect.Effect<Operation, CriaError>
-  /** POST /v2/operations/{id}/cancel. Sent once. */
+  /** POST /v2/operations/{id}/cancel */
   readonly cancel: (id: OperationId) => Effect.Effect<Operation, CriaError>
-  /** POST /v2/devices/{id}/recover. Sent once. */
+  /** POST /v2/devices/{id}/recover */
   readonly recover: (id: DeviceId, request: RecoveryRequest) => Effect.Effect<Device, CriaError>
   /** GET /v2/requests/{instanceId}/{requestId} */
   readonly request: (instanceId: InstanceId, requestId: RequestId) => Effect.Effect<Operation, CriaError>

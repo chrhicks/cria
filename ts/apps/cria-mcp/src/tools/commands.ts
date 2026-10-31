@@ -7,7 +7,6 @@ import { commandInput } from '../input.js'
 import { Reply, toReply } from '../reply.js'
 import { change } from './annotations.js'
 
-/** The same for every kind: how a call is made, and what to do when its answer is lost. */
 const footer =
   'Copy instanceId, deviceId, bindingId and expectedName (the device name) from `state`, and choose your own requestId. Cria may refuse the command; its refusal comes back unchanged. ' +
   'Returns as soon as Cria accepts, usually running: follow with `wait`. If the answer is lost, Cria may or may not have acted: call `request` with the same requestId before sending again.'
