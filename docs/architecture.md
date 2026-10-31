@@ -25,7 +25,7 @@ Moving Cria from .NET on Windows to TypeScript on Linux did not change the split
 | --- | --- |
 | Current device state, as readings that are fresh, stale or unavailable | Runs and workflows, in Vela server memory |
 | One bounded operation at a time per failure domain: one exposure, one focuser move, one slew | Decisions: what to do next, retries, when to stop |
-| Request-ID dedupe, cancellation, and holding a device after an uncertain outcome | Image processing, previews, plate solving, FITS |
+| Request-ID dedupe, cancellation, and holding a mount after an uncertain outcome | Image processing, previews, plate solving, FITS |
 | A rolling set of the newest captured images, until they are dropped | The archive of saved images |
 
 Cria never decides what a run does next. Vela never talks to a driver directly on a Cria rig.
@@ -63,7 +63,7 @@ For the details, read these sections of SPEC.md:
 
 ## Unknown outcomes
 
-If Cria cannot tell whether a command took effect, the operation ends `uncertain` and its failure domain is held. Neither Cria nor Vela resends the command. A stop or abort is the one exception. Cria may send it again until the device confirms it is stationary, because an abort can only stop motion. A motion or a setting is never sent again.
+If Cria cannot tell whether a command took effect, the operation ends `uncertain`. A mount's failure domain is then held until a person recovers it; any other device stays usable, and Vela shows a warning. Neither Cria nor Vela resends the command. A stop or abort is the one exception. Cria may send it again until the device confirms it is stationary, because an abort can only stop motion. A motion or a setting is never sent again.
 
 Vela stops the run and tells Chris. A person checks the equipment before the device is cleared with `POST /v2/devices/{id}/recover`, which also gives the domain a new `bindingId`.
 

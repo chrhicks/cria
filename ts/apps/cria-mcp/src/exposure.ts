@@ -58,7 +58,7 @@ export const routes = {
   },
   recover: {
     description:
-      'Clear the hold Cria keeps on a device after an uncertain outcome. Only after a person has checked the equipment: externalRecoveryConfirmed must be true and note must say who checked and what they saw. Returns the device as Cria reports it; Cria may refuse it.',
+      'Clear the hold Cria keeps on a mount after an uncertain outcome. Only a mount is held: a camera, focuser, weather or switch device that ends uncertain stays usable. Only after a person has checked the equipment: externalRecoveryConfirmed must be true and note must say who checked and what they saw. Returns the device as Cria reports it; Cria may refuse it.',
   },
   image: {
     description:
