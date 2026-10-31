@@ -666,7 +666,7 @@ export const scenarios: ReadonlyArray<Scenario> = [
     },
   },
   {
-    name: 'no acknowledgement: uncertain, held by quarantine, then recovered',
+    name: 'no acknowledgement: uncertain, the camera is not held, the next capture runs, a recovery is still accepted',
     devices: ['camera'],
     run: async g => {
       const normal = exposeNormally()
@@ -675,20 +675,18 @@ export const scenarios: ReadonlyArray<Scenario> = [
       const lost = await runAndSettle(g, 'camera', 'capture', { exposureSeconds: 1, light: true })
 
       await g.wire.state()
-      await g.submit('camera', 'capture', { exposureSeconds: 1, light: true })
-      const state = await g.cria.state()
-      const blocked = state.devices[0]!
-
-      await g.wire.recover('camera', { instanceId: state.instanceId, bindingId: crypto.randomUUID(), externalRecoveryConfirmed: true, note: 'checked' })
-      await g.wire.recover('camera', { instanceId: crypto.randomUUID(), bindingId: blocked.bindingId, externalRecoveryConfirmed: true, note: 'checked' })
-      await g.wire.recover('camera', { instanceId: state.instanceId, bindingId: blocked.bindingId, externalRecoveryConfirmed: false, note: 'checked' })
-      await g.wire.recover('camera', { instanceId: state.instanceId, bindingId: blocked.bindingId, externalRecoveryConfirmed: true, note: 'Chris checked the camera: idle' })
-      await g.wire.operation(lost.id)
-
       g.fake.update(camera, 'CCD_EXPOSURE', { state: 'Idle' })
       g.behave(camera, normal)
       await g.cria.waitFor(allReady(['camera']))
       await runAndSettle(g, 'camera', 'capture', { exposureSeconds: 0.05, light: true })
+      const state = await g.cria.state()
+      const idle = state.devices[0]!
+
+      await g.wire.recover('camera', { instanceId: state.instanceId, bindingId: crypto.randomUUID(), externalRecoveryConfirmed: true, note: 'checked' })
+      await g.wire.recover('camera', { instanceId: crypto.randomUUID(), bindingId: idle.bindingId, externalRecoveryConfirmed: true, note: 'checked' })
+      await g.wire.recover('camera', { instanceId: state.instanceId, bindingId: idle.bindingId, externalRecoveryConfirmed: false, note: 'checked' })
+      await g.wire.recover('camera', { instanceId: state.instanceId, bindingId: idle.bindingId, externalRecoveryConfirmed: true, note: 'Chris checked the camera: idle' })
+      await g.wire.operation(lost.id)
     },
   },
   {

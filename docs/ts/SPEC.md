@@ -30,8 +30,8 @@ What changes for the rig:
 
 Some things do not change. Vela owns runs, decisions, processing and archives. Cria owns
 current device state and one bounded operation at a time per failure domain. Runs
-are ephemeral. Images are a rolling set. An uncertain outcome blocks the device
-until a person recovers it. Cria never resends a command blindly.
+are ephemeral. Images are a rolling set. An uncertain outcome on the mount blocks it
+until a person recovers it; any other device settles `uncertain` and is commanded again. Cria never resends a command blindly.
 
 ## The layers
 
@@ -244,7 +244,12 @@ type ExternalRecovery = { confirmed: true; note: string }   // a person checked 
 ```
 
 `quarantineOf` turns "an uncertain outcome" into "this device takes no more
-commands until a person says it is safe". It is a fold over the endings since the
+commands until a person says it is safe". The ledger applies it to the `mount`
+device kind only: the AM5 has no encoders, so its position is a step count Cria
+cannot read back. For a camera, focuser, weather or switch device Cria can read
+the state again, so an uncertain ending settles `uncertain` on the wire with its
+reason and message but holds nothing (`quarantine` is always `{ held: false }`).
+Cria still never resends a command. It is a fold over the endings since the
 last recovery. The domain is held from the first uncertain ending, with its
 message and time. No later ending releases it, a confirmed stop included. Only a
 recovery starts a new list, and recovering takes an `ExternalRecovery` value, so
@@ -266,8 +271,10 @@ Each change increments a revision, which the ledger publishes for the event
 stream.
 
 Per failure domain the ledger keeps one fact, the current `bindingId`. The
-domain is held while an operation that ended under the current binding was
-uncertain. That operation is never pruned until a recovery. A recovery records
+domain is held while an operation on a `mount` device that ended under the current
+binding was uncertain (the kind comes from the ledger's device record). That
+operation is never pruned until a recovery. An uncertain ending on any other kind
+holds nothing and is pruned like any settled operation. A recovery records
 `{ at, note }` under the binding it ends and mints a new binding, shared by every
 device in the domain. An operation's `recovery` is the record for the binding it
 ended under, so only an uncertain operation has one.
@@ -286,7 +293,7 @@ ended under, so only an uncertain operation has one.
 5. A kind for another device kind: `400 request-error`.
 6. Commands disabled in the config: `403 commands-disabled`.
 7. A halt (`mount-stop`, `focuser-halt`) is admitted now (see below).
-8. A held domain: `409 device-blocked`.
+8. A held domain (a mount only): `409 device-blocked`.
 9. An open operation in the domain: `409 device-busy`.
 
 Otherwise the operation starts at once, as `running`. A motion or setting is
@@ -362,7 +369,7 @@ is available whatever the bound.
 ### What the ledger keeps
 
 The ledger keeps the newest `operationHistory` settled operations (config, default
-1000), never pruning one that holds its domain. A snapshot lists every open
+1000), never pruning one that holds its domain (a mount's uncertain ending). A snapshot lists every open
 operation, every one that holds a domain, and the newest 20 other settled ones.
 Each domain also keeps its 16 most recently settled operation IDs, from which
 `afterOperation` and the `refreshing` availability are computed.
@@ -511,7 +518,7 @@ exposed for another time, a stale blob, a different size), Cria reads
 | `CCD_EXPOSURE` at the deadline | Capture ends | Camera |
 |---|---|---|
 | Not Busy (Idle, Ok or Alert) | `failed: rejected`, the message lists what was seen and says the camera is idle and free | Not held. The next capture is accepted at once. The mismatched frame is dropped, never returned or kept. |
-| Busy, or not readable | `uncertain: not-confirmed` | Held until a person recovers it. A stale blob while the camera is Busy is what the hold is for. |
+| Busy, or not readable | `uncertain: not-confirmed` | Not held (only the mount holds). The capture is `uncertain`, so Vela ends the run; the next command is accepted once the camera is idle. |
 
 Why this is not a replay of an unknown outcome: "never blindly replay" covers a
 command whose effect Cria cannot tell. Here the effect is known. The camera is
@@ -733,7 +740,7 @@ it connected. A connection ends when the device disconnects, its driver goes awa
 that comes back is set up again. Setup runs as an ordinary `device-connect`
 operation (`connected: true`, request ID `startup-…`) through the ledger, on a
 device that is already connected, so it connects nothing. That makes it
-single-flight with Vela's operations, quarantines the device if a step ends
+single-flight with Vela's operations, quarantines a mount if a step ends
 uncertain, and shows in the operation list. A device with nothing to write gets
 no operation. A refused submission (the domain busy or held) sent nothing and is
 tried again. A setup that ran is not run again until the device connects again,
@@ -1505,7 +1512,7 @@ It holds no `op` lines.
   exposing reads `exposing` and a capture settles `failed: busy`.
 - **A driver crashes.** `indiserver` deletes its properties. Cria marks the device
   unavailable. An operation in flight ends `uncertain: driver-lost` and
-  quarantines the device. When the driver is back and the device connected, it
+  quarantines a mount (any other kind only settles `uncertain`). When the driver is back and the device connected, it
   is set up again. Run `indiserver -r 0` so indiserver does not restart a crashed
   driver by itself. Cria never restarts a driver; the outside rig supervisor may,
   in the one narrow case AGENTS.md and docs/runtime.md describe.
