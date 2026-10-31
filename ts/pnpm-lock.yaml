@@ -73,6 +73,9 @@ importers:
       '@cria/fake-indi':
         specifier: workspace:*
         version: link:../../packages/fake-indi
+      '@cria/fits':
+        specifier: workspace:*
+        version: link:../../packages/fits
 
   packages/cria-wire:
     devDependencies:

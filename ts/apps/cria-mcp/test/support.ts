@@ -67,14 +67,22 @@ export const json = (response: ServerResponse, status: number, body: unknown, he
 
 export interface McpProcess {
   readonly url: string
+  readonly imageDirectory: string
   readonly log: () => string
 }
+
+export const scratchDirectory = (prefix: string) =>
+  Effect.acquireRelease(
+    Effect.promise(() => mkdtemp(join(tmpdir(), prefix))),
+    path => Effect.promise(() => rm(path, { recursive: true, force: true })),
+  )
 
 export const startMcp = (env: Record<string, string>): Effect.Effect<McpProcess, Error, Scope.Scope> =>
   Effect.gen(function* () {
     const port = yield* freePort
     const url = `http://127.0.0.1:${port}/mcp`
-    const childEnv: NodeJS.ProcessEnv = { ...process.env, CRIA_MCP_PORT: String(port), ...env }
+    const imageDirectory = env.CRIA_MCP_IMAGE_DIR ?? join(yield* scratchDirectory('cria-mcp-images-'), 'images')
+    const childEnv: NodeJS.ProcessEnv = { ...process.env, CRIA_MCP_PORT: String(port), CRIA_MCP_IMAGE_DIR: imageDirectory, ...env }
 
     if (!('CRIA_TOKEN' in env)) delete childEnv.CRIA_TOKEN
     const child = yield* Effect.acquireRelease(
@@ -104,7 +112,7 @@ export const startMcp = (env: Record<string, string>): Effect.Effect<McpProcess,
 
     yield* listening.pipe(Effect.timeoutOrElse({ duration: Duration.seconds(20), orElse: () => Effect.fail(new Error(`the MCP server did not listen in 20 s:\n${output}`)) }))
 
-    return { url, log: () => output }
+    return { url, imageDirectory, log: () => output }
   })
 
 export interface RpcAnswer {
@@ -168,24 +176,37 @@ export const mcpClient = (url: string, headers: Record<string, string> = {}) => 
   }
 }
 
-/** Calls a tool the way code-mode would and returns the structured result. */
-export const callState = (url: string, headers: Record<string, string> = {}) =>
+export interface ToolResult {
+  readonly isError?: boolean
+  readonly structuredContent?: any
+  readonly content?: ReadonlyArray<{ type: string; text: string }>
+}
+
+/** Calls a tool the way code-mode would. The answer is the JSON-RPC message: a `result`, or an `error` when the call was refused as input. */
+export const callToolRaw = (url: string, name: string, args: unknown = {}, headers: Record<string, string> = {}) =>
   Effect.gen(function* () {
     const client = mcpClient(url, headers)
 
     yield* client.initialize
 
-    const answer = yield* client.callTool('state')
-
-    return answer.message?.result as { isError?: boolean; structuredContent?: any; content?: ReadonlyArray<{ type: string; text: string }> }
+    return (yield* client.callTool(name, args)).message
   })
+
+/** Calls a tool the way code-mode would and returns the structured result. */
+export const callTool = (url: string, name: string, args: unknown = {}, headers: Record<string, string> = {}) =>
+  Effect.map(callToolRaw(url, name, args, headers), message => message?.result as ToolResult)
+
+export const callState = (url: string, headers: Record<string, string> = {}) => callTool(url, 'state', {}, headers)
 
 export interface RealCria {
   readonly origin: string
 }
 
-/** A real Cria process (apps/cria/src/main.ts) on a fake INDI server. Read-only: commands are disabled. */
-export const startRealCria = (indiPort: number, options: { readonly token?: string } = {}): Effect.Effect<RealCria, Error, Scope.Scope> =>
+/**
+ * A real Cria process (apps/cria/src/main.ts) on a fake INDI server. Read-only unless the test
+ * asks for commands, which then reach only the fake.
+ */
+export const startRealCria = (indiPort: number, options: { readonly token?: string; readonly commandsEnabled?: boolean } = {}): Effect.Effect<RealCria, Error, Scope.Scope> =>
   Effect.gen(function* () {
     const directory = yield* Effect.acquireRelease(
       Effect.promise(() => mkdtemp(join(tmpdir(), 'cria-mcp-real-'))),
@@ -202,7 +223,7 @@ export const startRealCria = (indiPort: number, options: { readonly token?: stri
           imageDirectory: join(directory, 'images'),
           livenessMs: 500,
           acknowledgeMs: 2000,
-          commandsEnabled: false,
+          commandsEnabled: options.commandsEnabled ?? false,
           devices: [
             { id: 'camera', kind: 'camera', indiDevice: 'Fake CCD' },
             { id: 'mount', kind: 'mount', indiDevice: 'Fake Mount' },

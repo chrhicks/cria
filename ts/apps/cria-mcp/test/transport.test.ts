@@ -11,7 +11,7 @@ const server = Effect.gen(function* () {
 })
 
 describe('Streamable HTTP, as Executor speaks it', () => {
-  it.live('initializes, lists the state tool with an object input schema, and calls it', () =>
+  it.live('initializes, lists the read tools as non-destructive with object input schemas, and calls state', () =>
     Effect.gen(function* () {
       const mcp = yield* server
       const client = mcpClient(mcp.url)
@@ -25,9 +25,11 @@ describe('Streamable HTTP, as Executor speaks it', () => {
       const listed = yield* client.listTools
       const tools = listed.message?.result.tools as Array<{ name: string; inputSchema: { type: string }; annotations: Record<string, boolean> }>
 
-      expect(tools.map(tool => tool.name)).toEqual(['state'])
-      expect(tools[0]!.inputSchema.type).toBe('object')
-      expect(tools[0]!.annotations).toMatchObject({ readOnlyHint: true, destructiveHint: false })
+      expect(tools.map(tool => tool.name)).toEqual(['state', 'operation', 'wait', 'request', 'image'])
+      for (const tool of tools) {
+        expect(tool.inputSchema.type, tool.name).toBe('object')
+        expect(tool.annotations, tool.name).toMatchObject({ readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false })
+      }
 
       const called = yield* client.callTool('state', {})
 

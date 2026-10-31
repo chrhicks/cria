@@ -2,8 +2,9 @@ import { createServer } from 'node:http'
 import { Layer } from 'effect'
 import { McpProtocol, McpServer } from 'effect/ai'
 import { FetchHttpClient, HttpRouter } from 'effect/http'
-import { NodeHttpServer } from '@effect/platform-node'
+import { NodeFileSystem, NodeHttpServer } from '@effect/platform-node'
 import { Cria } from './cria.js'
+import { ImageCache } from './image-cache.js'
 import type { McpConfig } from './config.js'
 import { RouteHandlers, RouteToolkit } from './tools/routes.js'
 
@@ -17,9 +18,12 @@ export const serverLayer = (config: McpConfig) => {
     protocols: [McpProtocol.v2025_11_25],
   })
 
+  const cria = Cria.layer(config)
+  const images = ImageCache.layer({ directory: config.imageDirectory, downloadTimeout: config.downloadTimeout }).pipe(Layer.provide(cria), Layer.provide(NodeFileSystem.layer))
+
   const tools = McpServer.toolkit(RouteToolkit).pipe(
     Layer.provide(RouteHandlers),
-    Layer.provide(Cria.layer(config)),
+    Layer.provide(Layer.mergeAll(cria, images)),
     Layer.provide(FetchHttpClient.layer),
     Layer.provide(noRedirects),
     Layer.provide(mcp),
