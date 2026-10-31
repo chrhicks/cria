@@ -11,7 +11,8 @@
     "replay": "node --conditions=@cria/source --import ./testing/source-hook.mjs packages/indi-replay/src/main.ts",
     "golden": "vitest run --config testing/golden/vitest.config.ts",
     "golden:update": "GOLDEN_UPDATE=1 vitest run --config testing/golden/vitest.config.ts",
-    "verify": "./verify.sh"
+    "verify": "./verify.sh",
+    "fake-rig": "node --conditions=@cria/source --import ./testing/source-hook.mjs testing/fake-rig.ts"
   },
   "devDependencies": {
     "@cria/fake-indi": "workspace:*",

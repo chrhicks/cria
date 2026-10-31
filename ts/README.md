@@ -53,6 +53,7 @@ pnpm test        # every test, about 75 s; starts its own indiservers on free po
 pnpm build       # primitives, indi, then the service, into dist/
 pnpm archive SESSION...        # archive a finished recording (dry run unless --apply)
 pnpm replay serve <recording>   # indi-replay from source: a recording served like indiserver (docs/ts/SPEC.md, "Replay")
+pnpm fake-rig list              # recorded and derived failure cases on a fake rig; `serve <case>` runs the real Cria on one (docs/testing.md)
 node apps/cria/dist/main.js deploy/rig.errai.json
 ```
 
