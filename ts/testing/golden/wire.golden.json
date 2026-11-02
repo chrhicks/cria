@@ -58,6 +58,7 @@
           "hintOffsetDegrees": 0.2,
           "scaleError": 0.01
         },
+        "pointingErrorArcmin": null,
         "rightAscensionDegrees": 120
       },
       "instanceId": "<instance-1>"
@@ -84,6 +85,7 @@
           "hintOffsetDegrees": 0.2,
           "scaleError": 0.01
         },
+        "pointingErrorArcmin": null,
         "rightAscensionDegrees": 120
       }
     }
@@ -114,6 +116,7 @@
           "hintOffsetDegrees": 0.2,
           "scaleError": 0.01
         },
+        "pointingErrorArcmin": null,
         "rightAscensionDegrees": 120
       }
     }

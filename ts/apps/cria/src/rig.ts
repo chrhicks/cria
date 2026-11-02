@@ -57,6 +57,9 @@ export function makeRig(config: Config, options: { readonly recording?: Recordin
       }
       const setup = yield* makeDeviceSetup(context, deviceConfig)
 
+      const equipment = equip(deviceConfig, context, config.initializeTimeoutMs, setup)
+      if ('watchTravel' in equipment.capability) yield* Effect.forkScoped(equipment.capability.watchTravel)
+
       devices.push({
         feedback: context.feedback,
         config: deviceConfig,
@@ -64,7 +67,7 @@ export function makeRig(config: Config, options: { readonly recording?: Recordin
         indi,
         liveness,
         setup,
-        ...equip(deviceConfig, context, config.initializeTimeoutMs, setup),
+        ...equipment,
       })
     }
 

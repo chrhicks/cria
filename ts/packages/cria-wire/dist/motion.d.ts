@@ -77,6 +77,7 @@ export declare const MotionRecord: Schema.Struct<{
     }>;
     readonly stopped: Schema.Struct<{
         readonly how: Schema.Literals<readonly ["arrived", "halted", "aborted", "uncertain"]>;
+        readonly reason: Schema.optionalKey<Schema.String>;
         /** When the one "stopped" rule (readings after the command show the position still) fired, epoch ms. */
         readonly at: Schema.NullOr<Schema.Number>;
     }>;
