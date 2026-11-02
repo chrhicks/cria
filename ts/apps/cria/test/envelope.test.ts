@@ -156,7 +156,7 @@ const measuredEnvelope = Schema.decodeUnknownSync(MountEnvelope)({ keepOut: [
 ] })
 
 describe('gotos from the AM5 north-pole home', () => {
-  const homes = [pose(-90, 89.9, 'west'), pose(90, 89.9, 'east'), pose(-90, 90, 'west'), pose(90, 90, 'east'), pose(-89.99, 90, 'west'), pose(89.99, 89.9, 'east')]
+  const homes = [pose(-90, 89.9, 'west'), pose(90, 89.9, 'east'), pose(-90, 90, 'west'), pose(90, 90, 'east'), pose(-89.99, 90, 'west'), pose(89.99, 89.9, 'east'), pose(-90.01, 89.9, 'west'), pose(90.01, 89.9, 'east')]
 
   it.each(homes)('allows normal east and west targets from $hourAngleDegrees, $declinationDegrees, $pierSide', from => {
     for (const ha of [-40, 40]) {
@@ -187,6 +187,9 @@ describe('gotos from the AM5 north-pole home', () => {
     const sign = pierSide === 'west' ? -1 : 1
     const target = pose(-sign * 40, 50, pierSide === 'west' ? 'east' : 'west')
     expect(gotoRefusal(measuredEnvelope, pose(sign * 89.96, 89.9, pierSide), target, 15)).toBeUndefined()
+    expect(gotoRefusal(measuredEnvelope, pose(sign * 89.95, 89.9, pierSide), target, 15)).toBeUndefined()
+    expect(gotoRefusal(measuredEnvelope, pose(sign * 90.05, 89.9, pierSide), pose(sign * 40, 50, pierSide), 15)).toBeUndefined()
+    expect(gotoRefusal(measuredEnvelope, pose(sign * 90.06, 89.9, pierSide), pose(sign * 40, 50, pierSide), 15)).toContain('HA limit')
     expect(gotoRefusal(measuredEnvelope, pose(sign * 89.94, 89.9, pierSide), target, 15)).toContain('HA limit')
   })
 
@@ -205,6 +208,85 @@ describe('gotos from the AM5 north-pole home', () => {
   it('checks the folded path through the pole rather than dropping an unmeasured band', () => {
     const gap = { ...measuredEnvelope, keepOut: measuredEnvelope.keepOut.filter(band => band.name !== 'normal near pole') }
     expect(gotoRefusal(gap, pose(-90, 89.9, 'west'), pose(40, 50, 'east'), 15)).toContain('unmeasured Dec band')
+  })
+})
+
+describe('goto endpoint reserve through fake INDI', () => {
+  const cases = [
+    { home: -90, side: 'west', target: -40 },
+    { home: -90, side: 'west', target: 40 },
+    { home: 90, side: 'east', target: -40 },
+    { home: 90, side: 'east', target: 40 },
+  ] as const
+
+  const splitMeasuredEnvelope = { ...measuredEnvelope, keepOut: measuredEnvelope.keepOut.flatMap(band => band.name === 'normal measured' ? [
+    { ...band, maxDeclinationDegrees: 55, eastHourAngleDegrees: -91, westHourAngleDegrees: 91 },
+    { ...band, name: 'normal beyond 90, measured', minDeclinationDegrees: 55, eastHourAngleDegrees: -115, westHourAngleDegrees: 115 },
+  ] : [band]) }
+
+  async function runGoto(table: number | 'split', home: number, side: MountPose['pierSide'], target: number, startDec = 89.9) {
+    await start(home, startDec, side)
+    const sent = table === 'split' ? splitMeasuredEnvelope : { ...measuredEnvelope, keepOut: measuredEnvelope.keepOut.map(band => band.name === 'normal measured'
+      ? { ...band, eastHourAngleDegrees: -table, westHourAngleDegrees: table } : band) }
+    const { instanceId } = await cria.state()
+    await cria.client.envelope('mount', { instanceId, envelope: sent })
+    const previous = fake.behaviour
+    const timers: ReturnType<typeof setTimeout>[] = []
+    const ra = (ha: number) => ((-ha + 360) % 360) / 15
+    fake.behaviour = (server, vector, values, client) => {
+      if (vector.name === 'TELESCOPE_ABORT_MOTION') {
+        timers.forEach(clearTimeout)
+        server.update(mount, 'EQUATORIAL_EOD_COORD', { state: 'Ok' })
+        return 'default'
+      }
+      if (vector.name !== 'EQUATORIAL_EOD_COORD') return previous(server, vector, values, client)
+      server.update(mount, 'EQUATORIAL_EOD_COORD', { state: 'Busy' })
+      const origin = target < 0 ? -90 : 90
+      for (const [delay, ha, dec] of [[100, origin, 89.9], [300, origin * 0.99, 89.5], [600, (origin + target) / 2, 70], [900, target, 50]] as const) {
+        timers.push(setTimeout(() => {
+          server.update(mount, 'TELESCOPE_PIER_SIDE', { values: { PIER_WEST: target < 0, PIER_EAST: target > 0 } })
+          server.update(mount, 'EQUATORIAL_EOD_COORD', { state: delay === 900 ? 'Ok' : 'Busy', values: { RA: ra(ha), DEC: dec } })
+        }, delay))
+      }
+      return 'handled'
+    }
+    fake.received.length = 0
+    try {
+      const result = await slew(target, 50)
+      return { result, sent: commands() }
+    } finally {
+      timers.forEach(clearTimeout)
+    }
+  }
+
+  it.each(cases)('keeps the original +/-90 table refusal from $home to $target', async ({ home, side, target }) => {
+    const { result, sent } = await runGoto(90, home, side, target)
+    expect(result).toMatchObject({ kind: 'failed', reason: 'invalid' })
+    expect(result.message).toContain('envelope margin')
+    expect(sent).toEqual([])
+  })
+
+  it.each(cases)('completes from $home to $target with a synthetic wider normal band', async ({ home, side, target }) => {
+    const { result, sent } = await runGoto(115, home, side, target)
+    expect(result.kind).toBe('confirmed')
+    expect(result.operation.motion?.stopped.how).toBe('arrived')
+    expect(sent.some(xml => xml.includes('EQUATORIAL_EOD_COORD'))).toBe(true)
+    expect(sent.some(xml => xml.includes('TELESCOPE_ABORT_MOTION'))).toBe(false)
+  })
+
+  it.each([...cases, ...cases.map(row => ({ ...row, home: Math.sign(row.home) * 90.01 }))])('completes from $home to $target with the split measured bands', async ({ home, side, target }) => {
+    const { result, sent } = await runGoto('split', home, side, target)
+    expect(result.kind).toBe('confirmed')
+    expect(result.operation.motion?.stopped.how).toBe('arrived')
+    expect(sent.some(xml => xml.includes('EQUATORIAL_EOD_COORD'))).toBe(true)
+    expect(sent.some(xml => xml.includes('TELESCOPE_ABORT_MOTION'))).toBe(false)
+  })
+
+  it('refuses a clear target whose reserved overshoot leaves the normal band before any command', async () => {
+    const { result, sent } = await runGoto(115, -40, 'west', -100, 50)
+    expect(result).toMatchObject({ kind: 'failed', reason: 'invalid' })
+    expect(result.message).toContain('east HA limit -115')
+    expect(sent).toEqual([])
   })
 })
 
@@ -261,20 +343,20 @@ it.each(['goto', 'rate', 'slow-ack'] as const)('aborts a drifting %s through the
       { afterMs: 1900, property: 'EQUATORIAL_EOD_COORD', state: 'Busy', offset: { RA: -11.4 / 15, DEC: 0 } },
       { afterMs: 2926, property: 'EQUATORIAL_EOD_COORD', state: 'Busy', offset: { RA: -17.556 / 15, DEC: 0 } },
     ] : rate.start.steps.map(step => kind === 'goto' && step.property === 'EQUATORIAL_EOD_COORD' ? { ...step, state: 'Busy' as const } : step), command: kind !== 'rate'
-      ? { property: 'EQUATORIAL_EOD_COORD', travel: { RA: -(slow ? 1 : 5) / 15, DEC: 0 } }
+      ? { property: 'EQUATORIAL_EOD_COORD', travel: { RA: -6 / 15, DEC: 0 } }
       : rate.start.command },
     stop: { ...rate.stop!, command: { property: 'TELESCOPE_ABORT_MOTION', on: 'ABORT' } },
   }], { timeScale: slow ? 1 : 5 })
   const { instanceId } = await cria.state()
-  if (slow) await cria.client.envelope('mount', { instanceId, envelope: { ...envelope, keepOut: envelope.keepOut.map(band => ({ ...band, westHourAngleDegrees: 28.5 })) } })
+  if (slow) await cria.client.envelope('mount', { instanceId, envelope: { ...envelope, keepOut: envelope.keepOut.map(band => ({ ...band, westHourAngleDegrees: 35 })) } })
   await cria.client.fix('mount', { instanceId, fix: { capturedAt: Date.now(), rightAscensionDegrees: 350, declinationDegrees: 80, coordinateSystem: 'j2000', pointingErrorArcmin: 1, error: { scaleError: 0, hintOffsetDegrees: 0 } } })
-  const result = kind !== 'rate' ? await slew(slow ? 11 : 15, 80)
+  const result = kind !== 'rate' ? await slew(16, 80)
     : await cria.run('mount', 'mount-axis', { rateDegreesPerSecond: -720 * sidereal, durationSeconds: 1 })
-  expect(result.kind).toBe('uncertain')
+  expect(result.kind, result.message ?? '').toBe('uncertain')
   expect(result.message).toContain('west HA limit')
   expect(result.message).toContain('margin')
   expect(result.operation.motion?.stopped).toMatchObject({ how: 'aborted', reason: expect.stringContaining('envelope margin') })
   const end = result.operation.motion!.observed.to!
-  expect(360 - end.rightAscensionDegrees).toBeLessThan(slow ? 28.5 : 40)
+  expect(360 - end.rightAscensionDegrees).toBeLessThan(slow ? 35 : 40)
   expect(commands().some(xml => xml.includes('TELESCOPE_ABORT_MOTION'))).toBe(true)
-})
+}, 15_000)

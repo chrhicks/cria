@@ -268,12 +268,12 @@ export function makeMount(context: CapabilityContext, motion: MountMotionSetting
     const from: MountPose = { hourAngleDegrees: angularDelta(lst, ra), declinationDegrees, pierSide }
     const limit = snapshot.reading('MERIDIAN_LIMIT', numberElement('LIMIT'))
     const meridianLimit = limit.status === 'fresh' && Number.isFinite(limit.value) ? Math.max(0, limit.value) : 0
+    const margin = blindTravel.margin(context.feedback.fix) / 60
     const refusal = typeof target === 'number'
       ? rateRefusal(envelope, from, target, meridianLimit)
-      : gotoRefusal(envelope, from, { hourAngleDegrees: angularDelta(lst, target.rightAscensionDegrees), declinationDegrees: target.declinationDegrees }, meridianLimit)
+      : gotoRefusal(envelope, from, { hourAngleDegrees: angularDelta(lst, target.rightAscensionDegrees), declinationDegrees: target.declinationDegrees }, meridianLimit, margin + reactionDegrees)
 
     if (refusal !== undefined) return yield* invalid(refusal)
-    const margin = blindTravel.margin(context.feedback.fix) / 60
     const near = watchRefusal(envelope, from, meridianLimit, margin,
       typeof target === 'number' ? -Math.sign(target) * reactionDegrees : -Math.sign(angularDelta(target.rightAscensionDegrees, ra)) * reactionDegrees,
       typeof target === 'number' ? 0 : Math.sign(target.declinationDegrees - declinationDegrees) * reactionDegrees)
