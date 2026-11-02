@@ -156,7 +156,7 @@ const measuredEnvelope = Schema.decodeUnknownSync(MountEnvelope)({ keepOut: [
 ] })
 
 describe('gotos from the AM5 north-pole home', () => {
-  const homes = [pose(-90, 89.9, 'west'), pose(90, 89.9, 'east'), pose(-90, 90, 'west'), pose(90, 90, 'east')]
+  const homes = [pose(-90, 89.9, 'west'), pose(90, 89.9, 'east'), pose(-90, 90, 'west'), pose(90, 90, 'east'), pose(-89.99, 90, 'west'), pose(89.99, 89.9, 'east')]
 
   it.each(homes)('allows normal east and west targets from $hourAngleDegrees, $declinationDegrees, $pierSide', from => {
     for (const ha of [-40, 40]) {
@@ -181,6 +181,13 @@ describe('gotos from the AM5 north-pole home', () => {
     expect(result).toMatchObject({ kind: 'failed', reason: 'invalid', quarantined: false })
     expect(result.message).toContain('Envelope')
     expect(commands()).toEqual([])
+  })
+
+  it.each(['east', 'west'] as const)('bounds the reflected home HA tolerance on %s', pierSide => {
+    const sign = pierSide === 'west' ? -1 : 1
+    const target = pose(-sign * 40, 50, pierSide === 'west' ? 'east' : 'west')
+    expect(gotoRefusal(measuredEnvelope, pose(sign * 89.96, 89.9, pierSide), target, 15)).toBeUndefined()
+    expect(gotoRefusal(measuredEnvelope, pose(sign * 89.94, 89.9, pierSide), target, 15)).toContain('HA limit')
   })
 
   it('keeps the one-degree threshold and ordinary side-change refusal', () => {
