@@ -103,23 +103,6 @@ describe('a client stop during home', () => {
     expect(operation).toMatchObject({ kind: 'uncertain', reason: 'stop-not-confirmed', quarantined: true })
     expect(aborts()).toBeGreaterThan(1)
   }, 45_000)
-
-  it('stays uncertain and held when another motion property is still Busy', async () => {
-    const home = await startHome()
-    const motion = homeThatIgnoresAbort()
-
-    fake.behaviour = (fake, vector, values) => {
-      if (vector.name !== 'TELESCOPE_ABORT_MOTION') return motion(fake, vector, values)
-      fake.update(mount, 'TELESCOPE_PARK', { state: 'Busy' })
-      fake.update(mount, vector.name, { state: 'Ok' })
-
-      return 'handled'
-    }
-    await cria.cancel(home)
-    const operation = await cria.settled(home, 40_000)
-
-    expect(operation).toMatchObject({ kind: 'uncertain', reason: 'stop-not-confirmed', quarantined: true })
-  }, 45_000)
 })
 
 describe('a home nobody stops', () => {

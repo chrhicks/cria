@@ -9,13 +9,14 @@
  * that frame.
  */
 import { Effect, Option } from 'effect'
-import { selectedSwitch, type IndiDevice, type Property } from '@cria/indi'
-import { Failed, Reading, Uncertain, confirm, stoppable, type Ending } from '@cria/primitives'
+import { selectedSwitch, type Property, type Values } from '@cria/indi'
+import { Failed, Reading, Uncertain, stoppable, type Ending } from '@cria/primitives'
 import type { MountMotionSettings } from '../config.js'
-import { confirmNoneBusy, confirmProperty, sendOnce, startMotion, switchConfirmed, switchNotStarted, untilSettled } from './commands.js'
+import { sendOnce, startMotion, switchConfirmed, switchNotStarted, untilSettled } from './commands.js'
 import { invalid, liveSnapshot, required, type CapabilityContext } from './context.js'
 import { numberElement, switchElement, type DeviceSnapshot } from './fields.js'
 import type { DeviceSetup, StepOutcome } from './setup.js'
+import { angularDelta, beforeCommand, confirmStopped, positionOf, type Command, type Position } from './stopped.js'
 import type { DeviceBody, ParamsOf, ReadingsOf } from '@cria/wire'
 
 type CoordinateFrame = ParamsOf<'mount-slew'>['coordinateSystem']
@@ -50,9 +51,6 @@ const siderealArcsecondsPerSecond = 15.041067
 
 /** Properties whose Alert means "the last command failed", not "this value is old". */
 const command = { alertMeansStale: false }
-
-/** Everything that is Busy while the mount moves. */
-const motionProperties = ['EQUATORIAL_EOD_COORD', 'EQUATORIAL_COORD', 'TELESCOPE_PARK', 'TELESCOPE_HOME', 'TELESCOPE_MOTION_WE', 'TELESCOPE_MOTION_NS']
 
 const stopWithinMs = 20_000
 
@@ -142,45 +140,9 @@ function axisRates(property: Property): ReadonlyArray<AxisRate> {
   return rates
 }
 
-/** Within 0.1° of the slew target, as the .NET Cria checked. */
-function onTarget(property: Property, target: ParamsOf<'mount-slew'>): boolean {
-  const ra = (numberElement('RA')(property) ?? Number.NaN) * 15
-  const dec = numberElement('DEC')(property) ?? Number.NaN
-
-  return Math.abs(angularDelta(ra, target.rightAscensionDegrees)) <= 0.1 && Math.abs(dec - target.declinationDegrees) <= 0.1
-}
-
-export function angularDelta(current: number, origin: number): number {
-  return ((current - origin + 540) % 360) - 180
-}
-
-/**
- * The AM5 sets its coordinates Idle the moment it takes an abort and then
- * coasts for seconds, and INDI publishes a position only when it changes, so
- * neither the state nor a quiet mirror says the mount stopped.
- */
-function confirmStationary(device: IndiDevice, motion: MountMotionSettings, withinMs: number) {
-  return Effect.gen(function* () {
-    const name = Option.isSome(yield* device.property('EQUATORIAL_EOD_COORD')) ? 'EQUATORIAL_EOD_COORD' : 'EQUATORIAL_COORD'
-    const axes = (property: Property) => ({ ra: (numberElement('RA')(property) ?? Number.NaN) * 15, dec: numberElement('DEC')(property) ?? Number.NaN })
-    let previous: Property | undefined
-
-    const read = Effect.map(Effect.timeout(device.read(name), motion.positionReadMs), next => {
-      const pair = { previous, next }
-
-      previous = next
-
-      return pair
-    })
-    const still = ({ previous, next }: { previous: Property | undefined; next: Property }) => {
-      if (!previous || next.state === 'Busy') return false
-      const [before, after] = [axes(previous), axes(next)]
-
-      return Math.abs(angularDelta(after.ra, before.ra)) <= motion.stationaryDegrees && Math.abs(after.dec - before.dec) <= motion.stationaryDegrees
-    }
-
-    yield* confirm({ command: `stop on ${device.name}`, read, holds: still, within: withinMs, every: motion.positionReadMs })
-  })
+/** Within 0.1° of the slew target, as the .NET Cria checked: where the slew landed, not whether the mount stopped. */
+function onTarget(position: Position, target: ParamsOf<'mount-slew'>): boolean {
+  return Math.abs(angularDelta(position.ra, target.rightAscensionDegrees)) <= 0.1 && Math.abs(position.dec - target.declinationDegrees) <= 0.1
 }
 
 function gotoRefusalHint(outcomes: ReadonlyArray<StepOutcome> | undefined): string | undefined {
@@ -193,19 +155,18 @@ function gotoRefusalHint(outcomes: ReadonlyArray<StepOutcome> | undefined): stri
 export function makeMount(context: CapabilityContext, motion: MountMotionSettings, setup: DeviceSetup): Mount {
   const { device, timing } = context
 
-  // A park or home moves the mount without the coordinates going Busy.
-  // TELESCOPE_TRACK_STATE is left out: Busy there means tracking, which abort doesn't stop.
-  // `staleAfterAbort` names a property that is not read as motion once the abort is acknowledged:
-  // the AM5 driver leaves TELESCOPE_HOME Busy after a home it has stopped, so for a home the
-  // coordinates standing still over the confirmation window are the evidence, not that flag.
-  const abortWith = (staleAfterAbort: ReadonlyArray<string>) =>
+  // Stopped is decided by where the mount is, never by a property's state (see stopped.ts).
+  const stopWith = (property: string, values: Values) =>
     Effect.gen(function* () {
-      yield* sendOnce(device, 'TELESCOPE_ABORT_MOTION', { ABORT: true }, timing)
-      yield* confirmNoneBusy(device, motionProperties.filter(name => !staleAfterAbort.includes(name)), 15_000)
-      yield* confirmStationary(device, motion, 15_000)
+      const command = yield* beforeCommand(device)
+
+      yield* sendOnce(device, property, values, timing)
+
+      return yield* confirmStopped(device, motion, command, 15_000)
     })
-  const abort = abortWith([])
-  const abortHome = abortWith(['TELESCOPE_HOME'])
+  const abort = Effect.asVoid(stopWith('TELESCOPE_ABORT_MOTION', { ABORT: true }))
+  // The driver says the motion is over (the property left Busy); the mount has stopped once its position stands still.
+  const settled = (command: Command) => confirmStopped(device, motion, command, 15_000)
 
   const idleAndUnparked = (snapshot: DeviceSnapshot, allowParked = false) =>
     Effect.gen(function* () {
@@ -236,10 +197,11 @@ export function makeMount(context: CapabilityContext, motion: MountMotionSetting
         yield* switchConfirmed(device, 'ON_COORD_SET', { TRACK: true }, found => switchElement('TRACK')(found) === true, timing)
 
       const hint = gotoRefusalHint(yield* setup.current)
+      const command = yield* beforeCommand(device)
       const arrived = yield* stoppable({
         command: `slew on ${device.name}`,
         start: startMotion(device, coordinates.name, { RA: target.rightAscensionDegrees / 15, DEC: target.declinationDegrees }, timing, {
-          arrived: property => onTarget(property, target),
+          arrived: property => onTarget(positionOf(property), target),
         }).pipe(
           Effect.mapError(error =>
             error._tag === 'Failed' && error.reason === 'rejected' && hint
@@ -247,18 +209,19 @@ export function makeMount(context: CapabilityContext, motion: MountMotionSetting
               : error,
           ),
         ),
-        settle: untilSettled(device, coordinates.name, () => true, timing.operationTimeoutMs),
+        settle: Effect.andThen(untilSettled(device, coordinates.name, () => true, timing.operationTimeoutMs), settled(command)),
         stop: abort,
         stopWithin: stopWithinMs,
       })
-      const ra = (numberElement('RA')(arrived) ?? Number.NaN) * 15
-      const dec = numberElement('DEC')(arrived) ?? Number.NaN
 
       if (!onTarget(arrived, target))
         // The mount moved, just not to the target: not "failed" (which means nothing happened).
-        return yield* new Uncertain({ reason: 'not-confirmed', message: `Slew stopped outside the target tolerance at RA ${ra.toFixed(3)}°, Dec ${dec.toFixed(3)}°` })
+        return yield* new Uncertain({
+          reason: 'not-confirmed',
+          message: `Slew stopped outside the target tolerance at RA ${arrived.ra.toFixed(3)}°, Dec ${arrived.dec.toFixed(3)}°`,
+        })
 
-      return { rightAscensionDegrees: ra, declinationDegrees: dec }
+      return { rightAscensionDegrees: arrived.ra, declinationDegrees: arrived.dec }
     })
 
   const setTracking = (tracking: boolean) =>
@@ -291,10 +254,12 @@ export function makeMount(context: CapabilityContext, motion: MountMotionSetting
     // A parked mount doesn't go Busy when asked to park again.
     if (yield* required(mount.parked, 'park state')) return {}
 
+    const command = yield* beforeCommand(device)
+
     yield* stoppable({
       command: `park on ${device.name}`,
       start: startMotion(device, 'TELESCOPE_PARK', { PARK: true }, timing, { arrived: property => switchElement('PARK')(property) === true }),
-      settle: untilSettled(device, 'TELESCOPE_PARK', property => switchElement('PARK')(property) === true, timing.operationTimeoutMs),
+      settle: Effect.andThen(untilSettled(device, 'TELESCOPE_PARK', property => switchElement('PARK')(property) === true, timing.operationTimeoutMs), settled(command)),
       stop: abort,
       stopWithin: stopWithinMs,
     })
@@ -326,20 +291,22 @@ export function makeMount(context: CapabilityContext, motion: MountMotionSetting
 
     if (!element) return yield* new Failed({ reason: 'unsupported', message: 'Home unsupported' })
 
+    const command = yield* beforeCommand(device)
+
     yield* stoppable({
       command: `home on ${device.name}`,
       // TELESCOPE_HOME is not polled, so an Ok right after the send is the driver's answer:
       // already home (the AM5 has no at-home indicator to check first).
       start: startMotion(device, 'TELESCOPE_HOME', { [element]: true }, timing, { arrived: property => property.state === 'Ok' }),
-      settle: untilSettled(device, 'TELESCOPE_HOME', () => true, timing.operationTimeoutMs),
-      stop: abortHome,
+      settle: Effect.andThen(untilSettled(device, 'TELESCOPE_HOME', () => true, timing.operationTimeoutMs), settled(command)),
+      stop: abort,
       stopWithin: stopWithinMs,
     })
 
     return {}
   })
 
-  const stop = abort.pipe(
+  const stop = Effect.asVoid(abort).pipe(
     Effect.timeoutOption(stopWithinMs),
     Effect.mapError(error => (error._tag === 'Uncertain' && error.reason === 'not-confirmed' ? new Uncertain({ reason: 'stop-not-confirmed', message: error.message }) : error)),
     Effect.flatMap(
@@ -379,16 +346,7 @@ export function makeMount(context: CapabilityContext, motion: MountMotionSetting
         yield* switchConfirmed(device, 'TELESCOPE_SLEW_RATE', { [rate.name]: true }, found => selectedSwitch(found) === rate.name, timing)
 
       const direction = rateDegreesPerSecond > 0 ? 'MOTION_EAST' : 'MOTION_WEST'
-      const halt = Effect.gen(function* () {
-        yield* sendOnce(device, 'TELESCOPE_MOTION_WE', { MOTION_EAST: false, MOTION_WEST: false }, timing)
-        yield* confirmProperty(
-          device,
-          'TELESCOPE_MOTION_WE',
-          property => property.state !== 'Busy' && switchElement(direction)(property) === false,
-          15_000,
-        )
-        yield* confirmStationary(device, motion, 15_000)
-      })
+      const halt = Effect.asVoid(stopWith('TELESCOPE_MOTION_WE', { MOTION_EAST: false, MOTION_WEST: false }))
       const ra = Effect.gen(function* () {
         const latest = yield* context.snapshot
 

@@ -97,7 +97,27 @@ describe('a motion that started but did not complete as asked (R1-#5)', () => {
 })
 
 describe('stopping a park or home (R1-#6)', () => {
-  it('a cancelled park counts as stopped only when the park itself is no longer Busy', async () => {
+  it('a cancelled park the mount keeps driving after the abort is uncertain: its position keeps changing', async () => {
+    fake.behaviour = moveMount({ ignoreAbortFor: 'TELESCOPE_PARK' })
+    const parking = await cria.submit('mount', 'mount-park', {})
+
+    await moving('TELESCOPE_PARK')
+    let ra = 2
+
+    const drift = setInterval(() => fake.update(mount, 'EQUATORIAL_EOD_COORD', { values: { RA: (ra += 0.01) } }), 100)
+
+    try {
+      await cria.cancel(parking.body.id)
+      const operation = await cria.settled(parking.body.id, 40_000)
+
+      expect(fake.vector(mount, 'TELESCOPE_PARK').state).toBe('Busy')
+      expect(operation).toMatchObject({ kind: 'uncertain', reason: 'stop-not-confirmed', quarantined: true })
+    } finally {
+      clearInterval(drift)
+    }
+  }, 45_000)
+
+  it('a cancelled park whose property stays Busy after the abort is stopped once the mount stands still', async () => {
     fake.behaviour = moveMount({ ignoreAbortFor: 'TELESCOPE_PARK' })
     const parking = await cria.submit('mount', 'mount-park', {})
 
@@ -106,7 +126,7 @@ describe('stopping a park or home (R1-#6)', () => {
     const operation = await cria.settled(parking.body.id, 40_000)
 
     expect(fake.vector(mount, 'TELESCOPE_PARK').state).toBe('Busy')
-    expect(operation).toMatchObject({ kind: 'uncertain', quarantined: true })
+    expect(operation).toMatchObject({ kind: 'stopped', quarantined: false })
   }, 45_000)
 
   it('a cancelled park the mount does abort ends cancelled', async () => {

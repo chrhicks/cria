@@ -456,7 +456,11 @@ export const scenarios: ReadonlyArray<Scenario> = [
     name: 'mount-slew on an AM5 set up at start: the site, then the time, then the goto',
     devices: ['mount'],
     config: { devices: [{ ...specs.mount, site }] },
-    fake: (fake, behave) => behave(mount, am5(fake, mount, { slewDegreesPerSecond: 60, publishEveryMs: 100 }).behaviour),
+    fake: (fake, behave) => {
+      // A tracking mount holds its coordinates after the goto; an untracked one drifts, and the slew reports where it stopped.
+      fake.update(mount, 'TELESCOPE_TRACK_STATE', { values: { TRACK_ON: true, TRACK_OFF: false } })
+      behave(mount, am5(fake, mount, { slewDegreesPerSecond: 60, publishEveryMs: 100 }).behaviour)
+    },
     run: async g => {
       const setup = (await g.cria.state()).operations.find(operation => operation.kind === 'device-connect')
 
