@@ -8,6 +8,7 @@ import { Schema } from 'effect'
 import { CommandSchema, HaltCommandSchema } from './command.js'
 import { BindingId, DeviceId, FailureDomain, ImageId, InstanceId, OperationId, RequestId } from './ids.js'
 import { MotionRecord } from './motion.js'
+import { LeaseId } from './lease.js'
 import { Json, Outcome, Timestamp } from './values.js'
 
 const Name = Schema.String.pipe(Schema.check(Schema.isBetweenLength(1, 256)))
@@ -54,10 +55,15 @@ export const requestIdentity = {
   deviceId: DeviceId,
   bindingId: BindingId,
   expectedName: Name,
+  leaseId: Schema.optionalKey(LeaseId),
 }
 
 /** What Vela sends: its identity for the request, then one command, flat. */
-export const OperationRequest = Schema.Union(CommandSchema.members.map(command => Schema.Struct({ ...requestIdentity, ...command.fields })))
+// Preserve each command's discriminant when a shared field is optional.
+const struct = <F extends Schema.Struct.Fields>(fields: F): F extends unknown ? Schema.Struct<F> : never =>
+  Schema.Struct(fields) as F extends unknown ? Schema.Struct<F> : never
+
+export const OperationRequest = Schema.Union(CommandSchema.members.map(command => struct({ ...requestIdentity, ...command.fields })))
 
 export type OperationRequest = typeof OperationRequest.Type
 
@@ -88,11 +94,11 @@ const recoveredOnlyIfUncertain = Schema.makeFilter(
 )
 
 export const Operation = Schema.Union([
-  ...HaltCommandSchema.members.map(command => Schema.Struct({ ...accepted, state: Schema.Literal('waiting'), ...command.fields })),
+  ...HaltCommandSchema.members.map(command => struct({ ...accepted, state: Schema.Literal('waiting'), ...command.fields })),
   ...CommandSchema.members.map(command =>
-    Schema.Struct({ ...accepted, state: Schema.Literal('running'), startedAt: Timestamp, progress: Progress, ...command.fields }),
+    struct({ ...accepted, state: Schema.Literal('running'), startedAt: Timestamp, progress: Progress, ...command.fields }),
   ),
-  ...CommandSchema.members.map(command => Schema.Struct({ ...settled, ...command.fields }).pipe(Schema.check(recoveredOnlyIfUncertain))),
+  ...CommandSchema.members.map(command => struct({ ...settled, ...command.fields }).pipe(Schema.check(recoveredOnlyIfUncertain))),
 ])
 
 export type Operation = typeof Operation.Type

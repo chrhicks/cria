@@ -4,6 +4,7 @@
   "imageDirectory": "/var/lib/cria/images",
   "imageBudgetBytes": 10737418240,
   "commandsEnabled": true,
+  "mountLeaseRequired": true,
   "livenessMs": 1000,
   "acknowledgeMs": 5000,
   "operationTimeoutMs": 180000,

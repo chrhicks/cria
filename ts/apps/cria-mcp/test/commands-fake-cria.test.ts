@@ -14,7 +14,8 @@ const against = (handler: FakeHandler, env: Record<string, string> = {}) =>
 
 const refusal = (code: string, message = 'refused by the fake') => ({ error: { code, message }, instanceId })
 const posts = (cria: { readonly requests: ReadonlyArray<{ readonly method: string | undefined }> }) => cria.requests.filter(request => request.method === 'POST')
-const accepts: FakeHandler = (_, response) => json(response, 202, rotating)
+const held = { id: '00000000-0000-4000-8000-000000000001', holder: 'cria-mcp', expiresAt: Date.now() + 1000 }
+const accepts: FakeHandler = (request, response) => request.url?.endsWith('/lease') ? json(response, 200, held) : json(response, 202, rotating)
 const settle = Effect.promise(() => new Promise(resolve => setTimeout(resolve, 800)))
 const text = (message: unknown) => JSON.stringify(message)
 
@@ -33,8 +34,8 @@ describe('a command tool against a fake Cria', () => {
 
       expect(result.isError).toBeFalsy()
       expect(result.structuredContent).toEqual({ kind: 'answered', body: rotating })
-      expect(cria.requests.map(request => `${request.method} ${request.url}`)).toEqual(['POST /v2/operations'])
-      expect(JSON.parse(cria.requests[0]!.body)).toEqual({ ...mountId, kind: 'mount-rotate', parameters: rotation })
+      expect(cria.requests.map(request => `${request.method} ${request.url}`)).toEqual(['POST /v2/devices/mount/lease', 'POST /v2/operations'])
+      expect(JSON.parse(cria.requests[1]!.body)).toEqual({ ...mountId, leaseId: held.id, kind: 'mount-rotate', parameters: rotation })
       expect(cria.requests[0]!.headers['content-type']).toContain('application/json')
       expect(cria.requests[0]!.headers.origin).toBeUndefined()
       expect(cria.requests[0]!.headers.authorization).toBeUndefined()
@@ -83,7 +84,7 @@ describe('a command tool against a fake Cria', () => {
       const { cria, mcp } = yield* against(() => undefined, { CRIA_REPLY_TIMEOUT: '300 millis' })
       const result = yield* callTool(mcp.url, 'mount-rotate', rotateInput)
 
-      expect(result.structuredContent).toMatchObject({ kind: 'lost', route: 'POST /v2/operations', why: 'timeout' })
+      expect(result.structuredContent).toMatchObject({ kind: 'lost', route: 'POST /v2/devices/mount/lease', why: 'timeout' })
       yield* settle
       expect(posts(cria)).toHaveLength(1)
     }),

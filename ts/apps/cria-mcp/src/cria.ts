@@ -1,6 +1,6 @@
 import { Context, Data, Duration, Effect, Layer, Option, Redacted, Schema, Stream, type Scope } from 'effect'
 import { HttpClient, HttpClientRequest, type HttpClientResponse } from 'effect/http'
-import { Device, ErrorBody, Operation, OperationRequest, RecoveryRequest, State, type DeviceId, type ImageId, type InstanceId, type OperationId, type RequestId } from '@cria/wire'
+import { Device, ErrorBody, MountLease, LeaseRequest, mountLeaseRenewMs, needsMountLease, Operation, OperationRequest, RecoveryRequest, State, type DeviceId, type ImageId, type InstanceId, type OperationId, type RequestId } from '@cria/wire'
 
 const strict = { onExcessProperty: 'error' } as const
 
@@ -57,6 +57,7 @@ export class Cria extends Context.Service<Cria, {
 
 const make = Effect.fnUntraced(function* (target: CriaTarget) {
   const http = yield* HttpClient.HttpClient
+  const scope = yield* Effect.scope
   const withToken = Option.match(target.token, {
     onNone: () => (request: HttpClientRequest.HttpClientRequest) => request,
     onSome: token => HttpClientRequest.bearerToken(Redacted.value(token)),
@@ -136,10 +137,34 @@ const make = Effect.fnUntraced(function* (target: CriaTarget) {
   const send = <S extends Schema.Top & { readonly DecodingServices: never }>(path: string, schema: S, body?: unknown) =>
     exchange(`POST ${path}`, post(path, body), schema)
 
+  const lease = (request: OperationRequest, body: LeaseRequest) =>
+    send(`/v2/devices/${request.deviceId}/lease`, MountLease, body)
+
+  const submit = (request: OperationRequest): Effect.Effect<Operation, CriaError> => Effect.gen(function* () {
+    if (!needsMountLease(request)) return yield* send('/v2/operations', Operation, Schema.encodeSync(OperationRequest)(request))
+    const identity = { instanceId: request.instanceId, bindingId: request.bindingId }
+    const held = yield* lease(request, { ...identity, action: 'acquire', holder: 'cria-mcp' })
+    const release = lease(request, { ...identity, action: 'release', leaseId: held.id }).pipe(Effect.ignore)
+    const operation = yield* send('/v2/operations', Operation, Schema.encodeSync(OperationRequest)({ ...request, leaseId: held.id })).pipe(Effect.onError(() => release))
+    const maintain = Effect.gen(function* () {
+      let current = operation
+
+      while (current.state !== 'settled') {
+        yield* Effect.sleep(mountLeaseRenewMs)
+        yield* lease(request, { ...identity, action: 'renew', leaseId: held.id })
+        current = yield* read(`/v2/operations/${operation.id}`, Operation)
+      }
+    }).pipe(Effect.ensuring(release), Effect.catch(error => Effect.logWarning('Mount lease maintenance ended', error)))
+
+    yield* Effect.forkIn(maintain, scope)
+
+    return operation
+  })
+
   return Cria.of({
     state: read('/v2/state', State),
     operation: id => read(`/v2/operations/${id}`, Operation),
-    submit: request => send('/v2/operations', Operation, Schema.encodeSync(OperationRequest)(request)),
+    submit,
     cancel: id => send(`/v2/operations/${id}/cancel`, Operation),
     recover: (id, request) => send(`/v2/devices/${id}/recover`, Device, Schema.encodeSync(RecoveryRequest)(request)),
     request: (instanceId, requestId) => read(`/v2/requests/${instanceId}/${encodeURIComponent(requestId)}`, Operation),

@@ -1879,3 +1879,22 @@ Gaps that need a decision:
     shutdown test, where Cria runs in its own process. The tests wait for
     `noneNotRead` as well. Whether `starting` should last until the definitions
     settle is part of the same open decision on availability.
+
+### Mount lease (additive in protocol 5)
+
+`POST /v2/devices/{id}/lease` takes `instanceId`, `bindingId` and `action`.
+Acquire takes `holder` and returns `{ id, holder, expiresAt }`. Renew and release
+ take `leaseId` and return the same shape. Times are Cria's epoch milliseconds.
+The lease lasts 1,000 ms; clients renew every 250 ms. Release expires it now.
+A lease owns the mount's existing operation lane. Acquisition refuses an occupied
+lane. Expiry or release cancels that holder's move through the confirmed mount
+abort path. The settled motion record names lease expiry as the stop reason.
+Failure to confirm a stop still ends uncertain and holds the mount.
+
+Moves carry optional `leaseId`. With `mountLeaseRequired: true`, slew, axis,
+rotate, home and park require a valid lease. An older client without one gets
+`request-error` with "A valid mount lease is required; acquire it before moving",
+before any command reaches INDI. Stops remain available without a lease.
+The switch defaults false in generic config and true in errai's deploy config.
+Deploy Cria and Vela together outside a session; deployment is held for Chris.
+The MCP service acquires and renews its own lease until its move settles.

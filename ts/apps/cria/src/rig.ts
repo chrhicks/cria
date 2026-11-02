@@ -75,6 +75,7 @@ export function makeRig(config: Config, options: { readonly recording?: Recordin
     const ledger = yield* makeLedger({
       instanceId,
       commandsEnabled: config.commandsEnabled,
+      mountLeaseRequired: config.mountLeaseRequired ?? false,
       history: config.operationHistory,
       ...(recorder ? { onSettled: operation => recorder.operation(operation) } : {}),
       devices: devices.map(device => ({

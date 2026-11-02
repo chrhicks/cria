@@ -85,6 +85,7 @@ export const ConfigSchema = Schema.Struct({
   imageDirectory: Schema.String,
   imageBudgetBytes: Schema.Number.pipe(Schema.check(Schema.isInt(), Schema.isGreaterThan(0))),
   commandsEnabled: Schema.Boolean,
+  mountLeaseRequired: Schema.optionalKey(Schema.Boolean),
   livenessMs: Milliseconds(250, 30_000),
   /** How long a driver has to acknowledge a command before it is uncertain. */
   acknowledgeMs: Milliseconds(500, 60_000),

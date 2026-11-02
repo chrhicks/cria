@@ -3,6 +3,12 @@ import { Deferred, Effect, PubSub, Ref, Scope, Stream } from 'effect'
 import { makeRun, quarantineOf, type Ending, type ExternalRecovery, type Outcome, type QuarantineState, type Report, type RunView } from '@cria/primitives'
 import {
   commands,
+  LeaseId,
+  mountLeaseMs,
+  mountLeaseWatchMs,
+  needsMountLease,
+  type MountLease,
+  type LeaseRequest,
   isHalt,
   type BindingId,
   type Command,
@@ -36,6 +42,7 @@ export type Submission = Command & {
   readonly deviceId: DeviceId
   readonly bindingId: BindingId
   readonly expectedName: string
+  readonly leaseId?: LeaseId
 }
 
 export interface Placement {
@@ -48,6 +55,7 @@ export interface Placement {
 export interface Rules {
   readonly instanceId: InstanceId
   readonly commandsEnabled: boolean
+  readonly mountLeaseRequired?: boolean
   readonly history: number
   readonly devices: ReadonlyMap<DeviceId, Placement>
 }
@@ -60,6 +68,7 @@ export interface SettledMark {
 interface Domain {
   readonly binding: BindingId
   readonly recentlySettled: ReadonlyArray<SettledMark>
+  readonly lease?: MountLease
 }
 
 export interface LedgerState {
@@ -89,6 +98,7 @@ export interface DomainFacts {
   readonly quarantine: QuarantineState
   readonly busy: boolean
   readonly recentlySettled: ReadonlyArray<SettledMark>
+  readonly lease?: MountLease
 }
 
 export interface LedgerSnapshot {
@@ -148,9 +158,9 @@ const blocks = (rules: Rules, state: LedgerState, operation: Stored) =>
   operation.bindingId === known(state.domains, operation.failureDomain).binding
 
 function factsOf(rules: Rules, state: LedgerState, failureDomain: FailureDomain): DomainFacts {
-  const { binding, recentlySettled } = known(state.domains, failureDomain)
+  const { binding, recentlySettled, lease } = known(state.domains, failureDomain)
 
-  return { binding, quarantine: quarantineIn(rules, state, failureDomain), busy: openIn(state, failureDomain).length > 0, recentlySettled }
+  return { binding, quarantine: quarantineIn(rules, state, failureDomain), busy: openIn(state, failureDomain).length > 0, recentlySettled, ...(lease ? { lease } : {}) }
 }
 
 const settledView = (state: LedgerState, operation: Ended): Settled => ({
@@ -194,6 +204,12 @@ export function admit(
 
   if (runsOn !== 'any' && runsOn !== device.kind) return refused(refuse('request-error', `A ${device.kind} cannot run ${submission.kind}`))
   if (!rules.commandsEnabled) return refused(refuse('commands-disabled', 'Commands are disabled'))
+  if (needsMountLease(submission) && (rules.mountLeaseRequired || submission.leaseId !== undefined)) {
+    if (!domain.lease || domain.lease.id !== submission.leaseId || domain.lease.expiresAt <= now)
+      return refused(refuse('request-error', 'A valid mount lease is required; acquire it before moving'))
+  }
+  if (needsMountLease(submission) && domain.lease && domain.lease.id !== submission.leaseId)
+    return refused(refuse('device-busy', 'The mount lane belongs to another lease holder'))
 
   const accepted = { ...submission, id, failureDomain: device.failureDomain, acceptedAt: now }
   const open = openIn(state, device.failureDomain)
@@ -383,6 +399,7 @@ export interface RecoverRequest {
 }
 
 export interface Ledger {
+  readonly lease: (deviceId: DeviceId, request: LeaseRequest) => Effect.Effect<MountLease | null, Refusal>
   readonly submit: (submission: Submission) => Effect.Effect<Operation, Refusal>
   readonly cancel: (id: OperationId) => Effect.Effect<Operation, Refusal>
   readonly operation: (id: OperationId) => Effect.Effect<Operation, Refusal>
@@ -397,6 +414,7 @@ export interface Ledger {
 export interface LedgerOptions {
   readonly instanceId: InstanceId
   readonly commandsEnabled: boolean
+  readonly mountLeaseRequired?: boolean
   readonly history: number
   readonly devices: ReadonlyArray<LedgerDevice>
   /**
@@ -412,10 +430,11 @@ export function makeLedger(options: LedgerOptions): Effect.Effect<Ledger, never,
   return Effect.gen(function* () {
     const scope = yield* Effect.scope
     const devices = new Map(options.devices.map(device => [device.id, device]))
-    const rules: Rules = { instanceId: options.instanceId, commandsEnabled: options.commandsEnabled, history: options.history, devices }
+    const rules: Rules = { instanceId: options.instanceId, commandsEnabled: options.commandsEnabled, mountLeaseRequired: options.mountLeaseRequired ?? false, history: options.history, devices }
     const domainIds = [...new Set(options.devices.map(device => device.failureDomain))]
     const state = yield* Ref.make(initialState(domainIds.map(id => [id, mint.bindingId()])))
     const motions = new Map<OperationId, MotionRecord>()
+    const leaseStops = new Map<OperationId, string>()
     const revisions = yield* Effect.acquireRelease(PubSub.sliding<number>(1), PubSub.shutdown)
     const runs = new Map(
       yield* Effect.forEach(domainIds, id =>
@@ -492,7 +511,11 @@ export function makeLedger(options: LedgerOptions): Effect.Effect<Ledger, never,
       if (update.state === 'idle') return Effect.void
       if (update.state === 'running') return apply(current => progress(current, { id: update.runId, progress: update.progress }))
       const now = Date.now()
-      const motion = motions.get(update.runId)
+      const recorded = motions.get(update.runId)
+      const reason = leaseStops.get(update.runId)
+      const motion = recorded && reason ? { ...recorded, stopped: { ...recorded.stopped, reason } } : recorded
+
+      leaseStops.delete(update.runId)
 
       motions.delete(update.runId)
 
@@ -503,7 +526,48 @@ export function makeLedger(options: LedgerOptions): Effect.Effect<Ledger, never,
 
     const read = <A>(query: (current: LedgerState) => A | Refusal) => Effect.flatMap(Ref.get(state), current => answer(query(current)))
 
+    const expire = apply(current => {
+      let next = current
+      const after: After[] = []
+
+      for (const [id, domain] of current.domains) {
+        if (!domain.lease || domain.lease.expiresAt > Date.now()) continue
+        const { lease, ...unleased } = domain
+        next = changed(next, { domains: put(next.domains, id, unleased) })
+        for (const operation of openIn(current, id)) {
+          if (operation.state !== 'running' || !needsMountLease(operation) || operation.leaseId !== lease.id) continue
+          leaseStops.set(operation.id, `Mount lease expired for ${lease.holder}`)
+          after.push({ kind: 'stop', operation })
+        }
+      }
+
+      return [step(undefined, after), next]
+    })
+
+    yield* Effect.forkIn(Effect.forever(Effect.andThen(Effect.sleep(mountLeaseWatchMs), expire)), scope)
+
     return {
+      lease: (deviceId, request) => Effect.flatMap(apply(current => {
+        const device = rules.devices.get(deviceId)
+        const domain = device && current.domains.get(device.failureDomain)
+        const refused = (message: string): Transition<MountLease | null | Refusal> => [step(refuse('request-error', message)), current]
+
+        if (!device || device.kind !== 'mount' || !domain) return refused('No such mount')
+        if (request.instanceId !== rules.instanceId || request.bindingId !== domain.binding) return refused('Mount instance or binding changed')
+        if (!rules.commandsEnabled) return refused('Commands are disabled')
+        const now = Date.now()
+        let lease: MountLease
+
+        if (request.action === 'acquire') {
+          if (domain.lease || openIn(current, device.failureDomain).length) return refused('Mount lane is busy; wait for the previous lease and operation to settle')
+          lease = { id: LeaseId.make(crypto.randomUUID()), holder: request.holder, expiresAt: now + mountLeaseMs }
+        } else {
+          if (!domain.lease || domain.lease.id !== request.leaseId || domain.lease.expiresAt <= now) return refused('Mount lease is absent, expired or belongs to another holder')
+          lease = { ...domain.lease, expiresAt: request.action === 'release' ? now : now + mountLeaseMs }
+        }
+
+        return [step(lease), changed(current, { domains: put(current.domains, device.failureDomain, { ...domain, lease }) })]
+      }), answer),
       submit: submission =>
         Effect.gen(function* () {
           const input = { submission, id: mint.operationId(), now: Date.now() }
