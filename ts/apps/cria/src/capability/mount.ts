@@ -8,7 +8,7 @@
  * vocabulary), EQUATORIAL_COORD is J2000. A slew must already be expressed in
  * that frame.
  */
-import { Clock, Effect, Option, Stream } from 'effect'
+import { Clock, Effect, Option } from 'effect'
 import { selectedSwitch, type Property, type Values } from '@cria/indi'
 import { Failed, Reading, Uncertain, stoppable, type Ending } from '@cria/primitives'
 import type { MountMotionSettings } from '../config.js'
@@ -19,7 +19,9 @@ import type { DeviceSetup, StepOutcome } from './setup.js'
 import { track, type Note, type Tracking } from './motion-record.js'
 import { angularDelta, beforeCommand, confirmStopped, positionOf, type Command, type Position } from './stopped.js'
 import { makeBlindTravel } from './blind-travel.js'
-import { gotoRefusal, rateRefusal, reactionDegrees, readingDeadlineMs, watchRefusal, type MountPose } from './envelope.js'
+import { axisDelta, type SidedPosition } from './mount-axes.js'
+import { gotoRefusal, rateRefusal, reactionDegrees, readingDeadlineMs, watchRefusal } from './envelope.js'
+import { gotoToleranceDegrees, type MountPose } from './goto-reach.js'
 import type { DeviceBody, MotionCommanded, ParamsOf, ReadingsOf } from '@cria/wire'
 
 type CoordinateFrame = ParamsOf<'mount-slew'>['coordinateSystem']
@@ -64,6 +66,11 @@ function coordinatesProperty(snapshot: DeviceSnapshot): { name: string; frame: C
     : { name: 'EQUATORIAL_COORD', frame: 'j2000' }
 }
 
+function pierSideOf(property: Property | undefined): SidedPosition['pierSide'] {
+  const side = property === undefined ? undefined : selectedSwitch(property)
+  return side === 'PIER_EAST' ? 'east' : side === 'PIER_WEST' ? 'west' : 'unknown'
+}
+
 function readings(snapshot: DeviceSnapshot): ReadingsOf<'mount'> {
   const read = snapshot.reading
   const coordinates = coordinatesProperty(snapshot)
@@ -97,11 +104,7 @@ function readings(snapshot: DeviceSnapshot): ReadingsOf<'mount'> {
       return rate === undefined ? undefined : ((rate - siderealArcsecondsPerSecond) / 15) * 0.99726957
     }),
     declinationRateArcsecondsPerSecond: read('TELESCOPE_TRACK_RATE', numberElement('TRACK_RATE_DE')),
-    pierSide: read('TELESCOPE_PIER_SIDE', property => {
-      const side = selectedSwitch(property)
-
-      return side === 'PIER_EAST' ? 'east' : side === 'PIER_WEST' ? 'west' : 'unknown'
-    }),
+    pierSide: read('TELESCOPE_PIER_SIDE', pierSideOf),
     coordinateSystem: read(coordinates.name, () => coordinates.frame),
     latitudeDegrees: read('GEOGRAPHIC_COORD', numberElement('LAT')),
     longitudeDegrees: longitude,
@@ -146,7 +149,7 @@ function axisRates(property: Property): ReadonlyArray<AxisRate> {
 
 /** Within 0.1° of the slew target, as the .NET Cria checked: where the slew landed, not whether the mount stopped. */
 function onTarget(position: Position, target: ParamsOf<'mount-slew'>): boolean {
-  return Math.abs(angularDelta(position.ra, target.rightAscensionDegrees)) <= 0.1 && Math.abs(position.dec - target.declinationDegrees) <= 0.1
+  return Math.abs(angularDelta(position.ra, target.rightAscensionDegrees)) <= gotoToleranceDegrees && Math.abs(position.dec - target.declinationDegrees) <= gotoToleranceDegrees
 }
 
 function gotoRefusalHint(outcomes: ReadonlyArray<StepOutcome> | undefined): string | undefined {
@@ -160,15 +163,25 @@ export function makeMount(context: CapabilityContext, motion: MountMotionSetting
   const { device, timing } = context
 
   const blindTravel = makeBlindTravel()
-  const watchTravel = Stream.runForEach(device.events, event => Effect.sync(() => {
-    if (event.type === 'property' && ['EQUATORIAL_EOD_COORD', 'EQUATORIAL_COORD'].includes(event.property.name)) blindTravel.record({ ...positionOf(event.property), at: event.property.receivedAt })
-  }))
+  const watchTravel = Effect.gen(function* () {
+    const subscription = yield* device.subscribe
+    let pierSide = pierSideOf(Option.getOrUndefined(yield* device.property('TELESCOPE_PIER_SIDE')))
+    while (true) {
+      const event = yield* subscription.next
+      if (event.type === 'connection' && event.status.kind !== 'connected') pierSide = 'unknown'
+      if (event.type === 'deleted' && (event.name === undefined || event.name === 'TELESCOPE_PIER_SIDE')) pierSide = 'unknown'
+      if (event.type !== 'property') continue
+      if (event.property.name === 'TELESCOPE_PIER_SIDE') pierSide = pierSideOf(event.property)
+      if (['EQUATORIAL_EOD_COORD', 'EQUATORIAL_COORD'].includes(event.property.name))
+        blindTravel.record({ ...positionOf(event.property), at: event.property.receivedAt, pierSide })
+    }
+  }).pipe(Effect.scoped)
 
-  const guard = <A>(settle: Effect.Effect<A, Failed | Uncertain>, stopped: { reason?: string }, target: ParamsOf<'mount-slew'> | number, command: Command) => {
+  const guard = <A>(settle: Effect.Effect<A, Failed | Uncertain>, stopped: { reason?: string }, target: ParamsOf<'mount-slew'> | number, command: Command, initialSide: SidedPosition['pierSide']) => {
     const monitor = Effect.gen(function* () {
       const subscription = yield* device.subscribe
       let first = Option.getOrUndefined(yield* device.property('EQUATORIAL_EOD_COORD')) ?? Option.getOrUndefined(yield* device.property('EQUATORIAL_COORD'))
-      let last = command.before
+      let last = command.before === undefined ? undefined : { ...command.before, pierSide: initialSide }
       let lastPositionAt = yield* Clock.currentTimeMillis
       let raDirection = 0
       let decDirection = 0
@@ -187,20 +200,20 @@ export function makeMount(context: CapabilityContext, motion: MountMotionSetting
           if (event.type !== 'property' || !['EQUATORIAL_EOD_COORD', 'EQUATORIAL_COORD'].includes(event.property.name)) continue
           property = event.property
         }
-        blindTravel.record({ ...positionOf(property), at: property.receivedAt })
+        const snapshot = yield* context.snapshot
+        const mount = readings(snapshot)
+        const pierSide = mount.pierSide.status === 'fresh' ? mount.pierSide.value : 'unknown'
+        const here = { ...positionOf(property), pierSide }
+        blindTravel.record({ ...here, at: property.receivedAt })
         lastPositionAt = yield* Clock.currentTimeMillis
-        const here = positionOf(property)
         if (last !== undefined) {
-          const dra = angularDelta(here.ra, last.ra)
-          const ddec = here.dec - last.dec
-          if (Math.abs(dra) > 1e-9) raDirection = Math.sign(dra)
-          if (Math.abs(ddec) > 1e-9) decDirection = Math.sign(ddec)
+          const delta = axisDelta({ from: last, to: here })
+          if (Math.abs(delta.raDegrees) > 1e-9) raDirection = Math.sign(delta.raDegrees)
+          if (Math.abs(delta.decDegrees) > 1e-9) decDirection = Math.sign(delta.decDegrees)
         }
         last = here
         const envelope = context.feedback.envelope
         if (envelope === null) continue
-        const snapshot = yield* context.snapshot
-        const mount = readings(snapshot)
         const ra = here.ra / 15
         const dec = here.dec
         const lst = yield* required(mount.siderealTimeHours, 'envelope LST')
@@ -255,11 +268,11 @@ export function makeMount(context: CapabilityContext, motion: MountMotionSetting
 
     if (envelope === null) return
     const position = snapshot.property(coordinatesProperty(snapshot).name)
-    if (position !== undefined) blindTravel.record({ ...positionOf(position), at: position.receivedAt })
     const mount = readings(snapshot)
     const pierSide = yield* required(mount.pierSide, 'envelope pier side')
 
     if (pierSide === 'unknown') return yield* invalid('Envelope needs a known pier side')
+    if (position !== undefined) blindTravel.record({ ...positionOf(position), at: position.receivedAt, pierSide })
     if ((yield* required(mount.coordinateSystem, 'envelope coordinate frame')) !== 'topocentric')
       return yield* invalid('Envelope needs topocentric mount coordinates')
     const ra = (yield* required(mount.rightAscensionHours, 'envelope right ascension')) * 15
@@ -317,7 +330,7 @@ export function makeMount(context: CapabilityContext, motion: MountMotionSetting
               : error,
           ),
         )),
-        settle: guard(Effect.andThen(untilSettled(device, coordinates.name, () => true, timing.operationTimeoutMs), settled(command, tracking)), envelopeStop, target, command),
+        settle: guard(Effect.andThen(untilSettled(device, coordinates.name, () => true, timing.operationTimeoutMs), settled(command, tracking)), envelopeStop, target, command, mount.pierSide.status === 'fresh' ? mount.pierSide.value : 'unknown'),
         stop: Effect.suspend(() => abort(tracking, undefined, envelopeStop.reason)),
         stopWithin: stopWithinMs,
       })
@@ -488,7 +501,7 @@ export function makeMount(context: CapabilityContext, motion: MountMotionSetting
         settle: guard(Effect.andThen(
           until(Effect.map(ra, now => angularDelta(now, start))),
           halt,
-        ), envelopeStop, rateDegreesPerSecond, command),
+        ), envelopeStop, rateDegreesPerSecond, command, mount.pierSide.status === 'fresh' ? mount.pierSide.value : 'unknown'),
         stop: Effect.suspend(() => envelopeStop.reason === undefined ? halt : abort(tracking, undefined, envelopeStop.reason)),
         stopWithin: stopWithinMs,
       })
