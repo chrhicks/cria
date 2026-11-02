@@ -67,11 +67,11 @@ export declare const requestIdentity: {
     deviceId: Schema.brand<Schema.String, "DeviceId">;
     bindingId: Schema.brand<Schema.String, "BindingId">;
     expectedName: Schema.String;
+    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
 };
-/** What Vela sends: its identity for the request, then one command, flat. */
-export declare const OperationRequest: Schema.Union<Schema.Struct<{
-    readonly kind: Schema.Literal<"camera-configure">;
-    readonly parameters: Schema.Struct<{
+export declare const OperationRequest: Schema.Union<(Schema.Struct<{
+    kind: Schema.Literal<"camera-configure">;
+    parameters: Schema.Struct<{
         readonly binX: Schema.optionalKey<Schema.Number>;
         readonly binY: Schema.optionalKey<Schema.Number>;
         readonly startX: Schema.optionalKey<Schema.Number>;
@@ -81,153 +81,168 @@ export declare const OperationRequest: Schema.Union<Schema.Struct<{
         readonly gain: Schema.optionalKey<Schema.Number>;
         readonly offset: Schema.optionalKey<Schema.Number>;
     }>;
-    readonly instanceId: Schema.brand<Schema.String, "InstanceId">;
-    readonly requestId: Schema.brand<Schema.String, "RequestId">;
-    readonly deviceId: Schema.brand<Schema.String, "DeviceId">;
-    readonly bindingId: Schema.brand<Schema.String, "BindingId">;
-    readonly expectedName: Schema.String;
-} | {
-    readonly kind: Schema.Literal<"capture">;
-    readonly parameters: Schema.Struct<{
+    instanceId: Schema.brand<Schema.String, "InstanceId">;
+    requestId: Schema.brand<Schema.String, "RequestId">;
+    deviceId: Schema.brand<Schema.String, "DeviceId">;
+    bindingId: Schema.brand<Schema.String, "BindingId">;
+    expectedName: Schema.String;
+    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
+}> | Schema.Struct<{
+    kind: Schema.Literal<"capture">;
+    parameters: Schema.Struct<{
         readonly exposureSeconds: Schema.Finite;
         readonly light: Schema.Boolean;
         readonly frameType: Schema.optionalKey<Schema.Literals<readonly ["light", "flat", "dark", "bias"]>>;
         readonly monochromeOnly: Schema.optionalKey<Schema.Boolean>;
     }>;
-    readonly instanceId: Schema.brand<Schema.String, "InstanceId">;
-    readonly requestId: Schema.brand<Schema.String, "RequestId">;
-    readonly deviceId: Schema.brand<Schema.String, "DeviceId">;
-    readonly bindingId: Schema.brand<Schema.String, "BindingId">;
-    readonly expectedName: Schema.String;
-} | {
-    readonly kind: Schema.Literal<"cooling">;
-    readonly parameters: Schema.Struct<{
+    instanceId: Schema.brand<Schema.String, "InstanceId">;
+    requestId: Schema.brand<Schema.String, "RequestId">;
+    deviceId: Schema.brand<Schema.String, "DeviceId">;
+    bindingId: Schema.brand<Schema.String, "BindingId">;
+    expectedName: Schema.String;
+    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
+}> | Schema.Struct<{
+    kind: Schema.Literal<"cooling">;
+    parameters: Schema.Struct<{
         readonly coolerOn: Schema.optionalKey<Schema.Boolean>;
         readonly setpointC: Schema.optionalKey<Schema.Finite>;
     }>;
-    readonly instanceId: Schema.brand<Schema.String, "InstanceId">;
-    readonly requestId: Schema.brand<Schema.String, "RequestId">;
-    readonly deviceId: Schema.brand<Schema.String, "DeviceId">;
-    readonly bindingId: Schema.brand<Schema.String, "BindingId">;
-    readonly expectedName: Schema.String;
-} | {
-    readonly kind: Schema.Literal<"device-connect">;
-    readonly parameters: Schema.Struct<{
+    instanceId: Schema.brand<Schema.String, "InstanceId">;
+    requestId: Schema.brand<Schema.String, "RequestId">;
+    deviceId: Schema.brand<Schema.String, "DeviceId">;
+    bindingId: Schema.brand<Schema.String, "BindingId">;
+    expectedName: Schema.String;
+    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
+}> | Schema.Struct<{
+    kind: Schema.Literal<"device-connect">;
+    parameters: Schema.Struct<{
         readonly connected: Schema.Boolean;
     }>;
-    readonly instanceId: Schema.brand<Schema.String, "InstanceId">;
-    readonly requestId: Schema.brand<Schema.String, "RequestId">;
-    readonly deviceId: Schema.brand<Schema.String, "DeviceId">;
-    readonly bindingId: Schema.brand<Schema.String, "BindingId">;
-    readonly expectedName: Schema.String;
-} | {
-    readonly kind: Schema.Literal<"focuser-halt">;
-    readonly parameters: Schema.Struct<{}>;
-    readonly instanceId: Schema.brand<Schema.String, "InstanceId">;
-    readonly requestId: Schema.brand<Schema.String, "RequestId">;
-    readonly deviceId: Schema.brand<Schema.String, "DeviceId">;
-    readonly bindingId: Schema.brand<Schema.String, "BindingId">;
-    readonly expectedName: Schema.String;
-} | {
-    readonly kind: Schema.Literal<"focuser-move">;
-    readonly parameters: Schema.Struct<{
+    instanceId: Schema.brand<Schema.String, "InstanceId">;
+    requestId: Schema.brand<Schema.String, "RequestId">;
+    deviceId: Schema.brand<Schema.String, "DeviceId">;
+    bindingId: Schema.brand<Schema.String, "BindingId">;
+    expectedName: Schema.String;
+    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
+}> | Schema.Struct<{
+    kind: Schema.Literal<"focuser-halt">;
+    parameters: Schema.Struct<{}>;
+    instanceId: Schema.brand<Schema.String, "InstanceId">;
+    requestId: Schema.brand<Schema.String, "RequestId">;
+    deviceId: Schema.brand<Schema.String, "DeviceId">;
+    bindingId: Schema.brand<Schema.String, "BindingId">;
+    expectedName: Schema.String;
+    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
+}> | Schema.Struct<{
+    kind: Schema.Literal<"focuser-move">;
+    parameters: Schema.Struct<{
         readonly position: Schema.Number;
         readonly minPosition: Schema.Number;
         readonly maxPosition: Schema.Number;
     }>;
-    readonly instanceId: Schema.brand<Schema.String, "InstanceId">;
-    readonly requestId: Schema.brand<Schema.String, "RequestId">;
-    readonly deviceId: Schema.brand<Schema.String, "DeviceId">;
-    readonly bindingId: Schema.brand<Schema.String, "BindingId">;
-    readonly expectedName: Schema.String;
-} | {
-    readonly kind: Schema.Literal<"mount-axis">;
-    readonly parameters: Schema.Struct<{
+    instanceId: Schema.brand<Schema.String, "InstanceId">;
+    requestId: Schema.brand<Schema.String, "RequestId">;
+    deviceId: Schema.brand<Schema.String, "DeviceId">;
+    bindingId: Schema.brand<Schema.String, "BindingId">;
+    expectedName: Schema.String;
+    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
+}> | Schema.Struct<{
+    kind: Schema.Literal<"mount-axis">;
+    parameters: Schema.Struct<{
         readonly rateDegreesPerSecond: Schema.Finite;
         readonly durationSeconds: Schema.Finite;
     }>;
-    readonly instanceId: Schema.brand<Schema.String, "InstanceId">;
-    readonly requestId: Schema.brand<Schema.String, "RequestId">;
-    readonly deviceId: Schema.brand<Schema.String, "DeviceId">;
-    readonly bindingId: Schema.brand<Schema.String, "BindingId">;
-    readonly expectedName: Schema.String;
-} | {
-    readonly kind: Schema.Literal<"mount-home">;
-    readonly parameters: Schema.Struct<{}>;
-    readonly instanceId: Schema.brand<Schema.String, "InstanceId">;
-    readonly requestId: Schema.brand<Schema.String, "RequestId">;
-    readonly deviceId: Schema.brand<Schema.String, "DeviceId">;
-    readonly bindingId: Schema.brand<Schema.String, "BindingId">;
-    readonly expectedName: Schema.String;
-} | {
-    readonly kind: Schema.Literal<"mount-park">;
-    readonly parameters: Schema.Struct<{}>;
-    readonly instanceId: Schema.brand<Schema.String, "InstanceId">;
-    readonly requestId: Schema.brand<Schema.String, "RequestId">;
-    readonly deviceId: Schema.brand<Schema.String, "DeviceId">;
-    readonly bindingId: Schema.brand<Schema.String, "BindingId">;
-    readonly expectedName: Schema.String;
-} | {
-    readonly kind: Schema.Literal<"mount-rotate">;
-    readonly parameters: Schema.Struct<{
+    instanceId: Schema.brand<Schema.String, "InstanceId">;
+    requestId: Schema.brand<Schema.String, "RequestId">;
+    deviceId: Schema.brand<Schema.String, "DeviceId">;
+    bindingId: Schema.brand<Schema.String, "BindingId">;
+    expectedName: Schema.String;
+    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
+}> | Schema.Struct<{
+    kind: Schema.Literal<"mount-home">;
+    parameters: Schema.Struct<{}>;
+    instanceId: Schema.brand<Schema.String, "InstanceId">;
+    requestId: Schema.brand<Schema.String, "RequestId">;
+    deviceId: Schema.brand<Schema.String, "DeviceId">;
+    bindingId: Schema.brand<Schema.String, "BindingId">;
+    expectedName: Schema.String;
+    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
+}> | Schema.Struct<{
+    kind: Schema.Literal<"mount-park">;
+    parameters: Schema.Struct<{}>;
+    instanceId: Schema.brand<Schema.String, "InstanceId">;
+    requestId: Schema.brand<Schema.String, "RequestId">;
+    deviceId: Schema.brand<Schema.String, "DeviceId">;
+    bindingId: Schema.brand<Schema.String, "BindingId">;
+    expectedName: Schema.String;
+    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
+}> | Schema.Struct<{
+    kind: Schema.Literal<"mount-rotate">;
+    parameters: Schema.Struct<{
         readonly rateDegreesPerSecond: Schema.Finite;
         readonly distanceDegrees: Schema.Finite;
     }>;
-    readonly instanceId: Schema.brand<Schema.String, "InstanceId">;
-    readonly requestId: Schema.brand<Schema.String, "RequestId">;
-    readonly deviceId: Schema.brand<Schema.String, "DeviceId">;
-    readonly bindingId: Schema.brand<Schema.String, "BindingId">;
-    readonly expectedName: Schema.String;
-} | {
-    readonly kind: Schema.Literal<"mount-slew">;
-    readonly parameters: Schema.Struct<{
+    instanceId: Schema.brand<Schema.String, "InstanceId">;
+    requestId: Schema.brand<Schema.String, "RequestId">;
+    deviceId: Schema.brand<Schema.String, "DeviceId">;
+    bindingId: Schema.brand<Schema.String, "BindingId">;
+    expectedName: Schema.String;
+    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
+}> | Schema.Struct<{
+    kind: Schema.Literal<"mount-slew">;
+    parameters: Schema.Struct<{
         readonly rightAscensionDegrees: Schema.Finite;
         readonly declinationDegrees: Schema.Finite;
         readonly coordinateSystem: Schema.Literals<readonly ["topocentric", "j2000"]>;
     }>;
-    readonly instanceId: Schema.brand<Schema.String, "InstanceId">;
-    readonly requestId: Schema.brand<Schema.String, "RequestId">;
-    readonly deviceId: Schema.brand<Schema.String, "DeviceId">;
-    readonly bindingId: Schema.brand<Schema.String, "BindingId">;
-    readonly expectedName: Schema.String;
-} | {
-    readonly kind: Schema.Literal<"mount-stop">;
-    readonly parameters: Schema.Struct<{}>;
-    readonly instanceId: Schema.brand<Schema.String, "InstanceId">;
-    readonly requestId: Schema.brand<Schema.String, "RequestId">;
-    readonly deviceId: Schema.brand<Schema.String, "DeviceId">;
-    readonly bindingId: Schema.brand<Schema.String, "BindingId">;
-    readonly expectedName: Schema.String;
-} | {
-    readonly kind: Schema.Literal<"mount-tracking">;
-    readonly parameters: Schema.Struct<{
+    instanceId: Schema.brand<Schema.String, "InstanceId">;
+    requestId: Schema.brand<Schema.String, "RequestId">;
+    deviceId: Schema.brand<Schema.String, "DeviceId">;
+    bindingId: Schema.brand<Schema.String, "BindingId">;
+    expectedName: Schema.String;
+    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
+}> | Schema.Struct<{
+    kind: Schema.Literal<"mount-stop">;
+    parameters: Schema.Struct<{}>;
+    instanceId: Schema.brand<Schema.String, "InstanceId">;
+    requestId: Schema.brand<Schema.String, "RequestId">;
+    deviceId: Schema.brand<Schema.String, "DeviceId">;
+    bindingId: Schema.brand<Schema.String, "BindingId">;
+    expectedName: Schema.String;
+    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
+}> | Schema.Struct<{
+    kind: Schema.Literal<"mount-tracking">;
+    parameters: Schema.Struct<{
         readonly tracking: Schema.Boolean;
     }>;
-    readonly instanceId: Schema.brand<Schema.String, "InstanceId">;
-    readonly requestId: Schema.brand<Schema.String, "RequestId">;
-    readonly deviceId: Schema.brand<Schema.String, "DeviceId">;
-    readonly bindingId: Schema.brand<Schema.String, "BindingId">;
-    readonly expectedName: Schema.String;
-} | {
-    readonly kind: Schema.Literal<"mount-unpark">;
-    readonly parameters: Schema.Struct<{}>;
-    readonly instanceId: Schema.brand<Schema.String, "InstanceId">;
-    readonly requestId: Schema.brand<Schema.String, "RequestId">;
-    readonly deviceId: Schema.brand<Schema.String, "DeviceId">;
-    readonly bindingId: Schema.brand<Schema.String, "BindingId">;
-    readonly expectedName: Schema.String;
-} | {
-    readonly kind: Schema.Literal<"switch-set">;
-    readonly parameters: Schema.Struct<{
+    instanceId: Schema.brand<Schema.String, "InstanceId">;
+    requestId: Schema.brand<Schema.String, "RequestId">;
+    deviceId: Schema.brand<Schema.String, "DeviceId">;
+    bindingId: Schema.brand<Schema.String, "BindingId">;
+    expectedName: Schema.String;
+    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
+}> | Schema.Struct<{
+    kind: Schema.Literal<"mount-unpark">;
+    parameters: Schema.Struct<{}>;
+    instanceId: Schema.brand<Schema.String, "InstanceId">;
+    requestId: Schema.brand<Schema.String, "RequestId">;
+    deviceId: Schema.brand<Schema.String, "DeviceId">;
+    bindingId: Schema.brand<Schema.String, "BindingId">;
+    expectedName: Schema.String;
+    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
+}> | Schema.Struct<{
+    kind: Schema.Literal<"switch-set">;
+    parameters: Schema.Struct<{
         readonly channelId: Schema.Number;
         readonly value: Schema.Finite;
     }>;
-    readonly instanceId: Schema.brand<Schema.String, "InstanceId">;
-    readonly requestId: Schema.brand<Schema.String, "RequestId">;
-    readonly deviceId: Schema.brand<Schema.String, "DeviceId">;
-    readonly bindingId: Schema.brand<Schema.String, "BindingId">;
-    readonly expectedName: Schema.String;
-}>[]>;
+    instanceId: Schema.brand<Schema.String, "InstanceId">;
+    requestId: Schema.brand<Schema.String, "RequestId">;
+    deviceId: Schema.brand<Schema.String, "DeviceId">;
+    bindingId: Schema.brand<Schema.String, "BindingId">;
+    expectedName: Schema.String;
+    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
+}>)[]>;
 export type OperationRequest = typeof OperationRequest.Type;
 export declare const Progress: Schema.Struct<{
     readonly phase: Schema.Literals<readonly ["preparing", "exposing", "readout", "retaining"]>;
@@ -235,32 +250,34 @@ export declare const Progress: Schema.Struct<{
 }>;
 export type Progress = typeof Progress.Type;
 export declare const Operation: Schema.Union<readonly (Schema.Struct<{
-    readonly kind: Schema.Literal<"focuser-halt">;
-    readonly parameters: Schema.Struct<{}>;
-    readonly instanceId: Schema.brand<Schema.String, "InstanceId">;
-    readonly requestId: Schema.brand<Schema.String, "RequestId">;
-    readonly deviceId: Schema.brand<Schema.String, "DeviceId">;
-    readonly bindingId: Schema.brand<Schema.String, "BindingId">;
-    readonly expectedName: Schema.String;
-    readonly id: Schema.brand<Schema.String, "OperationId">;
-    readonly failureDomain: Schema.brand<Schema.String, "FailureDomain">;
-    readonly acceptedAt: Schema.Number;
-    readonly state: Schema.Literal<"waiting">;
-} | {
-    readonly kind: Schema.Literal<"mount-stop">;
-    readonly parameters: Schema.Struct<{}>;
-    readonly instanceId: Schema.brand<Schema.String, "InstanceId">;
-    readonly requestId: Schema.brand<Schema.String, "RequestId">;
-    readonly deviceId: Schema.brand<Schema.String, "DeviceId">;
-    readonly bindingId: Schema.brand<Schema.String, "BindingId">;
-    readonly expectedName: Schema.String;
-    readonly id: Schema.brand<Schema.String, "OperationId">;
-    readonly failureDomain: Schema.brand<Schema.String, "FailureDomain">;
-    readonly acceptedAt: Schema.Number;
-    readonly state: Schema.Literal<"waiting">;
+    kind: Schema.Literal<"focuser-halt">;
+    parameters: Schema.Struct<{}>;
+    instanceId: Schema.brand<Schema.String, "InstanceId">;
+    requestId: Schema.brand<Schema.String, "RequestId">;
+    deviceId: Schema.brand<Schema.String, "DeviceId">;
+    bindingId: Schema.brand<Schema.String, "BindingId">;
+    expectedName: Schema.String;
+    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
+    id: Schema.brand<Schema.String, "OperationId">;
+    failureDomain: Schema.brand<Schema.String, "FailureDomain">;
+    acceptedAt: Schema.Number;
+    state: Schema.Literal<"waiting">;
 }> | Schema.Struct<{
-    readonly kind: Schema.Literal<"camera-configure">;
-    readonly parameters: Schema.Struct<{
+    kind: Schema.Literal<"mount-stop">;
+    parameters: Schema.Struct<{}>;
+    instanceId: Schema.brand<Schema.String, "InstanceId">;
+    requestId: Schema.brand<Schema.String, "RequestId">;
+    deviceId: Schema.brand<Schema.String, "DeviceId">;
+    bindingId: Schema.brand<Schema.String, "BindingId">;
+    expectedName: Schema.String;
+    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
+    id: Schema.brand<Schema.String, "OperationId">;
+    failureDomain: Schema.brand<Schema.String, "FailureDomain">;
+    acceptedAt: Schema.Number;
+    state: Schema.Literal<"waiting">;
+}> | Schema.Struct<{
+    kind: Schema.Literal<"camera-configure">;
+    parameters: Schema.Struct<{
         readonly binX: Schema.optionalKey<Schema.Number>;
         readonly binY: Schema.optionalKey<Schema.Number>;
         readonly startX: Schema.optionalKey<Schema.Number>;
@@ -270,290 +287,305 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
         readonly gain: Schema.optionalKey<Schema.Number>;
         readonly offset: Schema.optionalKey<Schema.Number>;
     }>;
-    readonly instanceId: Schema.brand<Schema.String, "InstanceId">;
-    readonly requestId: Schema.brand<Schema.String, "RequestId">;
-    readonly deviceId: Schema.brand<Schema.String, "DeviceId">;
-    readonly bindingId: Schema.brand<Schema.String, "BindingId">;
-    readonly expectedName: Schema.String;
-    readonly id: Schema.brand<Schema.String, "OperationId">;
-    readonly failureDomain: Schema.brand<Schema.String, "FailureDomain">;
-    readonly acceptedAt: Schema.Number;
-    readonly state: Schema.Literal<"running">;
-    readonly startedAt: Schema.Number;
-    readonly progress: Schema.Struct<{
+    instanceId: Schema.brand<Schema.String, "InstanceId">;
+    requestId: Schema.brand<Schema.String, "RequestId">;
+    deviceId: Schema.brand<Schema.String, "DeviceId">;
+    bindingId: Schema.brand<Schema.String, "BindingId">;
+    expectedName: Schema.String;
+    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
+    id: Schema.brand<Schema.String, "OperationId">;
+    failureDomain: Schema.brand<Schema.String, "FailureDomain">;
+    acceptedAt: Schema.Number;
+    state: Schema.Literal<"running">;
+    startedAt: Schema.Number;
+    progress: Schema.Struct<{
         readonly phase: Schema.Literals<readonly ["preparing", "exposing", "readout", "retaining"]>;
         readonly elapsedSeconds: Schema.NullOr<Schema.Number>;
     }>;
-} | {
-    readonly kind: Schema.Literal<"capture">;
-    readonly parameters: Schema.Struct<{
+}> | Schema.Struct<{
+    kind: Schema.Literal<"capture">;
+    parameters: Schema.Struct<{
         readonly exposureSeconds: Schema.Finite;
         readonly light: Schema.Boolean;
         readonly frameType: Schema.optionalKey<Schema.Literals<readonly ["light", "flat", "dark", "bias"]>>;
         readonly monochromeOnly: Schema.optionalKey<Schema.Boolean>;
     }>;
-    readonly instanceId: Schema.brand<Schema.String, "InstanceId">;
-    readonly requestId: Schema.brand<Schema.String, "RequestId">;
-    readonly deviceId: Schema.brand<Schema.String, "DeviceId">;
-    readonly bindingId: Schema.brand<Schema.String, "BindingId">;
-    readonly expectedName: Schema.String;
-    readonly id: Schema.brand<Schema.String, "OperationId">;
-    readonly failureDomain: Schema.brand<Schema.String, "FailureDomain">;
-    readonly acceptedAt: Schema.Number;
-    readonly state: Schema.Literal<"running">;
-    readonly startedAt: Schema.Number;
-    readonly progress: Schema.Struct<{
-        readonly phase: Schema.Literals<readonly ["preparing", "exposing", "readout", "retaining"]>;
-        readonly elapsedSeconds: Schema.NullOr<Schema.Number>;
-    }>;
-} | {
-    readonly kind: Schema.Literal<"cooling">;
-    readonly parameters: Schema.Struct<{
-        readonly coolerOn: Schema.optionalKey<Schema.Boolean>;
-        readonly setpointC: Schema.optionalKey<Schema.Finite>;
-    }>;
-    readonly instanceId: Schema.brand<Schema.String, "InstanceId">;
-    readonly requestId: Schema.brand<Schema.String, "RequestId">;
-    readonly deviceId: Schema.brand<Schema.String, "DeviceId">;
-    readonly bindingId: Schema.brand<Schema.String, "BindingId">;
-    readonly expectedName: Schema.String;
-    readonly id: Schema.brand<Schema.String, "OperationId">;
-    readonly failureDomain: Schema.brand<Schema.String, "FailureDomain">;
-    readonly acceptedAt: Schema.Number;
-    readonly state: Schema.Literal<"running">;
-    readonly startedAt: Schema.Number;
-    readonly progress: Schema.Struct<{
-        readonly phase: Schema.Literals<readonly ["preparing", "exposing", "readout", "retaining"]>;
-        readonly elapsedSeconds: Schema.NullOr<Schema.Number>;
-    }>;
-} | {
-    readonly kind: Schema.Literal<"device-connect">;
-    readonly parameters: Schema.Struct<{
-        readonly connected: Schema.Boolean;
-    }>;
-    readonly instanceId: Schema.brand<Schema.String, "InstanceId">;
-    readonly requestId: Schema.brand<Schema.String, "RequestId">;
-    readonly deviceId: Schema.brand<Schema.String, "DeviceId">;
-    readonly bindingId: Schema.brand<Schema.String, "BindingId">;
-    readonly expectedName: Schema.String;
-    readonly id: Schema.brand<Schema.String, "OperationId">;
-    readonly failureDomain: Schema.brand<Schema.String, "FailureDomain">;
-    readonly acceptedAt: Schema.Number;
-    readonly state: Schema.Literal<"running">;
-    readonly startedAt: Schema.Number;
-    readonly progress: Schema.Struct<{
-        readonly phase: Schema.Literals<readonly ["preparing", "exposing", "readout", "retaining"]>;
-        readonly elapsedSeconds: Schema.NullOr<Schema.Number>;
-    }>;
-} | {
-    readonly kind: Schema.Literal<"focuser-halt">;
-    readonly parameters: Schema.Struct<{}>;
-    readonly instanceId: Schema.brand<Schema.String, "InstanceId">;
-    readonly requestId: Schema.brand<Schema.String, "RequestId">;
-    readonly deviceId: Schema.brand<Schema.String, "DeviceId">;
-    readonly bindingId: Schema.brand<Schema.String, "BindingId">;
-    readonly expectedName: Schema.String;
-    readonly id: Schema.brand<Schema.String, "OperationId">;
-    readonly failureDomain: Schema.brand<Schema.String, "FailureDomain">;
-    readonly acceptedAt: Schema.Number;
-    readonly state: Schema.Literal<"running">;
-    readonly startedAt: Schema.Number;
-    readonly progress: Schema.Struct<{
-        readonly phase: Schema.Literals<readonly ["preparing", "exposing", "readout", "retaining"]>;
-        readonly elapsedSeconds: Schema.NullOr<Schema.Number>;
-    }>;
-} | {
-    readonly kind: Schema.Literal<"focuser-move">;
-    readonly parameters: Schema.Struct<{
-        readonly position: Schema.Number;
-        readonly minPosition: Schema.Number;
-        readonly maxPosition: Schema.Number;
-    }>;
-    readonly instanceId: Schema.brand<Schema.String, "InstanceId">;
-    readonly requestId: Schema.brand<Schema.String, "RequestId">;
-    readonly deviceId: Schema.brand<Schema.String, "DeviceId">;
-    readonly bindingId: Schema.brand<Schema.String, "BindingId">;
-    readonly expectedName: Schema.String;
-    readonly id: Schema.brand<Schema.String, "OperationId">;
-    readonly failureDomain: Schema.brand<Schema.String, "FailureDomain">;
-    readonly acceptedAt: Schema.Number;
-    readonly state: Schema.Literal<"running">;
-    readonly startedAt: Schema.Number;
-    readonly progress: Schema.Struct<{
-        readonly phase: Schema.Literals<readonly ["preparing", "exposing", "readout", "retaining"]>;
-        readonly elapsedSeconds: Schema.NullOr<Schema.Number>;
-    }>;
-} | {
-    readonly kind: Schema.Literal<"mount-axis">;
-    readonly parameters: Schema.Struct<{
-        readonly rateDegreesPerSecond: Schema.Finite;
-        readonly durationSeconds: Schema.Finite;
-    }>;
-    readonly instanceId: Schema.brand<Schema.String, "InstanceId">;
-    readonly requestId: Schema.brand<Schema.String, "RequestId">;
-    readonly deviceId: Schema.brand<Schema.String, "DeviceId">;
-    readonly bindingId: Schema.brand<Schema.String, "BindingId">;
-    readonly expectedName: Schema.String;
-    readonly id: Schema.brand<Schema.String, "OperationId">;
-    readonly failureDomain: Schema.brand<Schema.String, "FailureDomain">;
-    readonly acceptedAt: Schema.Number;
-    readonly state: Schema.Literal<"running">;
-    readonly startedAt: Schema.Number;
-    readonly progress: Schema.Struct<{
-        readonly phase: Schema.Literals<readonly ["preparing", "exposing", "readout", "retaining"]>;
-        readonly elapsedSeconds: Schema.NullOr<Schema.Number>;
-    }>;
-} | {
-    readonly kind: Schema.Literal<"mount-home">;
-    readonly parameters: Schema.Struct<{}>;
-    readonly instanceId: Schema.brand<Schema.String, "InstanceId">;
-    readonly requestId: Schema.brand<Schema.String, "RequestId">;
-    readonly deviceId: Schema.brand<Schema.String, "DeviceId">;
-    readonly bindingId: Schema.brand<Schema.String, "BindingId">;
-    readonly expectedName: Schema.String;
-    readonly id: Schema.brand<Schema.String, "OperationId">;
-    readonly failureDomain: Schema.brand<Schema.String, "FailureDomain">;
-    readonly acceptedAt: Schema.Number;
-    readonly state: Schema.Literal<"running">;
-    readonly startedAt: Schema.Number;
-    readonly progress: Schema.Struct<{
-        readonly phase: Schema.Literals<readonly ["preparing", "exposing", "readout", "retaining"]>;
-        readonly elapsedSeconds: Schema.NullOr<Schema.Number>;
-    }>;
-} | {
-    readonly kind: Schema.Literal<"mount-park">;
-    readonly parameters: Schema.Struct<{}>;
-    readonly instanceId: Schema.brand<Schema.String, "InstanceId">;
-    readonly requestId: Schema.brand<Schema.String, "RequestId">;
-    readonly deviceId: Schema.brand<Schema.String, "DeviceId">;
-    readonly bindingId: Schema.brand<Schema.String, "BindingId">;
-    readonly expectedName: Schema.String;
-    readonly id: Schema.brand<Schema.String, "OperationId">;
-    readonly failureDomain: Schema.brand<Schema.String, "FailureDomain">;
-    readonly acceptedAt: Schema.Number;
-    readonly state: Schema.Literal<"running">;
-    readonly startedAt: Schema.Number;
-    readonly progress: Schema.Struct<{
-        readonly phase: Schema.Literals<readonly ["preparing", "exposing", "readout", "retaining"]>;
-        readonly elapsedSeconds: Schema.NullOr<Schema.Number>;
-    }>;
-} | {
-    readonly kind: Schema.Literal<"mount-rotate">;
-    readonly parameters: Schema.Struct<{
-        readonly rateDegreesPerSecond: Schema.Finite;
-        readonly distanceDegrees: Schema.Finite;
-    }>;
-    readonly instanceId: Schema.brand<Schema.String, "InstanceId">;
-    readonly requestId: Schema.brand<Schema.String, "RequestId">;
-    readonly deviceId: Schema.brand<Schema.String, "DeviceId">;
-    readonly bindingId: Schema.brand<Schema.String, "BindingId">;
-    readonly expectedName: Schema.String;
-    readonly id: Schema.brand<Schema.String, "OperationId">;
-    readonly failureDomain: Schema.brand<Schema.String, "FailureDomain">;
-    readonly acceptedAt: Schema.Number;
-    readonly state: Schema.Literal<"running">;
-    readonly startedAt: Schema.Number;
-    readonly progress: Schema.Struct<{
-        readonly phase: Schema.Literals<readonly ["preparing", "exposing", "readout", "retaining"]>;
-        readonly elapsedSeconds: Schema.NullOr<Schema.Number>;
-    }>;
-} | {
-    readonly kind: Schema.Literal<"mount-slew">;
-    readonly parameters: Schema.Struct<{
-        readonly rightAscensionDegrees: Schema.Finite;
-        readonly declinationDegrees: Schema.Finite;
-        readonly coordinateSystem: Schema.Literals<readonly ["topocentric", "j2000"]>;
-    }>;
-    readonly instanceId: Schema.brand<Schema.String, "InstanceId">;
-    readonly requestId: Schema.brand<Schema.String, "RequestId">;
-    readonly deviceId: Schema.brand<Schema.String, "DeviceId">;
-    readonly bindingId: Schema.brand<Schema.String, "BindingId">;
-    readonly expectedName: Schema.String;
-    readonly id: Schema.brand<Schema.String, "OperationId">;
-    readonly failureDomain: Schema.brand<Schema.String, "FailureDomain">;
-    readonly acceptedAt: Schema.Number;
-    readonly state: Schema.Literal<"running">;
-    readonly startedAt: Schema.Number;
-    readonly progress: Schema.Struct<{
-        readonly phase: Schema.Literals<readonly ["preparing", "exposing", "readout", "retaining"]>;
-        readonly elapsedSeconds: Schema.NullOr<Schema.Number>;
-    }>;
-} | {
-    readonly kind: Schema.Literal<"mount-stop">;
-    readonly parameters: Schema.Struct<{}>;
-    readonly instanceId: Schema.brand<Schema.String, "InstanceId">;
-    readonly requestId: Schema.brand<Schema.String, "RequestId">;
-    readonly deviceId: Schema.brand<Schema.String, "DeviceId">;
-    readonly bindingId: Schema.brand<Schema.String, "BindingId">;
-    readonly expectedName: Schema.String;
-    readonly id: Schema.brand<Schema.String, "OperationId">;
-    readonly failureDomain: Schema.brand<Schema.String, "FailureDomain">;
-    readonly acceptedAt: Schema.Number;
-    readonly state: Schema.Literal<"running">;
-    readonly startedAt: Schema.Number;
-    readonly progress: Schema.Struct<{
-        readonly phase: Schema.Literals<readonly ["preparing", "exposing", "readout", "retaining"]>;
-        readonly elapsedSeconds: Schema.NullOr<Schema.Number>;
-    }>;
-} | {
-    readonly kind: Schema.Literal<"mount-tracking">;
-    readonly parameters: Schema.Struct<{
-        readonly tracking: Schema.Boolean;
-    }>;
-    readonly instanceId: Schema.brand<Schema.String, "InstanceId">;
-    readonly requestId: Schema.brand<Schema.String, "RequestId">;
-    readonly deviceId: Schema.brand<Schema.String, "DeviceId">;
-    readonly bindingId: Schema.brand<Schema.String, "BindingId">;
-    readonly expectedName: Schema.String;
-    readonly id: Schema.brand<Schema.String, "OperationId">;
-    readonly failureDomain: Schema.brand<Schema.String, "FailureDomain">;
-    readonly acceptedAt: Schema.Number;
-    readonly state: Schema.Literal<"running">;
-    readonly startedAt: Schema.Number;
-    readonly progress: Schema.Struct<{
-        readonly phase: Schema.Literals<readonly ["preparing", "exposing", "readout", "retaining"]>;
-        readonly elapsedSeconds: Schema.NullOr<Schema.Number>;
-    }>;
-} | {
-    readonly kind: Schema.Literal<"mount-unpark">;
-    readonly parameters: Schema.Struct<{}>;
-    readonly instanceId: Schema.brand<Schema.String, "InstanceId">;
-    readonly requestId: Schema.brand<Schema.String, "RequestId">;
-    readonly deviceId: Schema.brand<Schema.String, "DeviceId">;
-    readonly bindingId: Schema.brand<Schema.String, "BindingId">;
-    readonly expectedName: Schema.String;
-    readonly id: Schema.brand<Schema.String, "OperationId">;
-    readonly failureDomain: Schema.brand<Schema.String, "FailureDomain">;
-    readonly acceptedAt: Schema.Number;
-    readonly state: Schema.Literal<"running">;
-    readonly startedAt: Schema.Number;
-    readonly progress: Schema.Struct<{
-        readonly phase: Schema.Literals<readonly ["preparing", "exposing", "readout", "retaining"]>;
-        readonly elapsedSeconds: Schema.NullOr<Schema.Number>;
-    }>;
-} | {
-    readonly kind: Schema.Literal<"switch-set">;
-    readonly parameters: Schema.Struct<{
-        readonly channelId: Schema.Number;
-        readonly value: Schema.Finite;
-    }>;
-    readonly instanceId: Schema.brand<Schema.String, "InstanceId">;
-    readonly requestId: Schema.brand<Schema.String, "RequestId">;
-    readonly deviceId: Schema.brand<Schema.String, "DeviceId">;
-    readonly bindingId: Schema.brand<Schema.String, "BindingId">;
-    readonly expectedName: Schema.String;
-    readonly id: Schema.brand<Schema.String, "OperationId">;
-    readonly failureDomain: Schema.brand<Schema.String, "FailureDomain">;
-    readonly acceptedAt: Schema.Number;
-    readonly state: Schema.Literal<"running">;
-    readonly startedAt: Schema.Number;
-    readonly progress: Schema.Struct<{
+    instanceId: Schema.brand<Schema.String, "InstanceId">;
+    requestId: Schema.brand<Schema.String, "RequestId">;
+    deviceId: Schema.brand<Schema.String, "DeviceId">;
+    bindingId: Schema.brand<Schema.String, "BindingId">;
+    expectedName: Schema.String;
+    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
+    id: Schema.brand<Schema.String, "OperationId">;
+    failureDomain: Schema.brand<Schema.String, "FailureDomain">;
+    acceptedAt: Schema.Number;
+    state: Schema.Literal<"running">;
+    startedAt: Schema.Number;
+    progress: Schema.Struct<{
         readonly phase: Schema.Literals<readonly ["preparing", "exposing", "readout", "retaining"]>;
         readonly elapsedSeconds: Schema.NullOr<Schema.Number>;
     }>;
 }> | Schema.Struct<{
-    readonly kind: Schema.Literal<"camera-configure">;
-    readonly parameters: Schema.Struct<{
+    kind: Schema.Literal<"cooling">;
+    parameters: Schema.Struct<{
+        readonly coolerOn: Schema.optionalKey<Schema.Boolean>;
+        readonly setpointC: Schema.optionalKey<Schema.Finite>;
+    }>;
+    instanceId: Schema.brand<Schema.String, "InstanceId">;
+    requestId: Schema.brand<Schema.String, "RequestId">;
+    deviceId: Schema.brand<Schema.String, "DeviceId">;
+    bindingId: Schema.brand<Schema.String, "BindingId">;
+    expectedName: Schema.String;
+    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
+    id: Schema.brand<Schema.String, "OperationId">;
+    failureDomain: Schema.brand<Schema.String, "FailureDomain">;
+    acceptedAt: Schema.Number;
+    state: Schema.Literal<"running">;
+    startedAt: Schema.Number;
+    progress: Schema.Struct<{
+        readonly phase: Schema.Literals<readonly ["preparing", "exposing", "readout", "retaining"]>;
+        readonly elapsedSeconds: Schema.NullOr<Schema.Number>;
+    }>;
+}> | Schema.Struct<{
+    kind: Schema.Literal<"device-connect">;
+    parameters: Schema.Struct<{
+        readonly connected: Schema.Boolean;
+    }>;
+    instanceId: Schema.brand<Schema.String, "InstanceId">;
+    requestId: Schema.brand<Schema.String, "RequestId">;
+    deviceId: Schema.brand<Schema.String, "DeviceId">;
+    bindingId: Schema.brand<Schema.String, "BindingId">;
+    expectedName: Schema.String;
+    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
+    id: Schema.brand<Schema.String, "OperationId">;
+    failureDomain: Schema.brand<Schema.String, "FailureDomain">;
+    acceptedAt: Schema.Number;
+    state: Schema.Literal<"running">;
+    startedAt: Schema.Number;
+    progress: Schema.Struct<{
+        readonly phase: Schema.Literals<readonly ["preparing", "exposing", "readout", "retaining"]>;
+        readonly elapsedSeconds: Schema.NullOr<Schema.Number>;
+    }>;
+}> | Schema.Struct<{
+    kind: Schema.Literal<"focuser-halt">;
+    parameters: Schema.Struct<{}>;
+    instanceId: Schema.brand<Schema.String, "InstanceId">;
+    requestId: Schema.brand<Schema.String, "RequestId">;
+    deviceId: Schema.brand<Schema.String, "DeviceId">;
+    bindingId: Schema.brand<Schema.String, "BindingId">;
+    expectedName: Schema.String;
+    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
+    id: Schema.brand<Schema.String, "OperationId">;
+    failureDomain: Schema.brand<Schema.String, "FailureDomain">;
+    acceptedAt: Schema.Number;
+    state: Schema.Literal<"running">;
+    startedAt: Schema.Number;
+    progress: Schema.Struct<{
+        readonly phase: Schema.Literals<readonly ["preparing", "exposing", "readout", "retaining"]>;
+        readonly elapsedSeconds: Schema.NullOr<Schema.Number>;
+    }>;
+}> | Schema.Struct<{
+    kind: Schema.Literal<"focuser-move">;
+    parameters: Schema.Struct<{
+        readonly position: Schema.Number;
+        readonly minPosition: Schema.Number;
+        readonly maxPosition: Schema.Number;
+    }>;
+    instanceId: Schema.brand<Schema.String, "InstanceId">;
+    requestId: Schema.brand<Schema.String, "RequestId">;
+    deviceId: Schema.brand<Schema.String, "DeviceId">;
+    bindingId: Schema.brand<Schema.String, "BindingId">;
+    expectedName: Schema.String;
+    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
+    id: Schema.brand<Schema.String, "OperationId">;
+    failureDomain: Schema.brand<Schema.String, "FailureDomain">;
+    acceptedAt: Schema.Number;
+    state: Schema.Literal<"running">;
+    startedAt: Schema.Number;
+    progress: Schema.Struct<{
+        readonly phase: Schema.Literals<readonly ["preparing", "exposing", "readout", "retaining"]>;
+        readonly elapsedSeconds: Schema.NullOr<Schema.Number>;
+    }>;
+}> | Schema.Struct<{
+    kind: Schema.Literal<"mount-axis">;
+    parameters: Schema.Struct<{
+        readonly rateDegreesPerSecond: Schema.Finite;
+        readonly durationSeconds: Schema.Finite;
+    }>;
+    instanceId: Schema.brand<Schema.String, "InstanceId">;
+    requestId: Schema.brand<Schema.String, "RequestId">;
+    deviceId: Schema.brand<Schema.String, "DeviceId">;
+    bindingId: Schema.brand<Schema.String, "BindingId">;
+    expectedName: Schema.String;
+    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
+    id: Schema.brand<Schema.String, "OperationId">;
+    failureDomain: Schema.brand<Schema.String, "FailureDomain">;
+    acceptedAt: Schema.Number;
+    state: Schema.Literal<"running">;
+    startedAt: Schema.Number;
+    progress: Schema.Struct<{
+        readonly phase: Schema.Literals<readonly ["preparing", "exposing", "readout", "retaining"]>;
+        readonly elapsedSeconds: Schema.NullOr<Schema.Number>;
+    }>;
+}> | Schema.Struct<{
+    kind: Schema.Literal<"mount-home">;
+    parameters: Schema.Struct<{}>;
+    instanceId: Schema.brand<Schema.String, "InstanceId">;
+    requestId: Schema.brand<Schema.String, "RequestId">;
+    deviceId: Schema.brand<Schema.String, "DeviceId">;
+    bindingId: Schema.brand<Schema.String, "BindingId">;
+    expectedName: Schema.String;
+    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
+    id: Schema.brand<Schema.String, "OperationId">;
+    failureDomain: Schema.brand<Schema.String, "FailureDomain">;
+    acceptedAt: Schema.Number;
+    state: Schema.Literal<"running">;
+    startedAt: Schema.Number;
+    progress: Schema.Struct<{
+        readonly phase: Schema.Literals<readonly ["preparing", "exposing", "readout", "retaining"]>;
+        readonly elapsedSeconds: Schema.NullOr<Schema.Number>;
+    }>;
+}> | Schema.Struct<{
+    kind: Schema.Literal<"mount-park">;
+    parameters: Schema.Struct<{}>;
+    instanceId: Schema.brand<Schema.String, "InstanceId">;
+    requestId: Schema.brand<Schema.String, "RequestId">;
+    deviceId: Schema.brand<Schema.String, "DeviceId">;
+    bindingId: Schema.brand<Schema.String, "BindingId">;
+    expectedName: Schema.String;
+    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
+    id: Schema.brand<Schema.String, "OperationId">;
+    failureDomain: Schema.brand<Schema.String, "FailureDomain">;
+    acceptedAt: Schema.Number;
+    state: Schema.Literal<"running">;
+    startedAt: Schema.Number;
+    progress: Schema.Struct<{
+        readonly phase: Schema.Literals<readonly ["preparing", "exposing", "readout", "retaining"]>;
+        readonly elapsedSeconds: Schema.NullOr<Schema.Number>;
+    }>;
+}> | Schema.Struct<{
+    kind: Schema.Literal<"mount-rotate">;
+    parameters: Schema.Struct<{
+        readonly rateDegreesPerSecond: Schema.Finite;
+        readonly distanceDegrees: Schema.Finite;
+    }>;
+    instanceId: Schema.brand<Schema.String, "InstanceId">;
+    requestId: Schema.brand<Schema.String, "RequestId">;
+    deviceId: Schema.brand<Schema.String, "DeviceId">;
+    bindingId: Schema.brand<Schema.String, "BindingId">;
+    expectedName: Schema.String;
+    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
+    id: Schema.brand<Schema.String, "OperationId">;
+    failureDomain: Schema.brand<Schema.String, "FailureDomain">;
+    acceptedAt: Schema.Number;
+    state: Schema.Literal<"running">;
+    startedAt: Schema.Number;
+    progress: Schema.Struct<{
+        readonly phase: Schema.Literals<readonly ["preparing", "exposing", "readout", "retaining"]>;
+        readonly elapsedSeconds: Schema.NullOr<Schema.Number>;
+    }>;
+}> | Schema.Struct<{
+    kind: Schema.Literal<"mount-slew">;
+    parameters: Schema.Struct<{
+        readonly rightAscensionDegrees: Schema.Finite;
+        readonly declinationDegrees: Schema.Finite;
+        readonly coordinateSystem: Schema.Literals<readonly ["topocentric", "j2000"]>;
+    }>;
+    instanceId: Schema.brand<Schema.String, "InstanceId">;
+    requestId: Schema.brand<Schema.String, "RequestId">;
+    deviceId: Schema.brand<Schema.String, "DeviceId">;
+    bindingId: Schema.brand<Schema.String, "BindingId">;
+    expectedName: Schema.String;
+    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
+    id: Schema.brand<Schema.String, "OperationId">;
+    failureDomain: Schema.brand<Schema.String, "FailureDomain">;
+    acceptedAt: Schema.Number;
+    state: Schema.Literal<"running">;
+    startedAt: Schema.Number;
+    progress: Schema.Struct<{
+        readonly phase: Schema.Literals<readonly ["preparing", "exposing", "readout", "retaining"]>;
+        readonly elapsedSeconds: Schema.NullOr<Schema.Number>;
+    }>;
+}> | Schema.Struct<{
+    kind: Schema.Literal<"mount-stop">;
+    parameters: Schema.Struct<{}>;
+    instanceId: Schema.brand<Schema.String, "InstanceId">;
+    requestId: Schema.brand<Schema.String, "RequestId">;
+    deviceId: Schema.brand<Schema.String, "DeviceId">;
+    bindingId: Schema.brand<Schema.String, "BindingId">;
+    expectedName: Schema.String;
+    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
+    id: Schema.brand<Schema.String, "OperationId">;
+    failureDomain: Schema.brand<Schema.String, "FailureDomain">;
+    acceptedAt: Schema.Number;
+    state: Schema.Literal<"running">;
+    startedAt: Schema.Number;
+    progress: Schema.Struct<{
+        readonly phase: Schema.Literals<readonly ["preparing", "exposing", "readout", "retaining"]>;
+        readonly elapsedSeconds: Schema.NullOr<Schema.Number>;
+    }>;
+}> | Schema.Struct<{
+    kind: Schema.Literal<"mount-tracking">;
+    parameters: Schema.Struct<{
+        readonly tracking: Schema.Boolean;
+    }>;
+    instanceId: Schema.brand<Schema.String, "InstanceId">;
+    requestId: Schema.brand<Schema.String, "RequestId">;
+    deviceId: Schema.brand<Schema.String, "DeviceId">;
+    bindingId: Schema.brand<Schema.String, "BindingId">;
+    expectedName: Schema.String;
+    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
+    id: Schema.brand<Schema.String, "OperationId">;
+    failureDomain: Schema.brand<Schema.String, "FailureDomain">;
+    acceptedAt: Schema.Number;
+    state: Schema.Literal<"running">;
+    startedAt: Schema.Number;
+    progress: Schema.Struct<{
+        readonly phase: Schema.Literals<readonly ["preparing", "exposing", "readout", "retaining"]>;
+        readonly elapsedSeconds: Schema.NullOr<Schema.Number>;
+    }>;
+}> | Schema.Struct<{
+    kind: Schema.Literal<"mount-unpark">;
+    parameters: Schema.Struct<{}>;
+    instanceId: Schema.brand<Schema.String, "InstanceId">;
+    requestId: Schema.brand<Schema.String, "RequestId">;
+    deviceId: Schema.brand<Schema.String, "DeviceId">;
+    bindingId: Schema.brand<Schema.String, "BindingId">;
+    expectedName: Schema.String;
+    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
+    id: Schema.brand<Schema.String, "OperationId">;
+    failureDomain: Schema.brand<Schema.String, "FailureDomain">;
+    acceptedAt: Schema.Number;
+    state: Schema.Literal<"running">;
+    startedAt: Schema.Number;
+    progress: Schema.Struct<{
+        readonly phase: Schema.Literals<readonly ["preparing", "exposing", "readout", "retaining"]>;
+        readonly elapsedSeconds: Schema.NullOr<Schema.Number>;
+    }>;
+}> | Schema.Struct<{
+    kind: Schema.Literal<"switch-set">;
+    parameters: Schema.Struct<{
+        readonly channelId: Schema.Number;
+        readonly value: Schema.Finite;
+    }>;
+    instanceId: Schema.brand<Schema.String, "InstanceId">;
+    requestId: Schema.brand<Schema.String, "RequestId">;
+    deviceId: Schema.brand<Schema.String, "DeviceId">;
+    bindingId: Schema.brand<Schema.String, "BindingId">;
+    expectedName: Schema.String;
+    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
+    id: Schema.brand<Schema.String, "OperationId">;
+    failureDomain: Schema.brand<Schema.String, "FailureDomain">;
+    acceptedAt: Schema.Number;
+    state: Schema.Literal<"running">;
+    startedAt: Schema.Number;
+    progress: Schema.Struct<{
+        readonly phase: Schema.Literals<readonly ["preparing", "exposing", "readout", "retaining"]>;
+        readonly elapsedSeconds: Schema.NullOr<Schema.Number>;
+    }>;
+}> | Schema.Struct<{
+    kind: Schema.Literal<"camera-configure">;
+    parameters: Schema.Struct<{
         readonly binX: Schema.optionalKey<Schema.Number>;
         readonly binY: Schema.optionalKey<Schema.Number>;
         readonly startX: Schema.optionalKey<Schema.Number>;
@@ -563,18 +595,19 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
         readonly gain: Schema.optionalKey<Schema.Number>;
         readonly offset: Schema.optionalKey<Schema.Number>;
     }>;
-    readonly instanceId: Schema.brand<Schema.String, "InstanceId">;
-    readonly requestId: Schema.brand<Schema.String, "RequestId">;
-    readonly deviceId: Schema.brand<Schema.String, "DeviceId">;
-    readonly bindingId: Schema.brand<Schema.String, "BindingId">;
-    readonly expectedName: Schema.String;
-    readonly id: Schema.brand<Schema.String, "OperationId">;
-    readonly failureDomain: Schema.brand<Schema.String, "FailureDomain">;
-    readonly acceptedAt: Schema.Number;
-    readonly state: Schema.Literal<"settled">;
-    readonly startedAt: Schema.Number;
-    readonly settledAt: Schema.Number;
-    readonly outcome: Schema.Union<readonly [Schema.Struct<{
+    instanceId: Schema.brand<Schema.String, "InstanceId">;
+    requestId: Schema.brand<Schema.String, "RequestId">;
+    deviceId: Schema.brand<Schema.String, "DeviceId">;
+    bindingId: Schema.brand<Schema.String, "BindingId">;
+    expectedName: Schema.String;
+    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
+    id: Schema.brand<Schema.String, "OperationId">;
+    failureDomain: Schema.brand<Schema.String, "FailureDomain">;
+    acceptedAt: Schema.Number;
+    state: Schema.Literal<"settled">;
+    startedAt: Schema.Number;
+    settledAt: Schema.Number;
+    outcome: Schema.Union<readonly [Schema.Struct<{
         readonly kind: Schema.Literal<"confirmed">;
         readonly value: Schema.Struct<{
             readonly values: Schema.$Record<Schema.String, Schema.Union<readonly [Schema.String, Schema.Number, Schema.Boolean, Schema.Null]>>;
@@ -615,7 +648,8 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
         readonly reason: Schema.Literals<readonly ["no-acknowledgement", "not-confirmed", "stop-not-confirmed", "connection-lost", "driver-lost", "unexpected-error"]>;
         readonly message: Schema.String;
     }>]>;
-    readonly motion: Schema.optionalKey<Schema.Struct<{
+    /** Present on a mount motion whose command was sent, whatever its outcome. */
+    motion: Schema.optionalKey<Schema.Struct<{
         readonly commanded: Schema.Union<readonly [Schema.Struct<{
             readonly sentAt: Schema.Number;
             readonly kind: Schema.Literal<"slew">;
@@ -658,30 +692,32 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
             readonly at: Schema.NullOr<Schema.Number>;
         }>;
     }>>;
-    readonly recovery: Schema.NullOr<Schema.Struct<{
+    /** Set once a person recovered the device this uncertain operation quarantined. */
+    recovery: Schema.NullOr<Schema.Struct<{
         readonly at: Schema.Number;
         readonly note: Schema.String;
     }>>;
-} | {
-    readonly kind: Schema.Literal<"capture">;
-    readonly parameters: Schema.Struct<{
+}> | Schema.Struct<{
+    kind: Schema.Literal<"capture">;
+    parameters: Schema.Struct<{
         readonly exposureSeconds: Schema.Finite;
         readonly light: Schema.Boolean;
         readonly frameType: Schema.optionalKey<Schema.Literals<readonly ["light", "flat", "dark", "bias"]>>;
         readonly monochromeOnly: Schema.optionalKey<Schema.Boolean>;
     }>;
-    readonly instanceId: Schema.brand<Schema.String, "InstanceId">;
-    readonly requestId: Schema.brand<Schema.String, "RequestId">;
-    readonly deviceId: Schema.brand<Schema.String, "DeviceId">;
-    readonly bindingId: Schema.brand<Schema.String, "BindingId">;
-    readonly expectedName: Schema.String;
-    readonly id: Schema.brand<Schema.String, "OperationId">;
-    readonly failureDomain: Schema.brand<Schema.String, "FailureDomain">;
-    readonly acceptedAt: Schema.Number;
-    readonly state: Schema.Literal<"settled">;
-    readonly startedAt: Schema.Number;
-    readonly settledAt: Schema.Number;
-    readonly outcome: Schema.Union<readonly [Schema.Struct<{
+    instanceId: Schema.brand<Schema.String, "InstanceId">;
+    requestId: Schema.brand<Schema.String, "RequestId">;
+    deviceId: Schema.brand<Schema.String, "DeviceId">;
+    bindingId: Schema.brand<Schema.String, "BindingId">;
+    expectedName: Schema.String;
+    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
+    id: Schema.brand<Schema.String, "OperationId">;
+    failureDomain: Schema.brand<Schema.String, "FailureDomain">;
+    acceptedAt: Schema.Number;
+    state: Schema.Literal<"settled">;
+    startedAt: Schema.Number;
+    settledAt: Schema.Number;
+    outcome: Schema.Union<readonly [Schema.Struct<{
         readonly kind: Schema.Literal<"confirmed">;
         readonly value: Schema.Struct<{
             readonly values: Schema.$Record<Schema.String, Schema.Union<readonly [Schema.String, Schema.Number, Schema.Boolean, Schema.Null]>>;
@@ -722,7 +758,8 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
         readonly reason: Schema.Literals<readonly ["no-acknowledgement", "not-confirmed", "stop-not-confirmed", "connection-lost", "driver-lost", "unexpected-error"]>;
         readonly message: Schema.String;
     }>]>;
-    readonly motion: Schema.optionalKey<Schema.Struct<{
+    /** Present on a mount motion whose command was sent, whatever its outcome. */
+    motion: Schema.optionalKey<Schema.Struct<{
         readonly commanded: Schema.Union<readonly [Schema.Struct<{
             readonly sentAt: Schema.Number;
             readonly kind: Schema.Literal<"slew">;
@@ -765,28 +802,30 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
             readonly at: Schema.NullOr<Schema.Number>;
         }>;
     }>>;
-    readonly recovery: Schema.NullOr<Schema.Struct<{
+    /** Set once a person recovered the device this uncertain operation quarantined. */
+    recovery: Schema.NullOr<Schema.Struct<{
         readonly at: Schema.Number;
         readonly note: Schema.String;
     }>>;
-} | {
-    readonly kind: Schema.Literal<"cooling">;
-    readonly parameters: Schema.Struct<{
+}> | Schema.Struct<{
+    kind: Schema.Literal<"cooling">;
+    parameters: Schema.Struct<{
         readonly coolerOn: Schema.optionalKey<Schema.Boolean>;
         readonly setpointC: Schema.optionalKey<Schema.Finite>;
     }>;
-    readonly instanceId: Schema.brand<Schema.String, "InstanceId">;
-    readonly requestId: Schema.brand<Schema.String, "RequestId">;
-    readonly deviceId: Schema.brand<Schema.String, "DeviceId">;
-    readonly bindingId: Schema.brand<Schema.String, "BindingId">;
-    readonly expectedName: Schema.String;
-    readonly id: Schema.brand<Schema.String, "OperationId">;
-    readonly failureDomain: Schema.brand<Schema.String, "FailureDomain">;
-    readonly acceptedAt: Schema.Number;
-    readonly state: Schema.Literal<"settled">;
-    readonly startedAt: Schema.Number;
-    readonly settledAt: Schema.Number;
-    readonly outcome: Schema.Union<readonly [Schema.Struct<{
+    instanceId: Schema.brand<Schema.String, "InstanceId">;
+    requestId: Schema.brand<Schema.String, "RequestId">;
+    deviceId: Schema.brand<Schema.String, "DeviceId">;
+    bindingId: Schema.brand<Schema.String, "BindingId">;
+    expectedName: Schema.String;
+    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
+    id: Schema.brand<Schema.String, "OperationId">;
+    failureDomain: Schema.brand<Schema.String, "FailureDomain">;
+    acceptedAt: Schema.Number;
+    state: Schema.Literal<"settled">;
+    startedAt: Schema.Number;
+    settledAt: Schema.Number;
+    outcome: Schema.Union<readonly [Schema.Struct<{
         readonly kind: Schema.Literal<"confirmed">;
         readonly value: Schema.Struct<{
             readonly values: Schema.$Record<Schema.String, Schema.Union<readonly [Schema.String, Schema.Number, Schema.Boolean, Schema.Null]>>;
@@ -827,7 +866,8 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
         readonly reason: Schema.Literals<readonly ["no-acknowledgement", "not-confirmed", "stop-not-confirmed", "connection-lost", "driver-lost", "unexpected-error"]>;
         readonly message: Schema.String;
     }>]>;
-    readonly motion: Schema.optionalKey<Schema.Struct<{
+    /** Present on a mount motion whose command was sent, whatever its outcome. */
+    motion: Schema.optionalKey<Schema.Struct<{
         readonly commanded: Schema.Union<readonly [Schema.Struct<{
             readonly sentAt: Schema.Number;
             readonly kind: Schema.Literal<"slew">;
@@ -870,27 +910,29 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
             readonly at: Schema.NullOr<Schema.Number>;
         }>;
     }>>;
-    readonly recovery: Schema.NullOr<Schema.Struct<{
+    /** Set once a person recovered the device this uncertain operation quarantined. */
+    recovery: Schema.NullOr<Schema.Struct<{
         readonly at: Schema.Number;
         readonly note: Schema.String;
     }>>;
-} | {
-    readonly kind: Schema.Literal<"device-connect">;
-    readonly parameters: Schema.Struct<{
+}> | Schema.Struct<{
+    kind: Schema.Literal<"device-connect">;
+    parameters: Schema.Struct<{
         readonly connected: Schema.Boolean;
     }>;
-    readonly instanceId: Schema.brand<Schema.String, "InstanceId">;
-    readonly requestId: Schema.brand<Schema.String, "RequestId">;
-    readonly deviceId: Schema.brand<Schema.String, "DeviceId">;
-    readonly bindingId: Schema.brand<Schema.String, "BindingId">;
-    readonly expectedName: Schema.String;
-    readonly id: Schema.brand<Schema.String, "OperationId">;
-    readonly failureDomain: Schema.brand<Schema.String, "FailureDomain">;
-    readonly acceptedAt: Schema.Number;
-    readonly state: Schema.Literal<"settled">;
-    readonly startedAt: Schema.Number;
-    readonly settledAt: Schema.Number;
-    readonly outcome: Schema.Union<readonly [Schema.Struct<{
+    instanceId: Schema.brand<Schema.String, "InstanceId">;
+    requestId: Schema.brand<Schema.String, "RequestId">;
+    deviceId: Schema.brand<Schema.String, "DeviceId">;
+    bindingId: Schema.brand<Schema.String, "BindingId">;
+    expectedName: Schema.String;
+    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
+    id: Schema.brand<Schema.String, "OperationId">;
+    failureDomain: Schema.brand<Schema.String, "FailureDomain">;
+    acceptedAt: Schema.Number;
+    state: Schema.Literal<"settled">;
+    startedAt: Schema.Number;
+    settledAt: Schema.Number;
+    outcome: Schema.Union<readonly [Schema.Struct<{
         readonly kind: Schema.Literal<"confirmed">;
         readonly value: Schema.Struct<{
             readonly values: Schema.$Record<Schema.String, Schema.Union<readonly [Schema.String, Schema.Number, Schema.Boolean, Schema.Null]>>;
@@ -931,7 +973,8 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
         readonly reason: Schema.Literals<readonly ["no-acknowledgement", "not-confirmed", "stop-not-confirmed", "connection-lost", "driver-lost", "unexpected-error"]>;
         readonly message: Schema.String;
     }>]>;
-    readonly motion: Schema.optionalKey<Schema.Struct<{
+    /** Present on a mount motion whose command was sent, whatever its outcome. */
+    motion: Schema.optionalKey<Schema.Struct<{
         readonly commanded: Schema.Union<readonly [Schema.Struct<{
             readonly sentAt: Schema.Number;
             readonly kind: Schema.Literal<"slew">;
@@ -974,25 +1017,27 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
             readonly at: Schema.NullOr<Schema.Number>;
         }>;
     }>>;
-    readonly recovery: Schema.NullOr<Schema.Struct<{
+    /** Set once a person recovered the device this uncertain operation quarantined. */
+    recovery: Schema.NullOr<Schema.Struct<{
         readonly at: Schema.Number;
         readonly note: Schema.String;
     }>>;
-} | {
-    readonly kind: Schema.Literal<"focuser-halt">;
-    readonly parameters: Schema.Struct<{}>;
-    readonly instanceId: Schema.brand<Schema.String, "InstanceId">;
-    readonly requestId: Schema.brand<Schema.String, "RequestId">;
-    readonly deviceId: Schema.brand<Schema.String, "DeviceId">;
-    readonly bindingId: Schema.brand<Schema.String, "BindingId">;
-    readonly expectedName: Schema.String;
-    readonly id: Schema.brand<Schema.String, "OperationId">;
-    readonly failureDomain: Schema.brand<Schema.String, "FailureDomain">;
-    readonly acceptedAt: Schema.Number;
-    readonly state: Schema.Literal<"settled">;
-    readonly startedAt: Schema.Number;
-    readonly settledAt: Schema.Number;
-    readonly outcome: Schema.Union<readonly [Schema.Struct<{
+}> | Schema.Struct<{
+    kind: Schema.Literal<"focuser-halt">;
+    parameters: Schema.Struct<{}>;
+    instanceId: Schema.brand<Schema.String, "InstanceId">;
+    requestId: Schema.brand<Schema.String, "RequestId">;
+    deviceId: Schema.brand<Schema.String, "DeviceId">;
+    bindingId: Schema.brand<Schema.String, "BindingId">;
+    expectedName: Schema.String;
+    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
+    id: Schema.brand<Schema.String, "OperationId">;
+    failureDomain: Schema.brand<Schema.String, "FailureDomain">;
+    acceptedAt: Schema.Number;
+    state: Schema.Literal<"settled">;
+    startedAt: Schema.Number;
+    settledAt: Schema.Number;
+    outcome: Schema.Union<readonly [Schema.Struct<{
         readonly kind: Schema.Literal<"confirmed">;
         readonly value: Schema.Struct<{
             readonly values: Schema.$Record<Schema.String, Schema.Union<readonly [Schema.String, Schema.Number, Schema.Boolean, Schema.Null]>>;
@@ -1033,7 +1078,8 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
         readonly reason: Schema.Literals<readonly ["no-acknowledgement", "not-confirmed", "stop-not-confirmed", "connection-lost", "driver-lost", "unexpected-error"]>;
         readonly message: Schema.String;
     }>]>;
-    readonly motion: Schema.optionalKey<Schema.Struct<{
+    /** Present on a mount motion whose command was sent, whatever its outcome. */
+    motion: Schema.optionalKey<Schema.Struct<{
         readonly commanded: Schema.Union<readonly [Schema.Struct<{
             readonly sentAt: Schema.Number;
             readonly kind: Schema.Literal<"slew">;
@@ -1076,29 +1122,31 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
             readonly at: Schema.NullOr<Schema.Number>;
         }>;
     }>>;
-    readonly recovery: Schema.NullOr<Schema.Struct<{
+    /** Set once a person recovered the device this uncertain operation quarantined. */
+    recovery: Schema.NullOr<Schema.Struct<{
         readonly at: Schema.Number;
         readonly note: Schema.String;
     }>>;
-} | {
-    readonly kind: Schema.Literal<"focuser-move">;
-    readonly parameters: Schema.Struct<{
+}> | Schema.Struct<{
+    kind: Schema.Literal<"focuser-move">;
+    parameters: Schema.Struct<{
         readonly position: Schema.Number;
         readonly minPosition: Schema.Number;
         readonly maxPosition: Schema.Number;
     }>;
-    readonly instanceId: Schema.brand<Schema.String, "InstanceId">;
-    readonly requestId: Schema.brand<Schema.String, "RequestId">;
-    readonly deviceId: Schema.brand<Schema.String, "DeviceId">;
-    readonly bindingId: Schema.brand<Schema.String, "BindingId">;
-    readonly expectedName: Schema.String;
-    readonly id: Schema.brand<Schema.String, "OperationId">;
-    readonly failureDomain: Schema.brand<Schema.String, "FailureDomain">;
-    readonly acceptedAt: Schema.Number;
-    readonly state: Schema.Literal<"settled">;
-    readonly startedAt: Schema.Number;
-    readonly settledAt: Schema.Number;
-    readonly outcome: Schema.Union<readonly [Schema.Struct<{
+    instanceId: Schema.brand<Schema.String, "InstanceId">;
+    requestId: Schema.brand<Schema.String, "RequestId">;
+    deviceId: Schema.brand<Schema.String, "DeviceId">;
+    bindingId: Schema.brand<Schema.String, "BindingId">;
+    expectedName: Schema.String;
+    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
+    id: Schema.brand<Schema.String, "OperationId">;
+    failureDomain: Schema.brand<Schema.String, "FailureDomain">;
+    acceptedAt: Schema.Number;
+    state: Schema.Literal<"settled">;
+    startedAt: Schema.Number;
+    settledAt: Schema.Number;
+    outcome: Schema.Union<readonly [Schema.Struct<{
         readonly kind: Schema.Literal<"confirmed">;
         readonly value: Schema.Struct<{
             readonly values: Schema.$Record<Schema.String, Schema.Union<readonly [Schema.String, Schema.Number, Schema.Boolean, Schema.Null]>>;
@@ -1139,7 +1187,8 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
         readonly reason: Schema.Literals<readonly ["no-acknowledgement", "not-confirmed", "stop-not-confirmed", "connection-lost", "driver-lost", "unexpected-error"]>;
         readonly message: Schema.String;
     }>]>;
-    readonly motion: Schema.optionalKey<Schema.Struct<{
+    /** Present on a mount motion whose command was sent, whatever its outcome. */
+    motion: Schema.optionalKey<Schema.Struct<{
         readonly commanded: Schema.Union<readonly [Schema.Struct<{
             readonly sentAt: Schema.Number;
             readonly kind: Schema.Literal<"slew">;
@@ -1182,28 +1231,30 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
             readonly at: Schema.NullOr<Schema.Number>;
         }>;
     }>>;
-    readonly recovery: Schema.NullOr<Schema.Struct<{
+    /** Set once a person recovered the device this uncertain operation quarantined. */
+    recovery: Schema.NullOr<Schema.Struct<{
         readonly at: Schema.Number;
         readonly note: Schema.String;
     }>>;
-} | {
-    readonly kind: Schema.Literal<"mount-axis">;
-    readonly parameters: Schema.Struct<{
+}> | Schema.Struct<{
+    kind: Schema.Literal<"mount-axis">;
+    parameters: Schema.Struct<{
         readonly rateDegreesPerSecond: Schema.Finite;
         readonly durationSeconds: Schema.Finite;
     }>;
-    readonly instanceId: Schema.brand<Schema.String, "InstanceId">;
-    readonly requestId: Schema.brand<Schema.String, "RequestId">;
-    readonly deviceId: Schema.brand<Schema.String, "DeviceId">;
-    readonly bindingId: Schema.brand<Schema.String, "BindingId">;
-    readonly expectedName: Schema.String;
-    readonly id: Schema.brand<Schema.String, "OperationId">;
-    readonly failureDomain: Schema.brand<Schema.String, "FailureDomain">;
-    readonly acceptedAt: Schema.Number;
-    readonly state: Schema.Literal<"settled">;
-    readonly startedAt: Schema.Number;
-    readonly settledAt: Schema.Number;
-    readonly outcome: Schema.Union<readonly [Schema.Struct<{
+    instanceId: Schema.brand<Schema.String, "InstanceId">;
+    requestId: Schema.brand<Schema.String, "RequestId">;
+    deviceId: Schema.brand<Schema.String, "DeviceId">;
+    bindingId: Schema.brand<Schema.String, "BindingId">;
+    expectedName: Schema.String;
+    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
+    id: Schema.brand<Schema.String, "OperationId">;
+    failureDomain: Schema.brand<Schema.String, "FailureDomain">;
+    acceptedAt: Schema.Number;
+    state: Schema.Literal<"settled">;
+    startedAt: Schema.Number;
+    settledAt: Schema.Number;
+    outcome: Schema.Union<readonly [Schema.Struct<{
         readonly kind: Schema.Literal<"confirmed">;
         readonly value: Schema.Struct<{
             readonly values: Schema.$Record<Schema.String, Schema.Union<readonly [Schema.String, Schema.Number, Schema.Boolean, Schema.Null]>>;
@@ -1244,7 +1295,8 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
         readonly reason: Schema.Literals<readonly ["no-acknowledgement", "not-confirmed", "stop-not-confirmed", "connection-lost", "driver-lost", "unexpected-error"]>;
         readonly message: Schema.String;
     }>]>;
-    readonly motion: Schema.optionalKey<Schema.Struct<{
+    /** Present on a mount motion whose command was sent, whatever its outcome. */
+    motion: Schema.optionalKey<Schema.Struct<{
         readonly commanded: Schema.Union<readonly [Schema.Struct<{
             readonly sentAt: Schema.Number;
             readonly kind: Schema.Literal<"slew">;
@@ -1287,25 +1339,27 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
             readonly at: Schema.NullOr<Schema.Number>;
         }>;
     }>>;
-    readonly recovery: Schema.NullOr<Schema.Struct<{
+    /** Set once a person recovered the device this uncertain operation quarantined. */
+    recovery: Schema.NullOr<Schema.Struct<{
         readonly at: Schema.Number;
         readonly note: Schema.String;
     }>>;
-} | {
-    readonly kind: Schema.Literal<"mount-home">;
-    readonly parameters: Schema.Struct<{}>;
-    readonly instanceId: Schema.brand<Schema.String, "InstanceId">;
-    readonly requestId: Schema.brand<Schema.String, "RequestId">;
-    readonly deviceId: Schema.brand<Schema.String, "DeviceId">;
-    readonly bindingId: Schema.brand<Schema.String, "BindingId">;
-    readonly expectedName: Schema.String;
-    readonly id: Schema.brand<Schema.String, "OperationId">;
-    readonly failureDomain: Schema.brand<Schema.String, "FailureDomain">;
-    readonly acceptedAt: Schema.Number;
-    readonly state: Schema.Literal<"settled">;
-    readonly startedAt: Schema.Number;
-    readonly settledAt: Schema.Number;
-    readonly outcome: Schema.Union<readonly [Schema.Struct<{
+}> | Schema.Struct<{
+    kind: Schema.Literal<"mount-home">;
+    parameters: Schema.Struct<{}>;
+    instanceId: Schema.brand<Schema.String, "InstanceId">;
+    requestId: Schema.brand<Schema.String, "RequestId">;
+    deviceId: Schema.brand<Schema.String, "DeviceId">;
+    bindingId: Schema.brand<Schema.String, "BindingId">;
+    expectedName: Schema.String;
+    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
+    id: Schema.brand<Schema.String, "OperationId">;
+    failureDomain: Schema.brand<Schema.String, "FailureDomain">;
+    acceptedAt: Schema.Number;
+    state: Schema.Literal<"settled">;
+    startedAt: Schema.Number;
+    settledAt: Schema.Number;
+    outcome: Schema.Union<readonly [Schema.Struct<{
         readonly kind: Schema.Literal<"confirmed">;
         readonly value: Schema.Struct<{
             readonly values: Schema.$Record<Schema.String, Schema.Union<readonly [Schema.String, Schema.Number, Schema.Boolean, Schema.Null]>>;
@@ -1346,7 +1400,8 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
         readonly reason: Schema.Literals<readonly ["no-acknowledgement", "not-confirmed", "stop-not-confirmed", "connection-lost", "driver-lost", "unexpected-error"]>;
         readonly message: Schema.String;
     }>]>;
-    readonly motion: Schema.optionalKey<Schema.Struct<{
+    /** Present on a mount motion whose command was sent, whatever its outcome. */
+    motion: Schema.optionalKey<Schema.Struct<{
         readonly commanded: Schema.Union<readonly [Schema.Struct<{
             readonly sentAt: Schema.Number;
             readonly kind: Schema.Literal<"slew">;
@@ -1389,25 +1444,27 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
             readonly at: Schema.NullOr<Schema.Number>;
         }>;
     }>>;
-    readonly recovery: Schema.NullOr<Schema.Struct<{
+    /** Set once a person recovered the device this uncertain operation quarantined. */
+    recovery: Schema.NullOr<Schema.Struct<{
         readonly at: Schema.Number;
         readonly note: Schema.String;
     }>>;
-} | {
-    readonly kind: Schema.Literal<"mount-park">;
-    readonly parameters: Schema.Struct<{}>;
-    readonly instanceId: Schema.brand<Schema.String, "InstanceId">;
-    readonly requestId: Schema.brand<Schema.String, "RequestId">;
-    readonly deviceId: Schema.brand<Schema.String, "DeviceId">;
-    readonly bindingId: Schema.brand<Schema.String, "BindingId">;
-    readonly expectedName: Schema.String;
-    readonly id: Schema.brand<Schema.String, "OperationId">;
-    readonly failureDomain: Schema.brand<Schema.String, "FailureDomain">;
-    readonly acceptedAt: Schema.Number;
-    readonly state: Schema.Literal<"settled">;
-    readonly startedAt: Schema.Number;
-    readonly settledAt: Schema.Number;
-    readonly outcome: Schema.Union<readonly [Schema.Struct<{
+}> | Schema.Struct<{
+    kind: Schema.Literal<"mount-park">;
+    parameters: Schema.Struct<{}>;
+    instanceId: Schema.brand<Schema.String, "InstanceId">;
+    requestId: Schema.brand<Schema.String, "RequestId">;
+    deviceId: Schema.brand<Schema.String, "DeviceId">;
+    bindingId: Schema.brand<Schema.String, "BindingId">;
+    expectedName: Schema.String;
+    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
+    id: Schema.brand<Schema.String, "OperationId">;
+    failureDomain: Schema.brand<Schema.String, "FailureDomain">;
+    acceptedAt: Schema.Number;
+    state: Schema.Literal<"settled">;
+    startedAt: Schema.Number;
+    settledAt: Schema.Number;
+    outcome: Schema.Union<readonly [Schema.Struct<{
         readonly kind: Schema.Literal<"confirmed">;
         readonly value: Schema.Struct<{
             readonly values: Schema.$Record<Schema.String, Schema.Union<readonly [Schema.String, Schema.Number, Schema.Boolean, Schema.Null]>>;
@@ -1448,7 +1505,8 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
         readonly reason: Schema.Literals<readonly ["no-acknowledgement", "not-confirmed", "stop-not-confirmed", "connection-lost", "driver-lost", "unexpected-error"]>;
         readonly message: Schema.String;
     }>]>;
-    readonly motion: Schema.optionalKey<Schema.Struct<{
+    /** Present on a mount motion whose command was sent, whatever its outcome. */
+    motion: Schema.optionalKey<Schema.Struct<{
         readonly commanded: Schema.Union<readonly [Schema.Struct<{
             readonly sentAt: Schema.Number;
             readonly kind: Schema.Literal<"slew">;
@@ -1491,28 +1549,30 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
             readonly at: Schema.NullOr<Schema.Number>;
         }>;
     }>>;
-    readonly recovery: Schema.NullOr<Schema.Struct<{
+    /** Set once a person recovered the device this uncertain operation quarantined. */
+    recovery: Schema.NullOr<Schema.Struct<{
         readonly at: Schema.Number;
         readonly note: Schema.String;
     }>>;
-} | {
-    readonly kind: Schema.Literal<"mount-rotate">;
-    readonly parameters: Schema.Struct<{
+}> | Schema.Struct<{
+    kind: Schema.Literal<"mount-rotate">;
+    parameters: Schema.Struct<{
         readonly rateDegreesPerSecond: Schema.Finite;
         readonly distanceDegrees: Schema.Finite;
     }>;
-    readonly instanceId: Schema.brand<Schema.String, "InstanceId">;
-    readonly requestId: Schema.brand<Schema.String, "RequestId">;
-    readonly deviceId: Schema.brand<Schema.String, "DeviceId">;
-    readonly bindingId: Schema.brand<Schema.String, "BindingId">;
-    readonly expectedName: Schema.String;
-    readonly id: Schema.brand<Schema.String, "OperationId">;
-    readonly failureDomain: Schema.brand<Schema.String, "FailureDomain">;
-    readonly acceptedAt: Schema.Number;
-    readonly state: Schema.Literal<"settled">;
-    readonly startedAt: Schema.Number;
-    readonly settledAt: Schema.Number;
-    readonly outcome: Schema.Union<readonly [Schema.Struct<{
+    instanceId: Schema.brand<Schema.String, "InstanceId">;
+    requestId: Schema.brand<Schema.String, "RequestId">;
+    deviceId: Schema.brand<Schema.String, "DeviceId">;
+    bindingId: Schema.brand<Schema.String, "BindingId">;
+    expectedName: Schema.String;
+    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
+    id: Schema.brand<Schema.String, "OperationId">;
+    failureDomain: Schema.brand<Schema.String, "FailureDomain">;
+    acceptedAt: Schema.Number;
+    state: Schema.Literal<"settled">;
+    startedAt: Schema.Number;
+    settledAt: Schema.Number;
+    outcome: Schema.Union<readonly [Schema.Struct<{
         readonly kind: Schema.Literal<"confirmed">;
         readonly value: Schema.Struct<{
             readonly values: Schema.$Record<Schema.String, Schema.Union<readonly [Schema.String, Schema.Number, Schema.Boolean, Schema.Null]>>;
@@ -1553,7 +1613,8 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
         readonly reason: Schema.Literals<readonly ["no-acknowledgement", "not-confirmed", "stop-not-confirmed", "connection-lost", "driver-lost", "unexpected-error"]>;
         readonly message: Schema.String;
     }>]>;
-    readonly motion: Schema.optionalKey<Schema.Struct<{
+    /** Present on a mount motion whose command was sent, whatever its outcome. */
+    motion: Schema.optionalKey<Schema.Struct<{
         readonly commanded: Schema.Union<readonly [Schema.Struct<{
             readonly sentAt: Schema.Number;
             readonly kind: Schema.Literal<"slew">;
@@ -1596,29 +1657,31 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
             readonly at: Schema.NullOr<Schema.Number>;
         }>;
     }>>;
-    readonly recovery: Schema.NullOr<Schema.Struct<{
+    /** Set once a person recovered the device this uncertain operation quarantined. */
+    recovery: Schema.NullOr<Schema.Struct<{
         readonly at: Schema.Number;
         readonly note: Schema.String;
     }>>;
-} | {
-    readonly kind: Schema.Literal<"mount-slew">;
-    readonly parameters: Schema.Struct<{
+}> | Schema.Struct<{
+    kind: Schema.Literal<"mount-slew">;
+    parameters: Schema.Struct<{
         readonly rightAscensionDegrees: Schema.Finite;
         readonly declinationDegrees: Schema.Finite;
         readonly coordinateSystem: Schema.Literals<readonly ["topocentric", "j2000"]>;
     }>;
-    readonly instanceId: Schema.brand<Schema.String, "InstanceId">;
-    readonly requestId: Schema.brand<Schema.String, "RequestId">;
-    readonly deviceId: Schema.brand<Schema.String, "DeviceId">;
-    readonly bindingId: Schema.brand<Schema.String, "BindingId">;
-    readonly expectedName: Schema.String;
-    readonly id: Schema.brand<Schema.String, "OperationId">;
-    readonly failureDomain: Schema.brand<Schema.String, "FailureDomain">;
-    readonly acceptedAt: Schema.Number;
-    readonly state: Schema.Literal<"settled">;
-    readonly startedAt: Schema.Number;
-    readonly settledAt: Schema.Number;
-    readonly outcome: Schema.Union<readonly [Schema.Struct<{
+    instanceId: Schema.brand<Schema.String, "InstanceId">;
+    requestId: Schema.brand<Schema.String, "RequestId">;
+    deviceId: Schema.brand<Schema.String, "DeviceId">;
+    bindingId: Schema.brand<Schema.String, "BindingId">;
+    expectedName: Schema.String;
+    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
+    id: Schema.brand<Schema.String, "OperationId">;
+    failureDomain: Schema.brand<Schema.String, "FailureDomain">;
+    acceptedAt: Schema.Number;
+    state: Schema.Literal<"settled">;
+    startedAt: Schema.Number;
+    settledAt: Schema.Number;
+    outcome: Schema.Union<readonly [Schema.Struct<{
         readonly kind: Schema.Literal<"confirmed">;
         readonly value: Schema.Struct<{
             readonly values: Schema.$Record<Schema.String, Schema.Union<readonly [Schema.String, Schema.Number, Schema.Boolean, Schema.Null]>>;
@@ -1659,7 +1722,8 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
         readonly reason: Schema.Literals<readonly ["no-acknowledgement", "not-confirmed", "stop-not-confirmed", "connection-lost", "driver-lost", "unexpected-error"]>;
         readonly message: Schema.String;
     }>]>;
-    readonly motion: Schema.optionalKey<Schema.Struct<{
+    /** Present on a mount motion whose command was sent, whatever its outcome. */
+    motion: Schema.optionalKey<Schema.Struct<{
         readonly commanded: Schema.Union<readonly [Schema.Struct<{
             readonly sentAt: Schema.Number;
             readonly kind: Schema.Literal<"slew">;
@@ -1702,25 +1766,27 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
             readonly at: Schema.NullOr<Schema.Number>;
         }>;
     }>>;
-    readonly recovery: Schema.NullOr<Schema.Struct<{
+    /** Set once a person recovered the device this uncertain operation quarantined. */
+    recovery: Schema.NullOr<Schema.Struct<{
         readonly at: Schema.Number;
         readonly note: Schema.String;
     }>>;
-} | {
-    readonly kind: Schema.Literal<"mount-stop">;
-    readonly parameters: Schema.Struct<{}>;
-    readonly instanceId: Schema.brand<Schema.String, "InstanceId">;
-    readonly requestId: Schema.brand<Schema.String, "RequestId">;
-    readonly deviceId: Schema.brand<Schema.String, "DeviceId">;
-    readonly bindingId: Schema.brand<Schema.String, "BindingId">;
-    readonly expectedName: Schema.String;
-    readonly id: Schema.brand<Schema.String, "OperationId">;
-    readonly failureDomain: Schema.brand<Schema.String, "FailureDomain">;
-    readonly acceptedAt: Schema.Number;
-    readonly state: Schema.Literal<"settled">;
-    readonly startedAt: Schema.Number;
-    readonly settledAt: Schema.Number;
-    readonly outcome: Schema.Union<readonly [Schema.Struct<{
+}> | Schema.Struct<{
+    kind: Schema.Literal<"mount-stop">;
+    parameters: Schema.Struct<{}>;
+    instanceId: Schema.brand<Schema.String, "InstanceId">;
+    requestId: Schema.brand<Schema.String, "RequestId">;
+    deviceId: Schema.brand<Schema.String, "DeviceId">;
+    bindingId: Schema.brand<Schema.String, "BindingId">;
+    expectedName: Schema.String;
+    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
+    id: Schema.brand<Schema.String, "OperationId">;
+    failureDomain: Schema.brand<Schema.String, "FailureDomain">;
+    acceptedAt: Schema.Number;
+    state: Schema.Literal<"settled">;
+    startedAt: Schema.Number;
+    settledAt: Schema.Number;
+    outcome: Schema.Union<readonly [Schema.Struct<{
         readonly kind: Schema.Literal<"confirmed">;
         readonly value: Schema.Struct<{
             readonly values: Schema.$Record<Schema.String, Schema.Union<readonly [Schema.String, Schema.Number, Schema.Boolean, Schema.Null]>>;
@@ -1761,7 +1827,8 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
         readonly reason: Schema.Literals<readonly ["no-acknowledgement", "not-confirmed", "stop-not-confirmed", "connection-lost", "driver-lost", "unexpected-error"]>;
         readonly message: Schema.String;
     }>]>;
-    readonly motion: Schema.optionalKey<Schema.Struct<{
+    /** Present on a mount motion whose command was sent, whatever its outcome. */
+    motion: Schema.optionalKey<Schema.Struct<{
         readonly commanded: Schema.Union<readonly [Schema.Struct<{
             readonly sentAt: Schema.Number;
             readonly kind: Schema.Literal<"slew">;
@@ -1804,27 +1871,29 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
             readonly at: Schema.NullOr<Schema.Number>;
         }>;
     }>>;
-    readonly recovery: Schema.NullOr<Schema.Struct<{
+    /** Set once a person recovered the device this uncertain operation quarantined. */
+    recovery: Schema.NullOr<Schema.Struct<{
         readonly at: Schema.Number;
         readonly note: Schema.String;
     }>>;
-} | {
-    readonly kind: Schema.Literal<"mount-tracking">;
-    readonly parameters: Schema.Struct<{
+}> | Schema.Struct<{
+    kind: Schema.Literal<"mount-tracking">;
+    parameters: Schema.Struct<{
         readonly tracking: Schema.Boolean;
     }>;
-    readonly instanceId: Schema.brand<Schema.String, "InstanceId">;
-    readonly requestId: Schema.brand<Schema.String, "RequestId">;
-    readonly deviceId: Schema.brand<Schema.String, "DeviceId">;
-    readonly bindingId: Schema.brand<Schema.String, "BindingId">;
-    readonly expectedName: Schema.String;
-    readonly id: Schema.brand<Schema.String, "OperationId">;
-    readonly failureDomain: Schema.brand<Schema.String, "FailureDomain">;
-    readonly acceptedAt: Schema.Number;
-    readonly state: Schema.Literal<"settled">;
-    readonly startedAt: Schema.Number;
-    readonly settledAt: Schema.Number;
-    readonly outcome: Schema.Union<readonly [Schema.Struct<{
+    instanceId: Schema.brand<Schema.String, "InstanceId">;
+    requestId: Schema.brand<Schema.String, "RequestId">;
+    deviceId: Schema.brand<Schema.String, "DeviceId">;
+    bindingId: Schema.brand<Schema.String, "BindingId">;
+    expectedName: Schema.String;
+    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
+    id: Schema.brand<Schema.String, "OperationId">;
+    failureDomain: Schema.brand<Schema.String, "FailureDomain">;
+    acceptedAt: Schema.Number;
+    state: Schema.Literal<"settled">;
+    startedAt: Schema.Number;
+    settledAt: Schema.Number;
+    outcome: Schema.Union<readonly [Schema.Struct<{
         readonly kind: Schema.Literal<"confirmed">;
         readonly value: Schema.Struct<{
             readonly values: Schema.$Record<Schema.String, Schema.Union<readonly [Schema.String, Schema.Number, Schema.Boolean, Schema.Null]>>;
@@ -1865,7 +1934,8 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
         readonly reason: Schema.Literals<readonly ["no-acknowledgement", "not-confirmed", "stop-not-confirmed", "connection-lost", "driver-lost", "unexpected-error"]>;
         readonly message: Schema.String;
     }>]>;
-    readonly motion: Schema.optionalKey<Schema.Struct<{
+    /** Present on a mount motion whose command was sent, whatever its outcome. */
+    motion: Schema.optionalKey<Schema.Struct<{
         readonly commanded: Schema.Union<readonly [Schema.Struct<{
             readonly sentAt: Schema.Number;
             readonly kind: Schema.Literal<"slew">;
@@ -1908,25 +1978,27 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
             readonly at: Schema.NullOr<Schema.Number>;
         }>;
     }>>;
-    readonly recovery: Schema.NullOr<Schema.Struct<{
+    /** Set once a person recovered the device this uncertain operation quarantined. */
+    recovery: Schema.NullOr<Schema.Struct<{
         readonly at: Schema.Number;
         readonly note: Schema.String;
     }>>;
-} | {
-    readonly kind: Schema.Literal<"mount-unpark">;
-    readonly parameters: Schema.Struct<{}>;
-    readonly instanceId: Schema.brand<Schema.String, "InstanceId">;
-    readonly requestId: Schema.brand<Schema.String, "RequestId">;
-    readonly deviceId: Schema.brand<Schema.String, "DeviceId">;
-    readonly bindingId: Schema.brand<Schema.String, "BindingId">;
-    readonly expectedName: Schema.String;
-    readonly id: Schema.brand<Schema.String, "OperationId">;
-    readonly failureDomain: Schema.brand<Schema.String, "FailureDomain">;
-    readonly acceptedAt: Schema.Number;
-    readonly state: Schema.Literal<"settled">;
-    readonly startedAt: Schema.Number;
-    readonly settledAt: Schema.Number;
-    readonly outcome: Schema.Union<readonly [Schema.Struct<{
+}> | Schema.Struct<{
+    kind: Schema.Literal<"mount-unpark">;
+    parameters: Schema.Struct<{}>;
+    instanceId: Schema.brand<Schema.String, "InstanceId">;
+    requestId: Schema.brand<Schema.String, "RequestId">;
+    deviceId: Schema.brand<Schema.String, "DeviceId">;
+    bindingId: Schema.brand<Schema.String, "BindingId">;
+    expectedName: Schema.String;
+    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
+    id: Schema.brand<Schema.String, "OperationId">;
+    failureDomain: Schema.brand<Schema.String, "FailureDomain">;
+    acceptedAt: Schema.Number;
+    state: Schema.Literal<"settled">;
+    startedAt: Schema.Number;
+    settledAt: Schema.Number;
+    outcome: Schema.Union<readonly [Schema.Struct<{
         readonly kind: Schema.Literal<"confirmed">;
         readonly value: Schema.Struct<{
             readonly values: Schema.$Record<Schema.String, Schema.Union<readonly [Schema.String, Schema.Number, Schema.Boolean, Schema.Null]>>;
@@ -1967,7 +2039,8 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
         readonly reason: Schema.Literals<readonly ["no-acknowledgement", "not-confirmed", "stop-not-confirmed", "connection-lost", "driver-lost", "unexpected-error"]>;
         readonly message: Schema.String;
     }>]>;
-    readonly motion: Schema.optionalKey<Schema.Struct<{
+    /** Present on a mount motion whose command was sent, whatever its outcome. */
+    motion: Schema.optionalKey<Schema.Struct<{
         readonly commanded: Schema.Union<readonly [Schema.Struct<{
             readonly sentAt: Schema.Number;
             readonly kind: Schema.Literal<"slew">;
@@ -2010,28 +2083,30 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
             readonly at: Schema.NullOr<Schema.Number>;
         }>;
     }>>;
-    readonly recovery: Schema.NullOr<Schema.Struct<{
+    /** Set once a person recovered the device this uncertain operation quarantined. */
+    recovery: Schema.NullOr<Schema.Struct<{
         readonly at: Schema.Number;
         readonly note: Schema.String;
     }>>;
-} | {
-    readonly kind: Schema.Literal<"switch-set">;
-    readonly parameters: Schema.Struct<{
+}> | Schema.Struct<{
+    kind: Schema.Literal<"switch-set">;
+    parameters: Schema.Struct<{
         readonly channelId: Schema.Number;
         readonly value: Schema.Finite;
     }>;
-    readonly instanceId: Schema.brand<Schema.String, "InstanceId">;
-    readonly requestId: Schema.brand<Schema.String, "RequestId">;
-    readonly deviceId: Schema.brand<Schema.String, "DeviceId">;
-    readonly bindingId: Schema.brand<Schema.String, "BindingId">;
-    readonly expectedName: Schema.String;
-    readonly id: Schema.brand<Schema.String, "OperationId">;
-    readonly failureDomain: Schema.brand<Schema.String, "FailureDomain">;
-    readonly acceptedAt: Schema.Number;
-    readonly state: Schema.Literal<"settled">;
-    readonly startedAt: Schema.Number;
-    readonly settledAt: Schema.Number;
-    readonly outcome: Schema.Union<readonly [Schema.Struct<{
+    instanceId: Schema.brand<Schema.String, "InstanceId">;
+    requestId: Schema.brand<Schema.String, "RequestId">;
+    deviceId: Schema.brand<Schema.String, "DeviceId">;
+    bindingId: Schema.brand<Schema.String, "BindingId">;
+    expectedName: Schema.String;
+    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
+    id: Schema.brand<Schema.String, "OperationId">;
+    failureDomain: Schema.brand<Schema.String, "FailureDomain">;
+    acceptedAt: Schema.Number;
+    state: Schema.Literal<"settled">;
+    startedAt: Schema.Number;
+    settledAt: Schema.Number;
+    outcome: Schema.Union<readonly [Schema.Struct<{
         readonly kind: Schema.Literal<"confirmed">;
         readonly value: Schema.Struct<{
             readonly values: Schema.$Record<Schema.String, Schema.Union<readonly [Schema.String, Schema.Number, Schema.Boolean, Schema.Null]>>;
@@ -2072,7 +2147,8 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
         readonly reason: Schema.Literals<readonly ["no-acknowledgement", "not-confirmed", "stop-not-confirmed", "connection-lost", "driver-lost", "unexpected-error"]>;
         readonly message: Schema.String;
     }>]>;
-    readonly motion: Schema.optionalKey<Schema.Struct<{
+    /** Present on a mount motion whose command was sent, whatever its outcome. */
+    motion: Schema.optionalKey<Schema.Struct<{
         readonly commanded: Schema.Union<readonly [Schema.Struct<{
             readonly sentAt: Schema.Number;
             readonly kind: Schema.Literal<"slew">;
@@ -2115,7 +2191,8 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
             readonly at: Schema.NullOr<Schema.Number>;
         }>;
     }>>;
-    readonly recovery: Schema.NullOr<Schema.Struct<{
+    /** Set once a person recovered the device this uncertain operation quarantined. */
+    recovery: Schema.NullOr<Schema.Struct<{
         readonly at: Schema.Number;
         readonly note: Schema.String;
     }>>;

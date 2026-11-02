@@ -10,6 +10,7 @@ import { createServer, type IncomingMessage, type Server, type ServerResponse } 
 import { Effect, Exit, Result, Schema } from 'effect'
 import {
   DeviceId,
+  LeaseRequest,
   EnvelopeRequest,
   FixRequest,
   ImageId,
@@ -103,6 +104,9 @@ export function makeHttpServer(rig: Rig, options: HttpOptions = {}): Server {
         return { status: 200, body: device.feedback }
       }
     }
+
+    if (method === 'POST' && path.length === 4 && path[1] === 'devices' && path[3] === 'lease')
+      return run(rig.ledger.lease(pathId(DeviceId, path[2], refuse('not-found', 'No such mount')), decodeBody(LeaseRequest, await readJson(request))), lease => ({ status: 200, body: lease }))
 
     if (method === 'GET' && path.length === 2 && path[1] === 'events') {
       if (!events(request, response)) throw refuse('too-many-subscribers', 'Too many event subscribers')
