@@ -120,6 +120,8 @@ function expectRestedAt(ending: Ending) {
 /** The move ended only once the position had stood still for a window after it last changed. */
 async function settledAfterTheCoast(id: string): Promise<{ readonly ending: Ending; readonly quietFor: number }> {
   const ending = await cria.settled(id, 30_000)
+  expect((await cria.device('mount')).quarantine.held).toBe(false)
+  expect(await cria.device('mount')).not.toHaveProperty('foreignMotion')
   const motion = ending.operation.motion
   const rested = published.at(-1)!
 

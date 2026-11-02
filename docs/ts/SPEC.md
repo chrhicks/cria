@@ -694,6 +694,27 @@ Optional `horizon` points (`azimuthDegrees`, `altitudeDegrees`) and
 mechanical keep-out and the driver's flipped-side limit only; these reserved
 fields do not yet constrain moves. Protocol 5's existing payloads are unchanged.
 
+### Foreign mount motion
+
+With no operation open, cumulative position changes above `stationaryDegrees`
+on either axis hold the mount until a person recovers it through the existing
+recovery endpoint. Cria sends no command in response. Tracking on allows constant
+RA/Dec; tracking off subtracts sidereal RA drift, so constant HA/Dec is at rest.
+The baseline stays fixed across small updates, so slow external movement also
+crosses the tolerance. Tracking state changes split the drift calculation.
+
+The AM5 default is the existing stop tolerance, 0.02° per axis. It exceeds the
+step 3 AM5 profile's 1.5 display-step threshold and one poll of sidereal drift.
+The operation remains open throughout settle and coast, including the recorded
+21.5 s home coast. Property Idle/Ok never grants an extra motion allowance.
+
+The lane keeps the first `foreignMotion` event on its failure domain. State adds
+an optional mount `foreignMotion` with `at`, `from`, `to`, and `unexplained`
+axis degrees. `unexplained` removes tracking-off drift. The existing quarantine
+reason and time also identify the event. Recovery rotates the binding and clears
+the event and hold. Vela already sees the hold; consuming the structured event
+requires a small Vela follow-up. This is an additive protocol 5 field.
+
 ### Stopping the mount
 
 The AM5 acknowledges a stop long before it is stationary. Measured on errai on

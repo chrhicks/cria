@@ -80,3 +80,12 @@ export function addMount(fake: FakeIndi, device: string): void {
   // The AM5's own clock, unset, as errai showed it.
   fake.define({ device, name: 'TIME_UTC', kind: 'text', perm: 'rw', state: 'Ok', elements: { UTC: { value: '2000-01-01T00:56:31' }, OFFSET: { value: '0.00' } } })
 }
+
+/** A position readout changed by another controller, with no command from a connected client. */
+export function handControllerMove(fake: FakeIndi, device: string, offset: { readonly raDegrees: number; readonly decDegrees: number }) {
+  const property = fake.vector(device, 'EQUATORIAL_EOD_COORD')
+  fake.update(device, property.name, { values: {
+    RA: (Number(property.elements.RA!.value) + offset.raDegrees / 15 + 24) % 24,
+    DEC: Number(property.elements.DEC!.value) + offset.decDegrees,
+  } })
+}
