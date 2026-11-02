@@ -724,7 +724,7 @@ first that does not confirm.
 | Kind | Step | Writes | Nothing written when |
 |---|---|---|---|
 | camera | frames to Cria | `UPLOAD_MODE` `UPLOAD_CLIENT=On`, confirmed by readback | `UPLOAD_LOCAL` is already off, or the camera has no `UPLOAD_MODE` |
-| mount | site | `GEOGRAPHIC_COORD` `LAT`, `LONG` (0 to 360 east), `ELEV` from the device's `site`, confirmed by the driver's echo (`numbersApplied`) | no `site` configured, or the mount has no `GEOGRAPHIC_COORD` |
+| mount | site | `GEOGRAPHIC_COORD` `LAT`, `LONG` (0 to 360 east), `ELEV` from the device's `site`, confirmed by the driver's echo (`numbersApplied`) | no `site` configured, the mount has no `GEOGRAPHIC_COORD`, or its Ok site already matches the configured site within 1e-4 degrees and 1 m elevation, with longitude wrapping at 360 degrees |
 | mount | time, after the site | `TIME_UTC` `UTC` from the system clock (`YYYY-MM-DDTHH:MM:SS`), `OFFSET=0.00`, confirmed by the echoed `UTC` | the mount has no `TIME_UTC` |
 
 Why each step exists:
