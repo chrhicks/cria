@@ -164,26 +164,32 @@ export function makeMount(context: CapabilityContext, motion: MountMotionSetting
     if (event.type === 'property' && ['EQUATORIAL_EOD_COORD', 'EQUATORIAL_COORD'].includes(event.property.name)) blindTravel.record({ ...positionOf(event.property), at: event.property.receivedAt })
   }))
 
-  const guard = <A>(settle: Effect.Effect<A, Failed | Uncertain>, stopped: { reason?: string }, target: ParamsOf<'mount-slew'> | number) => {
+  const guard = <A>(settle: Effect.Effect<A, Failed | Uncertain>, stopped: { reason?: string }, target: ParamsOf<'mount-slew'> | number, command: Command) => {
     const monitor = Effect.gen(function* () {
       const subscription = yield* device.subscribe
-      let last = (yield* beforeCommand(device)).before
+      let first = Option.getOrUndefined(yield* device.property('EQUATORIAL_EOD_COORD')) ?? Option.getOrUndefined(yield* device.property('EQUATORIAL_COORD'))
+      let last = command.before
       let lastPositionAt = yield* Clock.currentTimeMillis
       let raDirection = 0
       let decDirection = 0
       while (true) {
-        const elapsed = (yield* Clock.currentTimeMillis) - lastPositionAt
-        const next = yield* Effect.timeoutOption(subscription.next, Math.max(1, readingDeadlineMs - elapsed))
-        if (Option.isNone(next)) {
-          if (context.feedback.envelope === null) continue
-          stopped.reason = 'Envelope position reading deadline exceeded; stopping before the reserved reaction travel is spent'
-          return yield* new Failed({ reason: 'unavailable', message: stopped.reason })
+        let property = first
+        first = undefined
+        if (property === undefined) {
+          const elapsed = (yield* Clock.currentTimeMillis) - lastPositionAt
+          const next = elapsed >= readingDeadlineMs ? Option.none() : yield* Effect.timeoutOption(subscription.next, readingDeadlineMs - elapsed)
+          if (Option.isNone(next)) {
+            if (context.feedback.envelope === null) { lastPositionAt = yield* Clock.currentTimeMillis; continue }
+            stopped.reason = 'Envelope position reading deadline exceeded; stopping before the reserved reaction travel is spent'
+            return yield* new Failed({ reason: 'unavailable', message: stopped.reason })
+          }
+          const event = next.value
+          if (event.type !== 'property' || !['EQUATORIAL_EOD_COORD', 'EQUATORIAL_COORD'].includes(event.property.name)) continue
+          property = event.property
         }
-        const event = next.value
-        if (event.type !== 'property' || !['EQUATORIAL_EOD_COORD', 'EQUATORIAL_COORD'].includes(event.property.name)) continue
-        blindTravel.record({ ...positionOf(event.property), at: event.property.receivedAt })
+        blindTravel.record({ ...positionOf(property), at: property.receivedAt })
         lastPositionAt = yield* Clock.currentTimeMillis
-        const here = positionOf(event.property)
+        const here = positionOf(property)
         if (last !== undefined) {
           const dra = angularDelta(here.ra, last.ra)
           const ddec = here.dec - last.dec
@@ -311,7 +317,7 @@ export function makeMount(context: CapabilityContext, motion: MountMotionSetting
               : error,
           ),
         )),
-        settle: guard(Effect.andThen(untilSettled(device, coordinates.name, () => true, timing.operationTimeoutMs), settled(command, tracking)), envelopeStop, target),
+        settle: guard(Effect.andThen(untilSettled(device, coordinates.name, () => true, timing.operationTimeoutMs), settled(command, tracking)), envelopeStop, target, command),
         stop: Effect.suspend(() => abort(tracking, undefined, envelopeStop.reason)),
         stopWithin: stopWithinMs,
       })
@@ -482,7 +488,7 @@ export function makeMount(context: CapabilityContext, motion: MountMotionSetting
         settle: guard(Effect.andThen(
           until(Effect.map(ra, now => angularDelta(now, start))),
           halt,
-        ), envelopeStop, rateDegreesPerSecond),
+        ), envelopeStop, rateDegreesPerSecond, command),
         stop: Effect.suspend(() => envelopeStop.reason === undefined ? halt : abort(tracking, undefined, envelopeStop.reason)),
         stopWithin: stopWithinMs,
       })
