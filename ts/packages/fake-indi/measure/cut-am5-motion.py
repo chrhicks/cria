@@ -56,7 +56,6 @@ CUTS = [
     },
 ]
 
-# What the cut keeps: the mount's own updates to these properties.
 KEEP = {
     'EQUATORIAL_EOD_COORD',
     'TARGET_EOD_COORD',
@@ -138,7 +137,6 @@ SIDEREAL_HOURS_PER_SECOND = 1.0027379093 / 3600
 
 
 def moved(a, b, drifting):
-    """Whether the mount moved between readings a and b, ignoring the sidereal drift of a mount that is not tracking."""
     seconds = (b[0] - a[0]) / 1000
     drift = SIDEREAL_HOURS_PER_SECOND * seconds if drifting else 0
 
@@ -157,7 +155,6 @@ def step_of(message, command_ms, origin):
 
 
 def updates_between(messages, after, before):
-    """The mount's updates that arrived after message `after` and before message `before` (None: to the end)."""
     return [m for m in messages if m['dir'] == 'in' and m['verb'] == 'set' and m['name'] in KEEP and m['i'] > after['i'] and (before is None or m['i'] < before['i'])]
 
 
@@ -167,11 +164,7 @@ def tracking_off(messages, before):
     return bool(states) and dict(states[-1]['elements']).get('TRACK_OFF') == 'On'
 
 
-def settled(updates, previous, off):
-    """The updates up to the last one that moved the mount from `previous` (ms, (RA, Dec)), and SETTLE_MS of quiet after it.
-
-    The motion ends at the first move that no later move follows within SETTLE_MS: a mount that drifts or is moved again an hour later is another motion.
-    """
+def motion_until_quiet(updates, previous, off):
     last_moved, previous_off = None, off
     for update in updates:
         if update['name'] == 'TELESCOPE_TRACK_STATE':
@@ -209,7 +202,6 @@ def command_match(message, rate):
 
 
 def extrapolate(readings, at_ms):
-    """Where the mount would be at `at_ms` at the speed of its last two readings; the last reading if there is only one."""
     if len(readings) < 2:
         return readings[-1][1] if readings else (0.0, 0.0)
     (t1, a), (t2, b) = readings[-2], readings[-1]
@@ -219,7 +211,6 @@ def extrapolate(readings, at_ms):
 
 
 def cut(spec, messages):
-    """The fixture, and the span of the recording it was cut from, in milliseconds after the recording's first line."""
     start = command_of(messages, spec['start'])
     stop = command_of(messages, spec['stop']) if 'stop' in spec else None
     commands = [m for m in messages if m['dir'] == 'out' and m['name'] not in GUIDE and m['i'] > start['i'] and m is not stop]
@@ -231,7 +222,7 @@ def cut(spec, messages):
     after_start = lambda m: step_of(m, start['ms'], origin)
 
     if stop is None:
-        updates = settled(updates_between(messages, start, commands[0] if commands else None), (before[-1]['ms'], origin), tracking_off(messages, start))
+        updates = motion_until_quiet(updates_between(messages, start, commands[0] if commands else None), (before[-1]['ms'], origin), tracking_off(messages, start))
         if command.get('target'):
             ra, dec = numbers(start['elements'])
             del command['target']
@@ -246,7 +237,7 @@ def cut(spec, messages):
         if len(readings) < 2:
             raise SystemExit(f"{spec['name']}: fewer than two readings before the stop, so no speed to continue at")
         (t1, a), (t2, b) = readings[-2], readings[-1]
-        tail = settled(updates_between(messages, stop, commands[0] if commands else None), (start['ms'] + t2, b), tracking_off(messages, stop))
+        tail = motion_until_quiet(updates_between(messages, stop, commands[0] if commands else None), (start['ms'] + t2, b), tracking_off(messages, stop))
         pivot = extrapolate(readings, stop['ms'] - start['ms'])
         phases = {
             'start': {
@@ -268,7 +259,6 @@ def cut(spec, messages):
 
 
 def site_forms(site):
-    """Every way a recording's own site could be written into a fixture: raw, rounded, and RA-style longitudes."""
     forms = set()
     for text in site:
         value = float(text)
@@ -292,7 +282,6 @@ def holds(text, form):
 
 
 def render(fixture):
-    """Readable JSON with one step per line, so a diff shows a step."""
     def phase(name, body):
         lines = [f'  "{name}": {{', f'    "command": {json.dumps(body["command"])},']
         if 'recordedAfterMs' in body:

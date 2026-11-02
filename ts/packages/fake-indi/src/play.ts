@@ -45,8 +45,7 @@ interface Position {
 }
 
 interface Reading extends Position {
-  /** Recorded milliseconds after the start command. */
-  readonly ms: number
+  readonly recordedMs: number
 }
 
 interface Playing {
@@ -66,7 +65,6 @@ const added: Record<string, Omit<FakeVector, 'device'>> = {
 
 const wrapHours = (hours: number) => ((hours % 24) + 24) % 24
 
-/** The signed difference of two hour angles, the short way round. */
 const hoursBetween = (from: number, to: number) => ((to - from + 36) % 24) - 12
 
 const clampDec = (degrees: number) => Math.max(-90, Math.min(90, degrees))
@@ -77,13 +75,12 @@ function currentPosition(fake: FakeIndi, device: string): Position {
   return { ra: Number(elements.RA!.value), dec: Number(elements.DEC!.value) }
 }
 
-/** Where the mount would be `atMs` after the start at the speed of its last two readings; at its last reading if it has had one. */
 function extrapolate(playing: Playing, atMs: number): Position {
   const [before, last] = playing.readings.slice(-2)
 
   if (last === undefined) return playing.origin
   if (before === undefined) return last
-  const intervals = (atMs - last.ms) / (last.ms - before.ms)
+  const intervals = (atMs - last.recordedMs) / (last.recordedMs - before.recordedMs)
 
   return { ra: wrapHours(last.ra + hoursBetween(before.ra, last.ra) * intervals), dec: last.dec + (last.dec - before.dec) * intervals }
 }
@@ -136,10 +133,9 @@ export function playMotion(fake: FakeIndi, device: string, fixtures: readonly Mo
     const here = { ra: wrapHours(origin.ra + step.offset.RA), dec: clampDec(origin.dec + step.offset.DEC) }
 
     fake.update(device, step.property, { state: step.state, values: { RA: here.ra, DEC: here.dec } })
-    if (motion !== undefined && step.property === position) motion.readings.push({ ms: step.afterMs, ...here })
+    if (motion !== undefined && step.property === position) motion.readings.push({ recordedMs: step.afterMs, ...here })
   }
 
-  /** Steps with the same time go out together, in order, so scaling the time never reorders them. */
   const schedule = (phase: MotionPhase, origin: Position, motion: Playing | undefined) => {
     const times = [...new Set(phase.steps.map(step => step.afterMs))]
 
@@ -153,7 +149,6 @@ export function playMotion(fake: FakeIndi, device: string, fixtures: readonly Mo
     }
   }
 
-  /** After the recorded readings, a motion that has not been stopped goes on at the pace of its last two. */
   const keepGoing = (phase: MotionPhase, motion: Playing) => {
     const more = phase.continue
     const last = phase.steps.flatMap(step => ('offset' in step && step.property === position ? [step] : [])).at(-1)

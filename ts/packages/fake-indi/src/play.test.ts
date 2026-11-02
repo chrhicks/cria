@@ -1,14 +1,6 @@
 /**
  * The AM5 motion fixtures against the recordings they were cut from, and against Vela's measured profile of the
- * same recordings (build plan step 3, 87 motions over 19 recordings). The numbers compared, by fixture:
- *
- * - 9x rate moves (n=39): stop latency (median 1.002 s, max 1.043 s) and overshoot after the stop (median 4083.6",
- *   max 4414.2"). A fixture must lie in the profile's spread: from median - (max - median) up to max.
- * - goto (n=30): landing offset from the target at the first reading that is not Busy (median 3.83", max 8.89"),
- *   and no coast: the goto ends Ok and never reports Idle.
- * - home (n=5): coast, from the first Idle reading to the last reading that moved (median 12.3 s, max 21.5 s).
- * - abort of home (n=1, "too few to trust" in the profile): stop latency 1.942 s and overshoot 15915", the single
- *   sample the fixture was cut from. Compared to 1%, to show the fixture reproduces that measurement, not the spread.
+ * same recordings.
  */
 import net from 'node:net'
 import { afterEach, describe, expect, it } from 'vitest'
@@ -61,7 +53,6 @@ const arcsecPerHour = 15 * 3600
 const noClient: FakeClient = { id: 0 }
 
 interface Heard {
-  /** Recorded milliseconds since the start command. */
   readonly ms: number
   readonly property: string
   readonly state: string
@@ -125,10 +116,6 @@ function lastMoved(list: readonly Heard[]): Heard {
   return list.filter((update, index) => index > 0 && moved(list[index - 1]!, update)).at(-1)!
 }
 
-/**
- * Vela's measures of a stop (step 3): when the mount was last seen moving, how far it went on after where it was at the stop,
- * and how long it moved after the coordinates first said Idle (from the stop, if they said Idle already).
- */
 function stopMeasures(stopMs: number) {
   const before = readings().filter(update => update.ms < stopMs)
   const after = readings().filter(update => update.ms > stopMs)
@@ -166,7 +153,6 @@ describe('the fixtures', () => {
 describe('a 9x move east with tracking off, replayed against the raw recording', () => {
   it('sends the recorded updates in the recorded order and at the recorded times, the stop included', () => {
     const start = 1.9533333333333333
-    // Read off the recording (2026-10-23, 756.141 s to 761.3 s): the AM5's RA after the move and the stop, at its own times.
     const recorded: Array<[ms: number, property: string, state: string, ra?: number]> = [
       [0, 'TELESCOPE_MOTION_WE', 'Busy'],
       [44, 'EQUATORIAL_EOD_COORD', 'Idle', 1.9538888888888888],
