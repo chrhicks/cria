@@ -33,9 +33,9 @@ const Site = Schema.Struct({
 
 /** How a mount stops, measured on errai's AM5 (docs/ts/SPEC.md, "Stopping the mount"). */
 const MountMotion = Schema.Struct({
-  /** Two position reads that differ by at most this on each axis mean the mount stands still. */
+  /** Readings of the position that differ by at most this on each axis, across a window, mean the mount stands still. */
   stationaryDegrees: Schema.optionalKey(Between(0.001, 1)),
-  /** The spacing of those reads: longer than the driver's poll of the mount (1 s on the AM5). */
+  /** The spacing of those reads, and the window they must span: longer than the driver's poll of the mount (1 s on the AM5). */
   positionReadMs: Schema.optionalKey(Milliseconds(250, 10_000)),
   /** How far, in time at the axis rate, the mount travels after Cria sees a rotate's target: 0.9 s on the AM5 at 8x. */
   stopLatencyMs: Schema.optionalKey(Milliseconds(0, 10_000)),

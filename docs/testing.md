@@ -75,7 +75,9 @@ python3 -I measure/cut-am5-motion.py --recordings /mnt/storage/rig/imports/errai
 
 The same recordings give the same files byte for byte. `play.test.ts` replays each fixture and compares it with Vela's profile of the same recordings: stop latency and overshoot of 9x moves (39 samples), landing offset of gotos (30), the coast of a home (5), and the one abort of a home (1, which the profile marks too few to trust). It also compares one fixture, update by update, with the raw recording.
 
-What a fixture does not model: a move on Dec at a rate (no recording holds one), a stop that arrives while a goto plays (the goto goes on), a mount that is moved again during a coast, and a home or a goto from far from where it was recorded (Dec is held within the poles; a goto plays only for the recorded size). `apps/cria/test/drivers.ts` `am5()` is still a hand-built model of the same mount, measured on errai on 2026-10-15 and not cut from these recordings.
+What a fixture does not model: a move on Dec at a rate (no recording holds one), a stop that arrives while a goto plays (the goto goes on), a mount that is moved again during a coast, and a home or a goto from far from where it was recorded (Dec is held within the poles; a goto plays only for the recorded size). `apps/cria/test/drivers.ts` `am5()` is still a hand-built model of the same mount, measured on errai on 2026-10-15 and not cut from these recordings. It stays for what no fixture holds: a goto refused until site and time are written, a mount that never stops, a power cut, a rotate at the pole, a rotate's lead over its stop at 8x and 9x, and the wire golden's mount scenarios.
+
+`apps/cria/test/am5-motion.test.ts` plays all five fixtures through the real Cria mount code and checks the one definition of "stopped" (`capability/stopped.ts`) on each: a move finishes only after the position has stood still for a window after it last changed, never on the first Idle or Ok, and a cached reply with the old position, or an Ok sent while the mount still moves, does not finish it. `stopped.test.ts` checks the same rule on bare readings.
 
 ## Serving a case to a test Vela
 

@@ -35,7 +35,7 @@ describe('one mount', () => {
   let cria: Cria
 
   beforeEach(async () => {
-    cria = await startCria(fake.port, [{ id: 'mount', kind: 'mount', indiDevice: mount }], { acknowledgeMs: 600, operationHistory: 10 })
+    cria = await startCria(fake.port, [{ id: 'mount', kind: 'mount', indiDevice: mount, motion: { positionReadMs: 250 } }], { acknowledgeMs: 600, operationHistory: 10 })
     await cria.waitFor(allReady(['mount']))
   })
 

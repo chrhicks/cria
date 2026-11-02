@@ -261,17 +261,6 @@ export function confirmProperty(
   })
 }
 
-/** confirm on the mirror: none of `properties` that the device defines is Busy. */
-export function confirmNoneBusy(device: IndiDevice, properties: ReadonlyArray<string>, withinMs: number) {
-  return confirm({
-    command: `stop on ${device.name}`,
-    read: device.properties,
-    holds: (defined: ReadonlyArray<Property>) => !defined.some(property => properties.includes(property.name) && property.state === 'Busy'),
-    within: withinMs,
-    every: '50 millis',
-  })
-}
-
 /**
  * Waits for a motion or exposure on `property` to finish. Completes when the
  * property leaves Busy and `done` holds; Alert fails it; the driver or the

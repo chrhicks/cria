@@ -360,7 +360,7 @@ operation has no deadline field, and Vela cannot read the configured values.
 | Capture | The exposure plus `readoutAllowanceMs`. With no frame by then Cria aborts, and with the abort confirmed it settles `failed: unavailable`. Frames that were not this exposure settle `failed: rejected` when the camera is then idle, else `uncertain`. |
 | Motion (slew, park, home, focuser move) | `operationTimeoutMs` for the driver to finish the motion, then `failed: unavailable`. |
 | Setting | `acknowledgeMs` for the driver to answer, then up to the confirm deadline (15 s unless the kind sets its own) for the new state; `uncertain` if either passes. |
-| Stop (`mount-stop`, `focuser-halt`) and a Run's stop | `stopWithin`: 20 s for the mount and focuser, 15 s for the camera abort. A stopped home is confirmed from the coordinates, not `TELESCOPE_HOME` (see "Stopping the mount"). |
+| Stop (`mount-stop`, `focuser-halt`) and a Run's stop | `stopWithin`: 20 s for the mount and focuser, 15 s for the camera abort. A stop is confirmed from the position, not from any property's state (see "Stopping the mount"). |
 | `device-connect` | `initializeTimeoutMs` for the driver to acknowledge the connect and again for the device to read connected, then `uncertain`. Device setup follows under its own writes' bounds. |
 
 These bounds are per kind, not one guarantee stated in code: nothing enforces a
@@ -450,6 +450,7 @@ Tests and test tools:
 | `packages/indi-replay/src` | `indi-replay`: a recording served like indiserver (see "Replay"): `tape.ts` loads it, `replay.ts` is the server, `synthesize.ts` makes a recording |
 | `apps/cria/test/drivers.ts` | The rig's drivers modelled on that server: ZWO frames, the EAF, dew heaters, mount motion; `am5` models errai's mount (see "Stopping the mount") |
 | `apps/cria/test/harness.ts` | Starts Cria against an INDI server and drives it over HTTP as Vela does |
+| `apps/cria/test/stopped.test.ts`, `am5-motion.test.ts` | The one rule for "stopped" on bare readings, and on step 16's AM5 fixtures through the real mount code |
 | `apps/cria/test/*.test.ts` | Scenarios: fake-driver failures, mount stops, operation lifecycle, HTTP refusals, protocol 5 end to end, shutdown, real simulators, errai replay |
 | `apps/cria/test/fixtures/errai-2026-10-15.xml` | The rig's recorded INDI definitions |
 | `testing/indiserver.ts` | Runs a real indiserver with simulator drivers on a free port |
@@ -631,70 +632,73 @@ INDI conventions Cria depends on:
 The AM5 acknowledges a stop long before it is stationary. Measured on errai on
 2026-10-15 (see "Checked on errai"): a cancelled slew at about 3°/s went `Idle` at
 once and moved 3.6° more over 2 s, and an 8x rotate (0.2507°/s) overshot by its
-rate times 0.9 s. So a stop (an abort, an axis halt) is confirmed only when:
+rate times 0.9 s. A goto ends `Ok`, a rate move with tracking on never reports
+`Idle`, and a home reports `Idle` from its first reading and moves for 12 s. So no
+property state says the mount stopped, and Cria has one definition of "stopped"
+(`capability/stopped.ts`), used by every motion:
 
-1. none of the motion properties above is `Busy`, and
-2. two reads of the mount's position, each a definition the driver sends again
-   (`getProperties` for the coordinates, as the liveness read does), at least
-   `positionReadMs` apart (1.5 s), differ by at most `stationaryDegrees` (0.02°)
-   on each axis, and the coordinates are not `Busy`.
+> The mount has stopped when readings that arrived after the command show its
+> position no longer changing.
+
+Each reading is a definition the driver sends again (`getProperties` for the
+coordinates, as the liveness read does), `positionReadMs` apart (1.5 s). The mount
+has stopped when the newest reading and an earlier one at least that window before
+it, and every reading between them, differ by at most `stationaryDegrees` (0.02°)
+on each axis. Which readings count:
+
+1. Only readings that arrived after Cria began sending the command. Nothing read
+   before it can show that it worked.
+2. A reading in the first window after the command that repeats the position the
+   mirror held when the command went out is dropped. It may be the driver's cache
+   of its last poll, and a mount that was moving cannot read the same twice. After
+   that window the driver has polled again and the same position is where the
+   mount is. A mount that was already still therefore takes one more read to
+   confirm.
+3. Idle and Ok say nothing, and neither does `Busy` on any property, including
+   `TELESCOPE_HOME`, which indi_lx200am5 leaves `Busy` for good after a home it has
+   stopped (errai, 2026-10-26: no further update of it in 25 s, the coordinates
+   `Idle` and unmoved).
 
 Reads, not pushed updates: INDI publishes a position only when it moves by more
 than 0.1 arcsecond (libindi 2.2.5, `Telescope::NewRaDec`), so a still mount that
 tracks publishes nothing, and the same update read twice would prove nothing.
-Each read is a fresh answer from the driver, and 1.5 s is longer than
-indi_lx200am5's 1 s poll of the mount, so two reads straddle at least one poll.
-Each axis, not the angle on the sky: at the pole a turning RA axis barely moves
-the pointing.
+1.5 s is longer than indi_lx200am5's 1 s poll of the mount, so two reads straddle
+at least one poll. Each axis, not the angle on the sky: at the pole a turning RA
+axis barely moves the pointing.
+
+Where it is used:
+
+| Motion | The command | Done when |
+|---|---|---|
+| `mount-stop`, and a cancelled slew, park or home | `TELESCOPE_ABORT_MOTION` | the position has stopped |
+| `mount-axis` and `mount-rotate` halt | `TELESCOPE_MOTION_WE` both off | the position has stopped |
+| `mount-slew`, `mount-park`, `mount-home` | the motion itself | the property leaves `Busy` (the driver says it is over), then the position has stopped since the motion was sent |
+
+A slew then compares where it stopped with the target: within 0.1° of it, and it
+is confirmed; elsewhere, `uncertain: not-confirmed`. That tolerance says where the
+slew landed, not whether the mount stopped.
 
 The tolerance and the sidereal drift. With tracking off the mount stands still
 against the ground and its RA advances 15.04 arcseconds a second (0.0042°/s), so
 two reads 1.5 s apart differ by 0.0063° in RA. With tracking on the coordinates
 hold still. 0.02° is three times that drift and far below coasting (the measured
 tail moved 0.17° in its last second), so Cria compares the axes without removing
-the drift.
+the drift. Still means within that tolerance, not unchanged: a mount drifting
+under it is accepted as stopped (0.01°/s is 0.015° over the 1.5 s between reads;
+a synthetic probe, not seen on the rig).
 
 The stop is bounded by `stopWithin` (20 s): inside `stoppable` the abort is sent
-again until it is confirmed or the 20 s pass, and `mount-stop` gives up at 20 s.
-Unconfirmed, the outcome is `uncertain: stop-not-confirmed`, never `confirmed`.
-This covers `mount-stop`, cancelling a slew, park, home, `mount-axis` or
-`mount-rotate`, and SIGTERM.
+again until the position has stopped or the 20 s pass, and `mount-stop` gives up at
+20 s. A stop or abort is the only command that is ever resent: it can only stop
+motion, never start it. Unconfirmed, the outcome is `uncertain: stop-not-confirmed`,
+never `confirmed`. This covers `mount-stop`, cancelling a slew, park, home,
+`mount-axis` or `mount-rotate`, and SIGTERM. A park or home that a client stopped
+and whose property stays `Busy` is stopped when its position has stopped, and the
+mount is not held; one whose position keeps changing stays `uncertain` and held,
+as does one whose position cannot be read.
 
-**A stop during home.** indi_lx200am5 turns `TELESCOPE_HOME` `Busy` when a home
-starts and does not mark the coordinates `Busy` while the mount homes. After an
-abort it answers `Ok` at once and can leave `TELESCOPE_HOME` `Busy` for good
-(seen on errai, 2026-10-26: no further update of it in 25 s, the coordinates
-`Idle` and unmoved throughout, tracking off). The `Busy` flag on `TELESCOPE_HOME`
-is therefore not evidence of motion once the abort is acknowledged, and for a
-home it is not read. A home that a client stopped is confirmed when, after the
-abort is acknowledged:
-
-1. none of the other motion properties (the coordinates, park, `TELESCOPE_MOTION_WE`,
-   `TELESCOPE_MOTION_NS`) is `Busy`, and
-2. the coordinates pass the two-read test above: not `Busy`, and two reads
-   `positionReadMs` apart differ by at most `stationaryDegrees` on each axis.
-   The coordinates, not the `Busy` flag, are the evidence.
-
-Still means within that tolerance, not unchanged. A mount drifting under it is
-accepted as stopped by the shared stillness check: 0.01°/s is 0.015° over the
-1.5 s between reads, inside 0.02° (a synthetic probe, not seen on the rig). A
-real home moves far faster, and the `home-stop` test drifts the coordinates at
-1.5°/s (0.01 h of RA every 100 ms) to show a stop that stays unconfirmed.
-
-Then the home settles `stopped`, as a confirmed stop of any other motion does,
-and the mount is not held: the next mount command is accepted at once. It stays
-`uncertain: stop-not-confirmed` and the mount held when the abort is not
-acknowledged, when the coordinates move by more than the tolerance over the
-window, when they cannot be read or stop updating, or when any other motion
-property is still `Busy`. The
-timeouts are the same as for any stop, and the abort is resent as before. Only a
-home is treated this way. The stop of a slew or a park, and `mount-stop`, still
-require every motion property, `TELESCOPE_HOME` included, to be not `Busy`. The
-stop of `mount-axis` and `mount-rotate` is the axis halt: it requires
-`TELESCOPE_MOTION_WE` to be not `Busy` with the direction cleared, then the same
-two-read test, and does not read `TELESCOPE_HOME`. Starting a home, slew, park,
-`mount-axis` or `mount-rotate` is refused as busy only when the coordinates are
-`Busy`.
+Starting a home, slew, park, `mount-axis` or `mount-rotate` is refused as busy
+only when the coordinates are `Busy`.
 
 **A rotate leads its stop.** The mount keeps going for about `stopLatencyMs`
 (900 ms, measured on the AM5) at the axis rate after Cria sees it reach a target,
