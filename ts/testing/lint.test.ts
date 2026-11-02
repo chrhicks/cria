@@ -66,7 +66,7 @@ const allowed: Record<string, Partial<Record<Rule, readonly [count: number, why:
     'try-catch': [1, 'removes the partial file, then rethrows into Effect.tryPromise'],
     'wall-clock': [1, 'retainedAt is a wire timestamp'],
   },
-  'apps/cria/src/operation/ledger.ts': { 'wall-clock': [5, 'admission, settle and recovery times are wire timestamps'] },
+  'apps/cria/src/operation/ledger.ts': { 'wall-clock': [7, 'admission, settle, recovery and lease expiry use wire epoch timestamps'] },
   'apps/cria/src/wire/project.ts': { 'wall-clock': [1, 'generatedAt is a wire timestamp'] },
   'apps/cria/src/wire/http.ts': {
     'try-catch': [1, 'a body that is not JSON is refused as request-error'],

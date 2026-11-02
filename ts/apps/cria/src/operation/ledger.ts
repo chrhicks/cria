@@ -566,6 +566,19 @@ export function makeLedger(options: LedgerOptions): Effect.Effect<Ledger, never,
           lease = { ...domain.lease, expiresAt: request.action === 'release' ? now : now + mountLeaseMs }
         }
 
+        if (request.action === 'release') {
+          const { lease: _, ...unleased } = domain
+          const after: After[] = []
+
+          for (const operation of openIn(current, device.failureDomain)) {
+            if (operation.state !== 'running' || !needsMountLease(operation) || operation.leaseId !== lease.id) continue
+            leaseStops.set(operation.id, `Mount lease released by ${lease.holder}`)
+            after.push({ kind: 'stop', operation })
+          }
+
+          return [step(lease, after), changed(current, { domains: put(current.domains, device.failureDomain, unleased) })]
+        }
+
         return [step(lease), changed(current, { domains: put(current.domains, device.failureDomain, { ...domain, lease }) })]
       }), answer),
       submit: submission =>

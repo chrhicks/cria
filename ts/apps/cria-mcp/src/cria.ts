@@ -137,6 +137,7 @@ const make = Effect.fnUntraced(function* (target: CriaTarget) {
   const send = <S extends Schema.Top & { readonly DecodingServices: never }>(path: string, schema: S, body?: unknown) =>
     exchange(`POST ${path}`, post(path, body), schema)
 
+  const reportLeaseFailure = (error: CriaError) => Effect.logWarning('Mount lease maintenance ended', error)
   const lease = (request: OperationRequest, body: LeaseRequest) =>
     send(`/v2/devices/${request.deviceId}/lease`, MountLease, body)
 
@@ -144,7 +145,7 @@ const make = Effect.fnUntraced(function* (target: CriaTarget) {
     if (!needsMountLease(request)) return yield* send('/v2/operations', Operation, Schema.encodeSync(OperationRequest)(request))
     const identity = { instanceId: request.instanceId, bindingId: request.bindingId }
     const held = yield* lease(request, { ...identity, action: 'acquire', holder: 'cria-mcp' })
-    const release = lease(request, { ...identity, action: 'release', leaseId: held.id }).pipe(Effect.ignore)
+    const release = lease(request, { ...identity, action: 'release', leaseId: held.id }).pipe(Effect.catchTags({ CriaLost: reportLeaseFailure, CriaRefused: reportLeaseFailure }))
     const operation = yield* send('/v2/operations', Operation, Schema.encodeSync(OperationRequest)({ ...request, leaseId: held.id })).pipe(Effect.onError(() => release))
     const maintain = Effect.gen(function* () {
       let current = operation
@@ -154,7 +155,7 @@ const make = Effect.fnUntraced(function* (target: CriaTarget) {
         yield* lease(request, { ...identity, action: 'renew', leaseId: held.id })
         current = yield* read(`/v2/operations/${operation.id}`, Operation)
       }
-    }).pipe(Effect.ensuring(release), Effect.catch(error => Effect.logWarning('Mount lease maintenance ended', error)))
+    }).pipe(Effect.ensuring(release), Effect.catchTags({ CriaLost: reportLeaseFailure, CriaRefused: reportLeaseFailure }))
 
     yield* Effect.forkIn(maintain, scope)
 
