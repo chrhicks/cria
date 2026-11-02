@@ -54,7 +54,7 @@ function boxRefusal(envelope: MountEnvelope, from: MountPose, to: Point, meridia
   return undefined
 }
 
-export function gotoRefusal(envelope: MountEnvelope, from: MountPose, to: Point, meridianLimit: number): string | undefined {
+export function gotoRefusal(envelope: MountEnvelope, from: MountPose, to: Point, meridianLimit: number, reserveDegrees = 0): string | undefined {
   const start = boxRefusal(envelope, from, from, meridianLimit)
 
   if (start !== undefined) return start
@@ -64,13 +64,18 @@ export function gotoRefusal(envelope: MountEnvelope, from: MountPose, to: Point,
 
   const nearPole = from.declinationDegrees >= 89 && from.declinationDegrees <= 90
   const reflectedHa = (from.hourAngleDegrees + 360) % 360 - 180
-  const poleHa = Math.abs(reflectedHa) > 90 && Math.abs(reflectedHa) <= 90.05 ? Math.sign(reflectedHa) * 90 : reflectedHa
-
   for (const pierSide of sides) {
-    const startPose = nearPole && pierSide !== from.pierSide
-      ? { hourAngleDegrees: poleHa, declinationDegrees: 90, pierSide }
+    const oppositeSide = pierSide !== from.pierSide
+    const startHa = oppositeSide ? reflectedHa : from.hourAngleDegrees
+    const poleHa = Math.abs(startHa) > 90 && Math.abs(startHa) <= 90.05 + 1e-9 ? Math.sign(startHa) * 90 : startHa
+    const startPose = nearPole
+      ? { hourAngleDegrees: poleHa, declinationDegrees: oppositeSide ? 90 : from.declinationDegrees, pierSide }
       : { ...from, pierSide }
-    const refusal = boxRefusal(envelope, startPose, to, meridianLimit)
+    const beyond = {
+      hourAngleDegrees: to.hourAngleDegrees + Math.sign(to.hourAngleDegrees - startPose.hourAngleDegrees) * reserveDegrees,
+      declinationDegrees: to.declinationDegrees + Math.sign(to.declinationDegrees - startPose.declinationDegrees) * reserveDegrees,
+    }
+    const refusal = boxRefusal(envelope, startPose, beyond, meridianLimit)
 
     if (refusal !== undefined) return refusal
   }

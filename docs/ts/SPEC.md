@@ -670,10 +670,17 @@ If that side differs from the reported side, start HA shifts by 180 degrees,
 wrapped to -180..180, and the box extends to Dec 90. The reflected mechanical
 Dec is 180 minus the reported Dec; its sky Dec folds back below 90. Extending
 the box to the pole covers that fold. The reported start must still pass its
-own pose check. A reflected HA up to 0.05 degrees beyond either normal
-90-degree boundary uses that boundary, to absorb the observed 0.01-degree
-home reporting offset. Larger offsets retain the box refusal. Starts below
-Dec 89 keep the existing box rule.
+own pose check. On either landing side, a near-pole start HA up to 0.05
+degrees beyond either normal 90-degree boundary uses that boundary, to absorb
+the observed 0.01-degree home reporting offset. Larger offsets retain the box
+refusal. Starts below Dec 89 keep the existing box rule.
+Each goto box also extends beyond the target in each axis's direction of
+travel by the current pointing margin plus the reaction reserve. The direction
+uses the start in that landing side's representation, including the pole-start
+conversion. An axis with no requested travel has no directional extension.
+The extension must pass the same bands and coordinate limits before Cria sends
+any setting or motion command. The separate margin check around the reported
+start stays in force; a driver leaving Busy does not prove a coast has stopped.
 Unknown pier side or unread coordinates refuse a goto. The envelope needs
 topocentric coordinates; Cria cannot convert J2000 to mount HA.
 
