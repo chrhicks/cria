@@ -55,6 +55,7 @@ describe('a mount', () => {
     fake = new FakeIndi()
     await fake.start()
     addMount(fake, mount)
+    fake.update(mount, 'GEOGRAPHIC_COORD', { values: { LAT: 0, LONG: 0, ELEV: 0 } })
     fake.behaviour = behaviour
     cria = await startCria(fake.port, [{ id: 'mount', kind: 'mount', indiDevice: mount, site }], { acknowledgeMs: 600 })
   }
@@ -133,6 +134,7 @@ describe('a mount', () => {
     fake.removeDevice(mount)
     await cria.waitFor(state => state.devices[0]!.availability.ready === false)
     addMount(fake, mount)
+    fake.update(mount, 'GEOGRAPHIC_COORD', { values: { LAT: 0, LONG: 0, ELEV: 0 } })
     await cria.waitFor(allReady(['mount']))
 
     expect([writes('GEOGRAPHIC_COORD').length, writes('TIME_UTC').length]).toEqual([2, 2])
