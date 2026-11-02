@@ -5,6 +5,13 @@
 import { Schema } from 'effect';
 import { Timestamp } from './values.js';
 export const MotionAxes = Schema.Struct({ rightAscensionDegrees: Schema.Number, declinationDegrees: Schema.Number });
+export const ForeignMotion = Schema.Struct({
+    at: Timestamp,
+    from: MotionAxes,
+    to: MotionAxes,
+    /** Axis displacement after subtracting sidereal drift while tracking was off. */
+    unexplained: MotionAxes,
+});
 const sentAt = { sentAt: Timestamp };
 /** The axis a rate move or rotate runs on is the mount's primary one, right ascension. */
 const rate = { axis: Schema.Literal('ra'), rateDegreesPerSecond: Schema.Number };

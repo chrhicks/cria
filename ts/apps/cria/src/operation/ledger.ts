@@ -7,6 +7,7 @@ import {
   mountLeaseMs,
   mountLeaseWatchMs,
   needsMountLease,
+  type ForeignMotion,
   type MountLease,
   type LeaseRequest,
   isHalt,
@@ -66,6 +67,7 @@ export interface SettledMark {
 }
 
 interface Domain {
+  readonly foreignMotion?: ForeignMotion
   readonly binding: BindingId
   readonly recentlySettled: ReadonlyArray<SettledMark>
   readonly lease?: MountLease
@@ -94,6 +96,7 @@ export interface Step<A> {
 export type Transition<A> = readonly [Step<A>, LedgerState]
 
 export interface DomainFacts {
+  readonly foreignMotion?: ForeignMotion
   readonly binding: BindingId
   readonly quarantine: QuarantineState
   readonly busy: boolean
@@ -144,7 +147,13 @@ const openIn = (state: LedgerState, failureDomain: FailureDomain): ReadonlyArray
 const holdsDevice = (rules: Rules, operation: Stored) => rules.devices.get(operation.deviceId)?.kind === 'mount'
 
 function quarantineIn(rules: Rules, state: LedgerState, failureDomain: FailureDomain): QuarantineState {
-  const { binding } = known(state.domains, failureDomain)
+  const { binding, foreignMotion } = known(state.domains, failureDomain)
+
+  if (foreignMotion) return {
+    held: true,
+    since: foreignMotion.at,
+    reason: `Foreign motion at ${foreignMotion.at}: unexplained RA ${foreignMotion.unexplained.rightAscensionDegrees}°, Dec ${foreignMotion.unexplained.declinationDegrees}°; a person must check the mount`,
+  }
 
   return quarantineOf(
     [...state.operations.values()].filter((operation): operation is Ended => operation.state === 'settled' && operation.bindingId === binding && holdsDevice(rules, operation)),
@@ -158,9 +167,9 @@ const blocks = (rules: Rules, state: LedgerState, operation: Stored) =>
   operation.bindingId === known(state.domains, operation.failureDomain).binding
 
 function factsOf(rules: Rules, state: LedgerState, failureDomain: FailureDomain): DomainFacts {
-  const { binding, recentlySettled, lease } = known(state.domains, failureDomain)
+  const { binding, recentlySettled, lease, foreignMotion } = known(state.domains, failureDomain)
 
-  return { binding, quarantine: quarantineIn(rules, state, failureDomain), busy: openIn(state, failureDomain).length > 0, recentlySettled, ...(lease ? { lease } : {}) }
+  return { ...(foreignMotion ? { foreignMotion } : {}), binding, quarantine: quarantineIn(rules, state, failureDomain), busy: openIn(state, failureDomain).length > 0, recentlySettled, ...(lease ? { lease } : {}) }
 }
 
 const settledView = (state: LedgerState, operation: Ended): Settled => ({
@@ -336,8 +345,9 @@ export function recover(
   if (openIn(state, device.failureDomain).length > 0)
     return refused(refuse('device-busy', 'An operation is still open on this device; recover it once that settles'))
 
+  const { foreignMotion: _cleared, ...recoveredDomain } = domain
   const recovered = changed(state, {
-    domains: put(state.domains, device.failureDomain, { ...domain, binding: input.next }),
+    domains: put(state.domains, device.failureDomain, { ...recoveredDomain, binding: input.next }),
     recoveredBindings: put(state.recoveredBindings, domain.binding, { at: input.at, note: input.recovery.note }),
   })
 
@@ -399,6 +409,7 @@ export interface RecoverRequest {
 }
 
 export interface Ledger {
+  readonly flagForeignMotion: (deviceId: DeviceId, binding: BindingId, event: ForeignMotion) => Effect.Effect<void>
   readonly lease: (deviceId: DeviceId, request: LeaseRequest) => Effect.Effect<MountLease | null, Refusal>
   readonly submit: (submission: Submission) => Effect.Effect<Operation, Refusal>
   readonly cancel: (id: OperationId) => Effect.Effect<Operation, Refusal>
@@ -604,6 +615,13 @@ export function makeLedger(options: LedgerOptions): Effect.Effect<Ledger, never,
 
           return yield* answer(yield* apply(current => recover(rules, current, input)))
         }),
+      flagForeignMotion: (deviceId, binding, event) => apply(current => {
+        const device = known(devices, deviceId)
+        const domain = known(current.domains, device.failureDomain)
+        if (device.kind !== 'mount' || domain.binding !== binding || domain.foreignMotion || openIn(current, device.failureDomain).length > 0)
+          return [step(undefined), current]
+        return [step(undefined), changed(current, { domains: put(current.domains, device.failureDomain, { ...domain, foreignMotion: event }) })]
+      }),
       facts: deviceId => read(current => deviceFacts(rules, current, deviceId)),
       snapshot: apply(current => snapshot(rules, current)),
       revisions: Stream.fromPubSub(revisions),
