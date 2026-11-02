@@ -83,14 +83,16 @@ export function normalize(scenario: string, recorded: ReadonlyArray<Recorded>): 
     return `<${label}-${count}>`
   }
 
-  const visit = (value: unknown, key: string, parent: object): unknown => {
-    if (Array.isArray(value)) return value.map(item => visit(item, key, parent))
+  const visit = (value: unknown, key: string, parent: object, motionObservation = false): unknown => {
+    if (Array.isArray(value)) return value.map(item => visit(item, key, parent, motionObservation))
     if (value !== null && typeof value === 'object')
       return Object.fromEntries(
         Object.keys(value)
           .sort()
-          .map(inner => [inner, visit((value as Record<string, unknown>)[inner], inner, value)]),
+          .map(inner => [inner, visit((value as Record<string, unknown>)[inner], inner, value, motionObservation || (inner === 'observed' && 'commanded' in value && 'stopped' in value))]),
       )
+    // Abort endpoints depend on when the stop arrives. Fixture tests check the actual displacement.
+    if (motionObservation && typeof value === 'number') return '<angle>'
     if (typeof value === 'number' && times.has(key)) return '<time>'
     if (typeof value === 'number' && key === 'elapsedSeconds') return '<elapsed>'
     if (typeof value === 'number' && key === 'sequence') return '<sequence>'

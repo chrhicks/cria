@@ -2466,16 +2466,16 @@
         },
         "observed": {
           "from": {
-            "declinationDegrees": 40,
-            "rightAscensionDegrees": 30
+            "declinationDegrees": "<angle>",
+            "rightAscensionDegrees": "<angle>"
           },
           "to": {
-            "declinationDegrees": 10,
-            "rightAscensionDegrees": 120
+            "declinationDegrees": "<angle>",
+            "rightAscensionDegrees": "<angle>"
           },
           "travel": {
-            "declinationDegrees": -30,
-            "rightAscensionDegrees": 90
+            "declinationDegrees": "<angle>",
+            "rightAscensionDegrees": "<angle>"
           }
         },
         "stopped": {
@@ -2637,16 +2637,16 @@
         },
         "observed": {
           "from": {
-            "declinationDegrees": 40,
-            "rightAscensionDegrees": 30
+            "declinationDegrees": "<angle>",
+            "rightAscensionDegrees": "<angle>"
           },
           "to": {
-            "declinationDegrees": 40,
-            "rightAscensionDegrees": 30
+            "declinationDegrees": "<angle>",
+            "rightAscensionDegrees": "<angle>"
           },
           "travel": {
-            "declinationDegrees": 0,
-            "rightAscensionDegrees": 0
+            "declinationDegrees": "<angle>",
+            "rightAscensionDegrees": "<angle>"
           }
         },
         "stopped": {
@@ -2731,7 +2731,7 @@
       "kind": "mount-axis",
       "outcome": {
         "kind": "failed",
-        "message": "The mount does not offer 0.05°/s; it offers 0.001045, 0.002089, 0.004178, 0.008356, 0.01671, 0.03342, 0.08356, 0.2507, 3.008, 6.016°/s",
+        "message": "The mount does not offer 0.05\u00b0/s; it offers 0.001045, 0.002089, 0.004178, 0.008356, 0.01671, 0.03342, 0.08356, 0.2507, 3.008, 6.016\u00b0/s",
         "reason": "invalid"
       },
       "parameters": {
@@ -2808,16 +2808,16 @@
         },
         "observed": {
           "from": {
-            "declinationDegrees": 40,
-            "rightAscensionDegrees": 31.5
+            "declinationDegrees": "<angle>",
+            "rightAscensionDegrees": "<angle>"
           },
           "to": {
-            "declinationDegrees": 40,
-            "rightAscensionDegrees": 31.5
+            "declinationDegrees": "<angle>",
+            "rightAscensionDegrees": "<angle>"
           },
           "travel": {
-            "declinationDegrees": 0,
-            "rightAscensionDegrees": 0
+            "declinationDegrees": "<angle>",
+            "rightAscensionDegrees": "<angle>"
           }
         },
         "stopped": {
@@ -2902,7 +2902,7 @@
       "kind": "mount-rotate",
       "outcome": {
         "kind": "failed",
-        "message": "At 6.016°/s the mount travels about 5.41° after Cria sees the target (900 ms), more than 50 % of the 1° asked; use a slower rate or a longer rotate",
+        "message": "At 6.016\u00b0/s the mount travels about 5.41\u00b0 after Cria sees the target (900 ms), more than 50 % of the 1\u00b0 asked; use a slower rate or a longer rotate",
         "reason": "invalid"
       },
       "parameters": {
@@ -2970,16 +2970,16 @@
         },
         "observed": {
           "from": {
-            "declinationDegrees": 40,
-            "rightAscensionDegrees": 30
+            "declinationDegrees": "<angle>",
+            "rightAscensionDegrees": "<angle>"
           },
           "to": {
-            "declinationDegrees": 40,
-            "rightAscensionDegrees": 30
+            "declinationDegrees": "<angle>",
+            "rightAscensionDegrees": "<angle>"
           },
           "travel": {
-            "declinationDegrees": 0,
-            "rightAscensionDegrees": 0
+            "declinationDegrees": "<angle>",
+            "rightAscensionDegrees": "<angle>"
           }
         },
         "stopped": {
@@ -3056,16 +3056,16 @@
         },
         "observed": {
           "from": {
-            "declinationDegrees": 40,
-            "rightAscensionDegrees": 30
+            "declinationDegrees": "<angle>",
+            "rightAscensionDegrees": "<angle>"
           },
           "to": {
-            "declinationDegrees": 40,
-            "rightAscensionDegrees": 30
+            "declinationDegrees": "<angle>",
+            "rightAscensionDegrees": "<angle>"
           },
           "travel": {
-            "declinationDegrees": 0,
-            "rightAscensionDegrees": 0
+            "declinationDegrees": "<angle>",
+            "rightAscensionDegrees": "<angle>"
           }
         },
         "stopped": {
@@ -3204,16 +3204,16 @@
         },
         "observed": {
           "from": {
-            "declinationDegrees": 40,
-            "rightAscensionDegrees": 30
+            "declinationDegrees": "<angle>",
+            "rightAscensionDegrees": "<angle>"
           },
           "to": {
-            "declinationDegrees": 40,
-            "rightAscensionDegrees": 30
+            "declinationDegrees": "<angle>",
+            "rightAscensionDegrees": "<angle>"
           },
           "travel": {
-            "declinationDegrees": 0,
-            "rightAscensionDegrees": 0
+            "declinationDegrees": "<angle>",
+            "rightAscensionDegrees": "<angle>"
           }
         },
         "stopped": {
@@ -3290,16 +3290,16 @@
         },
         "observed": {
           "from": {
-            "declinationDegrees": 40,
-            "rightAscensionDegrees": 30
+            "declinationDegrees": "<angle>",
+            "rightAscensionDegrees": "<angle>"
           },
           "to": {
-            "declinationDegrees": 40,
-            "rightAscensionDegrees": 30
+            "declinationDegrees": "<angle>",
+            "rightAscensionDegrees": "<angle>"
           },
           "travel": {
-            "declinationDegrees": 0,
-            "rightAscensionDegrees": 0
+            "declinationDegrees": "<angle>",
+            "rightAscensionDegrees": "<angle>"
           }
         },
         "stopped": {
@@ -3412,16 +3412,16 @@
         },
         "observed": {
           "from": {
-            "declinationDegrees": 40,
-            "rightAscensionDegrees": 30
+            "declinationDegrees": "<angle>",
+            "rightAscensionDegrees": "<angle>"
           },
           "to": {
-            "declinationDegrees": 40,
-            "rightAscensionDegrees": 30
+            "declinationDegrees": "<angle>",
+            "rightAscensionDegrees": "<angle>"
           },
           "travel": {
-            "declinationDegrees": 0,
-            "rightAscensionDegrees": 0
+            "declinationDegrees": "<angle>",
+            "rightAscensionDegrees": "<angle>"
           }
         },
         "stopped": {
@@ -3469,16 +3469,16 @@
         },
         "observed": {
           "from": {
-            "declinationDegrees": 40,
-            "rightAscensionDegrees": 30
+            "declinationDegrees": "<angle>",
+            "rightAscensionDegrees": "<angle>"
           },
           "to": {
-            "declinationDegrees": 40,
-            "rightAscensionDegrees": 30
+            "declinationDegrees": "<angle>",
+            "rightAscensionDegrees": "<angle>"
           },
           "travel": {
-            "declinationDegrees": 0,
-            "rightAscensionDegrees": 0
+            "declinationDegrees": "<angle>",
+            "rightAscensionDegrees": "<angle>"
           }
         },
         "stopped": {
@@ -3673,16 +3673,16 @@
         },
         "observed": {
           "from": {
-            "declinationDegrees": 40,
-            "rightAscensionDegrees": 30
+            "declinationDegrees": "<angle>",
+            "rightAscensionDegrees": "<angle>"
           },
           "to": {
-            "declinationDegrees": 10,
-            "rightAscensionDegrees": 120
+            "declinationDegrees": "<angle>",
+            "rightAscensionDegrees": "<angle>"
           },
           "travel": {
-            "declinationDegrees": -30,
-            "rightAscensionDegrees": 90
+            "declinationDegrees": "<angle>",
+            "rightAscensionDegrees": "<angle>"
           }
         },
         "stopped": {
@@ -3802,16 +3802,16 @@
         },
         "observed": {
           "from": {
-            "declinationDegrees": 36.51999999999989,
-            "rightAscensionDegrees": 33.49236709953357
+            "declinationDegrees": "<angle>",
+            "rightAscensionDegrees": "<angle>"
           },
           "to": {
-            "declinationDegrees": 36.51999999999989,
-            "rightAscensionDegrees": 33.50481776055068
+            "declinationDegrees": "<angle>",
+            "rightAscensionDegrees": "<angle>"
           },
           "travel": {
-            "declinationDegrees": 0,
-            "rightAscensionDegrees": 0.012450661017055609
+            "declinationDegrees": "<angle>",
+            "rightAscensionDegrees": "<angle>"
           }
         },
         "stopped": {
@@ -3859,16 +3859,16 @@
         },
         "observed": {
           "from": {
-            "declinationDegrees": 40,
-            "rightAscensionDegrees": 30
+            "declinationDegrees": "<angle>",
+            "rightAscensionDegrees": "<angle>"
           },
           "to": {
-            "declinationDegrees": 36.51999999999989,
-            "rightAscensionDegrees": 33.49236709953357
+            "declinationDegrees": "<angle>",
+            "rightAscensionDegrees": "<angle>"
           },
           "travel": {
-            "declinationDegrees": -3.4800000000001106,
-            "rightAscensionDegrees": 3.492367099533567
+            "declinationDegrees": "<angle>",
+            "rightAscensionDegrees": "<angle>"
           }
         },
         "stopped": {
@@ -4013,16 +4013,16 @@
         },
         "observed": {
           "from": {
-            "declinationDegrees": 40,
-            "rightAscensionDegrees": 30
+            "declinationDegrees": "<angle>",
+            "rightAscensionDegrees": "<angle>"
           },
           "to": {
-            "declinationDegrees": 40,
-            "rightAscensionDegrees": 30
+            "declinationDegrees": "<angle>",
+            "rightAscensionDegrees": "<angle>"
           },
           "travel": {
-            "declinationDegrees": 0,
-            "rightAscensionDegrees": 0
+            "declinationDegrees": "<angle>",
+            "rightAscensionDegrees": "<angle>"
           }
         },
         "stopped": {
@@ -4066,16 +4066,16 @@
         },
         "observed": {
           "from": {
-            "declinationDegrees": 40,
-            "rightAscensionDegrees": 30
+            "declinationDegrees": "<angle>",
+            "rightAscensionDegrees": "<angle>"
           },
           "to": {
-            "declinationDegrees": 40,
-            "rightAscensionDegrees": 30
+            "declinationDegrees": "<angle>",
+            "rightAscensionDegrees": "<angle>"
           },
           "travel": {
-            "declinationDegrees": 0,
-            "rightAscensionDegrees": 0
+            "declinationDegrees": "<angle>",
+            "rightAscensionDegrees": "<angle>"
           }
         },
         "stopped": {
@@ -4119,16 +4119,16 @@
         },
         "observed": {
           "from": {
-            "declinationDegrees": 40,
-            "rightAscensionDegrees": 30
+            "declinationDegrees": "<angle>",
+            "rightAscensionDegrees": "<angle>"
           },
           "to": {
-            "declinationDegrees": 40,
-            "rightAscensionDegrees": 30
+            "declinationDegrees": "<angle>",
+            "rightAscensionDegrees": "<angle>"
           },
           "travel": {
-            "declinationDegrees": 0,
-            "rightAscensionDegrees": 0
+            "declinationDegrees": "<angle>",
+            "rightAscensionDegrees": "<angle>"
           }
         },
         "stopped": {
@@ -4224,16 +4224,16 @@
         },
         "observed": {
           "from": {
-            "declinationDegrees": 40,
-            "rightAscensionDegrees": 30
+            "declinationDegrees": "<angle>",
+            "rightAscensionDegrees": "<angle>"
           },
           "to": {
-            "declinationDegrees": 40,
-            "rightAscensionDegrees": 30
+            "declinationDegrees": "<angle>",
+            "rightAscensionDegrees": "<angle>"
           },
           "travel": {
-            "declinationDegrees": 0,
-            "rightAscensionDegrees": 0
+            "declinationDegrees": "<angle>",
+            "rightAscensionDegrees": "<angle>"
           }
         },
         "stopped": {

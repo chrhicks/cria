@@ -72,6 +72,8 @@ describe('a client stop during home', () => {
     const operation = await cria.settled(home, 40_000)
 
     expect(operation).toMatchObject({ kind: 'uncertain', reason: 'stop-not-confirmed', quarantined: true })
+    expect(operation.operation.motion).toMatchObject({ observed: { to: null, travel: null }, stopped: { how: 'uncertain', at: null } })
+    expect(operation.operation.motion!.observed.from).not.toBeNull()
     expect((await cria.device('mount')).quarantine.held).toBe(true)
   }, 45_000)
 

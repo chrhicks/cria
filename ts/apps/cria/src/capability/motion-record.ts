@@ -16,6 +16,7 @@ const axes = (position: Position): MotionAxes => ({ rightAscensionDegrees: posit
 export function track(device: IndiDevice, note: Note, commanded: MotionCommanded, command: Command) {
   return Effect.gen(function* () {
     let from: Position | undefined
+    let phase: 'unsent' | 'moving' | 'rested' = 'unsent'
     const subscription = yield* device.subscribe
 
     yield* Effect.forkScoped(Effect.forever(Effect.gen(function* () {
@@ -25,7 +26,9 @@ export function track(device: IndiDevice, note: Note, commanded: MotionCommanded
       if (event.property.receivedAt <= command.sentAt) return
       const position = positionOf(event.property)
 
-      if (Number.isFinite(position.ra) && Number.isFinite(position.dec)) from = position
+      if (!Number.isFinite(position.ra) || !Number.isFinite(position.dec)) return
+      from = position
+      if (phase === 'moving') yield* note(record('uncertain', null, null))
     })))
 
     const record = (how: MotionRecord['stopped']['how'], to: Position | null, at: number | null): MotionRecord => ({
@@ -38,12 +41,22 @@ export function track(device: IndiDevice, note: Note, commanded: MotionCommanded
       stopped: { how, at },
     })
 
+    const sent = Effect.gen(function* () {
+      phase = 'moving'
+      yield* note(record('uncertain', null, null))
+    })
+
     return {
       sentBy: start => start.pipe(
-        Effect.tap(() => note(record('uncertain', null, null))),
-        Effect.tapError(error => error._tag === 'Uncertain' ? note(record('uncertain', null, null)) : Effect.void),
+        Effect.tap(() => sent),
+        Effect.tapError(error => error._tag === 'Uncertain' ? sent : Effect.void),
       ),
-      rested: (how, position) => Effect.flatMap(Clock.currentTimeMillis, at => note(record(how, position, at))),
+      rested: (how, position) => Effect.gen(function* () {
+        phase = 'rested'
+        const at = yield* Clock.currentTimeMillis
+
+        yield* note(record(how, position, at))
+      }),
     } satisfies Tracking
   })
 }
