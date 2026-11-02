@@ -20,7 +20,7 @@ legacy ([docs/legacy-windows.md](../docs/legacy-windows.md)).
 | `apps/cria/src/capability` | camera, mount, focuser, weather, power, connection | Capabilities |
 | `apps/cria/src/operation` | workflow bodies; the ledger, one owner of operations per rig with one Run per failure domain | Workflows, Run, Quarantine |
 | `packages/fits` | `@cria/fits`: FITS header, FITS → ImageBytes, test frames | Image boundary |
-| `packages/fake-indi` | `@cria/fake-indi`: a small INDI server written from the protocol, independent of `@cria/indi`'s parser | — |
+| `packages/fake-indi` | `@cria/fake-indi`: a small INDI server written from the protocol, independent of `@cria/indi`'s parser; `fixtures/am5/` and `playMotion` replay AM5 motions cut from errai's recordings (docs/testing.md, "AM5 motion fixtures") | — |
 | `apps/cria/src/image` | the rolling image store | Image boundary |
 | `apps/cria/src/wire` | projection into protocol 5, HTTP, SSE | View and wire boundary |
 | `apps/cria/src/rig.ts`, `device.ts`, `ids.ts`, `service.ts`, `main.ts`, `config.ts` | composition | — |
