@@ -63,7 +63,11 @@ export function gotoRefusal(envelope: MountEnvelope, from: MountPose, to: Point,
     : [to.hourAngleDegrees < 0 ? 'west' : 'east']
 
   for (const pierSide of sides) {
-    const refusal = boxRefusal(envelope, { ...from, pierSide }, to, meridianLimit)
+    const nearPole = from.declinationDegrees >= 89 && from.declinationDegrees <= 90
+    const start = nearPole && pierSide !== from.pierSide
+      ? { hourAngleDegrees: (from.hourAngleDegrees + 360) % 360 - 180, declinationDegrees: 90, pierSide }
+      : { ...from, pierSide }
+    const refusal = boxRefusal(envelope, start, to, meridianLimit)
 
     if (refusal !== undefined) return refusal
   }

@@ -664,6 +664,13 @@ between start and target, since the axes move independently. Beyond the driver
 meridian limit, the predicted landing side is counterweight down. Within the
 limit either side can land, so both must pass. Each possible side must pass
 for the whole box, a conservative restriction on meridian crossings.
+For starts at Dec 89..90 degrees, including the AM5 home readings at 89.9
+and 90, the box uses the start in each possible landing side's representation.
+If that side differs from the reported side, start HA shifts by 180 degrees,
+wrapped to -180..180, and the box extends to Dec 90. The reflected mechanical
+Dec is 180 minus the reported Dec; its sky Dec folds back below 90. Extending
+the box to the pole covers that fold. The reported start must still pass its
+own pose check. Starts below Dec 89 keep the existing box rule.
 Unknown pier side or unread coordinates refuse a goto. The envelope needs
 topocentric coordinates; Cria cannot convert J2000 to mount HA.
 
