@@ -10,6 +10,7 @@ import {
   type DeviceKind,
   type FailureDomain,
   type InstanceId,
+  type MotionRecord,
   type Operation,
   type OperationId,
   type OperationResult,
@@ -233,16 +234,19 @@ function progress(state: LedgerState, input: { readonly id: OperationId; readonl
 }
 
 /** A running operation, ended. `settle` and the announcement of a settle both build it here. */
-function endedOf(operation: Running, input: { readonly outcome: Outcome<OperationResult>; readonly settledAt: number }): Ended {
+function endedOf(
+  operation: Running,
+  input: { readonly outcome: Outcome<OperationResult>; readonly settledAt: number; readonly motion?: MotionRecord | undefined },
+): Ended {
   const { progress: _, ...started } = operation
 
-  return { ...started, state: 'settled', settledAt: input.settledAt, outcome: input.outcome }
+  return { ...started, state: 'settled', settledAt: input.settledAt, outcome: input.outcome, ...(input.motion === undefined ? {} : { motion: input.motion }) }
 }
 
 export function settle(
   rules: Rules,
   state: LedgerState,
-  input: { readonly id: OperationId; readonly outcome: Outcome<OperationResult>; readonly settledAt: number; readonly now: number },
+  input: { readonly id: OperationId; readonly outcome: Outcome<OperationResult>; readonly settledAt: number; readonly now: number; readonly motion?: MotionRecord | undefined },
 ): Transition<void> {
   const operation = state.operations.get(input.id)
 
@@ -368,7 +372,8 @@ function fingerprintOf(submission: Submission): string {
 }
 
 export interface LedgerDevice extends Placement {
-  readonly work: (operation: Running, report: Report<Progress>) => Effect.Effect<OperationResult, Ending>
+  /** `note` keeps the latest motion record of this operation, which settles with it whatever its outcome. */
+  readonly work: (operation: Running, report: Report<Progress>, note: (record: MotionRecord) => Effect.Effect<void>) => Effect.Effect<OperationResult, Ending>
 }
 
 export interface RecoverRequest {
@@ -410,13 +415,15 @@ export function makeLedger(options: LedgerOptions): Effect.Effect<Ledger, never,
     const rules: Rules = { instanceId: options.instanceId, commandsEnabled: options.commandsEnabled, history: options.history, devices }
     const domainIds = [...new Set(options.devices.map(device => device.failureDomain))]
     const state = yield* Ref.make(initialState(domainIds.map(id => [id, mint.bindingId()])))
+    const motions = new Map<OperationId, MotionRecord>()
     const revisions = yield* Effect.acquireRelease(PubSub.sliding<number>(1), PubSub.shutdown)
     const runs = new Map(
       yield* Effect.forEach(domainIds, id =>
         Effect.map(
           makeRun<Running, Progress, OperationResult, OperationId>({
             initial: () => initialProgress,
-            work: (operation, report) => Effect.suspend(() => known(devices, operation.deviceId).work(operation, report)),
+            work: (operation, report) =>
+              Effect.suspend(() => known(devices, operation.deviceId).work(operation, report, record => Effect.sync(() => void motions.set(operation.id, record)))),
           }),
           run => [id, run] as const,
         ),
@@ -436,7 +443,13 @@ export function makeLedger(options: LedgerOptions): Effect.Effect<Ledger, never,
       )
 
     // Settling is the one transition whose result callers also want announced; the pure `settle` stays as it is.
-    const settleAndAnnounce = (input: { readonly id: OperationId; readonly outcome: Outcome<OperationResult>; readonly settledAt: number; readonly now: number }) => {
+    const settleAndAnnounce = (input: {
+      readonly id: OperationId
+      readonly outcome: Outcome<OperationResult>
+      readonly settledAt: number
+      readonly now: number
+      readonly motion?: MotionRecord | undefined
+    }) => {
       let announced: Settled | undefined
 
       return apply(current => {
@@ -479,8 +492,11 @@ export function makeLedger(options: LedgerOptions): Effect.Effect<Ledger, never,
       if (update.state === 'idle') return Effect.void
       if (update.state === 'running') return apply(current => progress(current, { id: update.runId, progress: update.progress }))
       const now = Date.now()
+      const motion = motions.get(update.runId)
 
-      return settleAndAnnounce({ id: update.runId, outcome: update.outcome, settledAt: update.settledAt, now })
+      motions.delete(update.runId)
+
+      return settleAndAnnounce({ id: update.runId, outcome: update.outcome, settledAt: update.settledAt, now, motion })
     }
 
     for (const run of runs.values()) yield* Effect.forkIn(Stream.runForEach(run.changes, follow), scope)

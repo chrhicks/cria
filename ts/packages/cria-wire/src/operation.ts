@@ -7,6 +7,7 @@
 import { Schema } from 'effect'
 import { CommandSchema, HaltCommandSchema } from './command.js'
 import { BindingId, DeviceId, FailureDomain, ImageId, InstanceId, OperationId, RequestId } from './ids.js'
+import { MotionRecord } from './motion.js'
 import { Json, Outcome, Timestamp } from './values.js'
 
 const Name = Schema.String.pipe(Schema.check(Schema.isBetweenLength(1, 256)))
@@ -75,6 +76,8 @@ const settled = {
   startedAt: Timestamp,
   settledAt: Timestamp,
   outcome: Outcome(OperationResult),
+  /** Present on a mount motion whose command was sent, whatever its outcome. */
+  motion: Schema.optionalKey(MotionRecord),
   /** Set once a person recovered the device this uncertain operation quarantined. */
   recovery: Schema.NullOr(Schema.Struct({ at: Timestamp, note: Schema.String })),
 }

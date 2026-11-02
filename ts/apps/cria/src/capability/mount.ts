@@ -16,8 +16,9 @@ import { sendOnce, startMotion, switchConfirmed, switchNotStarted, untilSettled 
 import { invalid, liveSnapshot, required, type CapabilityContext } from './context.js'
 import { numberElement, switchElement, type DeviceSnapshot } from './fields.js'
 import type { DeviceSetup, StepOutcome } from './setup.js'
+import { track, type Note, type Tracking } from './motion-record.js'
 import { angularDelta, beforeCommand, confirmStopped, positionOf, type Command, type Position } from './stopped.js'
-import type { DeviceBody, ParamsOf, ReadingsOf } from '@cria/wire'
+import type { DeviceBody, MotionCommanded, ParamsOf, ReadingsOf } from '@cria/wire'
 
 type CoordinateFrame = ParamsOf<'mount-slew'>['coordinateSystem']
 
@@ -28,16 +29,16 @@ export interface AxisRate {
 
 export interface Mount {
   readonly observe: Effect.Effect<DeviceBody<'mount'>>
-  readonly slew: (target: ParamsOf<'mount-slew'>) => Effect.Effect<{ rightAscensionDegrees: number; declinationDegrees: number }, Ending>
+  readonly slew: (target: ParamsOf<'mount-slew'>, note: Note) => Effect.Effect<{ rightAscensionDegrees: number; declinationDegrees: number }, Ending>
   readonly setTracking: (tracking: boolean) => Effect.Effect<{ tracking: boolean }, Failed | Uncertain>
-  readonly park: Effect.Effect<{}, Ending>
+  readonly park: (note: Note) => Effect.Effect<{}, Ending>
   readonly unpark: Effect.Effect<{}, Failed | Uncertain>
-  readonly home: Effect.Effect<{}, Ending>
-  readonly stop: Effect.Effect<{}, Failed | Uncertain>
+  readonly home: (note: Note) => Effect.Effect<{}, Ending>
+  readonly stop: (note: Note) => Effect.Effect<{}, Failed | Uncertain>
   /** Moves the primary axis at a rate for a time, then stops it. */
-  readonly moveAxis: (rateDegreesPerSecond: number, durationSeconds: number) => Effect.Effect<AxisTravel, Ending>
+  readonly moveAxis: (rateDegreesPerSecond: number, durationSeconds: number, note: Note) => Effect.Effect<AxisTravel, Ending>
   /** Moves the primary axis until RA has travelled `distanceDegrees`, then stops it. */
-  readonly rotate: (rateDegreesPerSecond: number, distanceDegrees: number) => Effect.Effect<AxisTravel, Ending>
+  readonly rotate: (rateDegreesPerSecond: number, distanceDegrees: number, note: Note) => Effect.Effect<AxisTravel, Ending>
 }
 
 export type AxisTravel = {
@@ -156,17 +157,22 @@ export function makeMount(context: CapabilityContext, motion: MountMotionSetting
   const { device, timing } = context
 
   // Stopped is decided by where the mount is, never by a property's state (see stopped.ts).
-  const stopWith = (property: string, values: Values) =>
+  const stopWith = (property: string, values: Values, how: 'halted' | 'aborted', tracking: Tracking, sending: Tracking['sentBy'] = send => send) =>
     Effect.gen(function* () {
       const command = yield* beforeCommand(device)
 
-      yield* sendOnce(device, property, values, timing)
+      yield* sending(sendOnce(device, property, values, timing))
+      const position = yield* confirmStopped(device, motion, command, 15_000)
 
-      return yield* confirmStopped(device, motion, command, 15_000)
+      yield* tracking.rested(how, position)
+
+      return position
     })
-  const abort = Effect.asVoid(stopWith('TELESCOPE_ABORT_MOTION', { ABORT: true }))
+  const abort = (tracking: Tracking, sending?: Tracking['sentBy']) =>
+    Effect.asVoid(stopWith('TELESCOPE_ABORT_MOTION', { ABORT: true }, 'aborted', tracking, sending))
   // The driver says the motion is over (the property left Busy); the mount has stopped once its position stands still.
-  const settled = (command: Command) => confirmStopped(device, motion, command, 15_000)
+  const settled = (command: Command, tracking: Tracking) =>
+    Effect.tap(confirmStopped(device, motion, command, 15_000), position => tracking.rested('arrived', position))
 
   const idleAndUnparked = (snapshot: DeviceSnapshot, allowParked = false) =>
     Effect.gen(function* () {
@@ -180,7 +186,7 @@ export function makeMount(context: CapabilityContext, motion: MountMotionSetting
       return mount
     })
 
-  const slew = (target: ParamsOf<'mount-slew'>) =>
+  const slew = (target: ParamsOf<'mount-slew'>, note: Note) =>
     Effect.gen(function* () {
       const snapshot = yield* liveSnapshot(context)
       const mount = yield* idleAndUnparked(snapshot)
@@ -198,9 +204,14 @@ export function makeMount(context: CapabilityContext, motion: MountMotionSetting
 
       const hint = gotoRefusalHint(yield* setup.current)
       const command = yield* beforeCommand(device)
+      const tracking = track(
+        note,
+        { kind: 'slew', sentAt: command.sentAt, target: { rightAscensionDegrees: target.rightAscensionDegrees, declinationDegrees: target.declinationDegrees } },
+        command,
+      )
       const arrived = yield* stoppable({
         command: `slew on ${device.name}`,
-        start: startMotion(device, coordinates.name, { RA: target.rightAscensionDegrees / 15, DEC: target.declinationDegrees }, timing, {
+        start: tracking.sentBy(startMotion(device, coordinates.name, { RA: target.rightAscensionDegrees / 15, DEC: target.declinationDegrees }, timing, {
           arrived: property => onTarget(positionOf(property), target),
         }).pipe(
           Effect.mapError(error =>
@@ -208,9 +219,9 @@ export function makeMount(context: CapabilityContext, motion: MountMotionSetting
               ? new Failed({ reason: 'rejected', message: `The mount refused the goto (Alert on ${coordinates.name}). ${hint}` })
               : error,
           ),
-        ),
-        settle: Effect.andThen(untilSettled(device, coordinates.name, () => true, timing.operationTimeoutMs), settled(command)),
-        stop: abort,
+        )),
+        settle: Effect.andThen(untilSettled(device, coordinates.name, () => true, timing.operationTimeoutMs), settled(command, tracking)),
+        stop: abort(tracking),
         stopWithin: stopWithinMs,
       })
 
@@ -245,7 +256,7 @@ export function makeMount(context: CapabilityContext, motion: MountMotionSetting
       return { tracking }
     })
 
-  const park = Effect.gen(function* () {
+  const park = (note: Note) => Effect.gen(function* () {
     const snapshot = yield* liveSnapshot(context)
 
     const mount = yield* idleAndUnparked(snapshot, true)
@@ -255,12 +266,13 @@ export function makeMount(context: CapabilityContext, motion: MountMotionSetting
     if (yield* required(mount.parked, 'park state')) return {}
 
     const command = yield* beforeCommand(device)
+    const tracking = track(note, { kind: 'park', sentAt: command.sentAt }, command)
 
     yield* stoppable({
       command: `park on ${device.name}`,
-      start: startMotion(device, 'TELESCOPE_PARK', { PARK: true }, timing, { arrived: property => switchElement('PARK')(property) === true }),
-      settle: Effect.andThen(untilSettled(device, 'TELESCOPE_PARK', property => switchElement('PARK')(property) === true, timing.operationTimeoutMs), settled(command)),
-      stop: abort,
+      start: tracking.sentBy(startMotion(device, 'TELESCOPE_PARK', { PARK: true }, timing, { arrived: property => switchElement('PARK')(property) === true })),
+      settle: Effect.andThen(untilSettled(device, 'TELESCOPE_PARK', property => switchElement('PARK')(property) === true, timing.operationTimeoutMs), settled(command, tracking)),
+      stop: abort(tracking),
       stopWithin: stopWithinMs,
     })
 
@@ -283,7 +295,7 @@ export function makeMount(context: CapabilityContext, motion: MountMotionSetting
     return {}
   })
 
-  const home = Effect.gen(function* () {
+  const home = (note: Note) => Effect.gen(function* () {
     const snapshot = yield* liveSnapshot(context)
 
     yield* idleAndUnparked(snapshot)
@@ -292,30 +304,37 @@ export function makeMount(context: CapabilityContext, motion: MountMotionSetting
     if (!element) return yield* new Failed({ reason: 'unsupported', message: 'Home unsupported' })
 
     const command = yield* beforeCommand(device)
+    const tracking = track(note, { kind: 'home', sentAt: command.sentAt }, command)
 
     yield* stoppable({
       command: `home on ${device.name}`,
       // TELESCOPE_HOME is not polled, so an Ok right after the send is the driver's answer:
       // already home (the AM5 has no at-home indicator to check first).
-      start: startMotion(device, 'TELESCOPE_HOME', { [element]: true }, timing, { arrived: property => property.state === 'Ok' }),
-      settle: Effect.andThen(untilSettled(device, 'TELESCOPE_HOME', () => true, timing.operationTimeoutMs), settled(command)),
-      stop: abort,
+      start: tracking.sentBy(startMotion(device, 'TELESCOPE_HOME', { [element]: true }, timing, { arrived: property => property.state === 'Ok' })),
+      settle: Effect.andThen(untilSettled(device, 'TELESCOPE_HOME', () => true, timing.operationTimeoutMs), settled(command, tracking)),
+      stop: abort(tracking),
       stopWithin: stopWithinMs,
     })
 
     return {}
   })
 
-  const stop = Effect.asVoid(abort).pipe(
-    Effect.timeoutOption(stopWithinMs),
-    Effect.mapError(error => (error._tag === 'Uncertain' && error.reason === 'not-confirmed' ? new Uncertain({ reason: 'stop-not-confirmed', message: error.message }) : error)),
-    Effect.flatMap(
-      Option.match({
-        onSome: () => Effect.succeed({}),
-        onNone: () => Effect.fail(new Uncertain({ reason: 'stop-not-confirmed', message: `stop on ${device.name}: not confirmed within ${stopWithinMs / 1000} s` })),
-      }),
-    ),
-  )
+  const stop = (note: Note) =>
+    Effect.gen(function* () {
+      const command = yield* beforeCommand(device)
+      const tracking = track(note, { kind: 'stop', sentAt: command.sentAt }, command)
+
+      return yield* abort(tracking, tracking.sentBy).pipe(
+        Effect.timeoutOption(stopWithinMs),
+        Effect.mapError(error => (error._tag === 'Uncertain' && error.reason === 'not-confirmed' ? new Uncertain({ reason: 'stop-not-confirmed', message: error.message }) : error)),
+        Effect.flatMap(
+          Option.match({
+            onSome: () => Effect.succeed({}),
+            onNone: () => Effect.fail(new Uncertain({ reason: 'stop-not-confirmed', message: `stop on ${device.name}: not confirmed within ${stopWithinMs / 1000} s` })),
+          }),
+        ),
+      )
+    })
 
   /**
    * Primary-axis motion at one of the rates the mount advertises (review R1-#12).
@@ -323,7 +342,12 @@ export function makeMount(context: CapabilityContext, motion: MountMotionSetting
    * the first session with Chris present. `rotate` also checks the observed RA
    * travel and ends uncertain if the mount moves the other way.
    */
-  const axisMotion = (rateDegreesPerSecond: number, until: (travelled: Effect.Effect<number, Failed>) => Effect.Effect<void, Failed>) =>
+  const axisMotion = (
+    rateDegreesPerSecond: number,
+    until: (travelled: Effect.Effect<number, Failed>) => Effect.Effect<void, Failed>,
+    commanded: (rateDegreesPerSecond: number, sentAt: number) => MotionCommanded,
+    note: Note,
+  ) =>
     Effect.gen(function* () {
       const snapshot = yield* liveSnapshot(context)
       const mount = yield* idleAndUnparked(snapshot)
@@ -346,17 +370,19 @@ export function makeMount(context: CapabilityContext, motion: MountMotionSetting
         yield* switchConfirmed(device, 'TELESCOPE_SLEW_RATE', { [rate.name]: true }, found => selectedSwitch(found) === rate.name, timing)
 
       const direction = rateDegreesPerSecond > 0 ? 'MOTION_EAST' : 'MOTION_WEST'
-      const halt = Effect.asVoid(stopWith('TELESCOPE_MOTION_WE', { MOTION_EAST: false, MOTION_WEST: false }))
       const ra = Effect.gen(function* () {
         const latest = yield* context.snapshot
 
         return (yield* required(readings(latest).rightAscensionHours, 'right ascension')) * 15
       })
       const start = yield* ra
+      const command = yield* beforeCommand(device)
+      const tracking = track(note, commanded(Math.sign(rateDegreesPerSecond) * rate.degreesPerSecond, command.sentAt), command)
+      const halt = Effect.asVoid(stopWith('TELESCOPE_MOTION_WE', { MOTION_EAST: false, MOTION_WEST: false }, 'halted', tracking))
 
       yield* stoppable({
         command: `axis motion on ${device.name}`,
-        start: startMotion(device, 'TELESCOPE_MOTION_WE', { [direction]: true }, timing, { refused: switchNotStarted(direction) }),
+        start: tracking.sentBy(startMotion(device, 'TELESCOPE_MOTION_WE', { [direction]: true }, timing, { refused: switchNotStarted(direction) })),
         // A normal finish stops the axis too; a second stop after a cancel is harmless.
         settle: Effect.andThen(
           until(Effect.map(ra, now => angularDelta(now, start))),
@@ -371,10 +397,10 @@ export function makeMount(context: CapabilityContext, motion: MountMotionSetting
       return { rightAscensionDegrees: end, rate: rate.name, travelledDegrees: angularDelta(end, start) }
     })
 
-  const moveAxis = (rateDegreesPerSecond: number, durationSeconds: number) =>
-    axisMotion(rateDegreesPerSecond, () => Effect.sleep(durationSeconds * 1000))
+  const moveAxis = (rateDegreesPerSecond: number, durationSeconds: number, note: Note) =>
+    axisMotion(rateDegreesPerSecond, () => Effect.sleep(durationSeconds * 1000), (rate, sentAt) => ({ kind: 'axis', sentAt, axis: 'ra', rateDegreesPerSecond: rate }), note)
 
-  const rotate = (rateDegreesPerSecond: number, distanceDegrees: number) => {
+  const rotate = (rateDegreesPerSecond: number, distanceDegrees: number, note: Note) => {
     const speed = Math.abs(rateDegreesPerSecond)
     const lead = (speed * motion.stopLatencyMs) / 1000
     const distance = Math.abs(distanceDegrees)
@@ -407,6 +433,8 @@ export function makeMount(context: CapabilityContext, motion: MountMotionSetting
           }),
         ),
       ),
+      (rate, sentAt) => ({ kind: 'rotate', sentAt, axis: 'ra', rateDegreesPerSecond: rate, distanceDegrees }),
+      note,
     )
   }
 
