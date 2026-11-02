@@ -71,7 +71,7 @@ const site: Step = (context, snapshot, device) =>
     const longitude = numberElement('LONG')(current)
     const elevation = numberElement('ELEV')(current)
 
-    if (current?.state === 'Ok' && latitude !== undefined && longitude !== undefined && elevation !== undefined) {
+    if (latitude !== undefined && longitude !== undefined && elevation !== undefined) {
       const longitudeDifference = Math.abs(((longitude - values.LONG) % 360 + 540) % 360 - 180)
 
       if (Math.abs(latitude - values.LAT) <= siteDegreesTolerance && longitudeDifference <= siteDegreesTolerance && Math.abs(elevation - values.ELEV) <= siteElevationToleranceMeters)
