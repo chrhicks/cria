@@ -678,11 +678,12 @@ During goto and rate moves, every new position is checked with a margin of
 `pointingErrorArcmin` plus 7.02 arcseconds per degree of reported axis travel
 since the fix exposure. This matches the conservative policy in Vela's rig
 model, based on the AM5 goto landing p90. Without a usable fix, the base is
-4,414.2 arcseconds, the largest recorded 9x stop overshoot. A late solve retains
+15,915.2 arcseconds, the largest recorded abort overshoot. A late solve retains
 travel after its exposure. Travel history is bounded to 4,096 readings; a fix
 older than that history uses the unknown base and all retained travel.
 
-Cria also reserves two seconds at the largest recorded speed plus the largest
+Cria also reserves two seconds at 6.3 degrees/second, rounded up from the
+recorded goto fixture, plus the largest
 stop overshoot in the direction of travel. Missing position readings for two
 seconds trigger a stop. An envelope stop uses the confirmed abort path and
 ends uncertain with the limit and margin in its message. The motion record

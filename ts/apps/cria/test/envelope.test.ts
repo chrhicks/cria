@@ -183,34 +183,35 @@ it('uses the sent envelope in the path check and retains every accepted fix unti
 
 it('grows the uncertainty with blind travel and uses the profile maximum without a positional error', () => {
   expect(marginArcmin(2, 100)).toBeCloseTo(2 + 100 * 7.02 / 60)
-  expect(marginArcmin(null, 0)).toBeCloseTo(4414.2 / 60)
+  expect(marginArcmin(null, 0)).toBeCloseTo(15915.2 / 60)
   expect(marginArcmin(1, 0)).toBeLessThan(marginArcmin(2, 100))
   expect(watchRefusal(envelope, pose(-130, 80, 'west'), 15, marginArcmin(null, 114) / 60, reactionDegrees)).toBeUndefined()
 })
 
 it.each(['goto', 'rate', 'slow-ack'] as const)('aborts a drifting %s through the confirmed stop path before the west limit', async kind => {
   const slow = kind === 'slow-ack'
-  await start(slow ? 31 : 25, 80, 'east')
+  await start(10, 80, 'east')
   const rate = fixtures['rate-move-9x-west-tracking']!
   // Synthetic drift, with the recorded rate readings and stop coast retained.
   playMotion(fake, mount, [{ ...rate,
     start: { ...rate.start, steps: slow ? [
-      { afterMs: 1900, property: 'EQUATORIAL_EOD_COORD', state: 'Busy', offset: { RA: -5.7 / 15, DEC: 0 } },
-      { afterMs: 2926, property: 'EQUATORIAL_EOD_COORD', state: 'Busy', offset: { RA: -8.778 / 15, DEC: 0 } },
+      { afterMs: 1900, property: 'EQUATORIAL_EOD_COORD', state: 'Busy', offset: { RA: -11.4 / 15, DEC: 0 } },
+      { afterMs: 2926, property: 'EQUATORIAL_EOD_COORD', state: 'Busy', offset: { RA: -17.556 / 15, DEC: 0 } },
     ] : rate.start.steps.map(step => kind === 'goto' && step.property === 'EQUATORIAL_EOD_COORD' ? { ...step, state: 'Busy' as const } : step), command: kind !== 'rate'
       ? { property: 'EQUATORIAL_EOD_COORD', travel: { RA: -(slow ? 1 : 5) / 15, DEC: 0 } }
       : rate.start.command },
     stop: { ...rate.stop!, command: { property: 'TELESCOPE_ABORT_MOTION', on: 'ABORT' } },
   }], { timeScale: slow ? 1 : 5 })
   const { instanceId } = await cria.state()
-  await cria.client.fix('mount', { instanceId, fix: { capturedAt: Date.now(), rightAscensionDegrees: slow ? 329 : 335, declinationDegrees: 80, coordinateSystem: 'j2000', pointingErrorArcmin: 1, error: { scaleError: 0, hintOffsetDegrees: 0 } } })
-  const result = kind !== 'rate' ? await slew(slow ? 32 : 30, 80)
+  if (slow) await cria.client.envelope('mount', { instanceId, envelope: { ...envelope, keepOut: envelope.keepOut.map(band => ({ ...band, westHourAngleDegrees: 28.5 })) } })
+  await cria.client.fix('mount', { instanceId, fix: { capturedAt: Date.now(), rightAscensionDegrees: 350, declinationDegrees: 80, coordinateSystem: 'j2000', pointingErrorArcmin: 1, error: { scaleError: 0, hintOffsetDegrees: 0 } } })
+  const result = kind !== 'rate' ? await slew(slow ? 11 : 15, 80)
     : await cria.run('mount', 'mount-axis', { rateDegreesPerSecond: -720 * sidereal, durationSeconds: 1 })
   expect(result.kind).toBe('uncertain')
   expect(result.message).toContain('west HA limit')
   expect(result.message).toContain('margin')
   expect(result.operation.motion?.stopped).toMatchObject({ how: 'aborted', reason: expect.stringContaining('envelope margin') })
   const end = result.operation.motion!.observed.to!
-  expect(360 - end.rightAscensionDegrees).toBeLessThan(40)
+  expect(360 - end.rightAscensionDegrees).toBeLessThan(slow ? 28.5 : 40)
   expect(commands().some(xml => xml.includes('TELESCOPE_ABORT_MOTION'))).toBe(true)
 })

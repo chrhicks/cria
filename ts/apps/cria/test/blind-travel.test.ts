@@ -16,6 +16,6 @@ it('charges travel across moves and resets at the exposure, retaining travel dur
   expect(travel.margin(fix(1000))).toBeCloseTo(1 + 20 * 7.02 / 60)
   expect(travel.margin(fix(2000))).toBeCloseTo(1 + 10 * 7.02 / 60)
   expect(travel.margin(fix(3000, 2))).toBe(2)
-  expect(travel.margin(fix(3000, null))).toBeCloseTo(4414.2 / 60)
-  expect(travel.margin(null)).toBeCloseTo(4414.2 / 60 + 20 * 7.02 / 60)
+  expect(travel.margin(fix(3000, null))).toBeCloseTo(15915.2 / 60)
+  expect(travel.margin(null)).toBeCloseTo(15915.2 / 60 + 20 * 7.02 / 60)
 })

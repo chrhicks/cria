@@ -83,12 +83,14 @@ export function rateRefusal(envelope: MountEnvelope, from: MountPose, travelRaDe
 // Same conservative policy as Vela rig-model/assess.ts (step 25): one p90 goto
 // landing offset per blind degree, not a measured sky-error slope (step 3, n=30).
 export const blindErrorArcminPerDegree = 7.02 / 60
-// Largest recorded 9x overshoot (39 stops). Home is exempt from this watch.
-export const unknownErrorArcmin = 4414.2 / 60
+// Largest recorded abort overshoot, 15915.2 arcsec (step 3, home-abort, n=1).
+// The sparse profile is a conservative fallback, not a measured pointing uncertainty.
+export const unknownErrorArcmin = 15915.2 / 60
 // Stop after two seconds without a reading. Reserve that gap and the largest
-// recorded 9x stop travel (step 3: speed max 11002 arcsec/s, overshoot max 4414.2 arcsec).
+// recorded abort travel. Step 16 goto-ok reaches 6.21 degrees/s; round up to
+// 6.3, rather than using the slower 9x rate speed. Step 3 abort max is 15915.2 arcsec.
 export const readingDeadlineMs = 2000
-export const reactionDegrees = (11002 * readingDeadlineMs / 1000 + 4414.2) / 3600
+export const reactionDegrees = 6.3 * readingDeadlineMs / 1000 + 15915.2 / 3600
 
 export function marginArcmin(error: number | null, travelDegrees: number): number {
   return (error ?? unknownErrorArcmin) + travelDegrees * blindErrorArcminPerDegree
