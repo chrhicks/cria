@@ -8,19 +8,20 @@ import { angularDelta, positionOf, type Reading } from './stopped.js'
 const siderealDegreesPerMs = 360 / 86_164_090.5
 const axes = (ra: number, dec: number) => ({ rightAscensionDegrees: ra, declinationDegrees: dec })
 
-/**
- * Foreign motion is cumulative axis displacement outside an open operation and its settle, after removing
- * sidereal RA drift while tracking is off. Tracking on holds RA/Dec; tracking off holds HA/Dec.
- * Use the stop rule's stationaryDegrees (AM5 default 0.02°, 72 arcsec), above the profile's 1.5 display-step
- * threshold (RA seconds of time, Dec arcseconds) and one ~1.025 s poll of drift. Source: step-03-am5-profile.
- * Do not allow a fixed coast timeout: step 17 keeps the operation open until readings prove it stopped,
- * including the recorded home's 21.5 s coast. An idle baseline never follows sub-tolerance updates, so
- * a slow hand-controller move eventually crosses the same tolerance as a large jump.
- * After reconnect, a definition may still be a placeholder; the first polled update establishes position.
- */
+// The default tolerance is 0.02° (72 arcsec) over any 10 s. Guiding at 0.5–0.9x sidereal
+// is 7.5–13.5 arcsec/s for <2 s per alternating pulse (<27 arcsec), with dithers of tens
+// of arcsec. A 1x hand controller moves 15 arcsec/s and crosses 72 arcsec in 4.8 s.
+const motionWindowMs = 10_000
+// 0.5° is 30 arcmin. A whole night of guide corrections for a few arcmin of polar error
+// stays under 15 arcmin, while this bound still catches slow runaway below the rate threshold.
+const creepDegrees = 0.5
+
+type Sample = { readonly reading: Reading; readonly residualRa: number }
+
 export function makeForeignMotion(tolerance: number) {
   let previous: Reading | undefined
   let anchor: Reading | undefined
+  let samples: Sample[] = []
   let residualRa = 0
   let drift = 0
   let clock: number | undefined
@@ -43,18 +44,25 @@ export function makeForeignMotion(tolerance: number) {
       if (!previous || !anchor || explained || tracking === undefined) {
         anchor = here
         residualRa = 0
+        samples = []
       } else {
         residualRa += angularDelta(here.ra, previous.ra) - drift
       }
       drift = 0
       previous = here
       const dec = here.dec - anchor.dec
-      if (Math.abs(residualRa) <= tolerance && Math.abs(dec) <= tolerance) return
+      samples = samples.filter(sample => sample.reading.at >= here.at - motionWindowMs)
+      const recent = samples.find(sample => Math.abs(residualRa - sample.residualRa) > tolerance || Math.abs(here.dec - sample.reading.dec) > tolerance)
+      samples.push({ reading: here, residualRa })
+      if (recent) return { at: here.at, from: axes(recent.reading.ra, recent.reading.dec), to: axes(here.ra, here.dec),
+        unexplained: axes(residualRa - recent.residualRa, here.dec - recent.reading.dec) }
+      if (Math.abs(residualRa) <= creepDegrees && Math.abs(dec) <= creepDegrees) return
       return { at: here.at, from: axes(anchor.ra, anchor.dec), to: axes(here.ra, here.dec), unexplained: axes(residualRa, dec) }
     },
     reset() {
       previous = undefined
       anchor = undefined
+      samples = []
       residualRa = 0
       drift = 0
       clock = undefined

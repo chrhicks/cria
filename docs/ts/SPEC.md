@@ -696,17 +696,22 @@ fields do not yet constrain moves. Protocol 5's existing payloads are unchanged.
 
 ### Foreign mount motion
 
-With no operation open, cumulative position changes above `stationaryDegrees`
-on either axis hold the mount until a person recovers it through the existing
-recovery endpoint. Cria sends no command in response. Tracking on allows constant
-RA/Dec; tracking off subtracts sidereal RA drift, so constant HA/Dec is at rest.
-The baseline stays fixed across small updates, so slow external movement also
-crosses the tolerance. Tracking state changes split the drift calculation.
+With no operation open, unexplained displacement above `stationaryDegrees` on
+either axis within any 10 s sliding window holds the mount until a person
+recovers it through the existing recovery endpoint. The AM5 default is 0.02°
+(72 arcsec). Alternating guide pulses and dithers stay below this bound, while
+a 1x hand controller crosses it in about 5 s. A separate 0.5° bound on total
+unexplained displacement since the last explained position catches slow creep.
+A night of guide corrections for a few arcmin of polar error stays under 15
+arcmin, below the 30 arcmin creep bound.
 
-The AM5 default is the existing stop tolerance, 0.02° per axis. It exceeds the
-step 3 AM5 profile's 1.5 display-step threshold and one poll of sidereal drift.
-The operation remains open throughout settle and coast, including the recorded
-21.5 s home coast. Property Idle/Ok never grants an extra motion allowance.
+Cria sends no command in response. Tracking on allows constant RA/Dec;
+tracking off subtracts sidereal RA drift, so constant HA/Dec is at rest.
+Tracking state changes split the drift calculation. The operation remains
+open throughout settle and coast, including the recorded 21.5 s home coast.
+Property Idle/Ok never grants an extra motion allowance. After reconnect,
+the first polled position establishes the baseline instead of a definition
+that may be a placeholder.
 
 The lane keeps the first `foreignMotion` event on its failure domain. State adds
 an optional mount `foreignMotion` with `at`, `from`, `to`, and `unexplained`
