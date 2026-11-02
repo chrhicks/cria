@@ -26,6 +26,7 @@ export interface DeviceSpec {
   readonly frameGrid?: { readonly width?: number; readonly height?: number }
   readonly site?: { readonly latitudeDegrees: number; readonly longitudeDegrees: number; readonly elevationMeters: number }
   readonly motion?: { readonly stationaryDegrees?: number; readonly positionReadMs?: number; readonly stopLatencyMs?: number; readonly maxLeadFraction?: number }
+  readonly envelope?: import('@cria/wire').MountEnvelope
   readonly travel?: { readonly min: number; readonly max: number }
 }
 

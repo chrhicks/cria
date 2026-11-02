@@ -627,6 +627,49 @@ INDI conventions Cria depends on:
   `travelledDegrees`, the RA travelled from the start to where the mount stood
   still, east positive.
 
+### Mount envelope
+
+A mount's optional `envelope` config uses the additive protocol 5 `MountEnvelope`
+schema from `@cria/wire`. Without it, motion keeps its existing behavior. There
+is no envelope endpoint yet. Vela supplies the envelope in build step 20.
+
+`keepOut` is a table of named Dec bands with `side` (`normal` or `flipped`),
+`minDeclinationDegrees`, `maxDeclinationDegrees`, and optional
+`eastHourAngleDegrees` and `westHourAngleDegrees`. HA is degrees from the
+meridian, negative east and positive west. These coordinates carry no site.
+Bands include both Dec boundaries; where bands meet or overlap, both apply.
+Missing HA limits impose no restriction. A gap in the normal Dec bands is
+unmeasured and refused.
+
+The stub allows normal-side HA up to +40 at Dec 75..90, +20 at Dec 45..75,
+and +20 below 45. It has no known east limit. The normal side is counterweight
+down: `PIER_WEST` at negative HA, `PIER_EAST` at positive HA. The other
+combinations are flipped. With no measured flipped bands, that side is allowed
+only within the driver's `MERIDIAN_LIMIT.LIMIT`, read when checking the move.
+An unread or stale limit means zero. At HA zero neither side is flipped.
+
+Before a goto, Cria checks the current pose, then the whole HA-by-Dec box
+between start and target, since the axes move independently. Beyond the driver
+meridian limit, the predicted landing side is counterweight down. Within the
+limit either side can land, so both must pass. Each possible side must pass
+for the whole box, a conservative restriction on meridian crossings.
+Unknown pier side or unread coordinates refuse a goto. The envelope needs
+topocentric coordinates; Cria cannot convert J2000 to mount HA.
+
+Before `mount-axis` or `mount-rotate`, Cria checks the start and the full
+requested RA travel on the current pier side, plus 4,084 arcseconds in the
+travel direction. That margin is the rounded-up worst 9x stop travel in the
+AM5 recordings. A path outside the envelope fails with reason `invalid` and
+a message naming the limit. No setting or motion command is sent on refusal.
+Home and park are exempt so they can escape an unsafe pose. Their existing
+held-device and availability checks still apply. Stop is always exempt.
+Watching the envelope during motion belongs to build step 21.
+
+Optional `horizon` points (`azimuthDegrees`, `altitudeDegrees`) and
+`meridianLimitDegrees` reserve the wire shape for step 20. Step 19 enforces
+mechanical keep-out and the driver's flipped-side limit only; these reserved
+fields do not yet constrain moves. Protocol 5's existing payloads are unchanged.
+
 ### Stopping the mount
 
 The AM5 acknowledges a stop long before it is stationary. Measured on errai on
@@ -1247,7 +1290,7 @@ whose `automaticWhileOn` names no other channel.
 how a mount stops (see "Stopping the mount"); every key is optional, with the
 AM5's values as defaults: `stationaryDegrees` 0.02, `positionReadMs` 1500,
 `stopLatencyMs` 900 (measured on the AM5), `maxLeadFraction` 0.5. Cria refuses
-`site` or `motion` on a device that is not a mount.
+`site`, `motion` or `envelope` on a device that is not a mount.
 
 `record` turns on recording of INDI traffic (see "Recording"): `dir`, `reserveGb`
 and `queueMb`, all three required when it is present.

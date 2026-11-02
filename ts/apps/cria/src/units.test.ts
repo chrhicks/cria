@@ -66,7 +66,17 @@ describe('configuration', () => {
     expect(withSite('mount', site).devices[0]!.site).toEqual(site)
     expect(() => withSite('mount', { ...site, longitudeDegrees: 247.93 })).toThrow('Expected a value between -180 and 180\n  at ["devices"][0]["site"]["longitudeDegrees"]')
     expect(() => withSite('mount', { ...site, latitudeDegrees: 91 })).toThrow('Expected a value between -90 and 90\n  at ["devices"][0]["site"]["latitudeDegrees"]')
-    expect(() => withSite('camera', site)).toThrow('mount: site and motion apply to a mount only')
+    expect(() => withSite('camera', site)).toThrow('mount: site, motion and envelope apply to a mount only')
+  })
+
+  it('accepts an envelope only on a mount', () => {
+    const envelope = { keepOut: [{ name: 'west', side: 'normal', minDeclinationDegrees: -90, maxDeclinationDegrees: 90, westHourAngleDegrees: 20 }] }
+    const withEnvelope = (kind: string) => decodeConfig({
+      imageDirectory: '/tmp/cria', devices: [{ id: 'test', kind, indiDevice: 'Test', envelope }],
+    })
+
+    expect(withEnvelope('mount').devices[0]!.envelope).toEqual(envelope)
+    expect(() => withEnvelope('camera')).toThrow('envelope apply to a mount only')
   })
 
   it("checks a focuser's travel window and refuses one on a device that is not a focuser", () => {

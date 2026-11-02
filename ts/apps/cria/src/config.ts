@@ -4,7 +4,7 @@
  */
 import { readFileSync } from 'node:fs'
 import { Schema } from 'effect'
-import { DeviceId, FailureDomain, deviceKinds } from '@cria/wire'
+import { DeviceId, FailureDomain, MountEnvelope, deviceKinds } from '@cria/wire'
 
 const Name = Schema.String.pipe(Schema.check(Schema.isBetweenLength(1, 256)))
 // Port 0 asks the system for any free port (tests).
@@ -66,6 +66,7 @@ const Device = Schema.Struct({
   frameGrid: Schema.optionalKey(Schema.Struct({ width: Schema.optionalKey(BinnedPixels), height: Schema.optionalKey(BinnedPixels) })),
   site: Schema.optionalKey(Site),
   motion: Schema.optionalKey(MountMotion),
+  envelope: Schema.optionalKey(MountEnvelope),
   travel: Schema.optionalKey(FocuserTravel),
 })
 
@@ -132,8 +133,8 @@ export function decodeConfig(input: unknown): Config {
   for (const device of config.devices) {
     if (device.kind === 'switch' && !device.channels?.length)
       throw new Error(`Switch ${device.id} needs at least one channel`)
-    if (device.kind !== 'mount' && (device.site !== undefined || device.motion !== undefined))
-      throw new Error(`${device.id}: site and motion apply to a mount only`)
+    if (device.kind !== 'mount' && (device.site !== undefined || device.motion !== undefined || device.envelope !== undefined))
+      throw new Error(`${device.id}: site, motion and envelope apply to a mount only`)
     if (device.travel !== undefined && device.kind !== 'focuser') throw new Error(`${device.id}: travel applies to a focuser only`)
     if (device.travel !== undefined && device.travel.min >= device.travel.max) throw new Error(`${device.id}: travel min must be below max`)
     for (const channel of device.channels ?? []) {

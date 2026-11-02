@@ -18,7 +18,8 @@ import { numberElement, switchElement, type DeviceSnapshot } from './fields.js'
 import type { DeviceSetup, StepOutcome } from './setup.js'
 import { track, type Note, type Tracking } from './motion-record.js'
 import { angularDelta, beforeCommand, confirmStopped, positionOf, type Command, type Position } from './stopped.js'
-import type { DeviceBody, MotionCommanded, ParamsOf, ReadingsOf } from '@cria/wire'
+import { gotoRefusal, rateRefusal, type MountPose } from './envelope.js'
+import type { DeviceBody, MountEnvelope, MotionCommanded, ParamsOf, ReadingsOf } from '@cria/wire'
 
 type CoordinateFrame = ParamsOf<'mount-slew'>['coordinateSystem']
 
@@ -153,7 +154,7 @@ function gotoRefusalHint(outcomes: ReadonlyArray<StepOutcome> | undefined): stri
   return `An AM5 refuses every goto until its site and time are set after it powers on. ${done}`
 }
 
-export function makeMount(context: CapabilityContext, motion: MountMotionSettings, setup: DeviceSetup): Mount {
+export function makeMount(context: CapabilityContext, motion: MountMotionSettings, setup: DeviceSetup, envelope?: MountEnvelope): Mount {
   const { device, timing } = context
 
   // Stopped is decided by where the mount is, never by a property's state (see stopped.ts).
@@ -186,6 +187,27 @@ export function makeMount(context: CapabilityContext, motion: MountMotionSetting
       return mount
     })
 
+  const checkEnvelope = (snapshot: DeviceSnapshot, target: ParamsOf<'mount-slew'> | number) => Effect.gen(function* () {
+    if (envelope === undefined) return
+    const mount = readings(snapshot)
+    const pierSide = yield* required(mount.pierSide, 'envelope pier side')
+
+    if (pierSide === 'unknown') return yield* invalid('Envelope needs a known pier side')
+    if ((yield* required(mount.coordinateSystem, 'envelope coordinate frame')) !== 'topocentric')
+      return yield* invalid('Envelope needs topocentric mount coordinates')
+    const ra = (yield* required(mount.rightAscensionHours, 'envelope right ascension')) * 15
+    const lst = (yield* required(mount.siderealTimeHours, 'envelope sidereal time')) * 15
+    const declinationDegrees = yield* required(mount.declinationDegrees, 'envelope declination')
+    const from: MountPose = { hourAngleDegrees: angularDelta(lst, ra), declinationDegrees, pierSide }
+    const limit = snapshot.reading('MERIDIAN_LIMIT', numberElement('LIMIT'))
+    const meridianLimit = limit.status === 'fresh' && Number.isFinite(limit.value) ? Math.max(0, limit.value) : 0
+    const refusal = typeof target === 'number'
+      ? rateRefusal(envelope, from, target, meridianLimit)
+      : gotoRefusal(envelope, from, { hourAngleDegrees: angularDelta(lst, target.rightAscensionDegrees), declinationDegrees: target.declinationDegrees }, meridianLimit)
+
+    if (refusal !== undefined) return yield* invalid(refusal)
+  })
+
   const slew = (target: ParamsOf<'mount-slew'>, note: Note) =>
     Effect.gen(function* () {
       const snapshot = yield* liveSnapshot(context)
@@ -196,6 +218,8 @@ export function makeMount(context: CapabilityContext, motion: MountMotionSetting
         return yield* new Failed({ reason: 'unsupported', message: 'The mount cannot slew' })
       if ((yield* required(mount.coordinateSystem, 'coordinate frame')) !== target.coordinateSystem)
         return yield* invalid(`Coordinates must be in the mount's frame (${coordinates.frame}); Cria never converts frames`)
+
+      yield* checkEnvelope(snapshot, target)
 
       const onSet = snapshot.property('ON_COORD_SET')
 
@@ -345,6 +369,7 @@ export function makeMount(context: CapabilityContext, motion: MountMotionSetting
   const axisMotion = (
     rateDegreesPerSecond: number,
     until: (travelled: Effect.Effect<number, Failed>) => Effect.Effect<void, Failed>,
+    travelDegrees: (speed: number) => number,
     commanded: (rateDegreesPerSecond: number, sentAt: number) => MotionCommanded,
     note: Note,
   ) =>
@@ -363,6 +388,8 @@ export function makeMount(context: CapabilityContext, motion: MountMotionSetting
 
         return yield* invalid(`The mount does not offer ${Math.abs(rateDegreesPerSecond)}°/s; it offers ${offered}°/s`)
       }
+
+      yield* checkEnvelope(snapshot, Math.sign(rateDegreesPerSecond) * travelDegrees(rate.degreesPerSecond))
 
       const slewRate = snapshot.property('TELESCOPE_SLEW_RATE')
 
@@ -398,7 +425,7 @@ export function makeMount(context: CapabilityContext, motion: MountMotionSetting
     }).pipe(Effect.scoped)
 
   const moveAxis = (rateDegreesPerSecond: number, durationSeconds: number, note: Note) =>
-    axisMotion(rateDegreesPerSecond, () => Effect.sleep(durationSeconds * 1000), (rate, sentAt) => ({ kind: 'axis', sentAt, axis: 'ra', rateDegreesPerSecond: rate }), note)
+    axisMotion(rateDegreesPerSecond, () => Effect.sleep(durationSeconds * 1000), speed => speed * durationSeconds, (rate, sentAt) => ({ kind: 'axis', sentAt, axis: 'ra', rateDegreesPerSecond: rate }), note)
 
   const rotate = (rateDegreesPerSecond: number, distanceDegrees: number, note: Note) => {
     const speed = Math.abs(rateDegreesPerSecond)
@@ -433,6 +460,7 @@ export function makeMount(context: CapabilityContext, motion: MountMotionSetting
           }),
         ),
       ),
+      () => distance,
       (rate, sentAt) => ({ kind: 'rotate', sentAt, axis: 'ra', rateDegreesPerSecond: rate, distanceDegrees }),
       note,
     )
