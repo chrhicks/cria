@@ -4,12 +4,12 @@
  */
 import { Clock, Effect, Ref } from 'effect'
 import type { Values } from '@cria/indi'
-import { Failed, Uncertain, type Reading } from '@cria/primitives'
+import { Failed, type Uncertain, type Reading } from '@cria/primitives'
 import type { DeviceKind } from '@cria/wire'
 import type { DeviceConfig } from '../config.js'
 import { confirmProperty, numbersApplied, sendOnce, switchConfirmed } from './commands.js'
 import { liveSnapshot, type CapabilityContext } from './context.js'
-import { numberElement, switchElement, textElement, type DeviceSnapshot } from './fields.js'
+import { switchElement, textElement, type DeviceSnapshot } from './fields.js'
 
 export interface StepOutcome {
   readonly property: string
@@ -23,10 +23,6 @@ type Plan =
   | { readonly kind: 'none'; readonly outcome: StepOutcome }
 
 type Step = (context: CapabilityContext, snapshot: DeviceSnapshot, device: DeviceConfig, now: number) => Effect.Effect<Plan, Failed>
-
-// Allow driver rounding of site coordinates and elevation without rewriting the mount.
-const siteDegreesTolerance = 1e-4
-const siteElevationToleranceMeters = 1
 
 const setting = { alertMeansStale: false }
 
@@ -65,18 +61,6 @@ const site: Step = (context, snapshot, device) =>
 
     // INDI longitude is 0 to 360 east.
     const values = { LAT: device.site.latitudeDegrees, LONG: (device.site.longitudeDegrees + 360) % 360, ELEV: device.site.elevationMeters }
-
-    const current = snapshot.property('GEOGRAPHIC_COORD')
-    const latitude = numberElement('LAT')(current)
-    const longitude = numberElement('LONG')(current)
-    const elevation = numberElement('ELEV')(current)
-
-    if (latitude !== undefined && longitude !== undefined && elevation !== undefined) {
-      const longitudeDifference = Math.abs(((longitude - values.LONG) % 360 + 540) % 360 - 180)
-
-      if (Math.abs(latitude - values.LAT) <= siteDegreesTolerance && longitudeDifference <= siteDegreesTolerance && Math.abs(elevation - values.ELEV) <= siteElevationToleranceMeters)
-        return kept('GEOGRAPHIC_COORD', 'already set to the configured site')
-    }
 
     return { kind: 'write', property: 'GEOGRAPHIC_COORD', values, write: numbersApplied(context.device, 'GEOGRAPHIC_COORD', values, context.timing) }
   })
@@ -119,7 +103,7 @@ export interface DeviceSetup {
    */
   readonly due: Effect.Effect<boolean, Failed>
   /** Runs every step in order and records what happened; returns the summary an operation reports. */
-  readonly run: Effect.Effect<string | undefined, Failed | Uncertain>
+  readonly run: Effect.Effect<string | undefined, Failed>
   readonly endSession: Effect.Effect<void>
 }
 
@@ -166,7 +150,7 @@ export function makeDeviceSetup(context: CapabilityContext, device: DeviceConfig
         yield* planned.write.pipe(
           Effect.tapError(error => record(session, [...outcomes, { property: planned.property, done: false, text: `${planned.property} failed: ${error.message}` }])),
           Effect.mapError(error =>
-            error._tag === 'Failed' ? new Failed({ reason: error.reason, message: `setup: ${error.message}` }) : new Uncertain({ reason: error.reason, message: `setup: ${error.message}` }),
+            new Failed({ reason: error._tag === 'Failed' ? error.reason : 'unavailable', message: `setup: ${planned.property}: ${error.message}` }),
           ),
         )
         outcomes.push({ property: planned.property, done: true, text: `sent ${planned.property} ${describeValues(planned.values)}` })

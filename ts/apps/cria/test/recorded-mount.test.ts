@@ -125,7 +125,7 @@ describe('an axis motion at Home, answered Idle (errai, 2026-10-30 evening)', ()
 })
 
 describe('an AM5 site left Alert after a rejected rewrite', () => {
-  it('confirms setup across restarts without rewriting the matching site', async () => {
+  it('fails setup without a hold across restarts when the matching site rewrite stays Alert', async () => {
     fake = new FakeIndi()
     await fake.start()
     addMount(fake, mount)
@@ -148,13 +148,12 @@ describe('an AM5 site left Alert after a rejected rewrite', () => {
       await cria.waitFor(allReady(['mount']))
       const startup = (await cria.state()).operations.find(operation => operation.requestId.startsWith('startup-'))
 
-      expect(startup).toMatchObject({ state: 'settled', outcome: { kind: 'confirmed' } })
-      expect(JSON.stringify(startup)).toContain('GEOGRAPHIC_COORD already set to the configured site')
-      expect(sent('GEOGRAPHIC_COORD')).toEqual([])
+      expect(startup).toMatchObject({ state: 'settled', outcome: { kind: 'failed', message: expect.stringContaining('setup: GEOGRAPHIC_COORD') } })
+      expect(sent('GEOGRAPHIC_COORD')).toHaveLength(restart + 1)
       expect(fake.vector(mount, 'GEOGRAPHIC_COORD').state).toBe('Alert')
       expect(await held()).toBe(false)
       await cria.stop()
     }
-    expect(sent('TIME_UTC')).toHaveLength(2)
+    expect(sent('TIME_UTC')).toHaveLength(0)
   })
 })

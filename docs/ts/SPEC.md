@@ -834,7 +834,7 @@ first that does not confirm.
 | Kind | Step | Writes | Nothing written when |
 |---|---|---|---|
 | camera | frames to Cria | `UPLOAD_MODE` `UPLOAD_CLIENT=On`, confirmed by readback | `UPLOAD_LOCAL` is already off, or the camera has no `UPLOAD_MODE` |
-| mount | site | `GEOGRAPHIC_COORD` `LAT`, `LONG` (0 to 360 east), `ELEV` from the device's `site`, confirmed by the driver's echo (`numbersApplied`) | no `site` configured, the mount has no `GEOGRAPHIC_COORD`, or all three reported site values match the configured site within 1e-4 degrees and 1 m elevation, with longitude wrapping at 360 degrees, regardless of property state (Ok, Alert, Idle, or Busy) |
+| mount | site | `GEOGRAPHIC_COORD` `LAT`, `LONG` (0 to 360 east), `ELEV` from the device's `site`, confirmed by the driver's echo (`numbersApplied`) | no `site` configured or the mount has no `GEOGRAPHIC_COORD` |
 | mount | time, after the site | `TIME_UTC` `UTC` from the system clock (`YYYY-MM-DDTHH:MM:SS`), `OFFSET=0.00`, confirmed by the echoed `UTC` | the mount has no `TIME_UTC` |
 
 Why each step exists:
@@ -847,7 +847,10 @@ Why each step exists:
   `:St`, and the `TIME_UTC` write sends `:SG`, `:SL` and `:SC` (libindi 2.2.5
   source). The raw sequence `:St`, `:Sg`, `:SG`, `:SC`, `:SL` made the mount
   accept gotos on errai. The time uses offset 0, so the mount's local time is UTC
-  and the two agree.
+  and the two agree. Always write both, even when the driver reports the configured
+  site. After a power-on the driver can report stored values while the AM5 still
+  needs the writes. The two INDI writes cleared a real power-on refusal on
+  2026-11-03; reporting matching values alone did not.
 
 **When it runs.** Each time a device is connected and has not been set up since
 it connected. A connection ends when the device disconnects, its driver goes away
@@ -855,9 +858,8 @@ it connected. A connection ends when the device disconnects, its driver goes awa
 that comes back is set up again. Setup runs as an ordinary `device-connect`
 operation (`connected: true`, request ID `startup-…`) through the ledger, on a
 device that is already connected, so it connects nothing. That makes it
-single-flight with Vela's operations, quarantines a mount if a step ends
-uncertain, and shows in the operation list. A device with nothing to write gets
-no operation. A refused submission (the domain busy or held) sent nothing and is
+single-flight with Vela's operations and shows in the operation list. A device
+with nothing to write gets no operation. A refused submission (the domain busy or held) sent nothing and is
 tried again. A setup that ran is not run again until the device connects again,
 or someone sends `device-connect` with `connected: true`, which always runs the
 setup steps after connecting (`connect: true` at start included). With commands
@@ -869,28 +871,18 @@ disabled, setup does not run.
 or `UPLOAD_MODE already sends frames to Cria`. Until setup has run on a
 connection, the device's availability is `starting` with the message
 `Waiting for device setup`, so Vela does not command a mount that would refuse
-its goto. A step that is not confirmed ends the operation `uncertain`. On a mount the
-device is then `blocked` with the step named in the message (any other device
-stays usable, see Quarantine), as
-`Blocked until a person recovers it: setup: TIME_UTC on ZWO AM5: no answer within 5s`,
-until a person recovers it. A step the driver refuses ends it `failed` and the
-device stays ready; the next capture or goto says why it fails. These reuse
-`availability` and the quarantine, so no reason was added to the wire.
+its goto. Setup steps cannot move equipment. An unconfirmed or refused setup
+write ends `failed`, names the step, and leaves the device ready without a hold.
+Setup stops at that step and does not retry automatically. Commands that can
+move equipment keep their existing uncertain outcome and hold rules.
 
-**A refused goto says why.** When the mount refuses a goto with `Alert` and its
-setup since connecting is not complete (not run, a step failed, or no site
-configured), the outcome is `failed: rejected` with
-`The mount refused the goto (Alert on EQUATORIAL_EOD_COORD). An AM5 refuses every goto until its site and time are set after it powers on. Setup since it connected: GEOGRAPHIC_COORD not sent: no site is configured for this mount; sent TIME_UTC UTC=… OFFSET=0.00`.
-The mount's real reply (`e7#`) is not visible through INDI: the lx200 driver
-accepts only a digit as the first reply character and logs `Slew failed (-1)`,
-and Cria no longer parses driver messages. With setup complete, a refused goto
-keeps the driver's message.
-
-**Not yet proven on the mount.** That the two INDI writes alone clear the AM5's
-e7 is not verified: on errai the mount was already synchronized by the raw
-commands, and it stays synchronized until it is powered off. A power-cycle test
-on the rig, with Chris present, settles it: power the mount off and on, start
-Cria, and slew.
+**A refused goto says what to do.** A goto rejected before motion starts ends
+`failed: rejected`. Its outcome preserves the driver's message and explains that
+an AM5 can refuse gotos when site and time are not synchronized after power-on.
+It tells the caller to send `device-connect` with `connected: true` to write site
+and time again, then retry the goto. Cria never retries the goto or resends setup
+as part of a refusal. INDI's `Alert` alone does not prove AM5 e7, so the message
+names it as a possible cause even if setup previously confirmed.
 
 ### The focuser travel window
 
@@ -1834,8 +1826,8 @@ of this Cria; Readings above every one):
   Alert". After the raw `:St`, `:Sg`, `:SG`, `:SC`, `:SL` the goto was accepted.
   Cria had never written `GEOGRAPHIC_COORD` or `TIME_UTC`; the ZWO ASCOM driver
   on Windows never showed the problem. Cria now writes both after
-  the mount connects (see "Device setup"); that the INDI writes are enough is not
-  yet proven on the mount.
+  the mount connects (see "Device setup"). On 2026-11-03, writing both through
+  INDI after a power-on cleared the refusal immediately.
 - **The 2600's `UPLOAD_MODE` was `UPLOAD_LOCAL`.** Cria refused its captures.
   Device setup now switches it to client.
 

@@ -72,19 +72,19 @@ describe('a mount', () => {
   })
 
   it.each([
-    { label: 'matching', state: 'Ok', latitude: 12.5, longitude: 0, elevation: 123, kept: true },
-    { label: 'rounded', state: 'Ok', latitude: 12.50009, longitude: 0.00009, elevation: 123.9, kept: true },
-    { label: 'wrapped', state: 'Ok', latitude: 12.5, longitude: 359.99995, elevation: 123, kept: true },
-    { label: 'different latitude', state: 'Ok', latitude: 12.501, longitude: 0, elevation: 123, kept: false },
-    { label: 'different longitude', state: 'Ok', latitude: 12.5, longitude: 0.001, elevation: 123, kept: false },
-    { label: 'different elevation', state: 'Ok', latitude: 12.5, longitude: 0, elevation: 125, kept: false },
-    { label: 'Alert matching', state: 'Alert', latitude: 12.5, longitude: 0, elevation: 123, kept: true },
-    { label: 'Alert different', state: 'Alert', latitude: 12.501, longitude: 0, elevation: 123, kept: false },
-    { label: 'Idle matching', state: 'Idle', latitude: 12.5, longitude: 0, elevation: 123, kept: true },
-    { label: 'Busy matching', state: 'Busy', latitude: 12.5, longitude: 0, elevation: 123, kept: true },
-    { label: 'unparsable latitude', state: 'Alert', latitude: 'invalid', longitude: 0, elevation: 123, kept: false },
-    { label: 'unread latitude', state: 'Ok', latitude: undefined, longitude: 0, elevation: 123, kept: false },
-  ] as const)('handles an already reported $label site', async ({ state, latitude, longitude, elevation, kept }) => {
+    { label: 'matching', state: 'Ok', latitude: 12.5, longitude: 0, elevation: 123 },
+    { label: 'rounded', state: 'Ok', latitude: 12.50009, longitude: 0.00009, elevation: 123.9 },
+    { label: 'wrapped', state: 'Ok', latitude: 12.5, longitude: 359.99995, elevation: 123 },
+    { label: 'different latitude', state: 'Ok', latitude: 12.501, longitude: 0, elevation: 123 },
+    { label: 'different longitude', state: 'Ok', latitude: 12.5, longitude: 0.001, elevation: 123 },
+    { label: 'different elevation', state: 'Ok', latitude: 12.5, longitude: 0, elevation: 125 },
+    { label: 'Alert matching', state: 'Alert', latitude: 12.5, longitude: 0, elevation: 123 },
+    { label: 'Alert different', state: 'Alert', latitude: 12.501, longitude: 0, elevation: 123 },
+    { label: 'Idle matching', state: 'Idle', latitude: 12.5, longitude: 0, elevation: 123 },
+    { label: 'Busy matching', state: 'Busy', latitude: 12.5, longitude: 0, elevation: 123 },
+    { label: 'unparsable latitude', state: 'Alert', latitude: 'invalid', longitude: 0, elevation: 123 },
+    { label: 'unread latitude', state: 'Ok', latitude: undefined, longitude: 0, elevation: 123 },
+  ] as const)('handles an already reported $label site', async ({ state, latitude, longitude, elevation }) => {
     fake = new FakeIndi()
     await fake.start()
     addMount(fake, mount)
@@ -107,25 +107,59 @@ describe('a mount', () => {
     }
     await cria.waitFor(allReady(['mount']))
 
-    expect(writes('GEOGRAPHIC_COORD')).toHaveLength(kept ? 0 : 1)
+    expect(writes('GEOGRAPHIC_COORD')).toHaveLength(1)
     expect(writes('TIME_UTC')).toHaveLength(1)
     const startup = (await cria.state()).operations.find(operation => operation.requestId.startsWith('startup-'))
     expect(startup).toMatchObject({ state: 'settled', outcome: { kind: 'confirmed' } })
-    if (kept) expect(JSON.stringify(startup)).toContain('GEOGRAPHIC_COORD already set to the configured site')
+    expect(fake.received.filter(xml => xml.startsWith('<new') && /name="(GEOGRAPHIC_COORD|TIME_UTC)"/.test(xml)).map(xml => xml.includes('GEOGRAPHIC_COORD') ? 'site' : 'time')).toEqual(['site', 'time'])
   })
 
-  it('is not ready while its setup runs, and a setup write the driver never answers blocks it until a person recovers it', async () => {
-    await start((fake, vector, values) => (vector.name === 'TIME_UTC' ? 'handled' : moveMount()(fake, vector, values)))
-    await until('the time to be sent', () => writes('TIME_UTC').length > 0)
+  it.each(['GEOGRAPHIC_COORD', 'TIME_UTC'])('fails without holding when %s gets no answer', async property => {
+    await start((fake, vector, values) => (vector.name === property ? 'handled' : moveMount()(fake, vector, values)))
+    await until('the setup write to be sent', () => writes(property).length > 0)
     const during = (await cria.device('mount')).availability
-
-    await cria.waitFor(state => state.devices[0]!.quarantine.held)
-    const blocked = await cria.device('mount')
+    await cria.waitFor(allReady(['mount']))
+    const device = await cria.device('mount')
+    const startup = (await cria.state()).operations.find(operation => operation.requestId.startsWith('startup-'))
 
     expect(during).toEqual({ ready: false, reason: 'starting', message: 'Waiting for device setup' })
-    expect(blocked.availability).toMatchObject({ ready: false, reason: 'blocked' })
-    expect(blocked.availability.ready === false && blocked.availability.message).toMatch(/^Blocked until a person recovers it: setup: TIME_UTC on ZWO AM5: no answer/)
-    expect(writes('TIME_UTC')).toHaveLength(1)
+    expect(device.quarantine.held).toBe(false)
+    expect(startup).toMatchObject({ state: 'settled', outcome: { kind: 'failed', reason: 'unavailable', message: expect.stringContaining(`setup: ${property}`) } })
+    expect(writes(property)).toHaveLength(1)
+    if (property === 'GEOGRAPHIC_COORD') expect(writes('TIME_UTC')).toHaveLength(0)
+  })
+
+  it('gives actionable advice for a refused goto even after setup confirmed, without retrying it', async () => {
+    await start((fake, vector, values) => {
+      if (vector.name === 'EQUATORIAL_EOD_COORD') {
+        fake.update(mount, vector.name, { state: 'Alert' })
+        return 'handled'
+      }
+      return moveMount()(fake, vector, values)
+    })
+    await cria.waitFor(allReady(['mount']))
+    const outcome = await cria.run('mount', 'mount-slew', { rightAscensionDegrees: 120, declinationDegrees: 20, coordinateSystem: 'topocentric' })
+
+    expect(outcome).toMatchObject({ kind: 'failed', reason: 'rejected', quarantined: false })
+    expect(outcome.message).toContain('Nothing moved')
+    expect(outcome.message).toContain('AM5 e7')
+    expect(outcome.message).toContain('device-connect')
+    expect(outcome.message).toContain('connected: true')
+    expect(writes('EQUATORIAL_EOD_COORD')).toHaveLength(1)
+    expect([writes('GEOGRAPHIC_COORD').length, writes('TIME_UTC').length]).toEqual([1, 1])
+  })
+
+  it('writes again after a Cria restart with the stored site, without changing tracking', async () => {
+    await start()
+    await cria.waitFor(allReady(['mount']))
+    const tracking = fake.vector(mount, 'TELESCOPE_TRACK_STATE').elements.TRACK_ON!.value
+    await cria.stop()
+    cria = await startCria(fake.port, [{ id: 'mount', kind: 'mount', indiDevice: mount, site }])
+    await cria.waitFor(allReady(['mount']))
+
+    expect([writes('GEOGRAPHIC_COORD').length, writes('TIME_UTC').length]).toEqual([2, 2])
+    expect(writes('TELESCOPE_TRACK_STATE')).toHaveLength(0)
+    expect(fake.vector(mount, 'TELESCOPE_TRACK_STATE').elements.TRACK_ON!.value).toBe(tracking)
   })
 
   it('is set up again when its driver comes back after going away', async () => {
