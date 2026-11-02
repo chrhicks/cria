@@ -615,6 +615,48 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
         readonly reason: Schema.Literals<readonly ["no-acknowledgement", "not-confirmed", "stop-not-confirmed", "connection-lost", "driver-lost", "unexpected-error"]>;
         readonly message: Schema.String;
     }>]>;
+    readonly motion: Schema.optionalKey<Schema.Struct<{
+        readonly commanded: Schema.Union<readonly [Schema.Struct<{
+            readonly sentAt: Schema.Number;
+            readonly kind: Schema.Literal<"slew">;
+            readonly target: Schema.Struct<{
+                readonly rightAscensionDegrees: Schema.Number;
+                readonly declinationDegrees: Schema.Number;
+            }>;
+        }>, Schema.Struct<{
+            readonly sentAt: Schema.Number;
+            readonly axis: Schema.Literal<"ra">;
+            readonly rateDegreesPerSecond: Schema.Number;
+            readonly kind: Schema.Literal<"axis">;
+        }>, Schema.Struct<{
+            readonly sentAt: Schema.Number;
+            readonly axis: Schema.Literal<"ra">;
+            readonly rateDegreesPerSecond: Schema.Number;
+            readonly kind: Schema.Literal<"rotate">;
+            readonly distanceDegrees: Schema.Number;
+        }>, Schema.Struct<{
+            readonly sentAt: Schema.Number;
+            readonly kind: Schema.Literals<readonly ["home", "park", "stop"]>;
+        }>]>;
+        readonly observed: Schema.Struct<{
+            readonly from: Schema.NullOr<Schema.Struct<{
+                readonly rightAscensionDegrees: Schema.Number;
+                readonly declinationDegrees: Schema.Number;
+            }>>;
+            readonly to: Schema.NullOr<Schema.Struct<{
+                readonly rightAscensionDegrees: Schema.Number;
+                readonly declinationDegrees: Schema.Number;
+            }>>;
+            readonly travel: Schema.NullOr<Schema.Struct<{
+                readonly rightAscensionDegrees: Schema.Number;
+                readonly declinationDegrees: Schema.Number;
+            }>>;
+        }>;
+        readonly stopped: Schema.Struct<{
+            readonly how: Schema.Literals<readonly ["arrived", "halted", "aborted", "uncertain"]>;
+            readonly at: Schema.NullOr<Schema.Number>;
+        }>;
+    }>>;
     readonly recovery: Schema.NullOr<Schema.Struct<{
         readonly at: Schema.Number;
         readonly note: Schema.String;
@@ -679,6 +721,48 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
         readonly reason: Schema.Literals<readonly ["no-acknowledgement", "not-confirmed", "stop-not-confirmed", "connection-lost", "driver-lost", "unexpected-error"]>;
         readonly message: Schema.String;
     }>]>;
+    readonly motion: Schema.optionalKey<Schema.Struct<{
+        readonly commanded: Schema.Union<readonly [Schema.Struct<{
+            readonly sentAt: Schema.Number;
+            readonly kind: Schema.Literal<"slew">;
+            readonly target: Schema.Struct<{
+                readonly rightAscensionDegrees: Schema.Number;
+                readonly declinationDegrees: Schema.Number;
+            }>;
+        }>, Schema.Struct<{
+            readonly sentAt: Schema.Number;
+            readonly axis: Schema.Literal<"ra">;
+            readonly rateDegreesPerSecond: Schema.Number;
+            readonly kind: Schema.Literal<"axis">;
+        }>, Schema.Struct<{
+            readonly sentAt: Schema.Number;
+            readonly axis: Schema.Literal<"ra">;
+            readonly rateDegreesPerSecond: Schema.Number;
+            readonly kind: Schema.Literal<"rotate">;
+            readonly distanceDegrees: Schema.Number;
+        }>, Schema.Struct<{
+            readonly sentAt: Schema.Number;
+            readonly kind: Schema.Literals<readonly ["home", "park", "stop"]>;
+        }>]>;
+        readonly observed: Schema.Struct<{
+            readonly from: Schema.NullOr<Schema.Struct<{
+                readonly rightAscensionDegrees: Schema.Number;
+                readonly declinationDegrees: Schema.Number;
+            }>>;
+            readonly to: Schema.NullOr<Schema.Struct<{
+                readonly rightAscensionDegrees: Schema.Number;
+                readonly declinationDegrees: Schema.Number;
+            }>>;
+            readonly travel: Schema.NullOr<Schema.Struct<{
+                readonly rightAscensionDegrees: Schema.Number;
+                readonly declinationDegrees: Schema.Number;
+            }>>;
+        }>;
+        readonly stopped: Schema.Struct<{
+            readonly how: Schema.Literals<readonly ["arrived", "halted", "aborted", "uncertain"]>;
+            readonly at: Schema.NullOr<Schema.Number>;
+        }>;
+    }>>;
     readonly recovery: Schema.NullOr<Schema.Struct<{
         readonly at: Schema.Number;
         readonly note: Schema.String;
@@ -741,6 +825,48 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
         readonly reason: Schema.Literals<readonly ["no-acknowledgement", "not-confirmed", "stop-not-confirmed", "connection-lost", "driver-lost", "unexpected-error"]>;
         readonly message: Schema.String;
     }>]>;
+    readonly motion: Schema.optionalKey<Schema.Struct<{
+        readonly commanded: Schema.Union<readonly [Schema.Struct<{
+            readonly sentAt: Schema.Number;
+            readonly kind: Schema.Literal<"slew">;
+            readonly target: Schema.Struct<{
+                readonly rightAscensionDegrees: Schema.Number;
+                readonly declinationDegrees: Schema.Number;
+            }>;
+        }>, Schema.Struct<{
+            readonly sentAt: Schema.Number;
+            readonly axis: Schema.Literal<"ra">;
+            readonly rateDegreesPerSecond: Schema.Number;
+            readonly kind: Schema.Literal<"axis">;
+        }>, Schema.Struct<{
+            readonly sentAt: Schema.Number;
+            readonly axis: Schema.Literal<"ra">;
+            readonly rateDegreesPerSecond: Schema.Number;
+            readonly kind: Schema.Literal<"rotate">;
+            readonly distanceDegrees: Schema.Number;
+        }>, Schema.Struct<{
+            readonly sentAt: Schema.Number;
+            readonly kind: Schema.Literals<readonly ["home", "park", "stop"]>;
+        }>]>;
+        readonly observed: Schema.Struct<{
+            readonly from: Schema.NullOr<Schema.Struct<{
+                readonly rightAscensionDegrees: Schema.Number;
+                readonly declinationDegrees: Schema.Number;
+            }>>;
+            readonly to: Schema.NullOr<Schema.Struct<{
+                readonly rightAscensionDegrees: Schema.Number;
+                readonly declinationDegrees: Schema.Number;
+            }>>;
+            readonly travel: Schema.NullOr<Schema.Struct<{
+                readonly rightAscensionDegrees: Schema.Number;
+                readonly declinationDegrees: Schema.Number;
+            }>>;
+        }>;
+        readonly stopped: Schema.Struct<{
+            readonly how: Schema.Literals<readonly ["arrived", "halted", "aborted", "uncertain"]>;
+            readonly at: Schema.NullOr<Schema.Number>;
+        }>;
+    }>>;
     readonly recovery: Schema.NullOr<Schema.Struct<{
         readonly at: Schema.Number;
         readonly note: Schema.String;
@@ -802,6 +928,48 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
         readonly reason: Schema.Literals<readonly ["no-acknowledgement", "not-confirmed", "stop-not-confirmed", "connection-lost", "driver-lost", "unexpected-error"]>;
         readonly message: Schema.String;
     }>]>;
+    readonly motion: Schema.optionalKey<Schema.Struct<{
+        readonly commanded: Schema.Union<readonly [Schema.Struct<{
+            readonly sentAt: Schema.Number;
+            readonly kind: Schema.Literal<"slew">;
+            readonly target: Schema.Struct<{
+                readonly rightAscensionDegrees: Schema.Number;
+                readonly declinationDegrees: Schema.Number;
+            }>;
+        }>, Schema.Struct<{
+            readonly sentAt: Schema.Number;
+            readonly axis: Schema.Literal<"ra">;
+            readonly rateDegreesPerSecond: Schema.Number;
+            readonly kind: Schema.Literal<"axis">;
+        }>, Schema.Struct<{
+            readonly sentAt: Schema.Number;
+            readonly axis: Schema.Literal<"ra">;
+            readonly rateDegreesPerSecond: Schema.Number;
+            readonly kind: Schema.Literal<"rotate">;
+            readonly distanceDegrees: Schema.Number;
+        }>, Schema.Struct<{
+            readonly sentAt: Schema.Number;
+            readonly kind: Schema.Literals<readonly ["home", "park", "stop"]>;
+        }>]>;
+        readonly observed: Schema.Struct<{
+            readonly from: Schema.NullOr<Schema.Struct<{
+                readonly rightAscensionDegrees: Schema.Number;
+                readonly declinationDegrees: Schema.Number;
+            }>>;
+            readonly to: Schema.NullOr<Schema.Struct<{
+                readonly rightAscensionDegrees: Schema.Number;
+                readonly declinationDegrees: Schema.Number;
+            }>>;
+            readonly travel: Schema.NullOr<Schema.Struct<{
+                readonly rightAscensionDegrees: Schema.Number;
+                readonly declinationDegrees: Schema.Number;
+            }>>;
+        }>;
+        readonly stopped: Schema.Struct<{
+            readonly how: Schema.Literals<readonly ["arrived", "halted", "aborted", "uncertain"]>;
+            readonly at: Schema.NullOr<Schema.Number>;
+        }>;
+    }>>;
     readonly recovery: Schema.NullOr<Schema.Struct<{
         readonly at: Schema.Number;
         readonly note: Schema.String;
@@ -861,6 +1029,48 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
         readonly reason: Schema.Literals<readonly ["no-acknowledgement", "not-confirmed", "stop-not-confirmed", "connection-lost", "driver-lost", "unexpected-error"]>;
         readonly message: Schema.String;
     }>]>;
+    readonly motion: Schema.optionalKey<Schema.Struct<{
+        readonly commanded: Schema.Union<readonly [Schema.Struct<{
+            readonly sentAt: Schema.Number;
+            readonly kind: Schema.Literal<"slew">;
+            readonly target: Schema.Struct<{
+                readonly rightAscensionDegrees: Schema.Number;
+                readonly declinationDegrees: Schema.Number;
+            }>;
+        }>, Schema.Struct<{
+            readonly sentAt: Schema.Number;
+            readonly axis: Schema.Literal<"ra">;
+            readonly rateDegreesPerSecond: Schema.Number;
+            readonly kind: Schema.Literal<"axis">;
+        }>, Schema.Struct<{
+            readonly sentAt: Schema.Number;
+            readonly axis: Schema.Literal<"ra">;
+            readonly rateDegreesPerSecond: Schema.Number;
+            readonly kind: Schema.Literal<"rotate">;
+            readonly distanceDegrees: Schema.Number;
+        }>, Schema.Struct<{
+            readonly sentAt: Schema.Number;
+            readonly kind: Schema.Literals<readonly ["home", "park", "stop"]>;
+        }>]>;
+        readonly observed: Schema.Struct<{
+            readonly from: Schema.NullOr<Schema.Struct<{
+                readonly rightAscensionDegrees: Schema.Number;
+                readonly declinationDegrees: Schema.Number;
+            }>>;
+            readonly to: Schema.NullOr<Schema.Struct<{
+                readonly rightAscensionDegrees: Schema.Number;
+                readonly declinationDegrees: Schema.Number;
+            }>>;
+            readonly travel: Schema.NullOr<Schema.Struct<{
+                readonly rightAscensionDegrees: Schema.Number;
+                readonly declinationDegrees: Schema.Number;
+            }>>;
+        }>;
+        readonly stopped: Schema.Struct<{
+            readonly how: Schema.Literals<readonly ["arrived", "halted", "aborted", "uncertain"]>;
+            readonly at: Schema.NullOr<Schema.Number>;
+        }>;
+    }>>;
     readonly recovery: Schema.NullOr<Schema.Struct<{
         readonly at: Schema.Number;
         readonly note: Schema.String;
@@ -924,6 +1134,48 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
         readonly reason: Schema.Literals<readonly ["no-acknowledgement", "not-confirmed", "stop-not-confirmed", "connection-lost", "driver-lost", "unexpected-error"]>;
         readonly message: Schema.String;
     }>]>;
+    readonly motion: Schema.optionalKey<Schema.Struct<{
+        readonly commanded: Schema.Union<readonly [Schema.Struct<{
+            readonly sentAt: Schema.Number;
+            readonly kind: Schema.Literal<"slew">;
+            readonly target: Schema.Struct<{
+                readonly rightAscensionDegrees: Schema.Number;
+                readonly declinationDegrees: Schema.Number;
+            }>;
+        }>, Schema.Struct<{
+            readonly sentAt: Schema.Number;
+            readonly axis: Schema.Literal<"ra">;
+            readonly rateDegreesPerSecond: Schema.Number;
+            readonly kind: Schema.Literal<"axis">;
+        }>, Schema.Struct<{
+            readonly sentAt: Schema.Number;
+            readonly axis: Schema.Literal<"ra">;
+            readonly rateDegreesPerSecond: Schema.Number;
+            readonly kind: Schema.Literal<"rotate">;
+            readonly distanceDegrees: Schema.Number;
+        }>, Schema.Struct<{
+            readonly sentAt: Schema.Number;
+            readonly kind: Schema.Literals<readonly ["home", "park", "stop"]>;
+        }>]>;
+        readonly observed: Schema.Struct<{
+            readonly from: Schema.NullOr<Schema.Struct<{
+                readonly rightAscensionDegrees: Schema.Number;
+                readonly declinationDegrees: Schema.Number;
+            }>>;
+            readonly to: Schema.NullOr<Schema.Struct<{
+                readonly rightAscensionDegrees: Schema.Number;
+                readonly declinationDegrees: Schema.Number;
+            }>>;
+            readonly travel: Schema.NullOr<Schema.Struct<{
+                readonly rightAscensionDegrees: Schema.Number;
+                readonly declinationDegrees: Schema.Number;
+            }>>;
+        }>;
+        readonly stopped: Schema.Struct<{
+            readonly how: Schema.Literals<readonly ["arrived", "halted", "aborted", "uncertain"]>;
+            readonly at: Schema.NullOr<Schema.Number>;
+        }>;
+    }>>;
     readonly recovery: Schema.NullOr<Schema.Struct<{
         readonly at: Schema.Number;
         readonly note: Schema.String;
@@ -986,6 +1238,48 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
         readonly reason: Schema.Literals<readonly ["no-acknowledgement", "not-confirmed", "stop-not-confirmed", "connection-lost", "driver-lost", "unexpected-error"]>;
         readonly message: Schema.String;
     }>]>;
+    readonly motion: Schema.optionalKey<Schema.Struct<{
+        readonly commanded: Schema.Union<readonly [Schema.Struct<{
+            readonly sentAt: Schema.Number;
+            readonly kind: Schema.Literal<"slew">;
+            readonly target: Schema.Struct<{
+                readonly rightAscensionDegrees: Schema.Number;
+                readonly declinationDegrees: Schema.Number;
+            }>;
+        }>, Schema.Struct<{
+            readonly sentAt: Schema.Number;
+            readonly axis: Schema.Literal<"ra">;
+            readonly rateDegreesPerSecond: Schema.Number;
+            readonly kind: Schema.Literal<"axis">;
+        }>, Schema.Struct<{
+            readonly sentAt: Schema.Number;
+            readonly axis: Schema.Literal<"ra">;
+            readonly rateDegreesPerSecond: Schema.Number;
+            readonly kind: Schema.Literal<"rotate">;
+            readonly distanceDegrees: Schema.Number;
+        }>, Schema.Struct<{
+            readonly sentAt: Schema.Number;
+            readonly kind: Schema.Literals<readonly ["home", "park", "stop"]>;
+        }>]>;
+        readonly observed: Schema.Struct<{
+            readonly from: Schema.NullOr<Schema.Struct<{
+                readonly rightAscensionDegrees: Schema.Number;
+                readonly declinationDegrees: Schema.Number;
+            }>>;
+            readonly to: Schema.NullOr<Schema.Struct<{
+                readonly rightAscensionDegrees: Schema.Number;
+                readonly declinationDegrees: Schema.Number;
+            }>>;
+            readonly travel: Schema.NullOr<Schema.Struct<{
+                readonly rightAscensionDegrees: Schema.Number;
+                readonly declinationDegrees: Schema.Number;
+            }>>;
+        }>;
+        readonly stopped: Schema.Struct<{
+            readonly how: Schema.Literals<readonly ["arrived", "halted", "aborted", "uncertain"]>;
+            readonly at: Schema.NullOr<Schema.Number>;
+        }>;
+    }>>;
     readonly recovery: Schema.NullOr<Schema.Struct<{
         readonly at: Schema.Number;
         readonly note: Schema.String;
@@ -1045,6 +1339,48 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
         readonly reason: Schema.Literals<readonly ["no-acknowledgement", "not-confirmed", "stop-not-confirmed", "connection-lost", "driver-lost", "unexpected-error"]>;
         readonly message: Schema.String;
     }>]>;
+    readonly motion: Schema.optionalKey<Schema.Struct<{
+        readonly commanded: Schema.Union<readonly [Schema.Struct<{
+            readonly sentAt: Schema.Number;
+            readonly kind: Schema.Literal<"slew">;
+            readonly target: Schema.Struct<{
+                readonly rightAscensionDegrees: Schema.Number;
+                readonly declinationDegrees: Schema.Number;
+            }>;
+        }>, Schema.Struct<{
+            readonly sentAt: Schema.Number;
+            readonly axis: Schema.Literal<"ra">;
+            readonly rateDegreesPerSecond: Schema.Number;
+            readonly kind: Schema.Literal<"axis">;
+        }>, Schema.Struct<{
+            readonly sentAt: Schema.Number;
+            readonly axis: Schema.Literal<"ra">;
+            readonly rateDegreesPerSecond: Schema.Number;
+            readonly kind: Schema.Literal<"rotate">;
+            readonly distanceDegrees: Schema.Number;
+        }>, Schema.Struct<{
+            readonly sentAt: Schema.Number;
+            readonly kind: Schema.Literals<readonly ["home", "park", "stop"]>;
+        }>]>;
+        readonly observed: Schema.Struct<{
+            readonly from: Schema.NullOr<Schema.Struct<{
+                readonly rightAscensionDegrees: Schema.Number;
+                readonly declinationDegrees: Schema.Number;
+            }>>;
+            readonly to: Schema.NullOr<Schema.Struct<{
+                readonly rightAscensionDegrees: Schema.Number;
+                readonly declinationDegrees: Schema.Number;
+            }>>;
+            readonly travel: Schema.NullOr<Schema.Struct<{
+                readonly rightAscensionDegrees: Schema.Number;
+                readonly declinationDegrees: Schema.Number;
+            }>>;
+        }>;
+        readonly stopped: Schema.Struct<{
+            readonly how: Schema.Literals<readonly ["arrived", "halted", "aborted", "uncertain"]>;
+            readonly at: Schema.NullOr<Schema.Number>;
+        }>;
+    }>>;
     readonly recovery: Schema.NullOr<Schema.Struct<{
         readonly at: Schema.Number;
         readonly note: Schema.String;
@@ -1104,6 +1440,48 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
         readonly reason: Schema.Literals<readonly ["no-acknowledgement", "not-confirmed", "stop-not-confirmed", "connection-lost", "driver-lost", "unexpected-error"]>;
         readonly message: Schema.String;
     }>]>;
+    readonly motion: Schema.optionalKey<Schema.Struct<{
+        readonly commanded: Schema.Union<readonly [Schema.Struct<{
+            readonly sentAt: Schema.Number;
+            readonly kind: Schema.Literal<"slew">;
+            readonly target: Schema.Struct<{
+                readonly rightAscensionDegrees: Schema.Number;
+                readonly declinationDegrees: Schema.Number;
+            }>;
+        }>, Schema.Struct<{
+            readonly sentAt: Schema.Number;
+            readonly axis: Schema.Literal<"ra">;
+            readonly rateDegreesPerSecond: Schema.Number;
+            readonly kind: Schema.Literal<"axis">;
+        }>, Schema.Struct<{
+            readonly sentAt: Schema.Number;
+            readonly axis: Schema.Literal<"ra">;
+            readonly rateDegreesPerSecond: Schema.Number;
+            readonly kind: Schema.Literal<"rotate">;
+            readonly distanceDegrees: Schema.Number;
+        }>, Schema.Struct<{
+            readonly sentAt: Schema.Number;
+            readonly kind: Schema.Literals<readonly ["home", "park", "stop"]>;
+        }>]>;
+        readonly observed: Schema.Struct<{
+            readonly from: Schema.NullOr<Schema.Struct<{
+                readonly rightAscensionDegrees: Schema.Number;
+                readonly declinationDegrees: Schema.Number;
+            }>>;
+            readonly to: Schema.NullOr<Schema.Struct<{
+                readonly rightAscensionDegrees: Schema.Number;
+                readonly declinationDegrees: Schema.Number;
+            }>>;
+            readonly travel: Schema.NullOr<Schema.Struct<{
+                readonly rightAscensionDegrees: Schema.Number;
+                readonly declinationDegrees: Schema.Number;
+            }>>;
+        }>;
+        readonly stopped: Schema.Struct<{
+            readonly how: Schema.Literals<readonly ["arrived", "halted", "aborted", "uncertain"]>;
+            readonly at: Schema.NullOr<Schema.Number>;
+        }>;
+    }>>;
     readonly recovery: Schema.NullOr<Schema.Struct<{
         readonly at: Schema.Number;
         readonly note: Schema.String;
@@ -1166,6 +1544,48 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
         readonly reason: Schema.Literals<readonly ["no-acknowledgement", "not-confirmed", "stop-not-confirmed", "connection-lost", "driver-lost", "unexpected-error"]>;
         readonly message: Schema.String;
     }>]>;
+    readonly motion: Schema.optionalKey<Schema.Struct<{
+        readonly commanded: Schema.Union<readonly [Schema.Struct<{
+            readonly sentAt: Schema.Number;
+            readonly kind: Schema.Literal<"slew">;
+            readonly target: Schema.Struct<{
+                readonly rightAscensionDegrees: Schema.Number;
+                readonly declinationDegrees: Schema.Number;
+            }>;
+        }>, Schema.Struct<{
+            readonly sentAt: Schema.Number;
+            readonly axis: Schema.Literal<"ra">;
+            readonly rateDegreesPerSecond: Schema.Number;
+            readonly kind: Schema.Literal<"axis">;
+        }>, Schema.Struct<{
+            readonly sentAt: Schema.Number;
+            readonly axis: Schema.Literal<"ra">;
+            readonly rateDegreesPerSecond: Schema.Number;
+            readonly kind: Schema.Literal<"rotate">;
+            readonly distanceDegrees: Schema.Number;
+        }>, Schema.Struct<{
+            readonly sentAt: Schema.Number;
+            readonly kind: Schema.Literals<readonly ["home", "park", "stop"]>;
+        }>]>;
+        readonly observed: Schema.Struct<{
+            readonly from: Schema.NullOr<Schema.Struct<{
+                readonly rightAscensionDegrees: Schema.Number;
+                readonly declinationDegrees: Schema.Number;
+            }>>;
+            readonly to: Schema.NullOr<Schema.Struct<{
+                readonly rightAscensionDegrees: Schema.Number;
+                readonly declinationDegrees: Schema.Number;
+            }>>;
+            readonly travel: Schema.NullOr<Schema.Struct<{
+                readonly rightAscensionDegrees: Schema.Number;
+                readonly declinationDegrees: Schema.Number;
+            }>>;
+        }>;
+        readonly stopped: Schema.Struct<{
+            readonly how: Schema.Literals<readonly ["arrived", "halted", "aborted", "uncertain"]>;
+            readonly at: Schema.NullOr<Schema.Number>;
+        }>;
+    }>>;
     readonly recovery: Schema.NullOr<Schema.Struct<{
         readonly at: Schema.Number;
         readonly note: Schema.String;
@@ -1229,6 +1649,48 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
         readonly reason: Schema.Literals<readonly ["no-acknowledgement", "not-confirmed", "stop-not-confirmed", "connection-lost", "driver-lost", "unexpected-error"]>;
         readonly message: Schema.String;
     }>]>;
+    readonly motion: Schema.optionalKey<Schema.Struct<{
+        readonly commanded: Schema.Union<readonly [Schema.Struct<{
+            readonly sentAt: Schema.Number;
+            readonly kind: Schema.Literal<"slew">;
+            readonly target: Schema.Struct<{
+                readonly rightAscensionDegrees: Schema.Number;
+                readonly declinationDegrees: Schema.Number;
+            }>;
+        }>, Schema.Struct<{
+            readonly sentAt: Schema.Number;
+            readonly axis: Schema.Literal<"ra">;
+            readonly rateDegreesPerSecond: Schema.Number;
+            readonly kind: Schema.Literal<"axis">;
+        }>, Schema.Struct<{
+            readonly sentAt: Schema.Number;
+            readonly axis: Schema.Literal<"ra">;
+            readonly rateDegreesPerSecond: Schema.Number;
+            readonly kind: Schema.Literal<"rotate">;
+            readonly distanceDegrees: Schema.Number;
+        }>, Schema.Struct<{
+            readonly sentAt: Schema.Number;
+            readonly kind: Schema.Literals<readonly ["home", "park", "stop"]>;
+        }>]>;
+        readonly observed: Schema.Struct<{
+            readonly from: Schema.NullOr<Schema.Struct<{
+                readonly rightAscensionDegrees: Schema.Number;
+                readonly declinationDegrees: Schema.Number;
+            }>>;
+            readonly to: Schema.NullOr<Schema.Struct<{
+                readonly rightAscensionDegrees: Schema.Number;
+                readonly declinationDegrees: Schema.Number;
+            }>>;
+            readonly travel: Schema.NullOr<Schema.Struct<{
+                readonly rightAscensionDegrees: Schema.Number;
+                readonly declinationDegrees: Schema.Number;
+            }>>;
+        }>;
+        readonly stopped: Schema.Struct<{
+            readonly how: Schema.Literals<readonly ["arrived", "halted", "aborted", "uncertain"]>;
+            readonly at: Schema.NullOr<Schema.Number>;
+        }>;
+    }>>;
     readonly recovery: Schema.NullOr<Schema.Struct<{
         readonly at: Schema.Number;
         readonly note: Schema.String;
@@ -1288,6 +1750,48 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
         readonly reason: Schema.Literals<readonly ["no-acknowledgement", "not-confirmed", "stop-not-confirmed", "connection-lost", "driver-lost", "unexpected-error"]>;
         readonly message: Schema.String;
     }>]>;
+    readonly motion: Schema.optionalKey<Schema.Struct<{
+        readonly commanded: Schema.Union<readonly [Schema.Struct<{
+            readonly sentAt: Schema.Number;
+            readonly kind: Schema.Literal<"slew">;
+            readonly target: Schema.Struct<{
+                readonly rightAscensionDegrees: Schema.Number;
+                readonly declinationDegrees: Schema.Number;
+            }>;
+        }>, Schema.Struct<{
+            readonly sentAt: Schema.Number;
+            readonly axis: Schema.Literal<"ra">;
+            readonly rateDegreesPerSecond: Schema.Number;
+            readonly kind: Schema.Literal<"axis">;
+        }>, Schema.Struct<{
+            readonly sentAt: Schema.Number;
+            readonly axis: Schema.Literal<"ra">;
+            readonly rateDegreesPerSecond: Schema.Number;
+            readonly kind: Schema.Literal<"rotate">;
+            readonly distanceDegrees: Schema.Number;
+        }>, Schema.Struct<{
+            readonly sentAt: Schema.Number;
+            readonly kind: Schema.Literals<readonly ["home", "park", "stop"]>;
+        }>]>;
+        readonly observed: Schema.Struct<{
+            readonly from: Schema.NullOr<Schema.Struct<{
+                readonly rightAscensionDegrees: Schema.Number;
+                readonly declinationDegrees: Schema.Number;
+            }>>;
+            readonly to: Schema.NullOr<Schema.Struct<{
+                readonly rightAscensionDegrees: Schema.Number;
+                readonly declinationDegrees: Schema.Number;
+            }>>;
+            readonly travel: Schema.NullOr<Schema.Struct<{
+                readonly rightAscensionDegrees: Schema.Number;
+                readonly declinationDegrees: Schema.Number;
+            }>>;
+        }>;
+        readonly stopped: Schema.Struct<{
+            readonly how: Schema.Literals<readonly ["arrived", "halted", "aborted", "uncertain"]>;
+            readonly at: Schema.NullOr<Schema.Number>;
+        }>;
+    }>>;
     readonly recovery: Schema.NullOr<Schema.Struct<{
         readonly at: Schema.Number;
         readonly note: Schema.String;
@@ -1349,6 +1853,48 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
         readonly reason: Schema.Literals<readonly ["no-acknowledgement", "not-confirmed", "stop-not-confirmed", "connection-lost", "driver-lost", "unexpected-error"]>;
         readonly message: Schema.String;
     }>]>;
+    readonly motion: Schema.optionalKey<Schema.Struct<{
+        readonly commanded: Schema.Union<readonly [Schema.Struct<{
+            readonly sentAt: Schema.Number;
+            readonly kind: Schema.Literal<"slew">;
+            readonly target: Schema.Struct<{
+                readonly rightAscensionDegrees: Schema.Number;
+                readonly declinationDegrees: Schema.Number;
+            }>;
+        }>, Schema.Struct<{
+            readonly sentAt: Schema.Number;
+            readonly axis: Schema.Literal<"ra">;
+            readonly rateDegreesPerSecond: Schema.Number;
+            readonly kind: Schema.Literal<"axis">;
+        }>, Schema.Struct<{
+            readonly sentAt: Schema.Number;
+            readonly axis: Schema.Literal<"ra">;
+            readonly rateDegreesPerSecond: Schema.Number;
+            readonly kind: Schema.Literal<"rotate">;
+            readonly distanceDegrees: Schema.Number;
+        }>, Schema.Struct<{
+            readonly sentAt: Schema.Number;
+            readonly kind: Schema.Literals<readonly ["home", "park", "stop"]>;
+        }>]>;
+        readonly observed: Schema.Struct<{
+            readonly from: Schema.NullOr<Schema.Struct<{
+                readonly rightAscensionDegrees: Schema.Number;
+                readonly declinationDegrees: Schema.Number;
+            }>>;
+            readonly to: Schema.NullOr<Schema.Struct<{
+                readonly rightAscensionDegrees: Schema.Number;
+                readonly declinationDegrees: Schema.Number;
+            }>>;
+            readonly travel: Schema.NullOr<Schema.Struct<{
+                readonly rightAscensionDegrees: Schema.Number;
+                readonly declinationDegrees: Schema.Number;
+            }>>;
+        }>;
+        readonly stopped: Schema.Struct<{
+            readonly how: Schema.Literals<readonly ["arrived", "halted", "aborted", "uncertain"]>;
+            readonly at: Schema.NullOr<Schema.Number>;
+        }>;
+    }>>;
     readonly recovery: Schema.NullOr<Schema.Struct<{
         readonly at: Schema.Number;
         readonly note: Schema.String;
@@ -1408,6 +1954,48 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
         readonly reason: Schema.Literals<readonly ["no-acknowledgement", "not-confirmed", "stop-not-confirmed", "connection-lost", "driver-lost", "unexpected-error"]>;
         readonly message: Schema.String;
     }>]>;
+    readonly motion: Schema.optionalKey<Schema.Struct<{
+        readonly commanded: Schema.Union<readonly [Schema.Struct<{
+            readonly sentAt: Schema.Number;
+            readonly kind: Schema.Literal<"slew">;
+            readonly target: Schema.Struct<{
+                readonly rightAscensionDegrees: Schema.Number;
+                readonly declinationDegrees: Schema.Number;
+            }>;
+        }>, Schema.Struct<{
+            readonly sentAt: Schema.Number;
+            readonly axis: Schema.Literal<"ra">;
+            readonly rateDegreesPerSecond: Schema.Number;
+            readonly kind: Schema.Literal<"axis">;
+        }>, Schema.Struct<{
+            readonly sentAt: Schema.Number;
+            readonly axis: Schema.Literal<"ra">;
+            readonly rateDegreesPerSecond: Schema.Number;
+            readonly kind: Schema.Literal<"rotate">;
+            readonly distanceDegrees: Schema.Number;
+        }>, Schema.Struct<{
+            readonly sentAt: Schema.Number;
+            readonly kind: Schema.Literals<readonly ["home", "park", "stop"]>;
+        }>]>;
+        readonly observed: Schema.Struct<{
+            readonly from: Schema.NullOr<Schema.Struct<{
+                readonly rightAscensionDegrees: Schema.Number;
+                readonly declinationDegrees: Schema.Number;
+            }>>;
+            readonly to: Schema.NullOr<Schema.Struct<{
+                readonly rightAscensionDegrees: Schema.Number;
+                readonly declinationDegrees: Schema.Number;
+            }>>;
+            readonly travel: Schema.NullOr<Schema.Struct<{
+                readonly rightAscensionDegrees: Schema.Number;
+                readonly declinationDegrees: Schema.Number;
+            }>>;
+        }>;
+        readonly stopped: Schema.Struct<{
+            readonly how: Schema.Literals<readonly ["arrived", "halted", "aborted", "uncertain"]>;
+            readonly at: Schema.NullOr<Schema.Number>;
+        }>;
+    }>>;
     readonly recovery: Schema.NullOr<Schema.Struct<{
         readonly at: Schema.Number;
         readonly note: Schema.String;
@@ -1470,6 +2058,48 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
         readonly reason: Schema.Literals<readonly ["no-acknowledgement", "not-confirmed", "stop-not-confirmed", "connection-lost", "driver-lost", "unexpected-error"]>;
         readonly message: Schema.String;
     }>]>;
+    readonly motion: Schema.optionalKey<Schema.Struct<{
+        readonly commanded: Schema.Union<readonly [Schema.Struct<{
+            readonly sentAt: Schema.Number;
+            readonly kind: Schema.Literal<"slew">;
+            readonly target: Schema.Struct<{
+                readonly rightAscensionDegrees: Schema.Number;
+                readonly declinationDegrees: Schema.Number;
+            }>;
+        }>, Schema.Struct<{
+            readonly sentAt: Schema.Number;
+            readonly axis: Schema.Literal<"ra">;
+            readonly rateDegreesPerSecond: Schema.Number;
+            readonly kind: Schema.Literal<"axis">;
+        }>, Schema.Struct<{
+            readonly sentAt: Schema.Number;
+            readonly axis: Schema.Literal<"ra">;
+            readonly rateDegreesPerSecond: Schema.Number;
+            readonly kind: Schema.Literal<"rotate">;
+            readonly distanceDegrees: Schema.Number;
+        }>, Schema.Struct<{
+            readonly sentAt: Schema.Number;
+            readonly kind: Schema.Literals<readonly ["home", "park", "stop"]>;
+        }>]>;
+        readonly observed: Schema.Struct<{
+            readonly from: Schema.NullOr<Schema.Struct<{
+                readonly rightAscensionDegrees: Schema.Number;
+                readonly declinationDegrees: Schema.Number;
+            }>>;
+            readonly to: Schema.NullOr<Schema.Struct<{
+                readonly rightAscensionDegrees: Schema.Number;
+                readonly declinationDegrees: Schema.Number;
+            }>>;
+            readonly travel: Schema.NullOr<Schema.Struct<{
+                readonly rightAscensionDegrees: Schema.Number;
+                readonly declinationDegrees: Schema.Number;
+            }>>;
+        }>;
+        readonly stopped: Schema.Struct<{
+            readonly how: Schema.Literals<readonly ["arrived", "halted", "aborted", "uncertain"]>;
+            readonly at: Schema.NullOr<Schema.Number>;
+        }>;
+    }>>;
     readonly recovery: Schema.NullOr<Schema.Struct<{
         readonly at: Schema.Number;
         readonly note: Schema.String;

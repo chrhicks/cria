@@ -3,6 +3,7 @@ import { Effect } from 'effect'
 import { Failed, type Ending, type Report } from '@cria/primitives'
 import { commands, type CommandKind, type DeviceFor, type DeviceKind, type OperationResult, type ParamsOf, type Progress } from '@cria/wire'
 import type { Connection } from '../capability/connection.js'
+import type { Note } from '../capability/motion-record.js'
 import type { CapabilityOf, Equipment } from '../device.js'
 import { FitsError, fitsToImageBytes } from '@cria/fits'
 import type { ImageStore } from '../image/store.js'
@@ -12,6 +13,7 @@ type TargetOf<K extends CommandKind> = DeviceFor<K> extends DeviceKind ? Capabil
 
 interface Context {
   readonly report: Report<Progress>
+  readonly note: Note
   readonly operation: Running
 }
 
@@ -70,13 +72,13 @@ export function makeWorkflows(images: ImageStore): Workflows {
     cooling: (camera, parameters) => camera.cooling(parameters).pipe(Effect.map(values)),
     'focuser-move': (focuser, parameters) => focuser.move(parameters).pipe(Effect.map(values)),
     'focuser-halt': focuser => focuser.halt.pipe(Effect.map(values)),
-    'mount-slew': (mount, parameters) => mount.slew(parameters).pipe(Effect.map(values)),
+    'mount-slew': (mount, parameters, { note }) => mount.slew(parameters, note).pipe(Effect.map(values)),
     'mount-tracking': (mount, { tracking }) => mount.setTracking(tracking).pipe(Effect.map(values)),
-    'mount-axis': (mount, { rateDegreesPerSecond, durationSeconds }) => mount.moveAxis(rateDegreesPerSecond, durationSeconds).pipe(Effect.map(values)),
-    'mount-rotate': (mount, { rateDegreesPerSecond, distanceDegrees }) => mount.rotate(rateDegreesPerSecond, distanceDegrees).pipe(Effect.map(values)),
-    'mount-home': mount => mount.home.pipe(Effect.map(values)),
-    'mount-stop': mount => mount.stop.pipe(Effect.map(values)),
-    'mount-park': mount => mount.park.pipe(Effect.map(values)),
+    'mount-axis': (mount, { rateDegreesPerSecond, durationSeconds }, { note }) => mount.moveAxis(rateDegreesPerSecond, durationSeconds, note).pipe(Effect.map(values)),
+    'mount-rotate': (mount, { rateDegreesPerSecond, distanceDegrees }, { note }) => mount.rotate(rateDegreesPerSecond, distanceDegrees, note).pipe(Effect.map(values)),
+    'mount-home': (mount, _, { note }) => mount.home(note).pipe(Effect.map(values)),
+    'mount-stop': (mount, _, { note }) => mount.stop(note).pipe(Effect.map(values)),
+    'mount-park': (mount, _, { note }) => mount.park(note).pipe(Effect.map(values)),
     'mount-unpark': mount => mount.unpark.pipe(Effect.map(values)),
     'switch-set': (power, { channelId, value }) => power.set(channelId, value).pipe(Effect.map(values)),
     'device-connect': (connection, { connected }) => connection.connect(connected).pipe(Effect.map(values)),
@@ -84,7 +86,7 @@ export function makeWorkflows(images: ImageStore): Workflows {
 }
 
 export function workflowFor(device: Equipment, workflows: Workflows) {
-  return (operation: Running, report: Report<Progress>) => run(operation, device, workflows, { report, operation })
+  return (operation: Running, report: Report<Progress>, note: Note) => run(operation, device, workflows, { report, note, operation })
 }
 
 function run<K extends CommandKind>(command: CommandOf[K], device: Equipment, workflows: Workflows, context: Context) {
