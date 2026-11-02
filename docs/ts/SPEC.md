@@ -640,7 +640,8 @@ only, even with commands disabled, and never command hardware.
 An accepted fix carries epoch-millisecond `capturedAt`, `rightAscensionDegrees`,
 `declinationDegrees`, `coordinateSystem: "j2000"`, and `error` with the verdict's
 signed fractional `scaleError` and nullable `hintOffsetDegrees`. These are verdict
-measurements, not positional uncertainty. Each fix replaces the last. Neither
+measurements, not positional uncertainty. `pointingErrorArcmin` is the mount-claim-to-solve
+angle in arcminutes, null without a mount reading for the frame. Each fix replaces the last. Neither
 survives a restart. The path check reads the current envelope for each move.
 
 `keepOut` is a table of named Dec bands with `side` (`normal` or `flipped`),
@@ -673,7 +674,20 @@ AM5 recordings. A path outside the envelope fails with reason `invalid` and
 a message naming the limit. No setting or motion command is sent on refusal.
 Home and park are exempt so they can escape an unsafe pose. Their existing
 held-device and availability checks still apply. Stop is always exempt.
-Watching the envelope during motion belongs to build step 21.
+During goto and rate moves, every new position is checked with a margin of
+`pointingErrorArcmin` plus 7.02 arcseconds per degree of reported axis travel
+since the fix exposure. This matches the conservative policy in Vela's rig
+model, based on the AM5 goto landing p90. Without a usable fix, the base is
+15,915.2 arcseconds, the largest recorded abort overshoot. A late solve retains
+travel after its exposure. Travel history is bounded to 4,096 readings; a fix
+older than that history uses the unknown base and all retained travel.
+
+Cria also reserves two seconds at 6.3 degrees/second, rounded up from the
+recorded goto fixture, plus the largest
+stop overshoot in the direction of travel. Missing position readings for two
+seconds trigger a stop. An envelope stop uses the confirmed abort path and
+ends uncertain with the limit and margin in its message. The motion record
+keeps `how: "aborted"` and adds `stopped.reason` naming the envelope trigger.
 
 Optional `horizon` points (`azimuthDegrees`, `altitudeDegrees`) and
 `meridianLimitDegrees` reserve the wire shape for step 20. Step 19 enforces

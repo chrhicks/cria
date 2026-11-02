@@ -21,6 +21,7 @@ export const AcceptedFix = Schema.Struct({
     rightAscensionDegrees: Degrees(0, 360),
     declinationDegrees: Degrees(-90, 90),
     coordinateSystem: Schema.Literal('j2000'),
+    pointingErrorArcmin: Schema.NullOr(Degrees(0, 10800)),
     error: Schema.Struct({
         scaleError: Schema.Number.pipe(Schema.check(Schema.isFinite())),
         hintOffsetDegrees: Schema.NullOr(Degrees(0, 180)),

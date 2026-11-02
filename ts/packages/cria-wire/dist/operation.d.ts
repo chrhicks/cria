@@ -654,6 +654,7 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
         }>;
         readonly stopped: Schema.Struct<{
             readonly how: Schema.Literals<readonly ["arrived", "halted", "aborted", "uncertain"]>;
+            readonly reason: Schema.optionalKey<Schema.String>;
             readonly at: Schema.NullOr<Schema.Number>;
         }>;
     }>>;
@@ -760,6 +761,7 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
         }>;
         readonly stopped: Schema.Struct<{
             readonly how: Schema.Literals<readonly ["arrived", "halted", "aborted", "uncertain"]>;
+            readonly reason: Schema.optionalKey<Schema.String>;
             readonly at: Schema.NullOr<Schema.Number>;
         }>;
     }>>;
@@ -864,6 +866,7 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
         }>;
         readonly stopped: Schema.Struct<{
             readonly how: Schema.Literals<readonly ["arrived", "halted", "aborted", "uncertain"]>;
+            readonly reason: Schema.optionalKey<Schema.String>;
             readonly at: Schema.NullOr<Schema.Number>;
         }>;
     }>>;
@@ -967,6 +970,7 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
         }>;
         readonly stopped: Schema.Struct<{
             readonly how: Schema.Literals<readonly ["arrived", "halted", "aborted", "uncertain"]>;
+            readonly reason: Schema.optionalKey<Schema.String>;
             readonly at: Schema.NullOr<Schema.Number>;
         }>;
     }>>;
@@ -1068,6 +1072,7 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
         }>;
         readonly stopped: Schema.Struct<{
             readonly how: Schema.Literals<readonly ["arrived", "halted", "aborted", "uncertain"]>;
+            readonly reason: Schema.optionalKey<Schema.String>;
             readonly at: Schema.NullOr<Schema.Number>;
         }>;
     }>>;
@@ -1173,6 +1178,7 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
         }>;
         readonly stopped: Schema.Struct<{
             readonly how: Schema.Literals<readonly ["arrived", "halted", "aborted", "uncertain"]>;
+            readonly reason: Schema.optionalKey<Schema.String>;
             readonly at: Schema.NullOr<Schema.Number>;
         }>;
     }>>;
@@ -1277,6 +1283,7 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
         }>;
         readonly stopped: Schema.Struct<{
             readonly how: Schema.Literals<readonly ["arrived", "halted", "aborted", "uncertain"]>;
+            readonly reason: Schema.optionalKey<Schema.String>;
             readonly at: Schema.NullOr<Schema.Number>;
         }>;
     }>>;
@@ -1378,6 +1385,7 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
         }>;
         readonly stopped: Schema.Struct<{
             readonly how: Schema.Literals<readonly ["arrived", "halted", "aborted", "uncertain"]>;
+            readonly reason: Schema.optionalKey<Schema.String>;
             readonly at: Schema.NullOr<Schema.Number>;
         }>;
     }>>;
@@ -1479,6 +1487,7 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
         }>;
         readonly stopped: Schema.Struct<{
             readonly how: Schema.Literals<readonly ["arrived", "halted", "aborted", "uncertain"]>;
+            readonly reason: Schema.optionalKey<Schema.String>;
             readonly at: Schema.NullOr<Schema.Number>;
         }>;
     }>>;
@@ -1583,6 +1592,7 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
         }>;
         readonly stopped: Schema.Struct<{
             readonly how: Schema.Literals<readonly ["arrived", "halted", "aborted", "uncertain"]>;
+            readonly reason: Schema.optionalKey<Schema.String>;
             readonly at: Schema.NullOr<Schema.Number>;
         }>;
     }>>;
@@ -1688,6 +1698,7 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
         }>;
         readonly stopped: Schema.Struct<{
             readonly how: Schema.Literals<readonly ["arrived", "halted", "aborted", "uncertain"]>;
+            readonly reason: Schema.optionalKey<Schema.String>;
             readonly at: Schema.NullOr<Schema.Number>;
         }>;
     }>>;
@@ -1789,6 +1800,7 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
         }>;
         readonly stopped: Schema.Struct<{
             readonly how: Schema.Literals<readonly ["arrived", "halted", "aborted", "uncertain"]>;
+            readonly reason: Schema.optionalKey<Schema.String>;
             readonly at: Schema.NullOr<Schema.Number>;
         }>;
     }>>;
@@ -1892,6 +1904,7 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
         }>;
         readonly stopped: Schema.Struct<{
             readonly how: Schema.Literals<readonly ["arrived", "halted", "aborted", "uncertain"]>;
+            readonly reason: Schema.optionalKey<Schema.String>;
             readonly at: Schema.NullOr<Schema.Number>;
         }>;
     }>>;
@@ -1993,6 +2006,7 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
         }>;
         readonly stopped: Schema.Struct<{
             readonly how: Schema.Literals<readonly ["arrived", "halted", "aborted", "uncertain"]>;
+            readonly reason: Schema.optionalKey<Schema.String>;
             readonly at: Schema.NullOr<Schema.Number>;
         }>;
     }>>;
@@ -2097,6 +2111,7 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
         }>;
         readonly stopped: Schema.Struct<{
             readonly how: Schema.Literals<readonly ["arrived", "halted", "aborted", "uncertain"]>;
+            readonly reason: Schema.optionalKey<Schema.String>;
             readonly at: Schema.NullOr<Schema.Number>;
         }>;
     }>>;

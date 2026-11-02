@@ -8,7 +8,7 @@ type Resting = Exclude<MotionRecord['stopped']['how'], 'uncertain'>
 
 export interface Tracking {
   readonly sentBy: <A, E extends { readonly _tag: string }, R>(start: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R>
-  readonly rested: (how: Resting, position: Position) => Effect.Effect<void>
+  readonly rested: (how: Resting, position: Position, reason?: string) => Effect.Effect<void>
 }
 
 const axes = (position: Position): MotionAxes => ({ rightAscensionDegrees: position.ra, declinationDegrees: position.dec })
@@ -31,14 +31,14 @@ export function track(device: IndiDevice, note: Note, commanded: MotionCommanded
       if (phase === 'moving') yield* note(record('uncertain', null, null))
     })))
 
-    const record = (how: MotionRecord['stopped']['how'], to: Position | null, at: number | null): MotionRecord => ({
+    const record = (how: MotionRecord['stopped']['how'], to: Position | null, at: number | null, reason?: string): MotionRecord => ({
       commanded,
       observed: {
         from: from === undefined ? null : axes(from),
         to: to === null ? null : axes(to),
         travel: from === undefined || to === null ? null : { rightAscensionDegrees: angularDelta(to.ra, from.ra), declinationDegrees: to.dec - from.dec },
       },
-      stopped: { how, at },
+      stopped: { how, at, ...(reason === undefined ? {} : { reason }) },
     })
 
     const sent = Effect.gen(function* () {
@@ -51,11 +51,11 @@ export function track(device: IndiDevice, note: Note, commanded: MotionCommanded
         Effect.tap(() => sent),
         Effect.tapError(error => error._tag === 'Uncertain' ? sent : Effect.void),
       ),
-      rested: (how, position) => Effect.gen(function* () {
+      rested: (how, position, reason) => Effect.gen(function* () {
         phase = 'rested'
         const at = yield* Clock.currentTimeMillis
 
-        yield* note(record(how, position, at))
+        yield* note(record(how, position, at, reason))
       }),
     } satisfies Tracking
   })

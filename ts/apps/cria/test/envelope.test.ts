@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { Schema } from 'effect'
 import { MountEnvelope } from '@cria/wire'
 import { FakeIndi, addMount, loadAm5Fixtures, playMotion } from '@cria/fake-indi'
-import { gotoRefusal, rateRefusal, stopTravelDegrees, type MountPose } from '../src/capability/envelope.js'
+import { gotoRefusal, rateRefusal, stopTravelDegrees, marginArcmin, reactionDegrees, watchRefusal, type MountPose } from '../src/capability/envelope.js'
 import { allReady, startCria, type Cria } from './harness.js'
 
 const rig = JSON.parse(readFileSync(new URL('../../../deploy/rig.errai.json', import.meta.url), 'utf8'))
@@ -173,10 +173,45 @@ it('uses the sent envelope in the path check and retains every accepted fix unti
   expect(commands()).toEqual([])
 
   for (const capturedAt of [1000, 2000]) {
-    const fix = { capturedAt, rightAscensionDegrees: 120, declinationDegrees: 30, coordinateSystem: 'j2000', error: { scaleError: 0.01, hintOffsetDegrees: 0.2 } }
+    const fix = { capturedAt, rightAscensionDegrees: 120, declinationDegrees: 30, coordinateSystem: 'j2000', pointingErrorArcmin: null, error: { scaleError: 0.01, hintOffsetDegrees: 0.2 } }
     expect((await cria.client.fix('mount', { instanceId, fix })).status).toBe(200)
     expect((await cria.client.feedback('mount')).fix).toEqual(fix)
   }
   expect((await cria.client.fix('mount', { instanceId, fix: { capturedAt: -1 } })).status).toBe(400)
   expect((await cria.client.feedback('mount')).envelope).toEqual(sent)
+})
+
+it('grows the uncertainty with blind travel and uses the profile maximum without a positional error', () => {
+  expect(marginArcmin(2, 100)).toBeCloseTo(2 + 100 * 7.02 / 60)
+  expect(marginArcmin(null, 0)).toBeCloseTo(15915.2 / 60)
+  expect(marginArcmin(1, 0)).toBeLessThan(marginArcmin(2, 100))
+  expect(watchRefusal(envelope, pose(-130, 80, 'west'), 15, marginArcmin(null, 114) / 60, reactionDegrees)).toBeUndefined()
+})
+
+it.each(['goto', 'rate', 'slow-ack'] as const)('aborts a drifting %s through the confirmed stop path before the west limit', async kind => {
+  const slow = kind === 'slow-ack'
+  await start(10, 80, 'east')
+  const rate = fixtures['rate-move-9x-west-tracking']!
+  // Synthetic drift, with the recorded rate readings and stop coast retained.
+  playMotion(fake, mount, [{ ...rate,
+    start: { ...rate.start, steps: slow ? [
+      { afterMs: 1900, property: 'EQUATORIAL_EOD_COORD', state: 'Busy', offset: { RA: -11.4 / 15, DEC: 0 } },
+      { afterMs: 2926, property: 'EQUATORIAL_EOD_COORD', state: 'Busy', offset: { RA: -17.556 / 15, DEC: 0 } },
+    ] : rate.start.steps.map(step => kind === 'goto' && step.property === 'EQUATORIAL_EOD_COORD' ? { ...step, state: 'Busy' as const } : step), command: kind !== 'rate'
+      ? { property: 'EQUATORIAL_EOD_COORD', travel: { RA: -(slow ? 1 : 5) / 15, DEC: 0 } }
+      : rate.start.command },
+    stop: { ...rate.stop!, command: { property: 'TELESCOPE_ABORT_MOTION', on: 'ABORT' } },
+  }], { timeScale: slow ? 1 : 5 })
+  const { instanceId } = await cria.state()
+  if (slow) await cria.client.envelope('mount', { instanceId, envelope: { ...envelope, keepOut: envelope.keepOut.map(band => ({ ...band, westHourAngleDegrees: 28.5 })) } })
+  await cria.client.fix('mount', { instanceId, fix: { capturedAt: Date.now(), rightAscensionDegrees: 350, declinationDegrees: 80, coordinateSystem: 'j2000', pointingErrorArcmin: 1, error: { scaleError: 0, hintOffsetDegrees: 0 } } })
+  const result = kind !== 'rate' ? await slew(slow ? 11 : 15, 80)
+    : await cria.run('mount', 'mount-axis', { rateDegreesPerSecond: -720 * sidereal, durationSeconds: 1 })
+  expect(result.kind).toBe('uncertain')
+  expect(result.message).toContain('west HA limit')
+  expect(result.message).toContain('margin')
+  expect(result.operation.motion?.stopped).toMatchObject({ how: 'aborted', reason: expect.stringContaining('envelope margin') })
+  const end = result.operation.motion!.observed.to!
+  expect(360 - end.rightAscensionDegrees).toBeLessThan(slow ? 28.5 : 40)
+  expect(commands().some(xml => xml.includes('TELESCOPE_ABORT_MOTION'))).toBe(true)
 })

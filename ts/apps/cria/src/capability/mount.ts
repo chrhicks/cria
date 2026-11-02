@@ -8,7 +8,7 @@
  * vocabulary), EQUATORIAL_COORD is J2000. A slew must already be expressed in
  * that frame.
  */
-import { Effect, Option } from 'effect'
+import { Clock, Effect, Option, Stream } from 'effect'
 import { selectedSwitch, type Property, type Values } from '@cria/indi'
 import { Failed, Reading, Uncertain, stoppable, type Ending } from '@cria/primitives'
 import type { MountMotionSettings } from '../config.js'
@@ -18,7 +18,8 @@ import { numberElement, switchElement, type DeviceSnapshot } from './fields.js'
 import type { DeviceSetup, StepOutcome } from './setup.js'
 import { track, type Note, type Tracking } from './motion-record.js'
 import { angularDelta, beforeCommand, confirmStopped, positionOf, type Command, type Position } from './stopped.js'
-import { gotoRefusal, rateRefusal, type MountPose } from './envelope.js'
+import { makeBlindTravel } from './blind-travel.js'
+import { gotoRefusal, rateRefusal, reactionDegrees, readingDeadlineMs, watchRefusal, type MountPose } from './envelope.js'
 import type { DeviceBody, MotionCommanded, ParamsOf, ReadingsOf } from '@cria/wire'
 
 type CoordinateFrame = ParamsOf<'mount-slew'>['coordinateSystem']
@@ -29,6 +30,7 @@ export interface AxisRate {
 }
 
 export interface Mount {
+  readonly watchTravel: Effect.Effect<void>
   readonly observe: Effect.Effect<DeviceBody<'mount'>>
   readonly slew: (target: ParamsOf<'mount-slew'>, note: Note) => Effect.Effect<{ rightAscensionDegrees: number; declinationDegrees: number }, Ending>
   readonly setTracking: (tracking: boolean) => Effect.Effect<{ tracking: boolean }, Failed | Uncertain>
@@ -157,20 +159,81 @@ function gotoRefusalHint(outcomes: ReadonlyArray<StepOutcome> | undefined): stri
 export function makeMount(context: CapabilityContext, motion: MountMotionSettings, setup: DeviceSetup): Mount {
   const { device, timing } = context
 
+  const blindTravel = makeBlindTravel()
+  const watchTravel = Stream.runForEach(device.events, event => Effect.sync(() => {
+    if (event.type === 'property' && ['EQUATORIAL_EOD_COORD', 'EQUATORIAL_COORD'].includes(event.property.name)) blindTravel.record({ ...positionOf(event.property), at: event.property.receivedAt })
+  }))
+
+  const guard = <A>(settle: Effect.Effect<A, Failed | Uncertain>, stopped: { reason?: string }, target: ParamsOf<'mount-slew'> | number, command: Command) => {
+    const monitor = Effect.gen(function* () {
+      const subscription = yield* device.subscribe
+      let first = Option.getOrUndefined(yield* device.property('EQUATORIAL_EOD_COORD')) ?? Option.getOrUndefined(yield* device.property('EQUATORIAL_COORD'))
+      let last = command.before
+      let lastPositionAt = yield* Clock.currentTimeMillis
+      let raDirection = 0
+      let decDirection = 0
+      while (true) {
+        let property = first
+        first = undefined
+        if (property === undefined) {
+          const elapsed = (yield* Clock.currentTimeMillis) - lastPositionAt
+          const next = elapsed >= readingDeadlineMs ? Option.none() : yield* Effect.timeoutOption(subscription.next, readingDeadlineMs - elapsed)
+          if (Option.isNone(next)) {
+            if (context.feedback.envelope === null) { lastPositionAt = yield* Clock.currentTimeMillis; continue }
+            stopped.reason = 'Envelope position reading deadline exceeded; stopping before the reserved reaction travel is spent'
+            return yield* new Failed({ reason: 'unavailable', message: stopped.reason })
+          }
+          const event = next.value
+          if (event.type !== 'property' || !['EQUATORIAL_EOD_COORD', 'EQUATORIAL_COORD'].includes(event.property.name)) continue
+          property = event.property
+        }
+        blindTravel.record({ ...positionOf(property), at: property.receivedAt })
+        lastPositionAt = yield* Clock.currentTimeMillis
+        const here = positionOf(property)
+        if (last !== undefined) {
+          const dra = angularDelta(here.ra, last.ra)
+          const ddec = here.dec - last.dec
+          if (Math.abs(dra) > 1e-9) raDirection = Math.sign(dra)
+          if (Math.abs(ddec) > 1e-9) decDirection = Math.sign(ddec)
+        }
+        last = here
+        const envelope = context.feedback.envelope
+        if (envelope === null) continue
+        const snapshot = yield* context.snapshot
+        const mount = readings(snapshot)
+        const ra = here.ra / 15
+        const dec = here.dec
+        const lst = yield* required(mount.siderealTimeHours, 'envelope LST')
+        const side = yield* required(mount.pierSide, 'envelope pier side')
+        const limit = snapshot.reading('MERIDIAN_LIMIT', numberElement('LIMIT'))
+        const margin = blindTravel.margin(context.feedback.fix) / 60
+        const refusal = side === 'unknown' ? 'Envelope needs a known pier side'
+          : watchRefusal(envelope, { hourAngleDegrees: angularDelta(lst * 15, ra * 15), declinationDegrees: dec, pierSide: side }, limit.status === 'fresh' ? limit.value : 0, margin,
+            -(raDirection || (typeof target === 'number' ? Math.sign(target) : Math.sign(angularDelta(target.rightAscensionDegrees, ra * 15)))) * reactionDegrees,
+            (decDirection || (typeof target === 'number' ? 0 : Math.sign(target.declinationDegrees - dec))) * reactionDegrees)
+        if (refusal !== undefined) {
+          stopped.reason = `${refusal}; envelope margin ${margin.toFixed(3)}° plus ${reactionDegrees.toFixed(3)}° reaction travel`
+          return yield* new Failed({ reason: 'invalid', message: stopped.reason })
+        }
+      }
+    })
+    return Effect.raceFirst(settle, monitor).pipe(Effect.scoped)
+  }
+
   // Stopped is decided by where the mount is, never by a property's state (see stopped.ts).
-  const stopWith = (property: string, values: Values, how: 'halted' | 'aborted', tracking: Tracking, sending: Tracking['sentBy'] = send => send) =>
+  const stopWith = (property: string, values: Values, how: 'halted' | 'aborted', tracking: Tracking, sending: Tracking['sentBy'] = send => send, reason?: string) =>
     Effect.gen(function* () {
       const command = yield* beforeCommand(device)
 
       yield* sending(sendOnce(device, property, values, timing))
       const position = yield* confirmStopped(device, motion, command, 15_000)
 
-      yield* tracking.rested(how, position)
+      yield* tracking.rested(how, position, reason)
 
       return position
     })
-  const abort = (tracking: Tracking, sending?: Tracking['sentBy']) =>
-    Effect.asVoid(stopWith('TELESCOPE_ABORT_MOTION', { ABORT: true }, 'aborted', tracking, sending))
+  const abort = (tracking: Tracking, sending?: Tracking['sentBy'], reason?: string) =>
+    Effect.asVoid(stopWith('TELESCOPE_ABORT_MOTION', { ABORT: true }, 'aborted', tracking, sending, reason))
   // The driver says the motion is over (the property left Busy); the mount has stopped once its position stands still.
   const settled = (command: Command, tracking: Tracking) =>
     Effect.tap(confirmStopped(device, motion, command, 15_000), position => tracking.rested('arrived', position))
@@ -191,6 +254,8 @@ export function makeMount(context: CapabilityContext, motion: MountMotionSetting
     const envelope = context.feedback.envelope
 
     if (envelope === null) return
+    const position = snapshot.property(coordinatesProperty(snapshot).name)
+    if (position !== undefined) blindTravel.record({ ...positionOf(position), at: position.receivedAt })
     const mount = readings(snapshot)
     const pierSide = yield* required(mount.pierSide, 'envelope pier side')
 
@@ -208,6 +273,11 @@ export function makeMount(context: CapabilityContext, motion: MountMotionSetting
       : gotoRefusal(envelope, from, { hourAngleDegrees: angularDelta(lst, target.rightAscensionDegrees), declinationDegrees: target.declinationDegrees }, meridianLimit)
 
     if (refusal !== undefined) return yield* invalid(refusal)
+    const margin = blindTravel.margin(context.feedback.fix) / 60
+    const near = watchRefusal(envelope, from, meridianLimit, margin,
+      typeof target === 'number' ? -Math.sign(target) * reactionDegrees : -Math.sign(angularDelta(target.rightAscensionDegrees, ra)) * reactionDegrees,
+      typeof target === 'number' ? 0 : Math.sign(target.declinationDegrees - declinationDegrees) * reactionDegrees)
+    if (near !== undefined) return yield* invalid(`${near}; envelope margin ${margin.toFixed(3)}° plus reaction travel`)
   })
 
   const slew = (target: ParamsOf<'mount-slew'>, note: Note) =>
@@ -235,6 +305,7 @@ export function makeMount(context: CapabilityContext, motion: MountMotionSetting
         { kind: 'slew', sentAt: command.sentAt, target: { rightAscensionDegrees: target.rightAscensionDegrees, declinationDegrees: target.declinationDegrees } },
         command,
       )
+      const envelopeStop: { reason?: string } = {}
       const arrived = yield* stoppable({
         command: `slew on ${device.name}`,
         start: tracking.sentBy(startMotion(device, coordinates.name, { RA: target.rightAscensionDegrees / 15, DEC: target.declinationDegrees }, timing, {
@@ -246,8 +317,8 @@ export function makeMount(context: CapabilityContext, motion: MountMotionSetting
               : error,
           ),
         )),
-        settle: Effect.andThen(untilSettled(device, coordinates.name, () => true, timing.operationTimeoutMs), settled(command, tracking)),
-        stop: abort(tracking),
+        settle: guard(Effect.andThen(untilSettled(device, coordinates.name, () => true, timing.operationTimeoutMs), settled(command, tracking)), envelopeStop, target, command),
+        stop: Effect.suspend(() => abort(tracking, undefined, envelopeStop.reason)),
         stopWithin: stopWithinMs,
       })
 
@@ -407,17 +478,18 @@ export function makeMount(context: CapabilityContext, motion: MountMotionSetting
       const start = yield* ra
       const command = yield* beforeCommand(device)
       const tracking = yield* track(device, note, commanded(Math.sign(rateDegreesPerSecond) * rate.degreesPerSecond, command.sentAt), command)
+      const envelopeStop: { reason?: string } = {}
       const halt = Effect.asVoid(stopWith('TELESCOPE_MOTION_WE', { MOTION_EAST: false, MOTION_WEST: false }, 'halted', tracking))
 
       yield* stoppable({
         command: `axis motion on ${device.name}`,
         start: tracking.sentBy(startMotion(device, 'TELESCOPE_MOTION_WE', { [direction]: true }, timing, { refused: switchNotStarted(direction) })),
         // A normal finish stops the axis too; a second stop after a cancel is harmless.
-        settle: Effect.andThen(
+        settle: guard(Effect.andThen(
           until(Effect.map(ra, now => angularDelta(now, start))),
           halt,
-        ),
-        stop: halt,
+        ), envelopeStop, rateDegreesPerSecond, command),
+        stop: Effect.suspend(() => envelopeStop.reason === undefined ? halt : abort(tracking, undefined, envelopeStop.reason)),
         stopWithin: stopWithinMs,
       })
 
@@ -469,6 +541,7 @@ export function makeMount(context: CapabilityContext, motion: MountMotionSetting
   }
 
   return {
+    watchTravel,
     observe: Effect.map(context.snapshot, snapshot => ({ kind: 'mount', readings: readings(snapshot) })),
     slew,
     setTracking,

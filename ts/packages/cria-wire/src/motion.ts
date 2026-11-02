@@ -47,6 +47,7 @@ export const MotionRecord = Schema.Struct({
   }),
   stopped: Schema.Struct({
     how: Schema.Literals(stoppedHows),
+    reason: Schema.optionalKey(Schema.String),
     /** When the one "stopped" rule (readings after the command show the position still) fired, epoch ms. */
     at: Schema.NullOr(Timestamp),
   }),

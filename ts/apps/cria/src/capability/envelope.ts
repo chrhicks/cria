@@ -79,3 +79,25 @@ export function rateRefusal(envelope: MountEnvelope, from: MountPose, travelRaDe
 
   return boxRefusal(envelope, from, { ...from, hourAngleDegrees: from.hourAngleDegrees - travel }, meridianLimit)
 }
+
+// Same conservative policy as Vela rig-model/assess.ts (step 25): one p90 goto
+// landing offset per blind degree, not a measured sky-error slope (step 3, n=30).
+export const blindErrorArcminPerDegree = 7.02 / 60
+// Largest recorded abort overshoot, 15915.2 arcsec (step 3, home-abort, n=1).
+// The sparse profile is a conservative fallback, not a measured pointing uncertainty.
+export const unknownErrorArcmin = 15915.2 / 60
+// Stop after two seconds without a reading. Reserve that gap and the largest
+// recorded abort travel. Step 16 goto-ok reaches 6.21 degrees/s; round up to
+// 6.3, rather than using the slower 9x rate speed. Step 3 abort max is 15915.2 arcsec.
+export const readingDeadlineMs = 2000
+export const reactionDegrees = 6.3 * readingDeadlineMs / 1000 + 15915.2 / 3600
+
+export function marginArcmin(error: number | null, travelDegrees: number): number {
+  return (error ?? unknownErrorArcmin) + travelDegrees * blindErrorArcminPerDegree
+}
+
+export function watchRefusal(envelope: MountEnvelope, pose: MountPose, meridianLimit: number, marginDegrees: number, leadHa = 0, leadDec = 0): string | undefined {
+  const from = { ...pose, hourAngleDegrees: Math.min(pose.hourAngleDegrees, pose.hourAngleDegrees + leadHa) - marginDegrees, declinationDegrees: Math.max(-90, Math.min(pose.declinationDegrees, pose.declinationDegrees + leadDec) - marginDegrees) }
+  const to = { hourAngleDegrees: Math.max(pose.hourAngleDegrees, pose.hourAngleDegrees + leadHa) + marginDegrees, declinationDegrees: Math.min(90, Math.max(pose.declinationDegrees, pose.declinationDegrees + leadDec) + marginDegrees) }
+  return boxRefusal(envelope, from, to, meridianLimit)
+}

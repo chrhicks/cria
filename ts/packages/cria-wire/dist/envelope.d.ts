@@ -28,6 +28,7 @@ export declare const AcceptedFix: Schema.Struct<{
     readonly rightAscensionDegrees: Schema.Number;
     readonly declinationDegrees: Schema.Number;
     readonly coordinateSystem: Schema.Literal<"j2000">;
+    readonly pointingErrorArcmin: Schema.NullOr<Schema.Number>;
     readonly error: Schema.Struct<{
         readonly scaleError: Schema.Number;
         readonly hintOffsetDegrees: Schema.NullOr<Schema.Number>;
@@ -59,6 +60,7 @@ export declare const FixRequest: Schema.Struct<{
         readonly rightAscensionDegrees: Schema.Number;
         readonly declinationDegrees: Schema.Number;
         readonly coordinateSystem: Schema.Literal<"j2000">;
+        readonly pointingErrorArcmin: Schema.NullOr<Schema.Number>;
         readonly error: Schema.Struct<{
             readonly scaleError: Schema.Number;
             readonly hintOffsetDegrees: Schema.NullOr<Schema.Number>;
@@ -86,6 +88,7 @@ export declare const MountFeedback: Schema.Struct<{
         readonly rightAscensionDegrees: Schema.Number;
         readonly declinationDegrees: Schema.Number;
         readonly coordinateSystem: Schema.Literal<"j2000">;
+        readonly pointingErrorArcmin: Schema.NullOr<Schema.Number>;
         readonly error: Schema.Struct<{
             readonly scaleError: Schema.Number;
             readonly hintOffsetDegrees: Schema.NullOr<Schema.Number>;
