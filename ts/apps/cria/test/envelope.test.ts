@@ -145,6 +145,69 @@ describe('the configured stub before any command is sent', () => {
   })
 })
 
+const measuredEnvelope = Schema.decodeUnknownSync(MountEnvelope)({ keepOut: [
+  { name: 'normal south, unmeasured', side: 'normal', minDeclinationDegrees: -90, maxDeclinationDegrees: -5, westHourAngleDegrees: 20 },
+  { name: 'normal measured', side: 'normal', minDeclinationDegrees: -5, maxDeclinationDegrees: 75, eastHourAngleDegrees: -90, westHourAngleDegrees: 90 },
+  { name: 'normal near pole', side: 'normal', minDeclinationDegrees: 75, maxDeclinationDegrees: 90 },
+  { name: 'flipped low', side: 'flipped', minDeclinationDegrees: -90, maxDeclinationDegrees: 33 },
+  { name: 'flipped east, tripod lock', side: 'flipped', minDeclinationDegrees: 33, maxDeclinationDegrees: 70, eastHourAngleDegrees: -2 },
+  { name: 'flipped west, tripod leg', side: 'flipped', minDeclinationDegrees: 45, maxDeclinationDegrees: 67, westHourAngleDegrees: 5 },
+  { name: 'flipped high', side: 'flipped', minDeclinationDegrees: 70, maxDeclinationDegrees: 90 },
+] })
+
+describe('gotos from the AM5 north-pole home', () => {
+  const homes = [pose(-90, 89.9, 'west'), pose(90, 89.9, 'east'), pose(-90, 90, 'west'), pose(90, 90, 'east'), pose(-89.99, 90, 'west'), pose(89.99, 89.9, 'east')]
+
+  it.each(homes)('allows normal east and west targets from $hourAngleDegrees, $declinationDegrees, $pierSide', from => {
+    for (const ha of [-40, 40]) {
+      expect(gotoRefusal(measuredEnvelope, from, pose(ha, 50, ha < 0 ? 'west' : 'east'), 15)).toBeUndefined()
+    }
+  })
+
+  it.each(homes)('still refuses a tight flipped target from $pierSide at $declinationDegrees', from => {
+    expect(gotoRefusal(measuredEnvelope, from, pose(-10, 50, 'east'), 15)).toBeDefined()
+    expect(gotoRefusal(measuredEnvelope, from, pose(10, 50, 'west'), 15)).toBeDefined()
+  })
+
+  it.each(['east', 'west'] as const)('sends no command for a tight-band refusal while tracking from %s home', async side => {
+    await start(side === 'west' ? -90 : 90, 89.9, side)
+    const { instanceId } = await cria.state()
+    await cria.client.envelope('mount', { instanceId, envelope: measuredEnvelope })
+    fake.update(mount, 'TELESCOPE_TRACK_STATE', { values: { TRACK_ON: true, TRACK_OFF: false } })
+    await cria.waitFor(state => state.devices[0]!.readings.tracking?.status === 'fresh' && state.devices[0]!.readings.tracking.value === true)
+    fake.received.length = 0
+    const result = await slew(side === 'west' ? 10 : -10, 50)
+
+    expect(result).toMatchObject({ kind: 'failed', reason: 'invalid', quarantined: false })
+    expect(result.message).toContain('Envelope')
+    expect(commands()).toEqual([])
+  })
+
+  it.each(['east', 'west'] as const)('bounds the reflected home HA tolerance on %s', pierSide => {
+    const sign = pierSide === 'west' ? -1 : 1
+    const target = pose(-sign * 40, 50, pierSide === 'west' ? 'east' : 'west')
+    expect(gotoRefusal(measuredEnvelope, pose(sign * 89.96, 89.9, pierSide), target, 15)).toBeUndefined()
+    expect(gotoRefusal(measuredEnvelope, pose(sign * 89.94, 89.9, pierSide), target, 15)).toContain('HA limit')
+  })
+
+  it('keeps the one-degree threshold and ordinary side-change refusal', () => {
+    expect(gotoRefusal(measuredEnvelope, pose(-90, 89, 'west'), pose(40, 50, 'east'), 15)).toBeUndefined()
+    expect(gotoRefusal(measuredEnvelope, pose(-90, 88.99, 'west'), pose(40, 50, 'east'), 15)).toContain('flipped-side')
+    expect(gotoRefusal(measuredEnvelope, pose(-40, 50, 'west'), pose(40, 50, 'east'), 15)).toContain('flipped-side')
+    expect(gotoRefusal(measuredEnvelope, pose(-40, 50, 'west'), pose(-60, 50, 'west'), 15)).toBeUndefined()
+  })
+
+  it('keeps the reported start check and refuses an unmeasured pole representation', () => {
+    expect(gotoRefusal(measuredEnvelope, pose(90, 89.9, 'west'), pose(-40, 50, 'west'), 15)).toContain('flipped-side')
+    expect(gotoRefusal(measuredEnvelope, pose(-170, 89.9, 'west'), pose(-40, 50, 'west'), 15)).toContain('east HA limit')
+  })
+
+  it('checks the folded path through the pole rather than dropping an unmeasured band', () => {
+    const gap = { ...measuredEnvelope, keepOut: measuredEnvelope.keepOut.filter(band => band.name !== 'normal near pole') }
+    expect(gotoRefusal(gap, pose(-90, 89.9, 'west'), pose(40, 50, 'east'), 15)).toContain('unmeasured Dec band')
+  })
+})
+
 describe('the pure box rule', () => {
   it('allows the full alignment sweep on the normal east side', () => {
     expect(gotoRefusal(envelope, pose(-130, 80, 'west'), pose(-16, 80, 'west'), 15)).toBeUndefined()
