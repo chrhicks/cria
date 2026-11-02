@@ -1,12 +1,5 @@
 import type { MountEnvelope } from '@cria/wire'
-
-export interface MountPose {
-  readonly hourAngleDegrees: number
-  readonly declinationDegrees: number
-  readonly pierSide: 'east' | 'west'
-}
-
-type Point = Pick<MountPose, 'hourAngleDegrees' | 'declinationDegrees'>
+import { gotoReach, type MountPose, type Point } from './goto-reach.js'
 
 // Step 3's worst recorded 9x coast after a stop, rounded up in arcseconds.
 export const stopTravelDegrees = 4084 / 3600
@@ -58,24 +51,11 @@ export function gotoRefusal(envelope: MountEnvelope, from: MountPose, to: Point,
   const start = boxRefusal(envelope, from, from, meridianLimit)
 
   if (start !== undefined) return start
-  const sides: ReadonlyArray<MountPose['pierSide']> = Math.abs(to.hourAngleDegrees) <= meridianLimit
-    ? ['east', 'west']
-    : [to.hourAngleDegrees < 0 ? 'west' : 'east']
+  const reach = gotoReach(from, to, meridianLimit, reserveDegrees)
 
-  const nearPole = from.declinationDegrees >= 89 && from.declinationDegrees <= 90
-  const reflectedHa = (from.hourAngleDegrees + 360) % 360 - 180
-  for (const pierSide of sides) {
-    const oppositeSide = pierSide !== from.pierSide
-    const startHa = oppositeSide ? reflectedHa : from.hourAngleDegrees
-    const poleHa = Math.abs(startHa) > 90 && Math.abs(startHa) <= 90.05 + 1e-9 ? Math.sign(startHa) * 90 : startHa
-    const startPose = nearPole
-      ? { hourAngleDegrees: poleHa, declinationDegrees: oppositeSide ? 90 : from.declinationDegrees, pierSide }
-      : { ...from, pierSide }
-    const beyond = {
-      hourAngleDegrees: to.hourAngleDegrees + Math.sign(to.hourAngleDegrees - startPose.hourAngleDegrees) * reserveDegrees,
-      declinationDegrees: to.declinationDegrees + Math.sign(to.declinationDegrees - startPose.declinationDegrees) * reserveDegrees,
-    }
-    const refusal = boxRefusal(envelope, startPose, beyond, meridianLimit)
+  if (reach.kind === 'refused') return reach.reason
+  for (const box of reach.boxes) {
+    const refusal = boxRefusal(envelope, box.from, box.to, meridianLimit)
 
     if (refusal !== undefined) return refusal
   }

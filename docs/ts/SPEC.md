@@ -659,28 +659,47 @@ combinations are flipped. With no measured flipped bands, that side is allowed
 only within the driver's `MERIDIAN_LIMIT.LIMIT`, read when checking the move.
 An unread or stale limit means zero. At HA zero neither side is flipped.
 
-Before a goto, Cria checks the current pose, then the whole HA-by-Dec box
-between start and target, since the axes move independently. Beyond the driver
-meridian limit, the predicted landing side is counterweight down. Within the
-limit either side can land, so both must pass. Each possible side must pass
-for the whole box, a conservative restriction on meridian crossings.
-For starts at Dec 89..90 degrees, including the AM5 home readings at 89.9
-and 90, the box uses the start in each possible landing side's representation.
-If that side differs from the reported side, start HA shifts by 180 degrees,
-wrapped to -180..180, and the box extends to Dec 90. The reflected mechanical
-Dec is 180 minus the reported Dec; its sky Dec folds back below 90. Extending
-the box to the pole covers that fold. The reported start must still pass its
-own pose check. On either landing side, a near-pole start HA up to 0.05
-degrees beyond either normal 90-degree boundary uses that boundary, to absorb
-the observed 0.01-degree home reporting offset. Larger offsets retain the box
-refusal. Starts below Dec 89 keep the existing box rule.
-Each goto box also extends beyond the target in each axis's direction of
-travel by the current pointing margin plus the reaction reserve. The direction
-uses the start in that landing side's representation, including the pole-start
-conversion. An axis with no requested travel has no directional extension.
-The extension must pass the same bands and coordinate limits before Cria sends
-any setting or motion command. The separate margin check around the reported
-start stays in force; a driver leaving Busy does not prove a coast has stopped.
+Before a goto, Cria checks the reported current pose. A move that stays on
+that pier side checks the whole independent-axis HA-by-Dec box through the
+reserved endpoint. A side change uses the start's mechanical frame: the
+other-side target has Dec `180 - targetDec` and HA `targetHA - 180` from west,
+or `targetHA + 180` from east. This HA branch is not the shortest wrapped delta.
+
+During a northern flip, both axes advance by equal angular distances until
+the shorter move finishes. The checked region is that capped path with a
+2-degree margin on each mechanical axis. It contains all 299 coordinate poses
+from 23 recorded flips; the largest measured distance to the model is 0.711
+degrees. This is an empirical synchrony model, not a firmware guarantee. Each
+one-degree interval is enclosed by a rectangle with that margin, so positions
+between interval endpoints are checked too. The interval is geometric, not a
+position-reading or time-sampling period. Southern flip routes are unmeasured
+and refused. Routes that need an HA wrap are also refused.
+
+Every physical box is split at the pole before projection onto the reported
+HA, Dec and actual pier side. Beyond Dec 90, reported Dec is `180 - axisDec`
+and HA shifts by 180 degrees; a southern endpoint reserve folds at Dec -90 in
+the same way. A box that only touches a pole stays in its starting representation.
+Near-pole starts at Dec 89..90 retain the 0.05-degree home HA reporting tolerance
+around either HA -90 or +90. The original reported-pose check still applies.
+
+Each moving axis also reserves travel beyond the target by the current
+pointing margin plus the reaction reserve. Same-side moves retain the full
+independent box through that endpoint. An axis with no commanded travel has
+0.1 degrees of settlement allowance, matching the goto arrival tolerance;
+this covers small reported-HA changes at two recorded near-pole endpoints.
+Flips add an independent endpoint
+reserve box with the same 2-degree model margin. That box is not clipped to
+the requested target. Reserved travel folds through the pole instead of being
+clamped or discarded. The folded part must pass its actual side's bands, so a
+pole approach can still refuse if the reserve enters an unmeasured region.
+No lower-Dec approach to a near-pole endpoint exists in the recording corpus;
+those approach tests are synthetic, using the projection validated on flips.
+
+Beyond the driver meridian limit, the predicted landing side is counterweight
+down. Within the limit either side can land, so each possible side's complete
+path and reserve must pass. A clear alternate landing pose alone is not enough.
+The separate margin check around the reported start stays in force; a driver
+leaving Busy does not prove that a coast has stopped.
 Unknown pier side or unread coordinates refuse a goto. The envelope needs
 topocentric coordinates; Cria cannot convert J2000 to mount HA.
 
@@ -692,12 +711,17 @@ a message naming the limit. No setting or motion command is sent on refusal.
 Home and park are exempt so they can escape an unsafe pose. Their existing
 held-device and availability checks still apply. Stop is always exempt.
 During goto and rate moves, every new position is checked with a margin of
-`pointingErrorArcmin` plus 7.02 arcseconds per degree of reported axis travel
+`pointingErrorArcmin` plus 7.02 arcseconds per degree of physical axis travel
 since the fix exposure. This matches the conservative policy in Vela's rig
 model, based on the AM5 goto landing p90. Without a usable fix, the base is
 15,915.2 arcseconds, the largest recorded abort overshoot. A late solve retains
 travel after its exposure. Travel history is bounded to 4,096 readings; a fix
 older than that history uses the unknown base and all retained travel.
+Direction and travel use successive positions in one pier-side representation.
+Across a known side change, Cria shifts the previous RA by 180 degrees and
+reflects its Dec before taking the short axis deltas. A representation change
+alone adds no travel. With an unknown side, Cria retains unadjusted deltas.
+The motion record still reports the coordinate displacement defined below.
 
 Cria also reserves two seconds at 6.3 degrees/second, rounded up from the
 recorded goto fixture, plus the largest

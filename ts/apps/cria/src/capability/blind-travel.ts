@@ -1,17 +1,21 @@
 import type { AcceptedFix } from '@cria/wire'
-import { angularDelta, type Position, type Reading } from './stopped.js'
+import type { Reading } from './stopped.js'
+import { axisDelta, type SidedPosition } from './mount-axes.js'
 import { marginArcmin } from './envelope.js'
 
 export function makeBlindTravel() {
   const samples: { at: number; total: number }[] = []
-  let previous: Position | undefined
+  let previous: SidedPosition | undefined
   let total = 0
 
   return {
-    record(position: Reading) {
+    record(position: Reading & Pick<SidedPosition, 'pierSide'>) {
       if (position.at <= (samples.at(-1)?.at ?? -1)) return
       if (!Number.isFinite(position.ra) || !Number.isFinite(position.dec)) return
-      if (previous !== undefined) total += Math.hypot(angularDelta(position.ra, previous.ra), position.dec - previous.dec)
+      if (previous !== undefined) {
+        const delta = axisDelta({ from: previous, to: position })
+        total += Math.hypot(delta.raDegrees, delta.decDegrees)
+      }
       previous = position
       samples.push({ at: position.at, total })
       if (samples.length > 4096) samples.shift()
