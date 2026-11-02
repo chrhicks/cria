@@ -95,7 +95,7 @@ export function marginArcmin(error: number | null, travelDegrees: number): numbe
 }
 
 export function watchRefusal(envelope: MountEnvelope, pose: MountPose, meridianLimit: number, marginDegrees: number, leadHa = 0, leadDec = 0): string | undefined {
-  const from = { ...pose, hourAngleDegrees: Math.max(-180, Math.min(pose.hourAngleDegrees, pose.hourAngleDegrees + leadHa) - marginDegrees), declinationDegrees: Math.max(-90, Math.min(pose.declinationDegrees, pose.declinationDegrees + leadDec) - marginDegrees) }
-  const to = { hourAngleDegrees: Math.min(180, Math.max(pose.hourAngleDegrees, pose.hourAngleDegrees + leadHa) + marginDegrees), declinationDegrees: Math.min(90, Math.max(pose.declinationDegrees, pose.declinationDegrees + leadDec) + marginDegrees) }
+  const from = { ...pose, hourAngleDegrees: Math.min(pose.hourAngleDegrees, pose.hourAngleDegrees + leadHa) - marginDegrees, declinationDegrees: Math.max(-90, Math.min(pose.declinationDegrees, pose.declinationDegrees + leadDec) - marginDegrees) }
+  const to = { hourAngleDegrees: Math.max(pose.hourAngleDegrees, pose.hourAngleDegrees + leadHa) + marginDegrees, declinationDegrees: Math.min(90, Math.max(pose.declinationDegrees, pose.declinationDegrees + leadDec) + marginDegrees) }
   return boxRefusal(envelope, from, to, meridianLimit)
 }

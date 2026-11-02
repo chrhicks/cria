@@ -248,6 +248,8 @@ export function makeMount(context: CapabilityContext, motion: MountMotionSetting
     const envelope = context.feedback.envelope
 
     if (envelope === null) return
+    const position = snapshot.property(coordinatesProperty(snapshot).name)
+    if (position !== undefined) blindTravel.record({ ...positionOf(position), at: position.receivedAt })
     const mount = readings(snapshot)
     const pierSide = yield* required(mount.pierSide, 'envelope pier side')
 
