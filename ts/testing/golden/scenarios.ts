@@ -273,6 +273,17 @@ async function runAndSettle(g: Golden, deviceId: string, kind: string, parameter
 
 export const scenarios: ReadonlyArray<Scenario> = [
   {
+    name: 'Vela supplies the mount envelope and accepted fixes',
+    devices: ['mount'],
+    run: async g => {
+      const { instanceId } = await g.cria.state()
+      await g.wire.feedback('mount')
+      await g.wire.envelope('mount', { instanceId, envelope: { keepOut: [{ name: 'normal', side: 'normal', minDeclinationDegrees: -90, maxDeclinationDegrees: 90, westHourAngleDegrees: 20 }], meridianLimitDegrees: 15 } })
+      await g.wire.fix('mount', { instanceId, fix: { capturedAt: 1000, rightAscensionDegrees: 120, declinationDegrees: 30, coordinateSystem: 'j2000', error: { scaleError: 0.01, hintOffsetDegrees: 0.2 } } })
+      await g.wire.feedback('mount')
+    },
+  },
+  {
     name: 'health',
     devices: ['camera'],
     run: async g => {

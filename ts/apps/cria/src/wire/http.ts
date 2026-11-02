@@ -10,6 +10,8 @@ import { createServer, type IncomingMessage, type Server, type ServerResponse } 
 import { Effect, Exit, Result, Schema } from 'effect'
 import {
   DeviceId,
+  EnvelopeRequest,
+  FixRequest,
   ImageId,
   InstanceId,
   OperationId,
@@ -84,6 +86,23 @@ export function makeHttpServer(rig: Rig, options: HttpOptions = {}): Server {
 
     if (method === 'GET' && path.length === 2 && path[1] === 'state')
       return run(Effect.flatMap(rig.ledger.snapshot, snapshot => projectState(rig, snapshot)), state => ({ status: 200, body: state }))
+
+    if (path.length === 4 && path[1] === 'devices' && ['envelope', 'fix', 'feedback'].includes(path[3]!)) {
+      const device = rig.devices.find(candidate => candidate.config.id === path[2] && candidate.config.kind === 'mount')
+
+      if (!device) throw refuse('not-found', 'No such mount')
+      if (method === 'GET' && path[3] === 'feedback') return { status: 200, body: device.feedback }
+      if (method === 'POST' && (path[3] === 'envelope' || path[3] === 'fix')) {
+        const body = await readJson(request)
+        const decoded = path[3] === 'envelope' ? decodeBody(EnvelopeRequest, body) : decodeBody(FixRequest, body)
+
+        if (decoded.instanceId !== rig.instanceId) throw refuse('instance-changed', 'Cria restarted')
+        if ('envelope' in decoded) device.feedback.envelope = decoded.envelope
+        else device.feedback.fix = decoded.fix
+
+        return { status: 200, body: device.feedback }
+      }
+    }
 
     if (method === 'GET' && path.length === 2 && path[1] === 'events') {
       if (!events(request, response)) throw refuse('too-many-subscribers', 'Too many event subscribers')

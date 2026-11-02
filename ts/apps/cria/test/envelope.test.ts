@@ -163,3 +163,20 @@ describe('the pure box rule', () => {
     expect(stopTravelDegrees).toBeCloseTo(1.13444444)
   })
 })
+
+it('uses the sent envelope in the path check and retains every accepted fix until replaced', async () => {
+  await start(0, 80, 'east')
+  const { instanceId } = await cria.state()
+  const sent = { ...envelope, keepOut: envelope.keepOut.map(band => ({ ...band, westHourAngleDegrees: 5 })) }
+  expect((await cria.client.envelope('mount', { instanceId, envelope: sent })).status).toBe(200)
+  expect((await slew(10, 80)).message).toContain('west HA limit 5')
+  expect(commands()).toEqual([])
+
+  for (const capturedAt of [1000, 2000]) {
+    const fix = { capturedAt, rightAscensionDegrees: 120, declinationDegrees: 30, coordinateSystem: 'j2000', error: { scaleError: 0.01, hintOffsetDegrees: 0.2 } }
+    expect((await cria.client.fix('mount', { instanceId, fix })).status).toBe(200)
+    expect((await cria.client.feedback('mount')).fix).toEqual(fix)
+  }
+  expect((await cria.client.fix('mount', { instanceId, fix: { capturedAt: -1 } })).status).toBe(400)
+  expect((await cria.client.feedback('mount')).envelope).toEqual(sent)
+})

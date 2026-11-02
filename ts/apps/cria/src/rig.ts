@@ -18,6 +18,7 @@ import { makeWorkflows, workflowFor } from './operation/workflows.js'
 import { makeRecorder, type RecordingOptions } from './recording.js'
 
 export interface RigDevice extends Equipment {
+  readonly feedback: CapabilityContext['feedback']
   readonly config: DeviceConfig
   readonly failureDomain: FailureDomain
   readonly indi: IndiDevice
@@ -49,6 +50,7 @@ export function makeRig(config: Config, options: { readonly recording?: Recordin
       const indi = client.device(deviceConfig.indiDevice)
       const liveness = yield* makeLiveness(indi, config.livenessMs)
       const context: CapabilityContext = {
+        feedback: { envelope: deviceConfig.envelope ?? null, fix: null },
         device: indi,
         snapshot: takeSnapshot(indi, liveness, client.status),
         timing,
@@ -56,6 +58,7 @@ export function makeRig(config: Config, options: { readonly recording?: Recordin
       const setup = yield* makeDeviceSetup(context, deviceConfig)
 
       devices.push({
+        feedback: context.feedback,
         config: deviceConfig,
         failureDomain: deviceConfig.failureDomain,
         indi,
