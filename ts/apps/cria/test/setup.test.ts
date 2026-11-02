@@ -70,6 +70,38 @@ describe('a mount', () => {
     expect(Math.abs(Date.parse(`${String(fake.vector(mount, 'TIME_UTC').elements.UTC!.value)}Z`) - Date.now())).toBeLessThan(15_000)
   })
 
+  it.each([
+    { label: 'matching', state: 'Ok', latitude: 12.5, longitude: 0, elevation: 123, kept: true },
+    { label: 'rounded', state: 'Ok', latitude: 12.50009, longitude: 0.00009, elevation: 123.9, kept: true },
+    { label: 'wrapped', state: 'Ok', latitude: 12.5, longitude: 359.99995, elevation: 123, kept: true },
+    { label: 'different latitude', state: 'Ok', latitude: 12.501, longitude: 0, elevation: 123, kept: false },
+    { label: 'different longitude', state: 'Ok', latitude: 12.5, longitude: 0.001, elevation: 123, kept: false },
+    { label: 'different elevation', state: 'Ok', latitude: 12.5, longitude: 0, elevation: 125, kept: false },
+    { label: 'Alert', state: 'Alert', latitude: 12.5, longitude: 0, elevation: 123, kept: false },
+    { label: 'Busy', state: 'Busy', latitude: 12.5, longitude: 0, elevation: 123, kept: false },
+    { label: 'unread latitude', state: 'Ok', latitude: undefined, longitude: 0, elevation: 123, kept: false },
+  ] as const)('handles an already reported $label site', async ({ state, latitude, longitude, elevation, kept }) => {
+    fake = new FakeIndi()
+    await fake.start()
+    addMount(fake, mount)
+    fake.update(mount, 'GEOGRAPHIC_COORD', { state, values: { LAT: latitude ?? 12.5, LONG: longitude, ELEV: elevation } })
+    if (latitude === undefined) delete fake.vector(mount, 'GEOGRAPHIC_COORD').elements.LAT
+    fake.behaviour = moveMount()
+    cria = await startCria(fake.port, [{ id: 'mount', kind: 'mount', indiDevice: mount, site: { latitudeDegrees: 12.5, longitudeDegrees: 0, elevationMeters: 123 } }])
+    if (latitude === undefined) {
+      await until('the unread site to be written', () => writes('GEOGRAPHIC_COORD').length > 0)
+      expect(writes('GEOGRAPHIC_COORD')).toHaveLength(1)
+      return
+    }
+    await cria.waitFor(allReady(['mount']))
+
+    expect(writes('GEOGRAPHIC_COORD')).toHaveLength(kept ? 0 : 1)
+    expect(writes('TIME_UTC')).toHaveLength(1)
+    const startup = (await cria.state()).operations.find(operation => operation.requestId.startsWith('startup-'))
+    expect(startup).toMatchObject({ state: 'settled', outcome: { kind: 'confirmed' } })
+    if (kept) expect(JSON.stringify(startup)).toContain('GEOGRAPHIC_COORD already set to the configured site')
+  })
+
   it('is not ready while its setup runs, and a setup write the driver never answers blocks it until a person recovers it', async () => {
     await start((fake, vector, values) => (vector.name === 'TIME_UTC' ? 'handled' : moveMount()(fake, vector, values)))
     await until('the time to be sent', () => writes('TIME_UTC').length > 0)
