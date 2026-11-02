@@ -204,7 +204,7 @@ export function makeMount(context: CapabilityContext, motion: MountMotionSetting
 
       const hint = gotoRefusalHint(yield* setup.current)
       const command = yield* beforeCommand(device)
-      const tracking = track(
+      const tracking = yield* track(device,
         note,
         { kind: 'slew', sentAt: command.sentAt, target: { rightAscensionDegrees: target.rightAscensionDegrees, declinationDegrees: target.declinationDegrees } },
         command,
@@ -233,7 +233,7 @@ export function makeMount(context: CapabilityContext, motion: MountMotionSetting
         })
 
       return { rightAscensionDegrees: arrived.ra, declinationDegrees: arrived.dec }
-    })
+    }).pipe(Effect.scoped)
 
   const setTracking = (tracking: boolean) =>
     Effect.gen(function* () {
@@ -266,7 +266,7 @@ export function makeMount(context: CapabilityContext, motion: MountMotionSetting
     if (yield* required(mount.parked, 'park state')) return {}
 
     const command = yield* beforeCommand(device)
-    const tracking = track(note, { kind: 'park', sentAt: command.sentAt }, command)
+    const tracking = yield* track(device, note, { kind: 'park', sentAt: command.sentAt }, command)
 
     yield* stoppable({
       command: `park on ${device.name}`,
@@ -277,7 +277,7 @@ export function makeMount(context: CapabilityContext, motion: MountMotionSetting
     })
 
     return {}
-  })
+  }).pipe(Effect.scoped)
 
   const unpark = Effect.gen(function* () {
     const snapshot = yield* liveSnapshot(context)
@@ -304,7 +304,7 @@ export function makeMount(context: CapabilityContext, motion: MountMotionSetting
     if (!element) return yield* new Failed({ reason: 'unsupported', message: 'Home unsupported' })
 
     const command = yield* beforeCommand(device)
-    const tracking = track(note, { kind: 'home', sentAt: command.sentAt }, command)
+    const tracking = yield* track(device, note, { kind: 'home', sentAt: command.sentAt }, command)
 
     yield* stoppable({
       command: `home on ${device.name}`,
@@ -317,12 +317,12 @@ export function makeMount(context: CapabilityContext, motion: MountMotionSetting
     })
 
     return {}
-  })
+  }).pipe(Effect.scoped)
 
   const stop = (note: Note) =>
     Effect.gen(function* () {
       const command = yield* beforeCommand(device)
-      const tracking = track(note, { kind: 'stop', sentAt: command.sentAt }, command)
+      const tracking = yield* track(device, note, { kind: 'stop', sentAt: command.sentAt }, command)
 
       return yield* abort(tracking, tracking.sentBy).pipe(
         Effect.timeoutOption(stopWithinMs),
@@ -334,7 +334,7 @@ export function makeMount(context: CapabilityContext, motion: MountMotionSetting
           }),
         ),
       )
-    })
+    }).pipe(Effect.scoped)
 
   /**
    * Primary-axis motion at one of the rates the mount advertises (review R1-#12).
@@ -377,7 +377,7 @@ export function makeMount(context: CapabilityContext, motion: MountMotionSetting
       })
       const start = yield* ra
       const command = yield* beforeCommand(device)
-      const tracking = track(note, commanded(Math.sign(rateDegreesPerSecond) * rate.degreesPerSecond, command.sentAt), command)
+      const tracking = yield* track(device, note, commanded(Math.sign(rateDegreesPerSecond) * rate.degreesPerSecond, command.sentAt), command)
       const halt = Effect.asVoid(stopWith('TELESCOPE_MOTION_WE', { MOTION_EAST: false, MOTION_WEST: false }, 'halted', tracking))
 
       yield* stoppable({
@@ -395,7 +395,7 @@ export function makeMount(context: CapabilityContext, motion: MountMotionSetting
       const end = yield* ra
 
       return { rightAscensionDegrees: end, rate: rate.name, travelledDegrees: angularDelta(end, start) }
-    })
+    }).pipe(Effect.scoped)
 
   const moveAxis = (rateDegreesPerSecond: number, durationSeconds: number, note: Note) =>
     axisMotion(rateDegreesPerSecond, () => Effect.sleep(durationSeconds * 1000), (rate, sentAt) => ({ kind: 'axis', sentAt, axis: 'ra', rateDegreesPerSecond: rate }), note)

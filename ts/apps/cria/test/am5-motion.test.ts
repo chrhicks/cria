@@ -120,6 +120,21 @@ function expectRestedAt(ending: Ending) {
 /** The move ended only once the position had stood still for a window after it last changed. */
 async function settledAfterTheCoast(id: string): Promise<{ readonly ending: Ending; readonly quietFor: number }> {
   const ending = await cria.settled(id, 30_000)
+  const motion = ending.operation.motion
+  const rested = published.at(-1)!
+
+  expect(motion).toBeDefined()
+  expect(motion!.stopped.how).toBe(ending.kind === 'stopped' ? 'aborted' : ending.operation.kind === 'mount-axis' ? 'halted' : 'arrived')
+  expect(motion!.commanded.sentAt).toBeGreaterThanOrEqual(ending.operation.startedAt)
+  expect(motion!.stopped.at).toBeGreaterThanOrEqual(lastMove().at + windowMs)
+  expect(motion!.stopped.at).toBeLessThanOrEqual(ending.operation.settledAt)
+  expect(motion!.observed.to!.rightAscensionDegrees).toBeCloseTo(rested.ra, 5)
+  expect(motion!.observed.to!.declinationDegrees).toBeCloseTo(rested.dec, 5)
+  expect(motion!.observed.from).not.toBeNull()
+  const expectedRa = ((rested.ra - motion!.observed.from!.rightAscensionDegrees + 540) % 360) - 180
+
+  expect(motion!.observed.travel!.rightAscensionDegrees).toBeCloseTo(expectedRa, 5)
+  expect(motion!.observed.travel!.declinationDegrees).toBeCloseTo(rested.dec - motion!.observed.from!.declinationDegrees, 5)
 
   return { ending, quietFor: Date.now() - lastMove().at }
 }

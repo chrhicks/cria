@@ -973,7 +973,7 @@ Readings per kind. Values are named, not ASCOM integers:
 Operation =                                  // one union on state; kind and parameters stay flat
   | { ...Accepted; state: 'waiting' }                                     // a halt kind only
   | { ...Accepted; state: 'running'; startedAt: number; progress: Progress }
-  | { ...Accepted; state: 'settled'; startedAt: number; settledAt: number
+  | { ...Accepted; state: 'settled'; startedAt: number; settledAt: number; motion?: MotionRecord
       outcome: Outcome<{ values: Record<string, Json>; image: Image | null }>
       recovery: null | { at: number; note: string } }                    // non-null only on a recovered uncertain operation
 
@@ -1069,6 +1069,22 @@ only when the element is not already on, and confirms the switch before it sends
 `exposureSeconds`, `color`, `capturedAt`, `capturedAtSource`
 (`'camera' | 'server-estimate'`), `retainedAt`, `sha256`, and
 `original: { mediaType: 'application/imagebytes', bytes, url }`.
+
+A settled mount motion whose command was sent carries an optional `motion` record.
+`commanded` names the kind, target or signed RA rate and axis, and `sentAt` in epoch ms.
+`observed.from` is the first coordinate reading received after the command, not the cached
+position before it. `observed.to` is the final position from the stopped rule. Both use
+`rightAscensionDegrees` and `declinationDegrees`. `travel` is their signed difference,
+with RA wrapped to [-180, 180). Missing observations are null. This is displacement
+between readings, not a sum of the path or a claim of movement before the first reading.
+`stopped.how` is `arrived`, `halted`, `aborted`, or `uncertain`. `stopped.at` records when
+the step 17 stopped rule fired. An unconfirmed stop has null final position, travel and
+time. Refused commands and a park that was already parked have no motion record.
+Limit stops will be added with the envelope work. Peak rate is not computed here.
+
+This is additive within protocol 5. Vela's pinned runtime decoder accepts unknown
+operation fields. Its strict golden check requires the updated pin and golden copy.
+Older snapshots without `motion` still decode. Vela and Cria ship together outside a session.
 
 ### Event stream
 

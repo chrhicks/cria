@@ -2455,6 +2455,34 @@
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
       "kind": "mount-slew",
+      "motion": {
+        "commanded": {
+          "kind": "slew",
+          "sentAt": "<time>",
+          "target": {
+            "declinationDegrees": 10,
+            "rightAscensionDegrees": 120
+          }
+        },
+        "observed": {
+          "from": {
+            "declinationDegrees": 40,
+            "rightAscensionDegrees": 30
+          },
+          "to": {
+            "declinationDegrees": 10,
+            "rightAscensionDegrees": 120
+          },
+          "travel": {
+            "declinationDegrees": -30,
+            "rightAscensionDegrees": 90
+          }
+        },
+        "stopped": {
+          "at": "<time>",
+          "how": "arrived"
+        }
+      },
       "outcome": {
         "kind": "confirmed",
         "value": {
@@ -2600,6 +2628,32 @@
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
       "kind": "mount-axis",
+      "motion": {
+        "commanded": {
+          "axis": "ra",
+          "kind": "axis",
+          "rateDegreesPerSecond": 0.008356148333333334,
+          "sentAt": "<time>"
+        },
+        "observed": {
+          "from": {
+            "declinationDegrees": 40,
+            "rightAscensionDegrees": 30
+          },
+          "to": {
+            "declinationDegrees": 40,
+            "rightAscensionDegrees": 30
+          },
+          "travel": {
+            "declinationDegrees": 0,
+            "rightAscensionDegrees": 0
+          }
+        },
+        "stopped": {
+          "at": "<time>",
+          "how": "halted"
+        }
+      },
       "outcome": {
         "kind": "confirmed",
         "value": {
@@ -2744,6 +2798,33 @@
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
       "kind": "mount-rotate",
+      "motion": {
+        "commanded": {
+          "axis": "ra",
+          "distanceDegrees": 1,
+          "kind": "rotate",
+          "rateDegreesPerSecond": 0.25068445,
+          "sentAt": "<time>"
+        },
+        "observed": {
+          "from": {
+            "declinationDegrees": 40,
+            "rightAscensionDegrees": 31.5
+          },
+          "to": {
+            "declinationDegrees": 40,
+            "rightAscensionDegrees": 31.5
+          },
+          "travel": {
+            "declinationDegrees": 0,
+            "rightAscensionDegrees": 0
+          }
+        },
+        "stopped": {
+          "at": "<time>",
+          "how": "halted"
+        }
+      },
       "outcome": {
         "kind": "confirmed",
         "value": {
@@ -2882,6 +2963,30 @@
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
       "kind": "mount-home",
+      "motion": {
+        "commanded": {
+          "kind": "home",
+          "sentAt": "<time>"
+        },
+        "observed": {
+          "from": {
+            "declinationDegrees": 40,
+            "rightAscensionDegrees": 30
+          },
+          "to": {
+            "declinationDegrees": 40,
+            "rightAscensionDegrees": 30
+          },
+          "travel": {
+            "declinationDegrees": 0,
+            "rightAscensionDegrees": 0
+          }
+        },
+        "stopped": {
+          "at": "<time>",
+          "how": "arrived"
+        }
+      },
       "outcome": {
         "kind": "confirmed",
         "value": {
@@ -2944,6 +3049,30 @@
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
       "kind": "mount-park",
+      "motion": {
+        "commanded": {
+          "kind": "park",
+          "sentAt": "<time>"
+        },
+        "observed": {
+          "from": {
+            "declinationDegrees": 40,
+            "rightAscensionDegrees": 30
+          },
+          "to": {
+            "declinationDegrees": 40,
+            "rightAscensionDegrees": 30
+          },
+          "travel": {
+            "declinationDegrees": 0,
+            "rightAscensionDegrees": 0
+          }
+        },
+        "stopped": {
+          "at": "<time>",
+          "how": "arrived"
+        }
+      },
       "outcome": {
         "kind": "confirmed",
         "value": {
@@ -3068,6 +3197,30 @@
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
       "kind": "mount-stop",
+      "motion": {
+        "commanded": {
+          "kind": "stop",
+          "sentAt": "<time>"
+        },
+        "observed": {
+          "from": {
+            "declinationDegrees": 40,
+            "rightAscensionDegrees": 30
+          },
+          "to": {
+            "declinationDegrees": 40,
+            "rightAscensionDegrees": 30
+          },
+          "travel": {
+            "declinationDegrees": 0,
+            "rightAscensionDegrees": 0
+          }
+        },
+        "stopped": {
+          "at": "<time>",
+          "how": "aborted"
+        }
+      },
       "outcome": {
         "kind": "confirmed",
         "value": {
@@ -3130,6 +3283,30 @@
       "id": "<operation-2>",
       "instanceId": "<instance-1>",
       "kind": "mount-stop",
+      "motion": {
+        "commanded": {
+          "kind": "stop",
+          "sentAt": "<time>"
+        },
+        "observed": {
+          "from": {
+            "declinationDegrees": 40,
+            "rightAscensionDegrees": 30
+          },
+          "to": {
+            "declinationDegrees": 40,
+            "rightAscensionDegrees": 30
+          },
+          "travel": {
+            "declinationDegrees": 0,
+            "rightAscensionDegrees": 0
+          }
+        },
+        "stopped": {
+          "at": "<time>",
+          "how": "aborted"
+        }
+      },
       "outcome": {
         "kind": "confirmed",
         "value": {
@@ -3228,6 +3405,30 @@
       "id": "<operation-2>",
       "instanceId": "<instance-1>",
       "kind": "mount-stop",
+      "motion": {
+        "commanded": {
+          "kind": "stop",
+          "sentAt": "<time>"
+        },
+        "observed": {
+          "from": {
+            "declinationDegrees": 40,
+            "rightAscensionDegrees": 30
+          },
+          "to": {
+            "declinationDegrees": 40,
+            "rightAscensionDegrees": 30
+          },
+          "travel": {
+            "declinationDegrees": 0,
+            "rightAscensionDegrees": 0
+          }
+        },
+        "stopped": {
+          "at": "<time>",
+          "how": "aborted"
+        }
+      },
       "outcome": {
         "kind": "confirmed",
         "value": {
@@ -3257,6 +3458,34 @@
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
       "kind": "mount-slew",
+      "motion": {
+        "commanded": {
+          "kind": "slew",
+          "sentAt": "<time>",
+          "target": {
+            "declinationDegrees": 10,
+            "rightAscensionDegrees": 120
+          }
+        },
+        "observed": {
+          "from": {
+            "declinationDegrees": 40,
+            "rightAscensionDegrees": 30
+          },
+          "to": {
+            "declinationDegrees": 40,
+            "rightAscensionDegrees": 30
+          },
+          "travel": {
+            "declinationDegrees": 0,
+            "rightAscensionDegrees": 0
+          }
+        },
+        "stopped": {
+          "at": "<time>",
+          "how": "aborted"
+        }
+      },
       "outcome": {
         "kind": "stopped"
       },
@@ -3433,6 +3662,34 @@
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
       "kind": "mount-slew",
+      "motion": {
+        "commanded": {
+          "kind": "slew",
+          "sentAt": "<time>",
+          "target": {
+            "declinationDegrees": 10,
+            "rightAscensionDegrees": 120
+          }
+        },
+        "observed": {
+          "from": {
+            "declinationDegrees": 40,
+            "rightAscensionDegrees": 30
+          },
+          "to": {
+            "declinationDegrees": 10,
+            "rightAscensionDegrees": 120
+          },
+          "travel": {
+            "declinationDegrees": -30,
+            "rightAscensionDegrees": 90
+          }
+        },
+        "stopped": {
+          "at": "<time>",
+          "how": "arrived"
+        }
+      },
       "outcome": {
         "kind": "confirmed",
         "value": {
@@ -3538,6 +3795,30 @@
       "id": "<operation-2>",
       "instanceId": "<instance-1>",
       "kind": "mount-stop",
+      "motion": {
+        "commanded": {
+          "kind": "stop",
+          "sentAt": "<time>"
+        },
+        "observed": {
+          "from": {
+            "declinationDegrees": 36.51999999999989,
+            "rightAscensionDegrees": 33.49236709953357
+          },
+          "to": {
+            "declinationDegrees": 36.51999999999989,
+            "rightAscensionDegrees": 33.50481776055068
+          },
+          "travel": {
+            "declinationDegrees": 0,
+            "rightAscensionDegrees": 0.012450661017055609
+          }
+        },
+        "stopped": {
+          "at": "<time>",
+          "how": "aborted"
+        }
+      },
       "outcome": {
         "kind": "confirmed",
         "value": {
@@ -3567,6 +3848,34 @@
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
       "kind": "mount-slew",
+      "motion": {
+        "commanded": {
+          "kind": "slew",
+          "sentAt": "<time>",
+          "target": {
+            "declinationDegrees": 10,
+            "rightAscensionDegrees": 120
+          }
+        },
+        "observed": {
+          "from": {
+            "declinationDegrees": 40,
+            "rightAscensionDegrees": 30
+          },
+          "to": {
+            "declinationDegrees": 36.51999999999989,
+            "rightAscensionDegrees": 33.49236709953357
+          },
+          "travel": {
+            "declinationDegrees": -3.4800000000001106,
+            "rightAscensionDegrees": 3.492367099533567
+          }
+        },
+        "stopped": {
+          "at": "<time>",
+          "how": "aborted"
+        }
+      },
       "outcome": {
         "kind": "stopped"
       },
@@ -3693,6 +4002,34 @@
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
       "kind": "mount-slew",
+      "motion": {
+        "commanded": {
+          "kind": "slew",
+          "sentAt": "<time>",
+          "target": {
+            "declinationDegrees": 10,
+            "rightAscensionDegrees": 120
+          }
+        },
+        "observed": {
+          "from": {
+            "declinationDegrees": 40,
+            "rightAscensionDegrees": 30
+          },
+          "to": {
+            "declinationDegrees": 40,
+            "rightAscensionDegrees": 30
+          },
+          "travel": {
+            "declinationDegrees": 0,
+            "rightAscensionDegrees": 0
+          }
+        },
+        "stopped": {
+          "at": "<time>",
+          "how": "aborted"
+        }
+      },
       "outcome": {
         "kind": "stopped"
       },
@@ -3722,6 +4059,30 @@
       "id": "<operation-2>",
       "instanceId": "<instance-1>",
       "kind": "mount-stop",
+      "motion": {
+        "commanded": {
+          "kind": "stop",
+          "sentAt": "<time>"
+        },
+        "observed": {
+          "from": {
+            "declinationDegrees": 40,
+            "rightAscensionDegrees": 30
+          },
+          "to": {
+            "declinationDegrees": 40,
+            "rightAscensionDegrees": 30
+          },
+          "travel": {
+            "declinationDegrees": 0,
+            "rightAscensionDegrees": 0
+          }
+        },
+        "stopped": {
+          "at": "<time>",
+          "how": "aborted"
+        }
+      },
       "outcome": {
         "kind": "confirmed",
         "value": {
@@ -3751,6 +4112,30 @@
       "id": "<operation-3>",
       "instanceId": "<instance-1>",
       "kind": "mount-stop",
+      "motion": {
+        "commanded": {
+          "kind": "stop",
+          "sentAt": "<time>"
+        },
+        "observed": {
+          "from": {
+            "declinationDegrees": 40,
+            "rightAscensionDegrees": 30
+          },
+          "to": {
+            "declinationDegrees": 40,
+            "rightAscensionDegrees": 30
+          },
+          "travel": {
+            "declinationDegrees": 0,
+            "rightAscensionDegrees": 0
+          }
+        },
+        "stopped": {
+          "at": "<time>",
+          "how": "aborted"
+        }
+      },
       "outcome": {
         "kind": "confirmed",
         "value": {
@@ -3832,6 +4217,30 @@
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
       "kind": "mount-stop",
+      "motion": {
+        "commanded": {
+          "kind": "stop",
+          "sentAt": "<time>"
+        },
+        "observed": {
+          "from": {
+            "declinationDegrees": 40,
+            "rightAscensionDegrees": 30
+          },
+          "to": {
+            "declinationDegrees": 40,
+            "rightAscensionDegrees": 30
+          },
+          "travel": {
+            "declinationDegrees": 0,
+            "rightAscensionDegrees": 0
+          }
+        },
+        "stopped": {
+          "at": "<time>",
+          "how": "aborted"
+        }
+      },
       "outcome": {
         "kind": "confirmed",
         "value": {

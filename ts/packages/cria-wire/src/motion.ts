@@ -1,6 +1,5 @@
 /**
- * View: the motion record on a settled mount operation. What Cria sent, where the mount was seen before and
- * after, and how it came to rest. Positions are the mount's axis angles in degrees, in the frame of the
+ * View: the motion record on a settled mount operation. What Cria sent, where the mount was seen after the command and at rest, and how it came to rest. Positions are the mount's axis angles in degrees, in the frame of the
  * coordinates it reports; `travel` is `to` minus `from`, RA wrapped to (-180, 180].
  */
 import { Schema } from 'effect'
@@ -40,7 +39,7 @@ const restedOnlyIfStopped = Schema.makeFilter(
 export const MotionRecord = Schema.Struct({
   commanded: MotionCommanded,
   observed: Schema.Struct({
-    /** The position the mount held when the command went out, if it held one. */
+    /** The first position received after the command, if any. */
     from: Schema.NullOr(MotionAxes),
     /** Where the readings show it stopped. */
     to: Schema.NullOr(MotionAxes),

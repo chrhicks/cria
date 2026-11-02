@@ -50,7 +50,7 @@ export function recordingFetch(into: Recorded[]): typeof globalThis.fetch {
 
 const uuid = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/g
 const utc = /\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d/g
-const times = new Set(['acceptedAt', 'startedAt', 'settledAt', 'observedAt', 'generatedAt', 'since', 'commandedAt', 'capturedAt', 'retainedAt', 'at'])
+const times = new Set(['acceptedAt', 'startedAt', 'settledAt', 'observedAt', 'generatedAt', 'since', 'commandedAt', 'sentAt', 'capturedAt', 'retainedAt', 'at'])
 const labels: Record<string, string> = {
   instanceId: 'instance',
   bindingId: 'binding',
