@@ -1,5 +1,124 @@
 [
   {
+    "scenario": "Vela supplies the mount envelope and accepted fixes",
+    "step": 1,
+    "request": "GET /v2/devices/mount/feedback",
+    "status": 200,
+    "body": {
+      "envelope": null,
+      "fix": null
+    }
+  },
+  {
+    "scenario": "Vela supplies the mount envelope and accepted fixes",
+    "step": 2,
+    "request": "POST /v2/devices/mount/envelope",
+    "sent": {
+      "envelope": {
+        "keepOut": [
+          {
+            "maxDeclinationDegrees": 90,
+            "minDeclinationDegrees": -90,
+            "name": "normal",
+            "side": "normal",
+            "westHourAngleDegrees": 20
+          }
+        ],
+        "meridianLimitDegrees": 15
+      },
+      "instanceId": "<instance-1>"
+    },
+    "status": 200,
+    "body": {
+      "envelope": {
+        "keepOut": [
+          {
+            "maxDeclinationDegrees": 90,
+            "minDeclinationDegrees": -90,
+            "name": "normal",
+            "side": "normal",
+            "westHourAngleDegrees": 20
+          }
+        ],
+        "meridianLimitDegrees": 15
+      },
+      "fix": null
+    }
+  },
+  {
+    "scenario": "Vela supplies the mount envelope and accepted fixes",
+    "step": 3,
+    "request": "POST /v2/devices/mount/fix",
+    "sent": {
+      "fix": {
+        "capturedAt": "<time>",
+        "coordinateSystem": "j2000",
+        "declinationDegrees": 30,
+        "error": {
+          "hintOffsetDegrees": 0.2,
+          "scaleError": 0.01
+        },
+        "rightAscensionDegrees": 120
+      },
+      "instanceId": "<instance-1>"
+    },
+    "status": 200,
+    "body": {
+      "envelope": {
+        "keepOut": [
+          {
+            "maxDeclinationDegrees": 90,
+            "minDeclinationDegrees": -90,
+            "name": "normal",
+            "side": "normal",
+            "westHourAngleDegrees": 20
+          }
+        ],
+        "meridianLimitDegrees": 15
+      },
+      "fix": {
+        "capturedAt": "<time>",
+        "coordinateSystem": "j2000",
+        "declinationDegrees": 30,
+        "error": {
+          "hintOffsetDegrees": 0.2,
+          "scaleError": 0.01
+        },
+        "rightAscensionDegrees": 120
+      }
+    }
+  },
+  {
+    "scenario": "Vela supplies the mount envelope and accepted fixes",
+    "step": 4,
+    "request": "GET /v2/devices/mount/feedback",
+    "status": 200,
+    "body": {
+      "envelope": {
+        "keepOut": [
+          {
+            "maxDeclinationDegrees": 90,
+            "minDeclinationDegrees": -90,
+            "name": "normal",
+            "side": "normal",
+            "westHourAngleDegrees": 20
+          }
+        ],
+        "meridianLimitDegrees": 15
+      },
+      "fix": {
+        "capturedAt": "<time>",
+        "coordinateSystem": "j2000",
+        "declinationDegrees": 30,
+        "error": {
+          "hintOffsetDegrees": 0.2,
+          "scaleError": 0.01
+        },
+        "rightAscensionDegrees": 120
+      }
+    }
+  },
+  {
     "scenario": "health",
     "step": 1,
     "request": "GET /health",
@@ -2731,7 +2850,7 @@
       "kind": "mount-axis",
       "outcome": {
         "kind": "failed",
-        "message": "The mount does not offer 0.05\u00b0/s; it offers 0.001045, 0.002089, 0.004178, 0.008356, 0.01671, 0.03342, 0.08356, 0.2507, 3.008, 6.016\u00b0/s",
+        "message": "The mount does not offer 0.05°/s; it offers 0.001045, 0.002089, 0.004178, 0.008356, 0.01671, 0.03342, 0.08356, 0.2507, 3.008, 6.016°/s",
         "reason": "invalid"
       },
       "parameters": {
@@ -2902,7 +3021,7 @@
       "kind": "mount-rotate",
       "outcome": {
         "kind": "failed",
-        "message": "At 6.016\u00b0/s the mount travels about 5.41\u00b0 after Cria sees the target (900 ms), more than 50 % of the 1\u00b0 asked; use a slower rate or a longer rotate",
+        "message": "At 6.016°/s the mount travels about 5.41° after Cria sees the target (900 ms), more than 50 % of the 1° asked; use a slower rate or a longer rotate",
         "reason": "invalid"
       },
       "parameters": {

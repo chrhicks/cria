@@ -19,7 +19,7 @@ import type { DeviceSetup, StepOutcome } from './setup.js'
 import { track, type Note, type Tracking } from './motion-record.js'
 import { angularDelta, beforeCommand, confirmStopped, positionOf, type Command, type Position } from './stopped.js'
 import { gotoRefusal, rateRefusal, type MountPose } from './envelope.js'
-import type { DeviceBody, MountEnvelope, MotionCommanded, ParamsOf, ReadingsOf } from '@cria/wire'
+import type { DeviceBody, MotionCommanded, ParamsOf, ReadingsOf } from '@cria/wire'
 
 type CoordinateFrame = ParamsOf<'mount-slew'>['coordinateSystem']
 
@@ -154,7 +154,7 @@ function gotoRefusalHint(outcomes: ReadonlyArray<StepOutcome> | undefined): stri
   return `An AM5 refuses every goto until its site and time are set after it powers on. ${done}`
 }
 
-export function makeMount(context: CapabilityContext, motion: MountMotionSettings, setup: DeviceSetup, envelope?: MountEnvelope): Mount {
+export function makeMount(context: CapabilityContext, motion: MountMotionSettings, setup: DeviceSetup): Mount {
   const { device, timing } = context
 
   // Stopped is decided by where the mount is, never by a property's state (see stopped.ts).
@@ -188,7 +188,9 @@ export function makeMount(context: CapabilityContext, motion: MountMotionSetting
     })
 
   const checkEnvelope = (snapshot: DeviceSnapshot, target: ParamsOf<'mount-slew'> | number) => Effect.gen(function* () {
-    if (envelope === undefined) return
+    const envelope = context.feedback.envelope
+
+    if (envelope === null) return
     const mount = readings(snapshot)
     const pierSide = yield* required(mount.pierSide, 'envelope pier side')
 

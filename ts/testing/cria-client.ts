@@ -7,7 +7,7 @@
  */
 import { createHash } from 'node:crypto'
 import { Schema } from 'effect'
-import { ErrorBody, Health, Operation, State, type OperationRequest } from '@cria/wire'
+import { ErrorBody, Health, MountFeedback, Operation, State, type OperationRequest } from '@cria/wire'
 
 const strict = { onExcessProperty: 'error' } as const
 
@@ -52,6 +52,9 @@ export function makeCriaClient(base: string, fetch: typeof globalThis.fetch = gl
   }
 
   return {
+    feedback: (id: string) => ok(request('GET', `/v2/devices/${id}/feedback`, MountFeedback)),
+    envelope: (id: string, body: unknown) => request('POST', `/v2/devices/${id}/envelope`, MountFeedback, body),
+    fix: (id: string, body: unknown) => request('POST', `/v2/devices/${id}/fix`, MountFeedback, body),
     health: () => ok(request('GET', '/health', Health)),
     state: () => ok(request('GET', '/v2/state', State)),
     submit: (body: OperationRequest) => request('POST', '/v2/operations', Operation, body),

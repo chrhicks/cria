@@ -630,8 +630,18 @@ INDI conventions Cria depends on:
 ### Mount envelope
 
 A mount's optional `envelope` config uses the additive protocol 5 `MountEnvelope`
-schema from `@cria/wire`. Without it, motion keeps its existing behavior. There
-is no envelope endpoint yet. Vela supplies the envelope in build step 20.
+schema from `@cria/wire`. Without it, motion keeps its existing behavior. Vela replaces it for this run through `POST /v2/devices/:id/envelope` with
+`{ instanceId, envelope }`. `POST /v2/devices/:id/fix` takes `{ instanceId, fix }`.
+Both require a mount and the current instance and return `MountFeedback`.
+`GET /v2/devices/:id/feedback` reads the last envelope and fix, each nullable.
+These routes share v2 authentication and origin restrictions. They update memory
+only, even with commands disabled, and never command hardware.
+
+An accepted fix carries epoch-millisecond `capturedAt`, `rightAscensionDegrees`,
+`declinationDegrees`, `coordinateSystem: "j2000"`, and `error` with the verdict's
+signed fractional `scaleError` and nullable `hintOffsetDegrees`. These are verdict
+measurements, not positional uncertainty. Each fix replaces the last. Neither
+survives a restart. The path check reads the current envelope for each move.
 
 `keepOut` is a table of named Dec bands with `side` (`normal` or `flipped`),
 `minDeclinationDegrees`, `maxDeclinationDegrees`, and optional

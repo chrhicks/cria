@@ -1,4 +1,6 @@
 import { Schema } from 'effect'
+import { InstanceId } from './ids.js'
+import { Timestamp } from './values.js'
 
 const Degrees = (minimum: number, maximum: number) =>
   Schema.Number.pipe(Schema.check(Schema.isFinite(), Schema.isBetween({ minimum, maximum })))
@@ -22,3 +24,24 @@ export const MountEnvelope = Schema.Struct({
 })
 
 export type MountEnvelope = typeof MountEnvelope.Type
+
+export const AcceptedFix = Schema.Struct({
+  capturedAt: Timestamp,
+  rightAscensionDegrees: Degrees(0, 360),
+  declinationDegrees: Degrees(-90, 90),
+  coordinateSystem: Schema.Literal('j2000'),
+  error: Schema.Struct({
+    scaleError: Schema.Number.pipe(Schema.check(Schema.isFinite())),
+    hintOffsetDegrees: Schema.NullOr(Degrees(0, 180)),
+  }),
+})
+
+export type AcceptedFix = typeof AcceptedFix.Type
+
+export const EnvelopeRequest = Schema.Struct({ instanceId: InstanceId, envelope: MountEnvelope })
+export const FixRequest = Schema.Struct({ instanceId: InstanceId, fix: AcceptedFix })
+export const MountFeedback = Schema.Struct({
+  envelope: Schema.NullOr(MountEnvelope),
+  fix: Schema.NullOr(AcceptedFix),
+})
+export type MountFeedback = typeof MountFeedback.Type
