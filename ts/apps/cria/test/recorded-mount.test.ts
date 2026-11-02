@@ -123,3 +123,38 @@ describe('an axis motion at Home, answered Idle (errai, 2026-10-30 evening)', ()
     expect(sent('TELESCOPE_MOTION_WE').filter(line => line.includes('=On'))).toEqual(['MOTION_EAST=On'])
   }, 45_000)
 })
+
+describe('an AM5 site left Alert after a rejected rewrite', () => {
+  it('confirms setup across restarts without rewriting the matching site', async () => {
+    fake = new FakeIndi()
+    await fake.start()
+    addMount(fake, mount)
+    fake.define({
+      device: mount, name: 'GEOGRAPHIC_COORD', kind: 'number', state: 'Alert', perm: 'rw',
+      elements: {
+        LAT: { value: site.latitudeDegrees },
+        LONG: { value: (site.longitudeDegrees + 360) % 360 },
+        ELEV: { value: site.elevationMeters },
+      },
+    })
+    fake.behaviour = (fake, vector) => {
+      if (vector.name !== 'GEOGRAPHIC_COORD') return
+      fake.update(mount, vector.name, { state: 'Alert' })
+      return 'handled'
+    }
+
+    for (let restart = 0; restart < 2; restart++) {
+      cria = await startCria(fake.port, [{ id: 'mount', kind: 'mount', indiDevice: mount, site }], { acknowledgeMs: 600 })
+      await cria.waitFor(allReady(['mount']))
+      const startup = (await cria.state()).operations.find(operation => operation.requestId.startsWith('startup-'))
+
+      expect(startup).toMatchObject({ state: 'settled', outcome: { kind: 'confirmed' } })
+      expect(JSON.stringify(startup)).toContain('GEOGRAPHIC_COORD already set to the configured site')
+      expect(sent('GEOGRAPHIC_COORD')).toEqual([])
+      expect(fake.vector(mount, 'GEOGRAPHIC_COORD').state).toBe('Alert')
+      expect(await held()).toBe(false)
+      await cria.stop()
+    }
+    expect(sent('TIME_UTC')).toHaveLength(2)
+  })
+})

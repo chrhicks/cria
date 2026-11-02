@@ -280,6 +280,9 @@ export function am5(fake: FakeIndi, device: string, options: Am5Options = {}): F
   const siderealDegreesPerSecond = 15.041067 / 3600
   const tickMs = 20
   const written = new Set<string>()
+
+  if (options.requireSiteAndTime ?? true) fake.update(device, 'GEOGRAPHIC_COORD', { values: { LAT: 0, LONG: 0, ELEV: 0 } })
+
   const published = () => fake.vector(device, 'EQUATORIAL_EOD_COORD').elements
   let position = { ra: Number(published().RA!.value) * 15, dec: Number(published().DEC!.value) }
   let velocity = { ra: 0, dec: 0 }
