@@ -77,18 +77,29 @@ describe('a mount', () => {
     { label: 'different latitude', state: 'Ok', latitude: 12.501, longitude: 0, elevation: 123, kept: false },
     { label: 'different longitude', state: 'Ok', latitude: 12.5, longitude: 0.001, elevation: 123, kept: false },
     { label: 'different elevation', state: 'Ok', latitude: 12.5, longitude: 0, elevation: 125, kept: false },
-    { label: 'Alert', state: 'Alert', latitude: 12.5, longitude: 0, elevation: 123, kept: false },
-    { label: 'Busy', state: 'Busy', latitude: 12.5, longitude: 0, elevation: 123, kept: false },
+    { label: 'Alert matching', state: 'Alert', latitude: 12.5, longitude: 0, elevation: 123, kept: true },
+    { label: 'Alert different', state: 'Alert', latitude: 12.501, longitude: 0, elevation: 123, kept: false },
+    { label: 'Idle matching', state: 'Idle', latitude: 12.5, longitude: 0, elevation: 123, kept: true },
+    { label: 'Busy matching', state: 'Busy', latitude: 12.5, longitude: 0, elevation: 123, kept: true },
+    { label: 'unparsable latitude', state: 'Alert', latitude: 'invalid', longitude: 0, elevation: 123, kept: false },
     { label: 'unread latitude', state: 'Ok', latitude: undefined, longitude: 0, elevation: 123, kept: false },
   ] as const)('handles an already reported $label site', async ({ state, latitude, longitude, elevation, kept }) => {
     fake = new FakeIndi()
     await fake.start()
     addMount(fake, mount)
     fake.update(mount, 'GEOGRAPHIC_COORD', { state, values: { LAT: latitude ?? 12.5, LONG: longitude, ELEV: elevation } })
-    if (latitude === undefined) delete fake.vector(mount, 'GEOGRAPHIC_COORD').elements.LAT
-    fake.behaviour = moveMount()
+    if (latitude === undefined || typeof latitude === 'string') delete fake.vector(mount, 'GEOGRAPHIC_COORD').elements.LAT
+    fake.behaviour = (fake, vector, values) => {
+      if (typeof latitude === 'string' && vector.name === 'CONNECTION') {
+        fake.apply(vector, values)
+        fake.update(mount, 'CONNECTION', { state: 'Ok' })
+        fake.raw('<setNumberVector device="ZWO AM5" name="GEOGRAPHIC_COORD" state="Alert"><oneNumber name="LAT">invalid</oneNumber></setNumberVector>', mount, 'GEOGRAPHIC_COORD')
+        return 'handled'
+      }
+      return moveMount()(fake, vector, values)
+    }
     cria = await startCria(fake.port, [{ id: 'mount', kind: 'mount', indiDevice: mount, site: { latitudeDegrees: 12.5, longitudeDegrees: 0, elevationMeters: 123 } }])
-    if (latitude === undefined) {
+    if (latitude === undefined || typeof latitude === 'string') {
       await until('the unread site to be written', () => writes('GEOGRAPHIC_COORD').length > 0)
       expect(writes('GEOGRAPHIC_COORD')).toHaveLength(1)
       return
