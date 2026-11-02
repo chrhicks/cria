@@ -48,7 +48,7 @@ describe('a goto on an AM5 that needs its site and time', () => {
     expect([operation.kind, operation.reason, operation.quarantined]).toEqual(['failed', 'rejected', false])
     expect(operation.message).toBe(
       'The mount refused the goto (Alert on EQUATORIAL_EOD_COORD). An AM5 refuses every goto until its site and time are set after it powers on. ' +
-        `Setup since it connected: GEOGRAPHIC_COORD not sent: no site is configured for this mount; sent TIME_UTC ${sent('TIME_UTC')[0]}`,
+        `Setup since it connected: GEOGRAPHIC_COORD not sent: no site is configured for this mount; sent TIME_UTC ${sent('TIME_UTC')[0]}. Nothing moved. An AM5 can refuse a goto when its site and time are not synced after power-on (AM5 e7). Send device-connect with connected: true to re-send site and time, then try the goto again. If no site is configured, configure it first.`,
     )
     expect(sent('GEOGRAPHIC_COORD')).toEqual([])
   })
