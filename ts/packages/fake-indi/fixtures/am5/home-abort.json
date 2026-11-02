@@ -1,0 +1,29 @@
+{
+  "format": 1,
+  "name": "home-abort",
+  "about": "Home aborted after 4.3 s. The abort is answered Ok, TELESCOPE_HOME stays Busy, and the mount coasts 2 s. Recorded once, so a profile of one.",
+  "source": {"recording": "2026-10-27T01-22-45", "startAtS": 348.209, "stopAtS": 352.468},
+  "start": {
+    "command": {"property": "TELESCOPE_HOME", "on": "GO"},
+    "continue": {"everyMs": 1026, "offset": {"RA": 0.414166667, "DEC": 0.0}},
+    "steps": [
+      {"afterMs": 1, "property": "TELESCOPE_HOME", "state": "Busy", "values": {"GO": true}},
+      {"afterMs": 52, "property": "TELESCOPE_TRACK_STATE", "state": "Idle", "values": {"TRACK_ON": false, "TRACK_OFF": true}},
+      {"afterMs": 92, "property": "EQUATORIAL_EOD_COORD", "state": "Idle", "offset": {"RA": 0.000277778, "DEC": 0.0}},
+      {"afterMs": 1076, "property": "EQUATORIAL_EOD_COORD", "state": "Idle", "offset": {"RA": 0.161111111, "DEC": 0.0}},
+      {"afterMs": 2101, "property": "EQUATORIAL_EOD_COORD", "state": "Idle", "offset": {"RA": 0.555555556, "DEC": 0.0}},
+      {"afterMs": 3127, "property": "EQUATORIAL_EOD_COORD", "state": "Idle", "offset": {"RA": 0.969166667, "DEC": 0.0}},
+      {"afterMs": 4153, "property": "EQUATORIAL_EOD_COORD", "state": "Idle", "offset": {"RA": 1.383333333, "DEC": 0.0}}
+    ]
+  },
+  "stop": {
+    "command": {"property": "TELESCOPE_ABORT_MOTION", "on": "ABORT"},
+    "recordedAfterMs": 4259,
+    "steps": [
+      {"afterMs": 2, "property": "TELESCOPE_ABORT_MOTION", "state": "Ok", "values": {"ABORT": false}},
+      {"afterMs": 918, "property": "EQUATORIAL_EOD_COORD", "state": "Idle", "offset": {"RA": 0.255266407, "DEC": 0.0}},
+      {"afterMs": 1942, "property": "EQUATORIAL_EOD_COORD", "state": "Idle", "offset": {"RA": 0.295266407, "DEC": 0.0}},
+      {"afterMs": 2966, "property": "EQUATORIAL_EOD_COORD", "state": "Idle", "offset": {"RA": 0.295544185, "DEC": 0.0}}
+    ]
+  }
+}

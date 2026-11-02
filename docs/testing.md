@@ -44,7 +44,7 @@ To run the suite without the other stages, run `pnpm test` in `ts/`. It starts i
 
 ## Cases from recorded failures
 
-Every Cria session on errai records its INDI traffic (`~/cria-recordings`). The failures the rig really produced are cases on the fake INDI server, so Cria and Vela can be tested against them without the rig. A case is the drivers' words from the recording: the same properties, states and order, and timing within the recorded timing. Driver behaviours live in `apps/cria/test/drivers.ts`, each with a comment that cites the date and the device (no site values: the fixtures carry no coordinates, offsets, serial numbers or personal data). The fake server's protocol is still measured against `indiserver` as the next section says; these cases are drivers' behaviour on top of it. A case marked *derived* was **not** recorded: the recordings hold no real failure of that kind, so it is the closest behaviour built from the recorded words, and its test says so.
+Every Cria session on errai records its INDI traffic (`~/cria-recordings`). The failures the rig really produced are cases on the fake INDI server, so Cria and Vela can be tested against them without the rig. A case is the drivers' words from the recording: the same properties, states and order, and timing within the recorded timing. Driver behaviours live in `apps/cria/test/drivers.ts`, each with a comment that cites the date and the device (no site values: the fixtures carry no coordinates, serial numbers or personal data; the motion fixtures in the next section carry position offsets from a start, never a position). The fake server's protocol is still measured against `indiserver` as the next section says; these cases are drivers' behaviour on top of it. A case marked *derived* was **not** recorded: the recordings hold no real failure of that kind, so it is the closest behaviour built from the recorded words, and its test says so.
 
 | Case | Source | Behaviour (`drivers.ts`) | Test, with the real Cria |
 | --- | --- | --- | --- |
@@ -59,6 +59,23 @@ Every Cria session on errai records its INDI traffic (`~/cria-recordings`). The 
 | A weather device that never answers a connect (weather's only command) | **derived** | a behaviour that ignores `CONNECTION` | `derived-non-mount.test.ts`: uncertain `no-acknowledgement`, not held |
 
 What the recordings do not hold, so no recorded case exists: a camera exposure with no answer, an Alert on an exposure, a camera abort that left the exposure Busy, a connection drop, a driver crash, a focuser that stopped short, a readback that never matched on a camera, focuser, relay or dew write. Of 1,462 exposures, 63 focuser moves and 22 camera aborts, every one was answered within 1.1 s and arrived.
+
+## AM5 motion fixtures
+
+`packages/fake-indi/fixtures/am5/` holds five motions cut from errai's recordings: a 9x axis move east with tracking off, stopped (the coordinates read Idle and the mount coasts about 1 s); a 9x move west with tracking on, stopped (the coordinates never read Idle); a goto that ends Ok; a home that reports Idle from its first reading and moves 12 s; and a home that was aborted. A fixture is the AM5 driver's updates to the mount's properties after one command, in the recorded order, each with its time after the command. It holds the motion and its settle and nothing else: no other device, no guide pulse, none of the driver's answers to Cria's own `getProperties`, which the fake already answers from its last published value, as the driver did.
+
+`playMotion(fake, 'Mount', fixtures, { timeScale })` makes the fake play a fixture when a client sends the command it was cut from. `timeScale: 100` plays it a hundred times faster, in the same order. A stop (a rate move's switch off, an abort) that arrives while a motion plays starts the fixture's stop phase, so the stop can come at any time: the mount goes on at the pace of its last two readings until then. A command that no fixture was cut from, or a goto of another size than the recorded one, goes to the behaviour the fake had. The first fixture that matches plays. A new motion replaces one still playing.
+
+A fixture holds offsets from where the mount was when the command arrived, so it holds no coordinate. After a stop the offsets are from where the mount would be at the stop at the speed of its last two readings. `measure/cut-am5-motion.py` cuts the files and refuses to write one that holds a number of the recording's own site (it reads the site from the recording and never prints it):
+
+```sh
+cd ts/packages/fake-indi
+python3 -I measure/cut-am5-motion.py --recordings /mnt/storage/rig/imports/errai-recordings --out fixtures/am5
+```
+
+The same recordings give the same files byte for byte. `play.test.ts` replays each fixture and compares it with Vela's profile of the same recordings: stop latency and overshoot of 9x moves (39 samples), landing offset of gotos (30), the coast of a home (5), and the one abort of a home (1, which the profile marks too few to trust). It also compares one fixture, update by update, with the raw recording.
+
+What a fixture does not model: a move on Dec at a rate (no recording holds one), a stop that arrives while a goto plays (the goto goes on), a mount that is moved again during a coast, and a home or a goto from far from where it was recorded (Dec is held within the poles; a goto plays only for the recorded size). `apps/cria/test/drivers.ts` `am5()` is still a hand-built model of the same mount, measured on errai on 2026-10-15 and not cut from these recordings.
 
 ## Serving a case to a test Vela
 

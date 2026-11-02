@@ -26,6 +26,7 @@ const allowed: Record<string, Partial<Record<Rule, readonly [count: number, why:
     'catch-all': [1, 'a failed read is reported as stale'],
     'wall-clock': [1, "a read's startedAt is compared with INDI receive times, which are wall-clock"],
   },
+  'packages/fake-indi/src/play.ts': { 'node-timer': [1, 'the one real timer a played motion waits on; tests pass their own clock'] },
   'packages/fake-indi/src/server.ts': { 'promise-catch': [1, 'a write to a client that closed mid-image must not stop the writes queued behind it'] },
   'packages/fits/src/frame.ts': { 'wall-clock': [1, 'a test frame is stamped with the moment it was made unless the caller says when'] },
   'packages/indi-replay/src/clock.ts': {
