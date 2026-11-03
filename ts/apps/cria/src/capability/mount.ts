@@ -572,9 +572,11 @@ export function makeMount(context: CapabilityContext, motion: MountMotionSetting
     const mount = yield* idleAndUnparked(snapshot)
     const rates = yield* required(mount.primaryAxisRates, 'axis rates')
     const fast = advertisedRate(rates, Math.abs(rateDegreesPerSecond))
-    if (fast === undefined) return yield* invalid('The mount does not offer the requested axis rate')
-    const slow = [...rates].filter(rate => rate.degreesPerSecond >= 0.1).sort((a, b) => a.degreesPerSecond - b.degreesPerSecond)[0]
-    if (slow === undefined) return yield* invalid('The mount offers no approach rate of at least 0.1°/s')
+    if (fast === undefined || fast.degreesPerSecond > Math.abs(rateDegreesPerSecond))
+      return yield* invalid('The mount does not offer the requested axis rate without exceeding it')
+    const approach = [...rates].filter(rate => rate.degreesPerSecond >= 0.1).sort((a, b) => a.degreesPerSecond - b.degreesPerSecond)[0]
+    if (approach === undefined) return yield* invalid('The mount offers no approach rate of at least 0.1°/s')
+    const slow = fast.degreesPerSecond <= approach.degreesPerSecond ? fast : approach
     yield* checkEnvelope(snapshot, distanceDegrees)
     const origin = (yield* required(mount.rightAscensionHours, 'right ascension')) * 15
     const originDec = yield* required(mount.declinationDegrees, 'declination')
@@ -628,7 +630,7 @@ export function makeMount(context: CapabilityContext, motion: MountMotionSetting
       finalRate = result.rate
     }
     const remaining = distance - travelled * direction
-    if (remaining >= expectedCoast(slow)) {
+    if (fast.degreesPerSecond <= approach.degreesPerSecond || remaining >= expectedCoast(slow)) {
       const result = yield* runPhase(slow, remaining, false)
       end = result.rightAscensionDegrees
       finalRate = result.rate

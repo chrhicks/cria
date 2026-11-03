@@ -858,7 +858,10 @@ reading interval plus 0.25°. Cria then halts and confirms the stop with the
 existing position rule. The approach uses the slowest advertised primary-axis
 rate of at least 0.1°/s, in the requested direction, for the remaining distance.
 It leads its stop by that rate's expected coast and confirms the stop again.
-A small request uses only the approach. Remaining travel below the approach
+The requested rate is a ceiling for every leg. A near-match advertised rate
+above that ceiling is refused before any command. If it is at or below the
+approach rate, the entire move uses one leg at the requested rate.
+A small request at a higher rate uses only the approach. Remaining travel below the approach
 coast needs no second leg. There is no third correction.
 
 Expected coast starts at 4,084 arcseconds for the step-3 3.008°/s rate and

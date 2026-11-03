@@ -150,3 +150,23 @@ it('ends uncertain with the mount stopped when the fast leg never moves', async 
   expect(speed).toBe(0)
   expect(starts).toHaveLength(1)
 }, 40_000)
+
+it.each([[20, 0.2], [60, 0.2], [20, 0.01], [60, 0.01]])('keeps a %sx request for %s degrees at or below the approach rate in one phase', async (multiple, distance) => {
+  await start(true)
+  const requested = multiple * sidereal
+  const ended = await cria.run('mount', 'mount-rotate', { rateDegreesPerSecond: requested, distanceDegrees: distance })
+  expect(ended.kind).toBe('confirmed')
+  expect(starts).toEqual([requested])
+  expect(starts.every(rate => Math.abs(rate) <= requested)).toBe(true)
+  expect(Math.abs(Number(ended.values?.travelledDegrees) - distance)).toBeLessThanOrEqual(0.1)
+  const recorded = Schema.decodeUnknownSync(Schema.Struct({ phases: Schema.Array(Schema.Struct({ commanded: Schema.Struct({ rateDegreesPerSecond: Schema.Number }) })) }))(JSON.parse(ended.operation.motion!.stopped.reason!))
+  expect(recorded.phases).toHaveLength(1)
+  expect(recorded.phases[0]!.commanded.rateDegreesPerSecond).toBe(requested)
+}, 30_000)
+
+it('refuses a near-match advertised rate that would exceed the requested ceiling', async () => {
+  await start(true)
+  const ended = await cria.run('mount', 'mount-rotate', { rateDegreesPerSecond: 20 * sidereal * 0.995, distanceDegrees: 0.2 })
+  expect(ended).toMatchObject({ kind: 'failed', reason: 'invalid' })
+  expect(starts).toEqual([])
+})

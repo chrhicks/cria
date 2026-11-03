@@ -176,7 +176,7 @@ export const scenarios: ReadonlyArray<Scenario> = [
         return next(fake, vector, values)
       }
     },
-    drive: ({ cria }) => cria.run('mount', 'mount-rotate', { rateDegreesPerSecond: 3.008, distanceDegrees: 10 }),
+    drive: ({ cria }) => cria.run('mount', 'mount-rotate', { rateDegreesPerSecond: 720 * (15.041067 / 3600), distanceDegrees: 10 }),
   },
   {
     name: 'mount-pole-rotate',
@@ -187,7 +187,7 @@ export const scenarios: ReadonlyArray<Scenario> = [
     outcome: { device: 'mount', kind: 'failed', reason: 'rejected', held: false },
     mountOptions: { rotateIdleAtPole: true },
     declination: 90,
-    drive: ({ cria }) => cria.run('mount', 'mount-rotate', { rateDegreesPerSecond: 3.008, distanceDegrees: 10 }),
+    drive: ({ cria }) => cria.run('mount', 'mount-rotate', { rateDegreesPerSecond: 720 * (15.041067 / 3600), distanceDegrees: 10 }),
   },
 ]
 
