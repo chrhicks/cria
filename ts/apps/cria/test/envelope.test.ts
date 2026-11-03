@@ -156,9 +156,9 @@ describe('gotos from the AM5 north-pole home', () => {
     }
   })
 
-  it.each(homes)('still refuses a tight flipped target from $pierSide at $declinationDegrees', from => {
-    expect(gotoRefusal(originalEnvelope, from, pose(-10, 50, 'east'), 15)).toBeDefined()
-    expect(gotoRefusal(originalEnvelope, from, pose(10, 50, 'west'), 15)).toBeDefined()
+  it.each(homes)('predicts a normal landing inside the driver limit from $pierSide at $declinationDegrees', from => {
+    expect(gotoRefusal(originalEnvelope, from, pose(-10, 50, 'west'), 15)).toBeUndefined()
+    expect(gotoRefusal(originalEnvelope, from, pose(10, 50, 'east'), 15)).toBeUndefined()
   })
 
   it.each(['east', 'west'] as const)('sends no command for a tight-band refusal while tracking from %s home', async side => {
@@ -168,7 +168,7 @@ describe('gotos from the AM5 north-pole home', () => {
     fake.update(mount, 'TELESCOPE_TRACK_STATE', { values: { TRACK_ON: true, TRACK_OFF: false } })
     await cria.waitFor(state => state.devices[0]!.readings.tracking?.status === 'fresh' && state.devices[0]!.readings.tracking.value === true)
     fake.received.length = 0
-    const result = await slew(side === 'west' ? 10 : -10, 50)
+    const result = await slew(0, 50)
 
     expect(result).toMatchObject({ kind: 'failed', reason: 'invalid', quarantined: false })
     expect(result.message).toContain('Envelope')
@@ -246,7 +246,7 @@ describe('goto endpoint reserve through fake INDI', () => {
     }
   }
 
-  it.each(cases)('keeps the original +/-90 table refusal from $home to $target', async ({ home, side, target }) => {
+  it.each(cases.filter(row => Math.sign(row.home) === Math.sign(row.target)))('keeps the original +/-90 table refusal from $home to $target', async ({ home, side, target }) => {
     const { result, sent } = await runGoto(90, home, side, target)
     expect(result).toMatchObject({ kind: 'failed', reason: 'invalid' })
     expect(result.message).toContain('envelope margin')
@@ -270,7 +270,7 @@ describe('goto endpoint reserve through fake INDI', () => {
   })
 
   it('refuses a clear target whose reserved overshoot leaves the normal band before any command', async () => {
-    const { result, sent } = await runGoto(115, -40, 'west', -100, 50)
+    const { result, sent } = await runGoto(115, -40, 'west', -112, 50)
     expect(result).toMatchObject({ kind: 'failed', reason: 'invalid' })
     expect(result.message).toContain('east HA limit -115')
     expect(sent).toEqual([])
@@ -282,9 +282,9 @@ describe('the pure box rule', () => {
     expect(gotoRefusal(envelope, pose(-130, 80, 'west'), pose(-16, 80, 'west'), 15)).toBeUndefined()
   })
 
-  it('checks both possible landing sides near the meridian', () => {
-    expect(gotoRefusal(envelope, pose(-30, 80, 'west'), pose(-10, 80, 'west'), 15)).toContain('west HA limit 40')
-    expect(gotoRefusal(envelope, pose(-10, 80, 'west'), pose(10, 80, 'east'), 15)).toContain('west HA limit 40')
+  it('checks the normal landing within the driver limit and both at the meridian', () => {
+    expect(gotoRefusal(envelope, pose(-30, 80, 'west'), pose(-10, 80, 'west'), 15)).toBeUndefined()
+    expect(gotoRefusal(envelope, pose(-10, 80, 'west'), pose(0, 80, 'east'), 15)).toContain('west HA limit 40')
     expect(gotoRefusal(originalEnvelope, pose(-10, 80, 'west'), pose(10, 80, 'east'), 15)).toBeUndefined()
   })
 

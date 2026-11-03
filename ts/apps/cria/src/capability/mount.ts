@@ -20,7 +20,7 @@ import { track, type Note, type Tracking } from './motion-record.js'
 import { angularDelta, beforeCommand, confirmStopped, positionOf, type Command, type Position } from './stopped.js'
 import { makeBlindTravel } from './blind-travel.js'
 import { axisDelta, type SidedPosition } from './mount-axes.js'
-import { gotoRefusal, rateRefusal, reactionDegrees, readingDeadlineMs, watchRefusal } from './envelope.js'
+import { gotoRefusal, gotoWatchLead, rateRefusal, landingOvershootDegrees, reactionDegrees, readingDeadlineMs, watchRefusal } from './envelope.js'
 import { gotoToleranceDegrees, type MountPose } from './goto-reach.js'
 import type { DeviceBody, MotionCommanded, ParamsOf, ReadingsOf } from '@cria/wire'
 
@@ -220,12 +220,13 @@ export function makeMount(context: CapabilityContext, motion: MountMotionSetting
         const side = yield* required(mount.pierSide, 'envelope pier side')
         const limit = snapshot.reading('MERIDIAN_LIMIT', numberElement('LIMIT'))
         const margin = blindTravel.margin(context.feedback.fix) / 60
+        const pose = { hourAngleDegrees: angularDelta(lst * 15, ra * 15), declinationDegrees: dec, pierSide: side }
+        const lead = typeof target === 'number' ? { ha: -(raDirection || Math.sign(target)) * reactionDegrees, dec: decDirection * reactionDegrees }
+          : gotoWatchLead(pose, { hourAngleDegrees: angularDelta(lst * 15, target.rightAscensionDegrees), declinationDegrees: target.declinationDegrees }, -raDirection, decDirection)
         const refusal = side === 'unknown' ? 'Envelope needs a known pier side'
-          : watchRefusal(envelope, { hourAngleDegrees: angularDelta(lst * 15, ra * 15), declinationDegrees: dec, pierSide: side }, limit.status === 'fresh' ? limit.value : 0, margin,
-            -(raDirection || (typeof target === 'number' ? Math.sign(target) : Math.sign(angularDelta(target.rightAscensionDegrees, ra * 15)))) * reactionDegrees,
-            (decDirection || (typeof target === 'number' ? 0 : Math.sign(target.declinationDegrees - dec))) * reactionDegrees)
+          : watchRefusal(envelope, { ...pose, pierSide: side }, limit.status === 'fresh' ? limit.value : 0, margin, lead.ha, lead.dec)
         if (refusal !== undefined) {
-          stopped.reason = `${refusal}; envelope margin ${margin.toFixed(3)}° plus ${reactionDegrees.toFixed(3)}° reaction travel`
+          stopped.reason = `${refusal}; envelope margin ${margin.toFixed(3)}° plus HA lead ${Math.abs(lead.ha).toFixed(3)}° and Dec lead ${Math.abs(lead.dec).toFixed(3)}°`
           return yield* new Failed({ reason: 'invalid', message: stopped.reason })
         }
       }
@@ -284,12 +285,12 @@ export function makeMount(context: CapabilityContext, motion: MountMotionSetting
     const margin = blindTravel.margin(context.feedback.fix) / 60
     const refusal = typeof target === 'number'
       ? rateRefusal(envelope, from, target, meridianLimit)
-      : gotoRefusal(envelope, from, { hourAngleDegrees: angularDelta(lst, target.rightAscensionDegrees), declinationDegrees: target.declinationDegrees }, meridianLimit, margin + reactionDegrees)
+      : gotoRefusal(envelope, from, { hourAngleDegrees: angularDelta(lst, target.rightAscensionDegrees), declinationDegrees: target.declinationDegrees }, meridianLimit, margin + landingOvershootDegrees)
 
     if (refusal !== undefined) return yield* invalid(refusal)
-    const near = watchRefusal(envelope, from, meridianLimit, margin,
-      typeof target === 'number' ? -Math.sign(target) * reactionDegrees : -Math.sign(angularDelta(target.rightAscensionDegrees, ra)) * reactionDegrees,
-      typeof target === 'number' ? 0 : Math.sign(target.declinationDegrees - declinationDegrees) * reactionDegrees)
+    const lead = typeof target === 'number' ? { ha: -Math.sign(target) * reactionDegrees, dec: 0 }
+      : gotoWatchLead(from, { hourAngleDegrees: angularDelta(lst, target.rightAscensionDegrees), declinationDegrees: target.declinationDegrees })
+    const near = watchRefusal(envelope, from, meridianLimit, margin, lead.ha, lead.dec)
     if (near !== undefined) return yield* invalid(`${near}; envelope margin ${margin.toFixed(3)}° plus reaction travel`)
   })
 

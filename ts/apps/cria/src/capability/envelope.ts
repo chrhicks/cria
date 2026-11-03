@@ -1,8 +1,11 @@
+import type { SidedPosition } from './mount-axes.js'
 import type { MountEnvelope } from '@cria/wire'
-import { gotoReach, type MountPose, type Point } from './goto-reach.js'
+import { gotoReach, landingSides, type MountPose, type Point } from './goto-reach.js'
 
 // Step 3's worst recorded 9x coast after a stop, rounded up in arcseconds.
 export const stopTravelDegrees = 4084 / 3600
+// Recorded goto endpoint overshoot is 249 arcseconds rounded up; retain the larger stop coast.
+export const landingOvershootDegrees = Math.max(249 / 3600, stopTravelDegrees)
 
 function boxRefusal(envelope: MountEnvelope, from: MountPose, to: Point, meridianLimit: number): string | undefined {
   const lowHa = Math.min(from.hourAngleDegrees, to.hourAngleDegrees)
@@ -92,4 +95,19 @@ export function watchRefusal(envelope: MountEnvelope, pose: MountPose, meridianL
   const from = { ...pose, hourAngleDegrees: Math.min(pose.hourAngleDegrees, pose.hourAngleDegrees + leadHa) - marginDegrees, declinationDegrees: Math.max(-90, Math.min(pose.declinationDegrees, pose.declinationDegrees + leadDec) - marginDegrees) }
   const to = { hourAngleDegrees: Math.max(pose.hourAngleDegrees, pose.hourAngleDegrees + leadHa) + marginDegrees, declinationDegrees: Math.min(90, Math.max(pose.declinationDegrees, pose.declinationDegrees + leadDec) + marginDegrees) }
   return boxRefusal(envelope, from, to, meridianLimit)
+}
+
+export function gotoWatchLead(from: Point & Pick<SidedPosition, 'pierSide'>, to: Point, haDirection = 0, decDirection = 0): { readonly ha: number; readonly dec: number } {
+  const remaining = landingSides(to.hourAngleDegrees).map(side => {
+    const flip = side !== from.pierSide
+    return {
+      ha: to.hourAngleDegrees + (flip ? from.pierSide === 'west' ? -180 : 180 : 0) - from.hourAngleDegrees,
+      dec: (flip ? 180 - to.declinationDegrees : to.declinationDegrees) - from.declinationDegrees,
+    }
+  })
+  const lead = (axis: 'ha' | 'dec', direction: number) => {
+    const distance = remaining.reduce((largest, delta) => Math.abs(delta[axis]) > Math.abs(largest) ? delta[axis] : largest, 0)
+    return (direction || Math.sign(distance)) * Math.min(reactionDegrees, Math.abs(distance) + landingOvershootDegrees)
+  }
+  return { ha: lead('ha', haDirection), dec: lead('dec', decDirection) }
 }

@@ -61,6 +61,10 @@ function flipBoxes(from: Axes, to: Axes, reserve: number): AxisBox[] {
   return boxes
 }
 
+export function landingSides(hourAngleDegrees: number): ReadonlyArray<MountPose['pierSide']> {
+  return Math.abs(hourAngleDegrees) < 0.5 ? ['east', 'west'] : [hourAngleDegrees < 0 ? 'west' : 'east']
+}
+
 export function gotoReach(from: MountPose, to: Point, meridianLimit: number, reserveDegrees: number): Reach {
   if (![from.hourAngleDegrees, from.declinationDegrees, to.hourAngleDegrees, to.declinationDegrees, meridianLimit, reserveDegrees].every(Number.isFinite))
     return { kind: 'refused', reason: 'Envelope needs finite mount coordinates' }
@@ -72,11 +76,9 @@ export function gotoReach(from: MountPose, to: Point, meridianLimit: number, res
   const nearPole = from.declinationDegrees >= 89 && from.declinationDegrees <= 90
   const ha = from.hourAngleDegrees
   const start: Axes = { ha: nearPole && Math.abs(ha) > 90 && Math.abs(ha) <= 90.05 + 1e-9 ? Math.sign(ha) * 90 : ha, dec: from.declinationDegrees }
-  const sides: ReadonlyArray<MountPose['pierSide']> = Math.abs(to.hourAngleDegrees) <= meridianLimit
-    ? ['east', 'west'] : [to.hourAngleDegrees < 0 ? 'west' : 'east']
   const boxes: ReportedBox[] = []
 
-  for (const side of sides) {
+  for (const side of landingSides(to.hourAngleDegrees)) {
     const flip = side !== from.pierSide
     if (flip && (from.declinationDegrees < 0 || to.declinationDegrees < 0))
       return { kind: 'refused', reason: 'Envelope southern pier-side change is unmeasured' }
