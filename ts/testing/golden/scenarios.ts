@@ -414,9 +414,10 @@ export const scenarios: ReadonlyArray<Scenario> = [
     },
   },
   {
-    name: 'mount-rotate refused: the stop lead is more than half the distance',
+    name: 'mount-rotate small fast request uses the slow approach',
     devices: ['mount'],
     run: async g => {
+      g.behave(mount, turnAxis())
       await runAndSettle(g, 'mount', 'mount-rotate', { rateDegreesPerSecond: 1440 * sidereal, distanceDegrees: 1 })
     },
   },

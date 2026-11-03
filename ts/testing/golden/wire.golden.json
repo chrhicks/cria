@@ -2773,7 +2773,8 @@
         },
         "stopped": {
           "at": "<time>",
-          "how": "halted"
+          "how": "halted",
+          "reason": "{\"coastDegrees\":\"<angle>\",\"expectedCoastDegrees\":\"<angle>\",\"nextCoastDegrees\":\"<angle>\"}"
         }
       },
       "outcome": {
@@ -2944,7 +2945,8 @@
         },
         "stopped": {
           "at": "<time>",
-          "how": "halted"
+          "how": "halted",
+          "reason": "{\"detail\":\"{\\\"coastDegrees\\\":\\\"<angle>\\\",\\\"expectedCoastDegrees\\\":\\\"<angle>\\\",\\\"nextCoastDegrees\\\":\\\"<angle>\\\"}\",\"phases\":[{\"commanded\":{\"axis\":\"ra\",\"distanceDegrees\":1,\"kind\":\"rotate\",\"rateDegreesPerSecond\":0.25068445,\"sentAt\":\"<time>\"},\"observed\":{\"from\":{\"declinationDegrees\":\"<angle>\",\"rightAscensionDegrees\":\"<angle>\"},\"to\":{\"declinationDegrees\":\"<angle>\",\"rightAscensionDegrees\":\"<angle>\"},\"travel\":{\"declinationDegrees\":\"<angle>\",\"rightAscensionDegrees\":\"<angle>\"}},\"stopped\":{\"at\":\"<time>\",\"how\":\"halted\",\"reason\":\"{\\\"coastDegrees\\\":\\\"<angle>\\\",\\\"expectedCoastDegrees\\\":\\\"<angle>\\\",\\\"nextCoastDegrees\\\":\\\"<angle>\\\"}\"}}]}"
         }
       },
       "outcome": {
@@ -2970,7 +2972,7 @@
     }
   },
   {
-    "scenario": "mount-rotate refused: the stop lead is more than half the distance",
+    "scenario": "mount-rotate small fast request uses the slow approach",
     "step": 1,
     "request": "POST /v2/operations",
     "sent": {
@@ -3009,7 +3011,7 @@
     }
   },
   {
-    "scenario": "mount-rotate refused: the stop lead is more than half the distance",
+    "scenario": "mount-rotate small fast request uses the slow approach",
     "step": 2,
     "request": "GET /v2/operations/<operation-1>",
     "status": 200,
@@ -3022,10 +3024,44 @@
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
       "kind": "mount-rotate",
+      "motion": {
+        "commanded": {
+          "axis": "ra",
+          "distanceDegrees": 1,
+          "kind": "rotate",
+          "rateDegreesPerSecond": 6.0164268000000005,
+          "sentAt": "<time>"
+        },
+        "observed": {
+          "from": {
+            "declinationDegrees": "<angle>",
+            "rightAscensionDegrees": "<angle>"
+          },
+          "to": {
+            "declinationDegrees": "<angle>",
+            "rightAscensionDegrees": "<angle>"
+          },
+          "travel": {
+            "declinationDegrees": "<angle>",
+            "rightAscensionDegrees": "<angle>"
+          }
+        },
+        "stopped": {
+          "at": "<time>",
+          "how": "halted",
+          "reason": "{\"detail\":\"{\\\"coastDegrees\\\":\\\"<angle>\\\",\\\"expectedCoastDegrees\\\":\\\"<angle>\\\",\\\"nextCoastDegrees\\\":\\\"<angle>\\\"}\",\"phases\":[{\"commanded\":{\"axis\":\"ra\",\"distanceDegrees\":1,\"kind\":\"rotate\",\"rateDegreesPerSecond\":0.25068445,\"sentAt\":\"<time>\"},\"observed\":{\"from\":{\"declinationDegrees\":\"<angle>\",\"rightAscensionDegrees\":\"<angle>\"},\"to\":{\"declinationDegrees\":\"<angle>\",\"rightAscensionDegrees\":\"<angle>\"},\"travel\":{\"declinationDegrees\":\"<angle>\",\"rightAscensionDegrees\":\"<angle>\"}},\"stopped\":{\"at\":\"<time>\",\"how\":\"halted\",\"reason\":\"{\\\"coastDegrees\\\":\\\"<angle>\\\",\\\"expectedCoastDegrees\\\":\\\"<angle>\\\",\\\"nextCoastDegrees\\\":\\\"<angle>\\\"}\"}}]}"
+        }
+      },
       "outcome": {
-        "kind": "failed",
-        "message": "At 6.016°/s the mount travels about 5.41° after Cria sees the target (900 ms), more than 50 % of the 1° asked; use a slower rate or a longer rotate",
-        "reason": "invalid"
+        "kind": "confirmed",
+        "value": {
+          "image": null,
+          "values": {
+            "rate": "8x",
+            "rightAscensionDegrees": 31.5,
+            "travelledDegrees": 1.5
+          }
+        }
       },
       "parameters": {
         "distanceDegrees": 1,
