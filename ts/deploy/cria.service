@@ -11,6 +11,8 @@ Description=Cria (INDI to Vela)
 StartLimitIntervalSec=0
 After=indiserver.service
 Wants=indiserver.service
+# Stopped and restarted with indiserver, after it is healthy (see indiserver.service).
+PartOf=indiserver.service
 
 [Service]
 # Adjust to where Cria is checked out and built, and to the config in use.

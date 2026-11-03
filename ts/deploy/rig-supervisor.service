@@ -6,6 +6,8 @@
 StartLimitIntervalSec=0
 Description=Rig supervisor (restart a driver for a device that appeared, connect a device that is disconnected)
 After=cria.service
+# Stopped and restarted with indiserver, so it never restarts a driver mid-restart.
+PartOf=indiserver.service
 
 [Service]
 ExecStart=/usr/bin/node %h/dev/personal/cria-ts/ts/deploy/rig-supervisor.mjs
