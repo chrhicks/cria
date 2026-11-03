@@ -2,7 +2,7 @@ import { expect, it } from 'vitest'
 import type { MountEnvelope } from '@cria/wire'
 import { FakeIndi, addMount } from '@cria/fake-indi'
 import { allReady, startCria, type Cria } from './harness.js'
-import { splitEnvelope, wideEnvelope } from './envelope-fixtures.js'
+import { measuredEnvelope, splitEnvelope, wideEnvelope } from './envelope-fixtures.js'
 import { recordedGotos, type RecordedGoto } from './goto-fixtures.js'
 import type { MountPose } from '../src/capability/goto-reach.js'
 
@@ -21,7 +21,7 @@ const syntheticFlip: RecordedGoto = {
   ],
 }
 
-async function replay({ motion, envelope, tracking }: { readonly motion: RecordedGoto; readonly envelope: MountEnvelope; readonly tracking: boolean }) {
+async function replay({ motion, envelope, tracking, meridianLimit = 15 }: { readonly motion: RecordedGoto; readonly envelope: MountEnvelope; readonly tracking: boolean; readonly meridianLimit?: number }) {
   const fake = new FakeIndi()
   await fake.start()
   const mount = 'Fake Mount'
@@ -29,7 +29,7 @@ async function replay({ motion, envelope, tracking }: { readonly motion: Recorde
   const ra = (ha: number) => ((-ha + 360) % 360) / 15
   fake.define({ device: mount, name: 'TELESCOPE_PIER_SIDE', kind: 'switch', perm: 'ro', state: 'Ok', elements: { PIER_WEST: { value: motion.from.pierSide === 'west' }, PIER_EAST: { value: motion.from.pierSide === 'east' } } })
   fake.define({ device: mount, name: 'TIME_LST', kind: 'number', perm: 'ro', state: 'Ok', elements: { LST: { value: 0 } } })
-  fake.define({ device: mount, name: 'MERIDIAN_LIMIT', kind: 'number', perm: 'rw', state: 'Ok', elements: { LIMIT: { value: 15 } } })
+  fake.define({ device: mount, name: 'MERIDIAN_LIMIT', kind: 'number', perm: 'rw', state: 'Ok', elements: { LIMIT: { value: meridianLimit } } })
   fake.update(mount, 'EQUATORIAL_EOD_COORD', { state: 'Ok', values: { RA: ra(motion.from.hourAngleDegrees), DEC: motion.from.declinationDegrees } })
   fake.update(mount, 'TELESCOPE_TRACK_STATE', { values: { TRACK_ON: tracking, TRACK_OFF: !tracking } })
   const timers: ReturnType<typeof setTimeout>[] = []
@@ -55,6 +55,10 @@ async function replay({ motion, envelope, tracking }: { readonly motion: Recorde
   try {
     cria = await startCria(fake.port, [{ id: 'mount', kind: 'mount', indiDevice: mount, envelope, motion: { positionReadMs: 250 } }])
     await cria.waitFor(allReady(['mount']))
+    if (meridianLimit === 5) {
+      const { instanceId } = await cria.state()
+      expect((await cria.client.fix('mount', { instanceId, fix: { capturedAt: Date.now(), rightAscensionDegrees: ra(motion.from.hourAngleDegrees) * 15, declinationDegrees: motion.from.declinationDegrees, coordinateSystem: 'j2000', pointingErrorArcmin: 1, error: { scaleError: 0, hintOffsetDegrees: 0 } } })).status).toBe(200)
+    }
     fake.received.length = 0
     const result = await cria.run('mount', 'mount-slew', { rightAscensionDegrees: ra(motion.target.hourAngleDegrees) * 15, declinationDegrees: motion.target.declinationDegrees, coordinateSystem: 'topocentric' })
     return { result, sent: fake.received.filter(xml => xml.startsWith('<new')), device: await cria.device('mount'), stoppedAt: stops[0] }
@@ -94,9 +98,10 @@ it('completes a synthetic clear normal flip through the strict split bands', asy
   expect(sent.some(xml => xml.includes('TELESCOPE_ABORT_MOTION'))).toBe(false)
 }, 15_000)
 
-it.each([80, 85])('checks the folded endpoint reserve before a synthetic approach to Dec %s', async dec => {
+it.each([80, 89.5])('checks the folded endpoint reserve before a synthetic approach to Dec %s', async dec => {
   const motion = { from: pose(-30, 50, 'west'), target: pose(-30, dec, 'west'), poses: [50, 56, 62, 68, 74, dec].map(point => pose(-30, point, 'west')) }
-  const { result, sent } = await replay({ motion, envelope: splitEnvelope, tracking: true })
+  const envelope = dec === 80 ? splitEnvelope : { ...splitEnvelope, keepOut: splitEnvelope.keepOut.map(band => band.name === 'normal near pole' ? { ...band, eastHourAngleDegrees: -115, westHourAngleDegrees: 115 } : band) }
+  const { result, sent } = await replay({ motion, envelope, tracking: true })
   if (dec === 80) {
     expect(result.kind, result.message ?? '').toBe('confirmed')
     expect(result.operation.motion?.stopped.how).toBe('arrived')
@@ -105,4 +110,14 @@ it.each([80, 85])('checks the folded endpoint reserve before a synthetic approac
     expect(result.message).toContain('115')
     expect(sent).toEqual([])
   }
+}, 15_000)
+
+
+it.each([false, true])('replays a recorded near-meridian goto without an abort while tracking is %s', async tracking => {
+  const motion = recordedGotos.flips.find(goto => Math.abs(goto.target.hourAngleDegrees + 2.1) < 0.2)
+  if (motion === undefined) throw new Error('Missing recorded near-meridian goto')
+  const { result, sent } = await replay({ motion, envelope: measuredEnvelope, tracking, meridianLimit: 5 })
+  expect(result.kind, result.message ?? '').toBe('confirmed')
+  expect(result.operation.motion?.stopped.how).toBe('arrived')
+  expect(sent.some(xml => xml.includes('TELESCOPE_ABORT_MOTION'))).toBe(false)
 }, 15_000)

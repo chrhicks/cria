@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { gotoReach, type MountPose, type ReportedBox } from '../src/capability/goto-reach.js'
-import { gotoRefusal } from '../src/capability/envelope.js'
-import { splitEnvelope } from './envelope-fixtures.js'
+import { gotoRefusal, gotoWatchLead, landingOvershootDegrees, reactionDegrees, watchRefusal } from '../src/capability/envelope.js'
+import { measuredEnvelope, splitEnvelope } from './envelope-fixtures.js'
 import { recordedGotos as corpus } from './goto-fixtures.js'
 
 
@@ -98,4 +98,64 @@ it('projects southern endpoint reserve onto the opposite side and checks its lim
 it('refuses unmeasured southern flip routes and wrap routes', () => {
   expect(gotoRefusal(splitEnvelope, pose(-10, -20, 'west'), pose(10, -20, 'east'), 15, 21.4)).toContain('southern')
   expect(gotoRefusal(splitEnvelope, pose(179, 80, 'east'), pose(-179, 80, 'west'), 15, 21.4)).toContain('wrap')
+})
+
+
+it('measures directional landing overshoot on both mechanical axes', () => {
+  const maxima = { ha: 0, dec: 0 }
+  const gotos = [...corpus.flips, ...corpus.nearPoleEndpoints.map(goto => ({ ...goto, poses: [goto.observed] }))]
+  expect(gotos).toHaveLength(45)
+  for (const goto of gotos) {
+    const from = lift(goto.from, goto.from.pierSide)
+    const target = lift(goto.target, goto.from.pierSide)
+    expect(goto.target.pierSide).toBe(goto.target.hourAngleDegrees < 0 ? 'west' : 'east')
+    for (const point of goto.poses) {
+      const axes = lift(point, goto.from.pierSide)
+      for (const axis of ['ha', 'dec'] as const)
+        maxima[axis] = Math.max(maxima[axis], (axes[axis] - target[axis]) * Math.sign(target[axis] - from[axis]))
+    }
+  }
+  expect(maxima.ha).toBeCloseTo(0.068896, 6)
+  expect(maxima.dec).toBe(0)
+  expect(Math.ceil(maxima.ha * 3600)).toBe(249)
+  expect(landingOvershootDegrees).toBeGreaterThanOrEqual(Math.max(maxima.ha, maxima.dec))
+})
+
+const origins = [pose(-90, 90, 'west'), pose(90, 90, 'east'), pose(-90, 89.9, 'west'), pose(90, 89.9, 'east'), pose(-60, 50, 'west'), pose(60, 50, 'east')]
+it.each(origins)('allows normal near-meridian targets from $hourAngleDegrees on $pierSide', from => {
+  for (const ha of [-20, -14, -5, 5, 14, 20]) for (const dec of [50, 60])
+    expect(gotoRefusal(measuredEnvelope, from, pose(ha, dec, ha < 0 ? 'west' : 'east'), 5, 1 + landingOvershootDegrees), `${ha}, ${dec}`).toBeUndefined()
+})
+
+it('keeps both possible sides below half a degree, including exactly on the meridian', () => {
+  for (const ha of [-0.49, 0, 0.49]) {
+    const reach = gotoReach(pose(-60, 50, 'west'), pose(ha, 50, 'west'), 5, 0)
+    if (reach.kind !== 'path') throw new Error(reach.reason)
+    expect(reach.boxes.some(box => box.from.pierSide === 'east')).toBe(true)
+    expect(gotoRefusal(measuredEnvelope, pose(-60, 50, 'west'), pose(ha, 50, 'west'), 5, 1 + landingOvershootDegrees)).toBeDefined()
+  }
+})
+
+it('still refuses reported tight flipped spots and a safe target behind a tight path', () => {
+  for (const from of [pose(-3, 50, 'east'), pose(6, 50, 'west')])
+    expect(gotoRefusal(measuredEnvelope, from, from, 5, landingOvershootDegrees)).toBeDefined()
+  const from = pose(-4, 30, 'east')
+  const target = pose(20, 60, 'east')
+  expect(gotoRefusal(measuredEnvelope, target, target, 5)).toBeUndefined()
+  expect(gotoRefusal(measuredEnvelope, from, target, 5, landingOvershootDegrees)).toContain('tripod lock')
+})
+
+it('retains the full reaction lead for a rate move toward the meridian', () => {
+  expect(watchRefusal(measuredEnvelope, pose(-10, 50, 'west'), 5, 1, reactionDegrees)).toContain('meridian limit')
+})
+
+
+it('caps the goto lead at remaining mechanical travel plus landing coast on each axis', () => {
+  const lead = gotoWatchLead(pose(-14, 50, 'west'), pose(-5, 50, 'west'), 1, 0)
+  expect(lead.ha).toBeCloseTo(9 + landingOvershootDegrees)
+  expect(lead.dec).toBe(0)
+  expect(watchRefusal(measuredEnvelope, pose(-14, 50, 'west'), 5, 1, lead.ha, lead.dec)).toBeUndefined()
+  expect(gotoWatchLead(pose(-60, 50, 'west'), pose(20, 50, 'east'))).toEqual({ ha: -reactionDegrees, dec: reactionDegrees })
+  const runaway = gotoWatchLead(pose(-4, 50, 'west'), pose(-5, 50, 'west'), 1, 0)
+  expect(runaway.ha).toBeCloseTo(1 + landingOvershootDegrees)
 })

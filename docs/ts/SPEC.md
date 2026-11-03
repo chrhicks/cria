@@ -683,7 +683,9 @@ Near-pole starts at Dec 89..90 retain the 0.05-degree home HA reporting toleranc
 around either HA -90 or +90. The original reported-pose check still applies.
 
 Each moving axis also reserves travel beyond the target by the current
-pointing margin plus the reaction reserve. Same-side moves retain the full
+pointing margin plus the landing allowance. The landing allowance is the larger
+of recorded goto overshoot rounded up to an arcsecond and the existing
+4,084-arcsecond stop coast. Same-side moves retain the full
 independent box through that endpoint. An axis with no commanded travel has
 0.1 degrees of settlement allowance, matching the goto arrival tolerance;
 this covers small reported-HA changes at two recorded near-pole endpoints.
@@ -695,9 +697,12 @@ pole approach can still refuse if the reserve enters an unmeasured region.
 No lower-Dec approach to a near-pole endpoint exists in the recording corpus;
 those approach tests are synthetic, using the projection validated on flips.
 
-Beyond the driver meridian limit, the predicted landing side is counterweight
-down. Within the limit either side can land, so each possible side's complete
-path and reserve must pass. A clear alternate landing pose alone is not enough.
+A goto lands on the normal, counterweight-down side for its target hour angle,
+including within the driver meridian limit. At absolute HA below 0.5 degrees,
+either reported side remains possible, so both complete paths and reserves
+must pass. All 45 recorded gotos land on the normal side. Their largest
+directional overshoot beyond the requested endpoint is 0.068896 degrees on HA
+and zero on Dec, measured in the start's mechanical frame.
 The separate margin check around the reported start stays in force; a driver
 leaving Busy does not prove that a coast has stopped.
 Unknown pier side or unread coordinates refuse a goto. The envelope needs
@@ -725,9 +730,14 @@ The motion record still reports the coordinate displacement defined below.
 
 Cria also reserves two seconds at 6.3 degrees/second, rounded up from the
 recorded goto fixture, plus the largest
-stop overshoot in the direction of travel. Missing position readings for two
+stop overshoot in the direction of travel. For a goto, each axis's live lead
+is capped at its remaining mechanical distance to the target plus the landing
+allowance. Rate moves retain the full reaction lead. Missing position readings for two
 seconds trigger a stop. An envelope stop uses the confirmed abort path and
-ends uncertain with the limit and margin in its message. The motion record
+ends uncertain with the limit and margin in its message. The capped goto lead
+assumes the mount decelerates into its target. A full-speed runaway is still
+subject to the live envelope and reading deadline, but has no fixed
+target-relative stopping bound or guaranteed clearance within the smaller reserve. The motion record
 keeps `how: "aborted"` and adds `stopped.reason` naming the envelope trigger.
 
 Optional `horizon` points (`azimuthDegrees`, `altitudeDegrees`) and
