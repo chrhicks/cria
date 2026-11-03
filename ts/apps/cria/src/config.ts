@@ -37,9 +37,9 @@ const MountMotion = Schema.Struct({
   stationaryDegrees: Schema.optionalKey(Between(0.001, 1)),
   /** The spacing of those reads, and the window they must span: longer than the driver's poll of the mount (1 s on the AM5). */
   positionReadMs: Schema.optionalKey(Milliseconds(250, 10_000)),
-  /** How far, in time at the axis rate, the mount travels after Cria sees a rotate's target: 0.9 s on the AM5 at 8x. */
+  /** Coast seed in milliseconds for rates without a measured profile. */
   stopLatencyMs: Schema.optionalKey(Milliseconds(0, 10_000)),
-  /** A rotate whose stop lead is more than this fraction of its distance is refused. */
+  /** Accepted for older configurations. Two-phase rotates do not use this value. */
   maxLeadFraction: Schema.optionalKey(Between(0, 1)),
 })
 

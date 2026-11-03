@@ -844,17 +844,36 @@ as does one whose position cannot be read.
 Starting a home, slew, park, `mount-axis` or `mount-rotate` is refused as busy
 only when the coordinates are `Busy`.
 
-**A rotate leads its stop.** The mount keeps going for about `stopLatencyMs`
-(900 ms, measured on the AM5) at the axis rate after Cria sees it reach a target,
-so `mount-rotate` halts the axis when it has travelled the distance less
-rate × `stopLatencyMs`, confirms the mount still, and reports the travel it
-measured. A rotate whose lead is more than `maxLeadFraction` (half) of its
-distance is refused before moving, as `failed: invalid`: at the AM5's 9x
-(3.008°/s) the lead is 2.7°, so a 1° rotate at 9x is refused. The 0.9 s is one
-measurement at 8x that lumps together the driver's 1 s position poll, the serial
-link and the deceleration, so a rotate can still miss by up to its rate times
-1 s, and more at high rates, where the AM5 also decelerates for longer. The
-reported `travelledDegrees` is the truth either way.
+**A rotate uses a fast leg and a slow approach.** `mount-rotate` keeps its
+request and outcome shape. Before any command, Cria checks the envelope for
+the full requested travel. One operation and its renewing lease cover both
+legs. Cancel, `mount-stop`, the live envelope watch and the position freshness
+deadline apply throughout, including the confirmed stop between legs. A lease
+lapse there ends the operation with the mount stopped.
+
+For a distance larger than the approach window, the first leg uses the
+requested advertised rate until travel reaches distance minus the window.
+The window is that rate's expected coast plus rate times the measured position
+reading interval plus 0.25°. Cria then halts and confirms the stop with the
+existing position rule. The approach uses the slowest advertised primary-axis
+rate of at least 0.1°/s, in the requested direction, for the remaining distance.
+It leads its stop by that rate's expected coast and confirms the stop again.
+A small request uses only the approach. Remaining travel below the approach
+coast needs no second leg. There is no third correction.
+
+Expected coast starts at 4,084 arcseconds for the step-3 3.008°/s rate and
+54 arcseconds for 0.2507°/s. Other advertised rates use rate times the configured
+`stopLatencyMs` as their seed. After each confirmed axis halt, Cria retains the
+last nine measured coasts for that rate and uses their median, clamped to
+0.5 to 2 times the seed. Estimates live only in this Cria session and reset
+on restart. Until a position interval has been measured, `positionReadMs`
+is the conservative initial interval.
+
+The motion record retains the full request and total observed travel. Rate
+motion travel starts at the position held just before the command. Its
+existing `stopped.reason` string contains JSON with each leg's command,
+travel, stop, measured coast and updated estimate, so no wire schema changes.
+The outcome's `travelledDegrees` remains the measured total in either direction.
 
 ### Device setup
 
@@ -1382,8 +1401,9 @@ whose `automaticWhileOn` names no other channel.
 "Device setup"). errai's is the site already stored in the mount. `motion` tunes
 how a mount stops (see "Stopping the mount"); every key is optional, with the
 AM5's values as defaults: `stationaryDegrees` 0.02, `positionReadMs` 1500,
-`stopLatencyMs` 900 (measured on the AM5), `maxLeadFraction` 0.5. Cria refuses
-`site`, `motion` or `envelope` on a device that is not a mount.
+`stopLatencyMs` 900 (the coast seed for rates without a profile).
+`maxLeadFraction` is accepted for older configurations but does not apply to
+the two-phase rotate. Cria refuses `site`, `motion` or `envelope` on a device that is not a mount.
 
 `record` turns on recording of INDI traffic (see "Recording"): `dir`, `reserveGb`
 and `queueMb`, all three required when it is present.
