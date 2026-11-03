@@ -18,7 +18,8 @@ until timeout 3 bash -c "exec 3<>/dev/tcp/127.0.0.1/$port" 2>/dev/null; do
 done
 missing=("$@")
 while ((${#missing[@]})); do
-  running=$(ps --ppid "${MAINPID:?MAINPID not set}" -o comm= 2>/dev/null)
+  # Full executable names: `comm` is cut to 15 characters (indi_pegasus_ppba would never match).
+  running=$(ps --ppid "${MAINPID:?MAINPID not set}" -o args= 2>/dev/null | awk '{ n = $1; sub(".*/", "", n); print n }')
   left=()
   for driver in "${missing[@]}"; do
     grep -qx "$driver" <<<"$running" || left+=("$driver")
