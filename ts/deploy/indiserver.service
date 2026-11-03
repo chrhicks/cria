@@ -6,6 +6,13 @@
 # -f:   the FIFO the rig supervisor writes `stop <driver>` / `start <driver>` to,
 #       so one driver can be restarted without touching the others. %t is
 #       $XDG_RUNTIME_DIR; the supervisor's default FIFO path is the same.
+#
+# Restart the rig software as one: `systemctl --user restart indiserver`. Cria and
+# the rig supervisor are PartOf this unit, so systemd stops them first, restarts
+# indiserver and every driver, waits in ExecStartPost until the drivers are up
+# (indi-ready.sh), and only then starts Cria and the supervisor again. Reason: on
+# 2026-11-03 three drivers went stale one by one, and restarting them separately
+# left Cria with stale copies and a held mount (docs/runtime.md, "Restart").
 [Unit]
 StartLimitIntervalSec=0
 Description=INDI server for the rig drivers
@@ -14,6 +21,9 @@ Description=INDI server for the rig drivers
 # indiserver opens the FIFO but does not create it, and exits 1 if it is missing.
 ExecStartPre=-/usr/bin/mkfifo %t/indi.fifo
 ExecStart=/usr/bin/indiserver -v -r 0 -p 7624 -f %t/indi.fifo indi_asi_ccd indi_asi_focuser indi_lx200am5 indi_pegasus_ppba
+# Same driver list as ExecStart. Adjust the path to where Cria is checked out.
+ExecStartPost=%h/dev/personal/cria-ts/ts/deploy/indi-ready.sh indi_asi_ccd indi_asi_focuser indi_lx200am5 indi_pegasus_ppba
+TimeoutStartSec=90
 Restart=always
 RestartSec=3
 

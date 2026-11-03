@@ -12,9 +12,9 @@ Cria runs on errai, the rig's mini PC (Intel N150) on Arch Linux. Three programs
 
 `ts/deploy` holds the layout Cria runs in on errai: three systemd **user** units, all `WantedBy=default.target`. errai has linger on, so they start at boot without a login.
 
-- `indiserver.service` runs `indiserver -v -r 0 -p 7624 -f %t/indi.fifo indi_asi_ccd indi_asi_focuser indi_lx200am5 indi_pegasus_ppba`, with `Restart=always` and `RestartSec=3`. `-r 0` stops indiserver from restarting a crashed driver by itself. `-f` makes indiserver read `start <driver>` and `stop <driver>` lines from a FIFO (`$XDG_RUNTIME_DIR/indi.fifo`), so one driver can be restarted without touching the others.
-- `cria.service` starts after `indiserver.service` (`Wants=`, not `Requires=`) and runs Cria with `Restart=always` and `TimeoutStopSec=180`. Check its `ExecStart` paths against where Cria is built on errai. Cria does not need indiserver up when it starts: it retries the INDI connection until it succeeds (250 ms, doubling to 5 s), and when indiserver or a driver comes back it sets each device up again ("Device setup" in [SPEC.md](ts/SPEC.md#device-setup)). Restarting `indiserver` therefore does not need a Cria restart. Devices read `unavailable` meanwhile.
-- `rig-supervisor.service` starts after `cria.service` with `Restart=always` (see "The rig supervisor" below).
+- `indiserver.service` runs `indiserver -v -r 0 -p 7624 -f %t/indi.fifo indi_asi_ccd indi_asi_focuser indi_lx200am5 indi_pegasus_ppba`, with `Restart=always` and `RestartSec=3`. Its `ExecStartPost` runs `ts/deploy/indi-ready.sh`, which keeps the unit starting until indiserver answers and every driver runs (30 s, else the start fails and systemd retries), then waits up to 15 s more for the drivers to define devices and logs which did. `-r 0` stops indiserver from restarting a crashed driver by itself. `-f` makes indiserver read `start <driver>` and `stop <driver>` lines from a FIFO (`$XDG_RUNTIME_DIR/indi.fifo`), so one driver can be restarted without touching the others.
+- `cria.service` starts after `indiserver.service` (`Wants=`, not `Requires=`, and `PartOf=`, see "Restart the rig software") and runs Cria with `Restart=always` and `TimeoutStopSec=180`. Check its `ExecStart` paths against where Cria is built on errai. Cria does not need indiserver up when it starts: it retries the INDI connection until it succeeds (250 ms, doubling to 5 s), and when indiserver or a driver comes back it sets each device up again ("Device setup" in [SPEC.md](ts/SPEC.md#device-setup)). Restarting `indiserver` therefore does not need a Cria restart. Devices read `unavailable` meanwhile.
+- `rig-supervisor.service` starts after `cria.service` with `Restart=always`, and is also `PartOf=indiserver.service` (see "The rig supervisor" below).
 - `rig.errai.json` is errai's configuration: the six devices with their real INDI names, `connect: false` on each, `commandsEnabled: true`, and images in `/var/lib/cria/images`.
 - `supervisor.example.json` is the supervisor's configuration.
 - `phd2.service`, `phd2-profile.mjs` and `phd2-rpc.mjs` set up PHD2 for guiding (see "PHD2 on errai" below). PHD2 is not part of Cria, and nothing in Cria talks to it yet.
@@ -241,6 +241,18 @@ A restart is a new Cria with nothing carried over:
 The INDI drivers keep running and keep their state. A camera that was exposing still reads `exposing`, and a new capture on it settles `failed: busy`.
 
 If a driver crashes, `indiserver` deletes its properties and Cria reports the device unavailable (the supervisor restarts the driver if its conditions hold). An operation in flight ends `uncertain: driver-lost` and, on a mount, blocks the device until a person checks the equipment and calls `POST /v2/devices/{id}/recover`. If `indiserver` itself goes away, every device is unavailable and in-flight work ends uncertain. Cria reconnects at a paced interval and resends nothing. [SPEC.md, "Restarts and crashes"](ts/SPEC.md#restarts-and-crashes) has the details.
+
+## Restart the rig software
+
+`systemctl --user restart indiserver` restarts everything on errai in lockstep. `cria.service` and `rig-supervisor.service` are `PartOf=indiserver.service`, so systemd:
+
+1. stops the supervisor, then Cria (each running operation stops its device first, as above), then indiserver and every driver;
+2. starts indiserver and its drivers, and waits in `indi-ready.sh` until they are up;
+3. starts Cria, which connects with an empty copy and runs device setup (site and time on the mount), then the supervisor, which connects the devices.
+
+Use this instead of restarting one driver through the FIFO or Cria on its own when a driver stops answering. Why: on 2026-11-03 the AM5, EAF and Pegasus drivers each went stale after about three hours (writes unanswered, readings not refreshed). Restarting them one by one worked, but a restart of indiserver under a running Cria leaves Cria with stale copies ("What it cannot see" above), and an unanswered stop held the mount. Restarting the drivers also restarts `indi_asi_ccd`, so the camera cooler stops until Cria connects the camera again and the cooler is turned back on.
+
+An automatic restart of indiserver after a crash (`Restart=always`) is not a stop or restart job, so it should not restart Cria (read from systemd.unit(5), not tested); Cria reconnects as described in "Stop and restart".
 
 ## Logs
 
