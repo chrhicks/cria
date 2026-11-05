@@ -30,13 +30,26 @@ describe('makeDebugChangeFilter', () => {
 
   it('keeps a command that gets no reply, and everything that is not a command or reply', () => {
     const filter = makeDebugChangeFilter()
-    const other = '<setNumberVector device="ZWO AM5" name="EQUATORIAL_EOD_COORD"/>\n'
+    const info = '<message device="ZWO AM5" message="[INFO] Arrived at home."/>\n'
 
     filter.pass(debug('CMD', ':hC#'))
 
     expect(filter.pass(debug('CMD', ':GU#'))).toEqual([debug('CMD', ':hC#')])
-    expect(filter.pass(other)).toEqual([debug('CMD', ':GU#'), other])
-    expect(filter.pass('<message device="ZWO AM5" message="[INFO] Arrived at home."/>\n')).toEqual(['<message device="ZWO AM5" message="[INFO] Arrived at home."/>\n'])
+    expect(filter.pass(info)).toEqual([info])
+  })
+
+  it('still pairs a command with its reply when other messages arrive between them', () => {
+    const filter = makeDebugChangeFilter()
+    const other = '<setNumberVector device="Pegasus PPBA" name="POWER_SENSORS"/>\n'
+    const otherDevice = '<message device="ZWO EAF" timestamp="2026-11-05T12:00:01" message="[DEBUG] CMD &lt;status&gt;"/>\n'
+
+    filter.pass(debug('CMD', ':GU#'))
+    filter.pass(debug('RES', 'nNGM0#'))
+
+    filter.pass(debug('CMD', ':GU#', 2))
+    expect(filter.pass(other)).toEqual([other])
+    expect(filter.pass(otherDevice)).toEqual([])
+    expect(filter.pass(debug('RES', 'nNGM0#', 2))).toEqual([])
   })
 
   it('passes the reply again after forgetting, as after a lost connection', () => {

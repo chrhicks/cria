@@ -2,45 +2,36 @@ const commandOrReply = /^<message device="([^"]+)"[^>]*message="\[DEBUG\] (CMD|R
 
 export function makeDebugChangeFilter() {
   const lastReply = new Map<string, string>()
-  let waiting: { readonly key: string; readonly xml: string } | undefined
-
-  const flushWaiting = () => {
-    const held = waiting ? [waiting.xml] : []
-
-    waiting = undefined
-
-    return held
-  }
+  const waitingByDevice = new Map<string, { readonly command: string; readonly xml: string }>()
 
   return {
     pass(xml: string): ReadonlyArray<string> {
       const line = commandOrReply.exec(xml)
 
-      if (!line) return [...flushWaiting(), xml]
+      if (!line) return [xml]
 
-      const [, device, kind, value] = line
+      const [, device = '', kind, value = ''] = line
+      const waiting = waitingByDevice.get(device)
 
       if (kind === 'CMD') {
-        const held = flushWaiting()
+        waitingByDevice.set(device, { command: value, xml })
 
-        waiting = { key: `${device} ${value}`, xml }
-
-        return held
+        return waiting ? [waiting.xml] : []
       }
 
       if (!waiting) return [xml]
 
-      const { key, xml: command } = waiting
+      waitingByDevice.delete(device)
+      const key = `${device} ${waiting.command}`
 
-      waiting = undefined
       if (lastReply.get(key) === value) return []
-      lastReply.set(key, value ?? '')
+      lastReply.set(key, value)
 
-      return [command, xml]
+      return [waiting.xml, xml]
     },
     forget() {
       lastReply.clear()
-      waiting = undefined
+      waitingByDevice.clear()
     },
   }
 }
