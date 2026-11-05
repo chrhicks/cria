@@ -1,13 +1,4 @@
 #!/usr/bin/env node
-/**
- * Stream client, first iteration: connects to indiserver and publishes each
- * message, as the raw text the wire carried, to the dev stream. It never asks
- * for frames, so it gets none.
- *
- * Not here yet, on purpose: a spool, an entry format, typed messages. While
- * the broker is away, the NATS client holds what it can and anything beyond
- * that is lost.
- */
 import { makeIndiClient, type TrafficTap } from '@cria/indi'
 import { connect } from '@nats-io/transport-node'
 import { Effect, Schema } from 'effect'
@@ -35,7 +26,6 @@ void (async () => {
 })()
 
 const tap: TrafficTap = {
-  // The tap must never throw (see TrafficTap): a message over the broker's size limit is logged and skipped.
   message: ({ dir, xml }) => {
     try {
       broker.publish(`rig-dev.wire.${dir}`, xml)

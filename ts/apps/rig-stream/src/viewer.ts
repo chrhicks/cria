@@ -1,9 +1,4 @@
 #!/usr/bin/env node
-/**
- * Dev stream viewer: a small web server on thuban that creates the dev stream
- * if it is missing and sends its messages to each open page as server-sent
- * events. Read-only apart from creating that stream.
- */
 import { readFileSync } from 'node:fs'
 import { createServer, type ServerResponse } from 'node:http'
 import { DeliverPolicy, jetstream, jetstreamManager, RetentionPolicy, StorageType } from '@nats-io/jetstream'
@@ -12,8 +7,8 @@ import { Schema } from 'effect'
 import { Broker, loadConfig } from './config.js'
 
 const stream = 'RIG_DEV'
-/** What a new page shows at once: enough to fill a screen before live messages arrive. */
-const backlog = 200
+const messagesShownOnOpen = 200
+const throwawayDataMaxAge = nanos(7 * 24 * 3600 * 1000)
 const page = readFileSync(new URL('../src/viewer.html', import.meta.url))
 
 const config = loadConfig('rig-stream-viewer', Schema.Struct({ port: Schema.Number, broker: Broker }))
@@ -26,13 +21,12 @@ await manager.streams.add({
   subjects: ['rig-dev.>'],
   storage: StorageType.File,
   retention: RetentionPolicy.Limits,
-  // Throwaway data: long enough to look back across a few iterations, at about 125 MB a day.
-  max_age: nanos(7 * 24 * 3600 * 1000),
+  max_age: throwawayDataMaxAge,
 })
 
 async function follow(response: ServerResponse, lastSeen: number | undefined) {
   const { state } = await manager.streams.info(stream)
-  const start = lastSeen === undefined ? Math.max(1, state.last_seq - backlog + 1) : lastSeen + 1
+  const start = lastSeen === undefined ? Math.max(1, state.last_seq - messagesShownOnOpen + 1) : lastSeen + 1
   const consumer = await client.consumers.get(stream, { deliver_policy: DeliverPolicy.StartSequence, opt_start_seq: start })
   const messages = await consumer.consume()
 
@@ -55,13 +49,11 @@ createServer((request, response) => {
 
   if (request.url === '/events') {
     response.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-store' })
-    // Sent now: on an empty stream nothing else would tell the page it is connected.
     response.flushHeaders()
 
-    // The browser sends the last id it saw when it reconnects, so a reconnect continues without repeats.
-    const lastEventId = Number(request.headers['last-event-id'])
+    const lastSeenByBrowser = Number(request.headers['last-event-id'])
 
-    follow(response, Number.isSafeInteger(lastEventId) && lastEventId > 0 ? lastEventId : undefined)
+    follow(response, Number.isSafeInteger(lastSeenByBrowser) && lastSeenByBrowser > 0 ? lastSeenByBrowser : undefined)
       .catch((error: unknown) => console.error(`rig-stream-viewer: ${String(error)}`))
       .finally(() => response.end())
 

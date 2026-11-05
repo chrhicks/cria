@@ -1,4 +1,3 @@
-/** Reads a JSON config file named on the command line, once, at the trust boundary. */
 import { readFileSync } from 'node:fs'
 import { Schema } from 'effect'
 
