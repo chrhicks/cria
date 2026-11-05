@@ -3,6 +3,7 @@ import { makeIndiClient, type TrafficTap } from '@cria/indi'
 import { connect } from '@nats-io/transport-node'
 import { Effect } from 'effect'
 import { ClientConfig } from './config.js'
+import { makeDebugChangeFilter } from './debug-lines.js'
 import { followJournal } from './journal.js'
 
 const config = await Effect.runPromise(Effect.provide(Effect.service(ClientConfig), ClientConfig.layer))
@@ -28,9 +29,16 @@ function publish(subject: string, text: string) {
   }
 }
 
+const debugLines = makeDebugChangeFilter()
+
 const tap: TrafficTap = {
-  message: ({ dir, xml }) => publish(`rig-dev.wire.${dir}`, xml),
-  connection: connection => console.error(`rig-stream-client: indiserver ${connection.status}${connection.status === 'closed' ? `: ${connection.error}` : ''}`),
+  message: ({ dir, xml }) => {
+    for (const line of debugLines.pass(xml)) publish(`rig-dev.wire.${dir}`, line)
+  },
+  connection: connection => {
+    debugLines.forget()
+    console.error(`rig-stream-client: indiserver ${connection.status}${connection.status === 'closed' ? `: ${connection.error}` : ''}`)
+  },
 }
 
 await Promise.all([
