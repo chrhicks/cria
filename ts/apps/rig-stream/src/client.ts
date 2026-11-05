@@ -3,6 +3,7 @@ import { makeIndiClient, type TrafficTap } from '@cria/indi'
 import { connect } from '@nats-io/transport-node'
 import { Effect } from 'effect'
 import { ClientConfig } from './config.js'
+import { followJournal } from './journal.js'
 
 const config = await Effect.runPromise(Effect.provide(Effect.service(ClientConfig), ClientConfig.layer))
 
@@ -19,15 +20,20 @@ void (async () => {
   for await (const status of broker.status()) console.error(`rig-stream-client: broker ${status.type}`)
 })()
 
+function publish(subject: string, text: string) {
+  try {
+    broker.publish(subject, text)
+  } catch (error) {
+    console.error(`rig-stream-client: publish failed: ${String(error)}`)
+  }
+}
+
 const tap: TrafficTap = {
-  message: ({ dir, xml }) => {
-    try {
-      broker.publish(`rig-dev.wire.${dir}`, xml)
-    } catch (error) {
-      console.error(`rig-stream-client: publish failed: ${String(error)}`)
-    }
-  },
+  message: ({ dir, xml }) => publish(`rig-dev.wire.${dir}`, xml),
   connection: connection => console.error(`rig-stream-client: indiserver ${connection.status}${connection.status === 'closed' ? `: ${connection.error}` : ''}`),
 }
 
-await Effect.runPromise(Effect.scoped(Effect.andThen(makeIndiClient({ ...config.indi, tap }), Effect.never)))
+await Promise.all([
+  Effect.runPromise(Effect.scoped(Effect.andThen(makeIndiClient({ ...config.indi, tap }), Effect.never))),
+  followJournal(config.journalExclusions, line => publish('rig-dev.system', line)),
+])
