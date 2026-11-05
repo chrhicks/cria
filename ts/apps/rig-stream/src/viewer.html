@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Rig dev stream</title>
+<style>
+:root { color-scheme: light dark; --bg: #fff; --fg: #1c1c1c; --mu: #666; --ln: #ddd; --hi: #0b6bcb; --bad: #c0392b }
+@media (prefers-color-scheme: dark) { :root { --bg: #0d0f12; --fg: #e8e8e8; --mu: #9aa0a6; --ln: #2a2d32; --hi: #6cb2ff; --bad: #ff7b72 } }
+* { box-sizing: border-box }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 13px/1.35 system-ui, sans-serif }
+header { position: sticky; top: 0; background: var(--bg); border-bottom: 1px solid var(--ln); padding: 8px 12px; display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center }
+h1 { font-size: 15px; font-weight: 600; margin: 0 }
+#status { color: var(--mu); font-variant-numeric: tabular-nums }
+#status.down { color: var(--bad); font-weight: 600 }
+input { flex: 1 1 200px; min-width: 0; font: inherit; padding: 4px 8px; background: var(--bg); color: var(--fg); border: 1px solid var(--ln); border-radius: 4px }
+button { font: inherit; padding: 4px 10px; background: var(--bg); color: var(--fg); border: 1px solid var(--ln); border-radius: 4px; cursor: pointer }
+button:focus-visible, input:focus-visible, .row:focus-visible { outline: 2px solid var(--hi); outline-offset: -2px }
+.row { display: grid; grid-template-columns: 7ch 11ch 3ch 1fr; gap: 0 10px; padding: 2px 12px; border-bottom: 1px solid var(--ln); font: 12px/1.4 ui-monospace, Menlo, monospace; cursor: pointer }
+.row[hidden] { display: none }
+.row:hover { background: color-mix(in srgb, var(--hi) 8%, transparent) }
+.seq, .at, .dir { color: var(--mu); font-variant-numeric: tabular-nums }
+.xml { overflow: hidden; white-space: nowrap; text-overflow: ellipsis }
+.row.open .xml { white-space: pre-wrap; overflow-wrap: anywhere }
+.out .xml { color: var(--hi) }
+#empty { color: var(--mu); padding: 16px 12px }
+@media (max-width: 640px) { .row { grid-template-columns: 11ch 3ch 1fr } .seq { display: none } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Rig dev stream</h1>
+  <span id="status" role="status">Connecting</span>
+  <input id="filter" type="search" placeholder="Filter, for example ZWO AM5 or CCD_TEMPERATURE" aria-label="Filter messages">
+  <button id="pause" type="button">Pause</button>
+</header>
+<main id="rows"><p id="empty">Waiting for messages from the stream.</p></main>
+<script type="module">
+const { rowsKeptOnPage } = await (await fetch('settings')).json()
+const rows = document.getElementById('rows')
+const statusLine = document.getElementById('status')
+const filter = document.getElementById('filter')
+const pauseButton = document.getElementById('pause')
+const time = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' })
+const held = []
+const recent = []
+let paused = false
+let total = 0
+let connected = false
+
+function matches(text) {
+  const wanted = filter.value.trim().toLowerCase()
+
+  return wanted === '' || text.toLowerCase().includes(wanted)
+}
+
+function cell(name, text) {
+  const element = document.createElement('span')
+
+  element.className = name
+  element.textContent = text
+
+  return element
+}
+
+function add(entry) {
+  document.getElementById('empty')?.remove()
+  const direction = entry.subject.endsWith('.out') ? 'out' : 'in'
+  const row = document.createElement('div')
+
+  row.className = `row ${direction}`
+  row.tabIndex = 0
+  row.dataset.text = entry.xml
+  row.hidden = !matches(entry.xml)
+  row.append(cell('seq', entry.seq), cell('at', `${time.format(entry.at)} ET`), cell('dir', direction), cell('xml', entry.xml.trim()))
+  rows.prepend(row)
+
+  while (rows.children.length > rowsKeptOnPage) rows.lastElementChild.remove()
+}
+
+function showStatus() {
+  const now = Date.now()
+
+  while (recent.length > 0 && now - recent[0] > 60000) recent.shift()
+  statusLine.textContent = `${connected ? 'Live' : 'Reconnecting'} · ${total.toLocaleString()} messages · ${recent.length.toLocaleString()} in the last minute${paused ? ` · paused, ${held.length.toLocaleString()} held` : ''}`
+  statusLine.classList.toggle('down', !connected)
+}
+
+const events = new EventSource('events')
+
+events.onopen = () => { connected = true; showStatus() }
+events.onerror = () => { connected = false; showStatus() }
+events.onmessage = event => {
+  const entry = JSON.parse(event.data)
+
+  total += 1
+  recent.push(entry.at)
+  if (paused) held.push(entry)
+  else add(entry)
+}
+
+filter.addEventListener('input', () => {
+  for (const row of rows.children) if (row.dataset.text !== undefined) row.hidden = !matches(row.dataset.text)
+})
+
+pauseButton.addEventListener('click', () => {
+  paused = !paused
+  pauseButton.textContent = paused ? 'Resume' : 'Pause'
+  if (!paused) for (const entry of held.splice(0)) add(entry)
+  showStatus()
+})
+
+rows.addEventListener('click', event => event.target.closest('.row')?.classList.toggle('open'))
+rows.addEventListener('keydown', event => {
+  if (event.key === 'Enter' && event.target.classList.contains('row')) event.target.classList.toggle('open')
+})
+
+setInterval(showStatus, 1000)
+</script>
+</body>
+</html>

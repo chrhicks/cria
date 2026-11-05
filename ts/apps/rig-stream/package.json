@@ -1,0 +1,21 @@
+{
+  "name": "@cria/rig-stream",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Rig stream, first iteration: dumps raw INDI traffic to a dev stream and shows it in a web page",
+  "bin": {
+    "rig-stream-client": "./dist/client.js",
+    "rig-stream-viewer": "./dist/viewer.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@cria/indi": "workspace:*",
+    "@nats-io/jetstream": "3.4.0",
+    "@nats-io/transport-node": "3.4.0",
+    "effect": "4.0.3"
+  }
+}

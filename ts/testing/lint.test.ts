@@ -52,6 +52,8 @@ const allowed: Record<string, Partial<Record<Rule, readonly [count: number, why:
     'try-catch': [4, 'a failed write, a bug building an entry, a failed close and a manifest that cannot be written each stop recording and never reach Cria or the socket'],
     'wall-clock': [1, 'a recorded line carries its wall-clock time'],
   },
+  'apps/rig-stream/src/client.ts': { 'try-catch': [1, 'a message the broker refuses is logged and skipped: the traffic tap must never throw'] },
+  'apps/rig-stream/src/viewer.ts': { 'promise-catch': [1, 'a page whose stream fails is logged and closed, and its browser reconnects'] },
   'apps/cria/src/recording.ts': { 'catch-all': [1, 'a recording that cannot open is logged and Cria runs without it'] },
   'apps/cria/src/rig.ts': { 'catch-all': [1, 'a refused start-up connect is logged; it ran nothing'] },
   'apps/cria/src/capability/commands.ts': { 'catch-all': [1, 'notACommand: BLOB routing, not a physical command'] },
