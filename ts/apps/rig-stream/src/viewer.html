@@ -17,6 +17,8 @@ input { flex: 1 1 200px; min-width: 0; font: inherit; padding: 4px 8px; backgrou
 button { font: inherit; padding: 4px 10px; background: var(--bg); color: var(--fg); border: 1px solid var(--ln); border-radius: 4px; cursor: pointer }
 button:focus-visible, input:focus-visible, .row:focus-visible { outline: 2px solid var(--hi); outline-offset: -2px }
 .row { display: grid; grid-template-columns: 7ch 11ch 3ch 1fr; gap: 0 10px; padding: 2px 12px; border-bottom: 1px solid var(--ln); font: 12px/1.4 ui-monospace, Menlo, monospace; cursor: pointer }
+/* display: grid above would otherwise override the hidden attribute the filter sets. */
+.row[hidden] { display: none }
 .row:hover { background: color-mix(in srgb, var(--hi) 8%, transparent) }
 .seq, .at, .dir { color: var(--mu); font-variant-numeric: tabular-nums }
 .xml { overflow: hidden; white-space: nowrap; text-overflow: ellipsis }
