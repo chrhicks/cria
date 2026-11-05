@@ -1,16 +1,10 @@
 #!/usr/bin/env node
 import { makeIndiClient, type TrafficTap } from '@cria/indi'
 import { connect } from '@nats-io/transport-node'
-import { Effect, Schema } from 'effect'
-import { Broker, loadConfig } from './config.js'
+import { Effect } from 'effect'
+import { ClientConfig } from './config.js'
 
-const config = loadConfig(
-  'rig-stream-client',
-  Schema.Struct({
-    indi: Schema.Struct({ host: Schema.String, port: Schema.Number }),
-    broker: Broker,
-  }),
-)
+const config = await Effect.runPromise(Effect.provide(Effect.service(ClientConfig), ClientConfig.layer))
 
 const broker = await connect({
   ...config.broker,

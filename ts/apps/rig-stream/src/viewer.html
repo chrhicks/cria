@@ -35,8 +35,8 @@ button:focus-visible, input:focus-visible, .row:focus-visible { outline: 2px sol
   <button id="pause" type="button">Pause</button>
 </header>
 <main id="rows"><p id="empty">Waiting for messages from the stream.</p></main>
-<script>
-const rowsKeptOnPage = 2000
+<script type="module">
+const { rowsKeptOnPage } = await (await fetch('settings')).json()
 const rows = document.getElementById('rows')
 const statusLine = document.getElementById('status')
 const filter = document.getElementById('filter')
