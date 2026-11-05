@@ -55,6 +55,8 @@ createServer((request, response) => {
 
   if (request.url === '/events') {
     response.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-store' })
+    // Sent now: on an empty stream nothing else would tell the page it is connected.
+    response.flushHeaders()
 
     // The browser sends the last id it saw when it reconnects, so a reconnect continues without repeats.
     const lastEventId = Number(request.headers['last-event-id'])
