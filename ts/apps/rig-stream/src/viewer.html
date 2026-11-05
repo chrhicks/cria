@@ -22,7 +22,7 @@ button:focus-visible, input:focus-visible, .row:focus-visible { outline: 2px sol
 .seq, .at, .dir { color: var(--mu); font-variant-numeric: tabular-nums }
 .xml { overflow: hidden; white-space: nowrap; text-overflow: ellipsis }
 .row.open .xml { white-space: pre-wrap; overflow-wrap: anywhere }
-.out .xml { color: var(--hi) }
+.out .xml, .system .dir { color: var(--hi) }
 #empty { color: var(--mu); padding: 16px 12px }
 @media (max-width: 640px) { .row { grid-template-columns: 11ch 3ch 1fr } .seq { display: none } }
 </style>
@@ -63,16 +63,33 @@ function cell(name, text) {
   return element
 }
 
+function viewOf(entry, source) {
+  if (source !== 'system') return { summary: entry.xml.trim(), full: entry.xml.trim() }
+
+  const line = JSON.parse(entry.xml)
+
+  return { summary: `${line.SYSLOG_IDENTIFIER ?? line._COMM}: ${line.MESSAGE}`, full: JSON.stringify(line, null, 2) }
+}
+
+function toggle(row) {
+  const open = row.classList.toggle('open')
+
+  row.querySelector('.xml').textContent = open ? row.dataset.full : row.dataset.summary
+}
+
 function add(entry) {
   document.getElementById('empty')?.remove()
-  const direction = entry.subject.endsWith('.out') ? 'out' : 'in'
+  const source = entry.subject.split('.').at(-1)
+  const view = viewOf(entry, source)
   const row = document.createElement('div')
 
-  row.className = `row ${direction}`
+  row.className = `row ${source}`
   row.tabIndex = 0
   row.dataset.text = entry.xml
+  row.dataset.summary = view.summary
+  row.dataset.full = view.full
   row.hidden = !matches(entry.xml)
-  row.append(cell('seq', entry.seq), cell('at', `${time.format(entry.at)} ET`), cell('dir', direction), cell('xml', entry.xml.trim()))
+  row.append(cell('seq', entry.seq), cell('at', `${time.format(entry.at)} ET`), cell('dir', source === 'system' ? 'sys' : source), cell('xml', view.summary))
   rows.prepend(row)
 
   while (rows.children.length > rowsKeptOnPage) rows.lastElementChild.remove()
@@ -110,9 +127,13 @@ pauseButton.addEventListener('click', () => {
   showStatus()
 })
 
-rows.addEventListener('click', event => event.target.closest('.row')?.classList.toggle('open'))
+rows.addEventListener('click', event => {
+  const row = event.target.closest('.row')
+
+  if (row) toggle(row)
+})
 rows.addEventListener('keydown', event => {
-  if (event.key === 'Enter' && event.target.classList.contains('row')) event.target.classList.toggle('open')
+  if (event.key === 'Enter' && event.target.classList.contains('row')) toggle(event.target)
 })
 
 setInterval(showStatus, 1000)

@@ -13,6 +13,14 @@ const ClientSettings = Schema.Struct({
     port: Schema.Number.annotate({ description: 'indiserver port' }),
   }),
   broker: Broker,
+  journalExclusions: Schema.Struct({
+    identifiers: Schema.Array(Schema.String).annotate({
+      description: 'Log sources left off the stream. Chris, 2026-11-04: ssh sessions and Tailscale routes are off',
+    }).pipe(Schema.withDecodingDefaultKey(Effect.succeed(['sshd', 'sshd-session', 'systemd-logind', 'tailscaled']))),
+    unitPrefixes: Schema.Array(Schema.String).annotate({
+      description: 'Units left off the stream. session- is an ssh session. rig-stream-client is this program: publishing its own log lines would feed back into the stream',
+    }).pipe(Schema.withDecodingDefaultKey(Effect.succeed(['session-', 'rig-stream-client']))),
+  }).pipe(Schema.withDecodingDefaultKey(Effect.succeed({}))),
 })
 
 const ViewerSettings = Schema.Struct({
