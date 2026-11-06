@@ -108,6 +108,33 @@ describe('Cria on the rig stream', () => {
     expect(body('cria.write').find(write => write['property'] === 'CCD_EXPOSURE')).toMatchObject({ device: 'primary' })
   })
 
+  it('publishes each frame it keeps with the camera\'s whole header and its checksum', async () => {
+    cria = await startCria(fake.port, devices, { streamClientConfig: await settings(broker) }, { stream: fakePublisher })
+    await cria.waitFor(allReady(['primary']))
+
+    const ending = await cria.run('primary', 'capture', { exposureSeconds: 0.01, light: true })
+    const [frame] = body('cria.frame')
+
+    expect(frame).toMatchObject({
+      operationId: ending.id,
+      deviceId: 'primary',
+      imageId: ending.image!.id,
+      sha256: ending.image!.sha256,
+      bytes: ending.image!.original.bytes,
+      exposureSeconds: 0.01,
+    })
+    expect(frame!['header']).toEqual(expect.arrayContaining([expect.stringMatching(/^SIMPLE/), expect.stringMatching(/^BITPIX/)]))
+  })
+
+  it('publishes no frame for a capture that fails', async () => {
+    fake.behaviour = (_fake, vector) => (vector.name === 'CCD_EXPOSURE' ? 'handled' : 'default')
+    cria = await startCria(fake.port, devices, { streamClientConfig: await settings(broker), acknowledgeMs: 500 }, { stream: fakePublisher })
+    await cria.waitFor(allReady(['primary']))
+    await cria.run('primary', 'capture', { exposureSeconds: 0.01, light: true })
+
+    expect(body('cria.frame')).toEqual([])
+  })
+
   it('publishes a refusal with its reason', async () => {
     cria = await startCria(fake.port, devices, { streamClientConfig: await settings(broker) }, { stream: fakePublisher })
     const state = await cria.waitFor(allReady(['primary']))

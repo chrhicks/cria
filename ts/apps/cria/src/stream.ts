@@ -7,6 +7,7 @@ import { defaultWireDevices, makeEntries, openPublisher, wireDevice, type Broker
 import type { InstanceId, Operation } from '@cria/wire'
 import type { Config } from './config.js'
 import type { Submission } from './operation/ledger.js'
+import type { FrameKept } from './operation/workflows.js'
 import type { Refusal } from './refusal.js'
 
 type Settled = Extract<Operation, { readonly state: 'settled' }>
@@ -24,6 +25,7 @@ export interface CriaStream {
   readonly refused: (submission: Submission, refusal: Refusal) => void
   readonly settled: (operation: Settled) => void
   readonly traffic: TrafficTap
+  readonly frame: (frame: FrameKept) => void
 }
 
 const firstTagName = /^\s*<[^>]*?\bname="([^"]*)"/
@@ -78,6 +80,7 @@ export function makeCriaStream(
         publisher.publish('rig-dev.cria.request', entries.cria('request', { ...asked(submission), result: 'accepted', operationId: operation.id })),
       refused: (submission, refusal) =>
         publisher.publish('rig-dev.cria.request', entries.cria('request', { ...asked(submission), result: 'refused', code: refusal.code, message: refusal.message })),
+      frame: frame => publisher.publish('rig-dev.cria.frame', entries.cria('frame', frame)),
       traffic: {
         connection: () => {},
         message: ({ conn, dir, xml }) => {

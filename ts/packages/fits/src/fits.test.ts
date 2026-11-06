@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { FitsError, fitsToImageBytes, flattened, readFitsHeader, withExposure } from './fits.js'
+import { FitsError, fitsToImageBytes, flattened, readFitsCards, readFitsHeader, withExposure } from './fits.js'
 
 function fits(cards: ReadonlyArray<string>, data: Buffer): Buffer {
   const header = Buffer.from([...cards, 'END'].map(card => card.padEnd(80)).join('').padEnd(2880))
@@ -119,5 +119,19 @@ describe('flattened', () => {
 
     expect(flat.subarray(0, 2880).equals(source.subarray(0, 2880))).toBe(true)
     expect(flat.subarray(2880, 2880 + 12).toString('hex')).toBe('800180018001800180018001')
+  })
+})
+
+describe('readFitsCards', () => {
+  const header = (lines: ReadonlyArray<string>) => Buffer.from(lines.map(line => line.padEnd(80)).join('').padEnd(2880))
+
+  it('keeps every card as written, comments and COMMENT lines included, up to END', () => {
+    const cards = ['SIMPLE  =                    T / conforms', 'COMMENT from the camera', "OBJECT  = 'M31 / core'"]
+
+    expect(readFitsCards(header([...cards, 'END', 'AFTER   =                    1']))).toEqual(cards)
+  })
+
+  it('refuses a header with no END', () => {
+    expect(() => readFitsCards(header(['SIMPLE  =                    T']))).toThrow(FitsError)
   })
 })

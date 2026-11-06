@@ -85,6 +85,10 @@ describe('classify', () => {
     })
   })
 
+  it('groups kept frames by camera', () => {
+    expect(classify('rig-dev.cria.frame', entry('cria.frame', { deviceId: 'primary', imageId: 'i' }))?.group).toBe('cria.frame.primary.frame')
+  })
+
   it('skips a wire entry without a device in its subject', () => {
     expect(classify('rig-dev.wire.in', wire('<setNumberVector state="Ok"></setNumberVector>'))).toBeUndefined()
   })

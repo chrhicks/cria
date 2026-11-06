@@ -27,6 +27,17 @@ export function readFitsHeader(fits) {
     }
     throw new FitsError('FITS header has no END card');
 }
+export function readFitsCards(fits) {
+    const cards = [];
+    for (let offset = 0; offset + card <= fits.length; offset += card) {
+        const line = fits.toString('latin1', offset, offset + card).trimEnd();
+        if (line === 'END')
+            return cards;
+        if (line !== '')
+            cards.push(line);
+    }
+    throw new FitsError('FITS header has no END card');
+}
 function integerCard(cards, key, fallback) {
     const text = cards.get(key);
     if (text === undefined) {

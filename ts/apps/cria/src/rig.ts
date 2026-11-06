@@ -81,7 +81,7 @@ export function makeRig(config: Config, options: { readonly recording?: Recordin
       })
     }
 
-    const workflows = makeWorkflows(images)
+    const workflows = makeWorkflows(images, frame => stream?.frame(frame))
     const inner = yield* makeLedger({
       instanceId,
       commandsEnabled: config.commandsEnabled,

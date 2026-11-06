@@ -257,6 +257,12 @@ function describeCria(entry) {
     return { source: 'cria', who: body.device, label: 'wri', what: body.property, state: '', pairs, text: '', quiet: false }
   }
 
+  if (entry.kind === 'cria.frame') {
+    const pairs = [['size', `${body.width}×${body.height}`], ['exposure', `${body.exposureSeconds} s`], ['MB', (body.bytes / 1e6).toFixed(1)], ['header', `${body.header.length} cards`]]
+
+    return { source: 'cria', who: body.deviceId, label: 'fra', what: 'frame', state: '', pairs, text: '', quiet: false }
+  }
+
   const base = { source: 'cria', who: body.deviceId, label: 'cri', what: body.kind, text: '', quiet: false }
   const parameters = Object.entries(body.parameters ?? {}).map(([key, value]) => [key, String(value)])
 
