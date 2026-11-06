@@ -82,6 +82,9 @@ importers:
       '@cria/indi':
         specifier: workspace:*
         version: link:../../packages/indi
+      '@cria/stream':
+        specifier: workspace:*
+        version: link:../../packages/stream
       '@nats-io/jetstream':
         specifier: 3.4.0
         version: 3.4.0
@@ -156,6 +159,15 @@ importers:
       '@cria/recording':
         specifier: workspace:*
         version: link:../recording
+      effect:
+        specifier: 4.0.3
+        version: 4.0.3
+
+  packages/stream:
+    dependencies:
+      '@cria/indi':
+        specifier: workspace:*
+        version: link:../indi
       effect:
         specifier: 4.0.3
         version: 4.0.3
