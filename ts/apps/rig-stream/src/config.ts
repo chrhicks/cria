@@ -10,6 +10,9 @@ const Broker = Schema.Struct({
 })
 
 const ClientSettings = Schema.Struct({
+  rig: Schema.String.annotate({
+    description: 'The rig each entry belongs to: the id Vela already uses for it',
+  }).pipe(Schema.withDecodingDefaultKey(Effect.succeed('fra-cria'))),
   indi: Schema.Struct({
     host: Schema.String.annotate({ description: 'Where indiserver listens' }),
     port: Schema.Number.annotate({ description: 'indiserver port' }),

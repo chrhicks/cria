@@ -31,7 +31,7 @@ async function follow(response: ServerResponse, lastSeen: number | undefined) {
   response.on('close', () => void messages.stop())
 
   for await (const message of messages) {
-    const entry = { seq: message.seq, at: message.time.getTime(), subject: message.subject, xml: message.string() }
+    const entry = { seq: message.seq, at: message.time.getTime(), subject: message.subject, text: message.string() }
 
     response.write(`id: ${message.seq}\ndata: ${JSON.stringify(entry)}\n\n`)
   }
