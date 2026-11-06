@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { spawnSync } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
 import { hostname } from 'node:os'
 import { makeIndiClient, type TrafficTap } from '@cria/indi'
@@ -23,7 +24,10 @@ const broker = await connect({
 console.error(`rig-stream-client: broker connected, ${broker.getServer()}`)
 
 void (async () => {
-  for await (const status of broker.status()) console.error(`rig-stream-client: broker ${status.type}`)
+  for await (const status of broker.status()) {
+    console.error(`rig-stream-client: broker ${status.type}`)
+    if (status.type === 'reconnect') announce()
+  }
 })()
 
 function publish(subject: string, entry: Entry) {
@@ -34,12 +38,33 @@ function publish(subject: string, entry: Entry) {
   }
 }
 
+const run = randomUUID()
+
 const entries = makeEntries({
   rig: config.rig,
   source: `${hostname()}:stream-client`,
-  run: randomUUID(),
+  run,
   now: () => Date.now(),
 })
+
+const build = spawnSync('git', ['-C', import.meta.dirname, 'rev-parse', '--short', 'HEAD'], { encoding: 'utf8' })
+const version = build.status === 0 ? build.stdout.trim() : 'unknown'
+let brokerConnections = 0
+
+function announce() {
+  brokerConnections += 1
+  publish(
+    'rig-dev.client',
+    entries.client('connected', {
+      client: 'stream-client',
+      run,
+      connection: brokerConnections,
+      version,
+      sources: ['wire', 'system', 'phd2'],
+      wireDevices: config.wireDevices,
+    }),
+  )
+}
 
 const debugLines = makeDebugChangeFilter()
 
@@ -52,6 +77,8 @@ const tap: TrafficTap = {
     console.error(`rig-stream-client: indiserver ${connection.status}${connection.status === 'closed' ? `: ${connection.error}` : ''}`)
   },
 }
+
+announce()
 
 await Promise.all([
   Effect.runPromise(Effect.scoped(Effect.andThen(makeIndiClient({ ...config.indi, tap }), Effect.never))),

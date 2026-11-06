@@ -44,6 +44,21 @@ describe('system entries', () => {
   })
 })
 
+describe('client entries', () => {
+  it('count within the run and say what happened in the kind', () => {
+    const made = entries()
+
+    expect(made.client('connected', { connection: 1 })).toEqual({
+      ...outer,
+      id: 'client:run1:1',
+      kind: 'client.connected',
+      at: 1000,
+      body: { connection: 1 },
+    })
+    expect(made.client('connected', { connection: 2 }).id).toBe('client:run1:2')
+  })
+})
+
 describe('PHD2 entries', () => {
   it('name the event in the kind and take their time from PHD2', () => {
     const event = { Event: 'GuideStep', Timestamp: 1793990281.025, dx: -1.283 }
