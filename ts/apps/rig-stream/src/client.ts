@@ -61,8 +61,7 @@ await broker.ready
 await Promise.all([
   Effect.runPromise(Effect.scoped(Effect.andThen(makeIndiClient({ ...config.indi, tap }), Effect.never))),
   followJournal(config.journalExclusions, config.journalCursorFile, async line => {
-    broker.publish('rig-dev.system', entries.system(line))
-    await broker.flush()
+    await broker.publishConfirmed('rig-dev.system', entries.system(line))
   }),
   followPhd2(
     config.phd2,

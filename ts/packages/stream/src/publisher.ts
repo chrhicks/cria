@@ -1,4 +1,4 @@
-import { connect, type NatsConnection } from '@nats-io/transport-node'
+import { connect, type NatsConnection, type Status } from '@nats-io/transport-node'
 import type { Entry } from './entry.js'
 
 export interface BrokerSettings {
@@ -10,7 +10,7 @@ export interface BrokerSettings {
 export interface Publisher {
   readonly ready: Promise<void>
   readonly publish: (subject: string, entry: Entry) => void
-  readonly flush: () => Promise<void>
+  readonly publishConfirmed: (subject: string, entry: Entry) => Promise<void>
   readonly close: () => Promise<void>
 }
 
@@ -21,10 +21,20 @@ export interface PublisherOptions {
   readonly onConnected: (connection: number) => void
 }
 
-export function openPublisher({ broker, name, log, onConnected }: PublisherOptions): Publisher {
-  let connection: NatsConnection | undefined
+export type BrokerConnection = Pick<NatsConnection, 'publish' | 'flush' | 'close' | 'getServer'> & {
+  readonly status: () => AsyncIterable<Status>
+}
+
+export type ConnectToBroker = (options: BrokerSettings & { readonly name: string }) => Promise<BrokerConnection>
+
+const connectToBroker: ConnectToBroker = options => connect({ ...options, waitOnFirstConnect: true, maxReconnectAttempts: -1 })
+
+export function openPublisher({ broker, name, log, onConnected }: PublisherOptions, connectTo = connectToBroker): Publisher {
+  let connection: BrokerConnection | undefined
   let connections = 0
   let closed = false
+  let wake = () => {}
+  const nextReconnect = () => new Promise<void>(resolve => (wake = resolve))
 
   const connected = () => {
     connections += 1
@@ -32,7 +42,7 @@ export function openPublisher({ broker, name, log, onConnected }: PublisherOptio
   }
 
   const ready = (async () => {
-    const opened = await connect({ ...broker, name, waitOnFirstConnect: true, maxReconnectAttempts: -1 })
+    const opened = await connectTo({ ...broker, name })
 
     if (closed) {
       await opened.close()
@@ -46,7 +56,10 @@ export function openPublisher({ broker, name, log, onConnected }: PublisherOptio
     void (async () => {
       for await (const status of opened.status()) {
         log(`broker ${status.type}`)
-        if (status.type === 'reconnect') connected()
+        if (status.type === 'reconnect') {
+          connected()
+          wake()
+        }
       }
     })()
   })().catch((error: unknown) => log(`broker refused: ${String(error)}`))
@@ -60,9 +73,22 @@ export function openPublisher({ broker, name, log, onConnected }: PublisherOptio
         log(`publish failed: ${String(error)}`)
       }
     },
-    flush: () => connection?.flush() ?? Promise.resolve(),
+    async publishConfirmed(subject, entry) {
+      while (!closed) {
+        try {
+          connection?.publish(subject, JSON.stringify(entry))
+          await connection?.flush()
+
+          return
+        } catch (error) {
+          log(`not confirmed, sending again after the broker returns: ${String(error)}`)
+          await nextReconnect()
+        }
+      }
+    },
     async close() {
       closed = true
+      wake()
       await connection?.close()
     },
   }
