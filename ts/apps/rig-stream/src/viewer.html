@@ -5,118 +5,412 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Rig dev stream</title>
 <style>
-:root { color-scheme: light dark; --bg: #fff; --fg: #1c1c1c; --mu: #666; --ln: #ddd; --hi: #0b6bcb; --bad: #c0392b }
-@media (prefers-color-scheme: dark) { :root { --bg: #0d0f12; --fg: #e8e8e8; --mu: #9aa0a6; --ln: #2a2d32; --hi: #6cb2ff; --bad: #ff7b72 } }
+:root {
+  color-scheme: light dark;
+  --bg: #fff; --fg: #1c1c1c; --mu: #6b6f76; --ln: #e4e6e9; --sub: #f5f6f7; --hi: #0b6bcb; --bad: #c0392b; --warn: #a8660a;
+  --primary: #8250df; --guide: #0f7b8a; --focuser: #a8590a; --mount: #1a7f37; --box: #b0397a; --sys: #3f6fb5; --phd: #7c5cbf;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0d0f12; --fg: #e8e8e8; --mu: #9aa0a6; --ln: #2a2d32; --sub: #171a1e; --hi: #6cb2ff; --bad: #ff7b72; --warn: #e3b341;
+    --primary: #b9a0f5; --guide: #5cc8d8; --focuser: #e6a95c; --mount: #7ee2a0; --box: #f08fc0; --sys: #8ab4f0; --phd: #b39ddb;
+  }
+}
 * { box-sizing: border-box }
 body { margin: 0; background: var(--bg); color: var(--fg); font: 13px/1.35 system-ui, sans-serif }
-header { position: sticky; top: 0; background: var(--bg); border-bottom: 1px solid var(--ln); padding: 8px 12px; display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center }
+header { position: sticky; top: 0; z-index: 1; background: var(--bg); border-bottom: 1px solid var(--ln) }
+.bar { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; padding: 8px 12px 0 }
 h1 { font-size: 15px; font-weight: 600; margin: 0 }
-#status { color: var(--mu); font-variant-numeric: tabular-nums }
+#status { color: var(--mu); font-variant-numeric: tabular-nums; flex: 1 1 auto }
 #status.down { color: var(--bad); font-weight: 600 }
-input { flex: 1 1 200px; min-width: 0; font: inherit; padding: 4px 8px; background: var(--bg); color: var(--fg); border: 1px solid var(--ln); border-radius: 4px }
-button { font: inherit; padding: 4px 10px; background: var(--bg); color: var(--fg); border: 1px solid var(--ln); border-radius: 4px; cursor: pointer }
+input { flex: 1 1 260px; min-width: 0; font: inherit; padding: 4px 8px; background: var(--bg); color: var(--fg); border: 1px solid var(--ln); border-radius: 4px }
+button { font: inherit; padding: 3px 9px; background: var(--bg); color: var(--fg); border: 1px solid var(--ln); border-radius: 4px; cursor: pointer }
+button:hover { background: var(--sub) }
 button:focus-visible, input:focus-visible, .row:focus-visible { outline: 2px solid var(--hi); outline-offset: -2px }
-.row { display: grid; grid-template-columns: 7ch 11ch 3ch 1fr; gap: 0 10px; padding: 2px 12px; border-bottom: 1px solid var(--ln); font: 12px/1.4 ui-monospace, Menlo, monospace; cursor: pointer }
+.chips { display: flex; flex-wrap: wrap; gap: 4px; align-items: center }
+.chip { display: inline-flex; gap: 5px; align-items: baseline; padding: 1px 8px; border-radius: 10px; font-size: 12px; color: var(--mu) }
+.chip b { font-weight: 500; color: var(--tone, var(--fg)) }
+.chip span { font-variant-numeric: tabular-nums }
+.chip[aria-pressed="true"] { background: color-mix(in srgb, var(--tone, var(--hi)) 16%, transparent); border-color: var(--tone, var(--hi)) }
+.gap { width: 8px }
+#hidden:empty { display: none }
+#hidden::before { content: 'Hidden:'; color: var(--mu); font-size: 12px; margin-right: 2px }
+.columns, .row { display: grid; grid-template-columns: 7ch 12ch 3ch 8ch 24ch minmax(0, 1fr); gap: 0 10px; padding: 2px 12px; font: 12px/1.45 ui-monospace, Menlo, monospace }
+.columns { color: var(--mu); margin-top: 6px; border-top: 1px solid var(--ln); padding-top: 3px; padding-bottom: 3px }
+.row { border-bottom: 1px solid color-mix(in srgb, var(--ln) 60%, transparent); cursor: pointer; align-items: baseline }
 .row[hidden] { display: none }
-.row:hover { background: color-mix(in srgb, var(--hi) 8%, transparent) }
-.seq, .at, .dir { color: var(--mu); font-variant-numeric: tabular-nums }
-.xml { overflow: hidden; white-space: nowrap; text-overflow: ellipsis }
-.row.open .xml { white-space: pre-wrap; overflow-wrap: anywhere }
-.out .xml, .system .dir, .phd2 .dir { color: var(--hi) }
-#empty { color: var(--mu); padding: 16px 12px }
-@media (max-width: 640px) { .row { grid-template-columns: 11ch 3ch 1fr } .seq { display: none } }
+.row:hover { background: var(--sub) }
+.seq, .ms, .src, .state, .k { color: var(--mu) }
+.seq, .at { font-variant-numeric: tabular-nums }
+.who { color: var(--tone, var(--mu)) }
+.what, .detail { overflow: hidden; white-space: nowrap; text-overflow: ellipsis }
+.detail { color: color-mix(in srgb, var(--fg) 82%, var(--mu)) }
+.state { margin-right: 8px }
+.k { margin-left: 8px }
+.k:first-of-type { margin-left: 0 }
+.primary { --tone: var(--primary) } .guide { --tone: var(--guide) } .focuser { --tone: var(--focuser) } .mount { --tone: var(--mount) } .box { --tone: var(--box) }
+.system { --tone: var(--sys) } .phd2 { --tone: var(--phd) }
+.row .src { color: var(--mu) }
+.row.out .src, .row.system .src, .row.phd2 .src { color: var(--tone, var(--hi)) }
+.row.command { background: color-mix(in srgb, var(--hi) 7%, transparent) }
+.row.command .src { color: var(--hi); font-weight: 600 }
+.row.problem { box-shadow: inset 2px 0 0 var(--bad) }
+.row.problem .state, .row.problem .detail { color: var(--bad) }
+.row.quiet .detail { color: var(--mu) }
+.more { display: none; grid-column: 1 / -1; margin: 4px 0 6px; padding: 8px 10px; background: var(--sub); border-radius: 4px; cursor: auto }
+.row.open .more { display: block }
+.row.open .what, .row.open .detail { white-space: normal; overflow-wrap: anywhere }
+.facts { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 0 12px; margin: 0 0 6px }
+.facts dt { color: var(--mu) } .facts dd { margin: 0; overflow-wrap: anywhere }
+.more pre { margin: 6px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; font: inherit }
+.actions { display: flex; flex-wrap: wrap; gap: 4px }
+.actions button { font-size: 11px; padding: 1px 7px }
+#empty { color: var(--mu); padding: 16px 12px; margin: 0 }
+@media (max-width: 720px) {
+  .columns { display: none }
+  .row { grid-template-columns: 12ch 3ch minmax(0, 1fr) }
+  .seq { display: none }
+  .what, .detail { grid-column: 1 / -1 }
+}
 </style>
 </head>
 <body>
 <header>
-  <h1>Rig dev stream</h1>
-  <span id="status" role="status">Connecting</span>
-  <input id="filter" type="search" placeholder="Filter, for example ZWO AM5 or CCD_TEMPERATURE" aria-label="Filter messages">
-  <button id="pause" type="button">Pause</button>
+  <div class="bar">
+    <h1>Rig dev stream</h1>
+    <span id="status" role="status">Connecting</span>
+    <button id="pause" type="button">Pause</button>
+  </div>
+  <div class="bar">
+    <input id="search" type="search" placeholder="Search, or prop:COORD state:Alert who:kernel -debug" aria-label="Search entries">
+    <button id="clear" type="button">Clear</button>
+  </div>
+  <div class="bar">
+    <div class="chips" id="show" role="group" aria-label="Show only"></div>
+    <div class="chips" id="hidden" aria-label="Hidden properties"></div>
+  </div>
+  <div class="columns" aria-hidden="true"><span>seq</span><span>time ET</span><span>src</span><span>who</span><span>what</span><span>detail</span></div>
 </header>
 <main id="rows"><p id="empty">Waiting for messages from the stream.</p></main>
 <script type="module">
 const { rowsKeptOnPage } = await (await fetch('settings')).json()
 const rows = document.getElementById('rows')
+const empty = document.getElementById('empty')
 const statusLine = document.getElementById('status')
-const filter = document.getElementById('filter')
+const search = document.getElementById('search')
 const pauseButton = document.getElementById('pause')
-const time = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' })
+const clock = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' })
+const stamp = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' })
+const xml = new DOMParser()
+const sources = ['primary', 'guide', 'focuser', 'mount', 'box', 'server', 'other', null, 'system', 'phd2']
+const flags = [['commands', 'Commands'], ['problems', 'Problems']]
+const problemEvents = new Set(['StarLost', 'Alert', 'CalibrationFailed'])
+const counts = new Map()
+const meta = new WeakMap()
 const held = []
 const recent = []
 let paused = false
 let total = 0
 let connected = false
+let shown = 0
 
-function matches(text) {
-  const wanted = filter.value.trim().toLowerCase()
-
-  return wanted === '' || text.toLowerCase().includes(wanted)
+const hash = new URLSearchParams(location.hash.slice(1))
+const filter = {
+  show: new Set((hash.get('show') ?? '').split(',').filter(Boolean)),
+  commands: hash.has('commands'),
+  problems: hash.has('problems'),
+  hidden: new Set((hash.get('hide') ?? '').split(',').filter(Boolean)),
 }
 
-function cell(name, text) {
-  const element = document.createElement('span')
+search.value = hash.get('q') ?? ''
 
-  element.className = name
-  element.textContent = text
+function element(tag, className, text) {
+  const made = document.createElement(tag)
 
-  return element
+  if (className) made.className = className
+  if (text !== undefined) made.textContent = text
+
+  return made
 }
 
-function entryOf(text) {
-  return text.startsWith('{"v":1,') ? JSON.parse(text) : null
+function shortNumber(text) {
+  const value = Number(text)
+
+  return text !== '' && Number.isFinite(value) ? String(Number(value.toFixed(6))) : text
 }
 
-function summaryOf(entry) {
-  if (typeof entry.body === 'string') return entry.body
-  if (entry.kind === 'wire') return entry.body.xml.trim()
-  if (entry.kind === 'system') return `${entry.body.SYSLOG_IDENTIFIER ?? entry.body._COMM}: ${entry.body.MESSAGE}`
+function describeWire(entry, subject) {
+  const device = subject.split('.')[2]
+  const root = xml.parseFromString(entry.body.xml, 'text/xml').documentElement
+  const base = { source: device, who: device, label: entry.body.dir, what: '', state: '', pairs: [], text: '', problem: false, command: false, quiet: false }
+
+  if (root.querySelector('parsererror') || root.nodeName === 'parsererror') return { ...base, what: 'unreadable', text: entry.body.xml.trim() }
+
+  const tag = root.nodeName
+
+  if (tag === 'message') {
+    const text = root.getAttribute('message') ?? ''
+
+    return { ...base, what: 'message', text, problem: text.includes('[ERROR]'), quiet: text.includes('[DEBUG]') }
+  }
+
+  const state = root.getAttribute('state') ?? ''
+  const name = root.getAttribute('name') ?? ''
+  const children = [...root.children].map(child => [child.getAttribute('name') ?? child.nodeName, child.textContent.trim()])
+  const isSwitch = tag.endsWith('SwitchVector')
+  const pairs = children.filter(([, value]) => !isSwitch || value === 'On').map(([key, value]) => [key, shortNumber(value)])
+
+  if (tag.startsWith('new')) return { ...base, label: 'cmd', what: name, pairs, command: true }
+  if (tag.startsWith('def')) return { ...base, what: name, state, pairs, text: pairs.length === 0 ? 'defined' : '', quiet: true }
+  if (tag.startsWith('set')) return { ...base, what: name, state, pairs, problem: state === 'Alert' }
+
+  return { ...base, what: name || tag, text: name ? tag : '', quiet: true }
+}
+
+function describeSystem(entry) {
+  const base = { source: 'system', label: 'sys', what: '', state: '', pairs: [], command: false }
+
+  if (typeof entry.body === 'string') return { ...base, who: 'journal', text: entry.body, problem: false, quiet: false }
+
+  const message = entry.body.MESSAGE
+  const text = typeof message === 'string' ? message : JSON.stringify(message)
+  const priority = Number(entry.body.PRIORITY)
+
+  return {
+    ...base,
+    who: entry.body.SYSLOG_IDENTIFIER ?? entry.body._COMM ?? 'journal',
+    what: entry.body._SYSTEMD_USER_UNIT ?? entry.body._SYSTEMD_UNIT ?? '',
+    text,
+    problem: priority <= 3,
+    quiet: priority >= 6 && priority !== 6,
+  }
+}
+
+function describePhd2(entry) {
+  const event = entry.kind.slice('phd2.'.length)
+  const base = { source: 'phd2', who: 'phd2', label: 'phd', what: event, state: '', command: false, quiet: false, problem: problemEvents.has(event) }
+
+  if (typeof entry.body === 'string') return { ...base, pairs: [], text: entry.body }
 
   const { Event, Timestamp, Host, Inst, ...rest } = entry.body
 
-  return `${entry.kind.slice('phd2.'.length)} ${JSON.stringify(rest)}`
+  return { ...base, pairs: Object.entries(rest).map(([key, value]) => [key, typeof value === 'number' ? shortNumber(String(value)) : String(value)]), text: '' }
 }
 
-function viewOf(entry, subject) {
-  const label = entry.kind === 'wire' ? entry.body.dir : entry.kind === 'system' ? 'sys' : 'phd'
+function describe(entry, subject) {
+  if (entry.kind === 'wire') return describeWire(entry, subject)
 
-  return { at: entry.at, label, summary: summaryOf(entry), full: `${subject}\n${JSON.stringify(entry, null, 2)}` }
+  return entry.kind === 'system' ? describeSystem(entry) : describePhd2(entry)
+}
+
+function tokenMatches(token, view) {
+  const field = /^(who|what|prop|state|kind|id|src|tag):(.+)$/.exec(token)
+
+  if (!field) return view.haystack.includes(token)
+
+  const [, key, wanted] = field
+
+  if (key === 'tag') return view.entry.tags.some(tag => tag.toLowerCase().includes(wanted))
+
+  const value = { who: view.who, what: view.what, prop: view.what, state: view.state, kind: view.entry.kind, id: view.entry.id, src: view.label }[key]
+
+  return value.toLowerCase().includes(wanted)
+}
+
+function passes(view) {
+  if (filter.show.size > 0 && !filter.show.has(view.source)) return false
+  if (filter.commands && !view.command) return false
+  if (filter.problems && !view.problem) return false
+  if (filter.hidden.has(view.what)) return false
+
+  return search.value.toLowerCase().split(/\s+/).filter(Boolean).every(token =>
+    token.startsWith('-') && token.length > 1 ? !tokenMatches(token.slice(1), view) : tokenMatches(token, view))
+}
+
+function setShown(row, view) {
+  const visible = passes(view)
+
+  if (row.hidden === visible) shown += visible ? 1 : -1
+  row.hidden = !visible
+}
+
+function applyFilter() {
+  for (const row of rows.querySelectorAll('.row')) setShown(row, meta.get(row))
+  saveFilter()
+  drawChips()
+  showStatus()
+}
+
+function saveFilter() {
+  const next = new URLSearchParams()
+
+  if (filter.show.size > 0) next.set('show', [...filter.show].join(','))
+  if (filter.commands) next.set('commands', '')
+  if (filter.problems) next.set('problems', '')
+  if (filter.hidden.size > 0) next.set('hide', [...filter.hidden].join(','))
+  if (search.value !== '') next.set('q', search.value)
+  history.replaceState(null, '', `#${next}`)
+}
+
+function chip(label, key, pressed, tone, onClick) {
+  const made = element('button', `chip ${tone}`)
+
+  made.type = 'button'
+  made.setAttribute('aria-pressed', String(pressed))
+  made.append(element('b', '', label), element('span', '', (counts.get(key) ?? 0).toLocaleString()))
+  made.addEventListener('click', onClick)
+
+  return made
+}
+
+function drawChips() {
+  const show = document.getElementById('show')
+  const hidden = document.getElementById('hidden')
+
+  show.replaceChildren(
+    ...sources.map(source => source === null ? element('span', 'gap') : chip(source, source, filter.show.has(source), source, () => {
+      if (filter.show.has(source)) filter.show.delete(source)
+      else filter.show.add(source)
+      applyFilter()
+    })),
+    element('span', 'gap'),
+    ...flags.map(([key, label]) => chip(label, key, filter[key], '', () => {
+      filter[key] = !filter[key]
+      applyFilter()
+    })),
+  )
+  hidden.replaceChildren(...[...filter.hidden].map(name => {
+    const made = element('button', 'chip')
+
+    made.type = 'button'
+    made.textContent = `${name} ×`
+    made.setAttribute('aria-label', `Show ${name} again`)
+    made.addEventListener('click', () => {
+      filter.hidden.delete(name)
+      applyFilter()
+    })
+
+    return made
+  }))
+}
+
+function count(view, change) {
+  const keys = [view.source, ...(view.command ? ['commands'] : []), ...(view.problem ? ['problems'] : [])]
+
+  for (const key of keys) counts.set(key, (counts.get(key) ?? 0) + change)
+}
+
+function action(label, onClick) {
+  const made = element('button', '', label)
+
+  made.type = 'button'
+  made.addEventListener('click', onClick)
+
+  return made
+}
+
+function moreOf(view, subject) {
+  const more = element('div', 'more')
+  const facts = element('dl', 'facts')
+  const { body, ...outer } = view.entry
+  const when = new Date(view.entry.at)
+
+  for (const [name, value] of [
+    ['subject', subject],
+    ['id', outer.id],
+    ['kind', outer.kind],
+    ['at', `${stamp.format(when)}.${String(when.getMilliseconds()).padStart(3, '0')} ET`],
+    ['source', outer.source],
+    ['rig', outer.rig],
+    ['tags', outer.tags.length > 0 ? outer.tags.join(', ') : 'none'],
+    ['seq', view.seq],
+  ]) facts.append(element('dt', '', name), element('dd', '', String(value)))
+
+  const actions = element('div', 'actions')
+
+  actions.append(action(`Only ${view.source}`, () => {
+    filter.show = new Set([view.source])
+    applyFilter()
+  }))
+  if (view.what !== '') {
+    actions.append(
+      action(`Only ${view.what}`, () => {
+        search.value = `what:${view.what}`
+        applyFilter()
+      }),
+      action(`Hide ${view.what}`, () => {
+        filter.hidden.add(view.what)
+        applyFilter()
+      }),
+    )
+  }
+  actions.append(action('Copy entry', () => void navigator.clipboard?.writeText(JSON.stringify(view.entry, null, 2))))
+  more.append(facts, actions, element('pre', '', view.entry.kind === 'wire' ? body.xml.trim() : JSON.stringify(body, null, 2)))
+  more.addEventListener('click', event => event.stopPropagation())
+
+  return more
 }
 
 function toggle(row) {
   const open = row.classList.toggle('open')
 
-  row.querySelector('.xml').textContent = open ? row.dataset.full : row.dataset.summary
+  if (open && !row.querySelector('.more')) row.append(moreOf(meta.get(row), meta.get(row).subject))
+}
+
+function detailOf(view) {
+  const detail = element('span', 'detail')
+
+  if (view.state !== '') detail.append(element('span', 'state', view.state))
+  for (const [key, value] of view.pairs) detail.append(element('span', 'k', `${key} `), value)
+  if (view.text !== '') detail.append(view.text)
+
+  return detail
 }
 
 function add(message) {
-  const entry = entryOf(message.text)
+  const entry = message.text.startsWith('{"v":1,') ? JSON.parse(message.text) : null
 
   if (entry === null) return
 
-  document.getElementById('empty')?.remove()
-  const source = message.subject.split('.').at(-1)
-  const view = viewOf(entry, message.subject)
-  const row = document.createElement('div')
+  empty.hidden = true
 
-  row.className = `row ${source}`
+  const view = { ...describe(entry, message.subject), entry, subject: message.subject, seq: message.seq }
+  const when = new Date(entry.at)
+  const row = element('div', `row ${view.source} ${entry.kind === 'wire' ? entry.body.dir : ''} ${view.command ? 'command' : ''} ${view.problem ? 'problem' : ''} ${view.quiet ? 'quiet' : ''}`)
+  const time = element('span', 'at', clock.format(when))
+  const what = element('span', 'what', view.what)
+
+  view.haystack = `${view.who} ${view.what} ${view.state} ${message.text}`.toLowerCase()
+  what.title = view.what
+  time.append(element('span', 'ms', `.${String(when.getMilliseconds()).padStart(3, '0')}`))
   row.tabIndex = 0
-  row.dataset.text = `${view.summary}\n${view.full}`
-  row.dataset.summary = view.summary
-  row.dataset.full = view.full
-  row.hidden = !matches(row.dataset.text)
-  row.append(cell('seq', message.seq), cell('at', `${time.format(view.at)} ET`), cell('dir', view.label), cell('xml', view.summary))
+  row.hidden = true
+  row.append(element('span', 'seq', message.seq), time, element('span', 'src', view.label), element('span', 'who', view.who), what, detailOf(view))
+  meta.set(row, view)
+  setShown(row, view)
+  count(view, 1)
   rows.prepend(row)
 
-  while (rows.children.length > rowsKeptOnPage) rows.lastElementChild.remove()
+  while (rows.querySelectorAll('.row').length > rowsKeptOnPage) {
+    const oldest = rows.lastElementChild
+
+    if (!oldest.hidden) shown -= 1
+    count(meta.get(oldest), -1)
+    oldest.remove()
+  }
 }
 
 function showStatus() {
   const now = Date.now()
+  const kept = rows.querySelectorAll('.row').length
 
   while (recent.length > 0 && now - recent[0] > 60000) recent.shift()
-  statusLine.textContent = `${connected ? 'Live' : 'Reconnecting'} · ${total.toLocaleString()} messages · ${recent.length.toLocaleString()} in the last minute${paused ? ` · paused, ${held.length.toLocaleString()} held` : ''}`
+  statusLine.textContent = `${connected ? 'Live' : 'Reconnecting'} · ${recent.length.toLocaleString()} in the last minute · showing ${shown.toLocaleString()} of the last ${kept.toLocaleString()}${paused ? ` · paused, ${held.length.toLocaleString()} held` : ''}`
   statusLine.classList.toggle('down', !connected)
+  if (kept > 0) {
+    empty.hidden = shown > 0
+    empty.textContent = `Nothing matches in the last ${kept.toLocaleString()} entries. New matches appear here as they arrive.`
+  }
 }
 
 const events = new EventSource('events')
@@ -124,35 +418,46 @@ const events = new EventSource('events')
 events.onopen = () => { connected = true; showStatus() }
 events.onerror = () => { connected = false; showStatus() }
 events.onmessage = event => {
-  const entry = JSON.parse(event.data)
+  const message = JSON.parse(event.data)
 
   total += 1
-  recent.push(entry.at)
-  if (paused) held.push(entry)
-  else add(entry)
+  recent.push(message.at)
+  if (paused) held.push(message)
+  else add(message)
 }
 
-filter.addEventListener('input', () => {
-  for (const row of rows.children) if (row.dataset.text !== undefined) row.hidden = !matches(row.dataset.text)
+search.addEventListener('input', applyFilter)
+
+document.getElementById('clear').addEventListener('click', () => {
+  search.value = ''
+  filter.show.clear()
+  filter.hidden.clear()
+  filter.commands = false
+  filter.problems = false
+  applyFilter()
 })
 
 pauseButton.addEventListener('click', () => {
   paused = !paused
   pauseButton.textContent = paused ? 'Resume' : 'Pause'
-  if (!paused) for (const entry of held.splice(0)) add(entry)
+  if (!paused) for (const message of held.splice(0)) add(message)
   showStatus()
 })
 
 rows.addEventListener('click', event => {
   const row = event.target.closest('.row')
 
-  if (row) toggle(row)
+  if (row && getSelection().isCollapsed) toggle(row)
 })
 rows.addEventListener('keydown', event => {
   if (event.key === 'Enter' && event.target.classList.contains('row')) toggle(event.target)
 })
 
-setInterval(showStatus, 1000)
+drawChips()
+setInterval(() => {
+  showStatus()
+  drawChips()
+}, 1000)
 </script>
 </body>
 </html>
