@@ -7,8 +7,6 @@ import type { Recorder } from '@cria/recording'
 import type { FailureDomain, InstanceId } from '@cria/wire'
 import type { CapabilityContext } from './capability/context.js'
 import { switchElement, takeSnapshot } from './capability/fields.js'
-import { watchForeignMotion } from './capability/foreign-motion.js'
-import { mountMotionDefaults } from './config.js'
 import { makeLiveness, type Liveness } from './capability/liveness.js'
 import { makeDeviceSetup, type DeviceSetup } from './capability/setup.js'
 import type { Config, DeviceConfig } from './config.js'
@@ -88,11 +86,6 @@ export function makeRig(config: Config, options: { readonly recording?: Recordin
         work: workflowFor(device, workflows),
       })),
     })
-
-    for (const device of devices) {
-      if (device.config.kind === 'mount') yield* Effect.forkScoped(watchForeignMotion(device.indi, ledger, device.config.id,
-        device.config.motion?.stationaryDegrees ?? mountMotionDefaults.stationaryDegrees))
-    }
 
     // The Pegasus weather and switch are one INDI device: connect it once.
     const preparing = new Set<string>()

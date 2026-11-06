@@ -39,7 +39,7 @@ export {
   OperationId,
   RequestId,
 } from './ids.js'
-export { ForeignMotion, MotionAxes, MotionCommanded, MotionRecord, stoppedHows } from './motion.js'
+export { MotionAxes, MotionCommanded, MotionRecord, stoppedHows } from './motion.js'
 export { Image, Operation, OperationRequest, OperationResult, Progress, requestIdentity } from './operation.js'
 export { ErrorBody, Health, RecoveryRequest, State, errorCodes, protocolVersion, type ErrorCode } from './state.js'
 export { Json, Outcome, Reading, Timestamp } from './values.js'

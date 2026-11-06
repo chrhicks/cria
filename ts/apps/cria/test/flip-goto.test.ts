@@ -74,7 +74,6 @@ it.each([false, true])('replays the recorded normal flip without a representatio
   expect(result.kind, result.message ?? '').toBe('confirmed')
   expect(result.operation.motion?.stopped.how).toBe('arrived')
   expect(result.quarantined).toBe(false)
-  expect(device).not.toHaveProperty('foreignMotion')
   expect(sent.some(xml => xml.includes('EQUATORIAL_EOD_COORD'))).toBe(true)
   expect(sent.some(xml => xml.includes('TELESCOPE_ABORT_MOTION'))).toBe(false)
 }, 15_000)
@@ -94,7 +93,6 @@ it('completes a synthetic clear normal flip through the strict split bands', asy
   const { result, sent, device } = await replay({ motion: syntheticFlip, envelope: splitEnvelope, tracking: true })
   expect(result.kind, result.message ?? '').toBe('confirmed')
   expect(result.operation.motion?.stopped.how).toBe('arrived')
-  expect(device).not.toHaveProperty('foreignMotion')
   expect(sent.some(xml => xml.includes('TELESCOPE_ABORT_MOTION'))).toBe(false)
 }, 15_000)
 

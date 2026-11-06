@@ -9,16 +9,6 @@ export const MotionAxes = Schema.Struct({ rightAscensionDegrees: Schema.Number, 
 
 export type MotionAxes = typeof MotionAxes.Type
 
-export const ForeignMotion = Schema.Struct({
-  at: Timestamp,
-  from: MotionAxes,
-  to: MotionAxes,
-  /** Axis displacement after subtracting sidereal drift while tracking was off. */
-  unexplained: MotionAxes,
-})
-
-export type ForeignMotion = typeof ForeignMotion.Type
-
 const sentAt = { sentAt: Timestamp }
 
 /** The axis a rate move or rotate runs on is the mount's primary one, right ascension. */

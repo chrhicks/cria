@@ -4,7 +4,6 @@
  */
 import { Schema } from 'effect';
 import { BindingId, DeviceId, FailureDomain, OperationId } from './ids.js';
-import { ForeignMotion } from './motion.js';
 import { Reading, Timestamp } from './values.js';
 export const deviceKinds = ['camera', 'mount', 'focuser', 'weather', 'switch'];
 export const coordinateFrames = ['topocentric', 'j2000'];
@@ -138,7 +137,7 @@ export const Device = Schema.Union([
         /** The last setpoint the driver acknowledged; INDI never reports the target back. */
         lastCommandedSetpointC: Schema.NullOr(Schema.Struct({ value: Schema.Number, commandedAt: Timestamp })),
     }),
-    Schema.Struct({ ...identity, kind: Schema.Literal('mount'), readings: MountReadings, foreignMotion: Schema.optionalKey(ForeignMotion) }),
+    Schema.Struct({ ...identity, kind: Schema.Literal('mount'), readings: MountReadings }),
     Schema.Struct({ ...identity, kind: Schema.Literal('focuser'), readings: FocuserReadings }),
     Schema.Struct({ ...identity, kind: Schema.Literal('weather'), readings: WeatherReadings }),
     Schema.Struct({ ...identity, kind: Schema.Literal('switch'), readings: SwitchReadings, channels: Schema.Array(SwitchChannel) }),

@@ -8,23 +8,6 @@ export declare const MotionAxes: Schema.Struct<{
     readonly declinationDegrees: Schema.Number;
 }>;
 export type MotionAxes = typeof MotionAxes.Type;
-export declare const ForeignMotion: Schema.Struct<{
-    readonly at: Schema.Number;
-    readonly from: Schema.Struct<{
-        readonly rightAscensionDegrees: Schema.Number;
-        readonly declinationDegrees: Schema.Number;
-    }>;
-    readonly to: Schema.Struct<{
-        readonly rightAscensionDegrees: Schema.Number;
-        readonly declinationDegrees: Schema.Number;
-    }>;
-    /** Axis displacement after subtracting sidereal drift while tracking was off. */
-    readonly unexplained: Schema.Struct<{
-        readonly rightAscensionDegrees: Schema.Number;
-        readonly declinationDegrees: Schema.Number;
-    }>;
-}>;
-export type ForeignMotion = typeof ForeignMotion.Type;
 export declare const MotionCommanded: Schema.Union<readonly [Schema.Struct<{
     readonly sentAt: Schema.Number;
     readonly kind: Schema.Literal<"slew">;

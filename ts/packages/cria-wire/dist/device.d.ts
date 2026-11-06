@@ -1912,21 +1912,6 @@ export declare const Device: Schema.Union<readonly [Schema.Struct<{
             readonly message: Schema.optionalKey<Schema.String>;
         }>]>;
     }>;
-    readonly foreignMotion: Schema.optionalKey<Schema.Struct<{
-        readonly at: Schema.Number;
-        readonly from: Schema.Struct<{
-            readonly rightAscensionDegrees: Schema.Number;
-            readonly declinationDegrees: Schema.Number;
-        }>;
-        readonly to: Schema.Struct<{
-            readonly rightAscensionDegrees: Schema.Number;
-            readonly declinationDegrees: Schema.Number;
-        }>;
-        readonly unexplained: Schema.Struct<{
-            readonly rightAscensionDegrees: Schema.Number;
-            readonly declinationDegrees: Schema.Number;
-        }>;
-    }>>;
 }>, Schema.Struct<{
     readonly id: Schema.brand<Schema.String, "DeviceId">;
     readonly name: Schema.String;

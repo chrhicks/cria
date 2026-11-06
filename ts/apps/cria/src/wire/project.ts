@@ -83,7 +83,6 @@ export function projectDevice(rig: Rig, device: RigDevice, facts: DomainFacts) {
       afterOperation: after,
       availability,
       ...body,
-      ...(device.config.kind === 'mount' && facts.foreignMotion ? { foreignMotion: facts.foreignMotion } : {}),
     } satisfies Device
   })
 }
