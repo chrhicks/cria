@@ -1,6 +1,6 @@
 import { createServer, type AddressInfo, type Server, type Socket } from 'node:net'
 import { afterEach, describe, expect, it } from 'vitest'
-import { followPhd2 } from './phd2.js'
+import { followPhd2, type Phd2Status } from './phd2.js'
 
 const version = '{"Event":"Version","PHDVersion":"2.6.14"}'
 const appState = '{"Event":"AppState","State":"Stopped"}'
@@ -30,7 +30,7 @@ function listen(onClient: (client: Socket, written: Array<string>) => void) {
 
 function follow(port: number) {
   const lines: Array<string> = []
-  const statuses: Array<string> = []
+  const statuses: Array<Phd2Status> = []
 
   stop = new AbortController()
   const done = followPhd2({ host: '127.0.0.1', port, reconnectSeconds }, line => lines.push(line), status => statuses.push(status), stop.signal)
@@ -71,7 +71,7 @@ describe('following PHD2', () => {
     await done
 
     expect(clients).toBeGreaterThanOrEqual(2)
-    expect(statuses.slice(0, 3)).toEqual(['connected', 'closed', 'connected'])
+    expect(statuses.slice(0, 3)).toEqual([{ status: 'connected' }, { status: 'closed' }, { status: 'connected' }])
   })
 
   it('keeps trying while PHD2 is down and reports the failure once', async () => {
@@ -85,6 +85,6 @@ describe('following PHD2', () => {
     stop.abort()
     await done
 
-    expect(statuses.filter(status => status.includes('ECONNREFUSED'))).toHaveLength(1)
+    expect(statuses.filter(status => status.status === 'failed' && status.error.includes('ECONNREFUSED'))).toHaveLength(1)
   })
 })

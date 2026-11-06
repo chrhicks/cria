@@ -1,6 +1,11 @@
 import { createConnection } from 'node:net'
 import { setTimeout as sleep } from 'node:timers/promises'
 
+export type Phd2Status =
+  | { readonly status: 'connected' }
+  | { readonly status: 'closed' }
+  | { readonly status: 'failed'; readonly error: string }
+
 export interface Phd2Settings {
   readonly host: string
   readonly port: number
@@ -10,7 +15,7 @@ export interface Phd2Settings {
 function readUntilClosed(
   settings: Phd2Settings,
   publish: (line: string) => void,
-  report: (status: string) => void,
+  report: (status: Phd2Status) => void,
   signal: AbortSignal | undefined,
 ) {
   return new Promise<void>(resolve => {
@@ -28,11 +33,11 @@ function readUntilClosed(
     })
     socket.on('connect', () => {
       connected = true
-      report('connected')
+      report({ status: 'connected' })
     })
-    socket.on('error', error => report(error.message))
+    socket.on('error', error => report({ status: 'failed', error: error.message }))
     socket.on('close', () => {
-      if (connected) report('closed')
+      if (connected) report({ status: 'closed' })
       resolve()
     })
   })
@@ -41,14 +46,16 @@ function readUntilClosed(
 export async function followPhd2(
   settings: Phd2Settings,
   publish: (line: string) => void,
-  report: (status: string) => void,
+  report: (status: Phd2Status) => void,
   signal?: AbortSignal,
 ) {
   let lastStatus = ''
 
-  const reportChange = (status: string) => {
-    if (status !== lastStatus) report(status)
-    lastStatus = status
+  const reportChange = (status: Phd2Status) => {
+    const text = JSON.stringify(status)
+
+    if (text !== lastStatus) report(status)
+    lastStatus = text
   }
 
   while (!signal?.aborted) {

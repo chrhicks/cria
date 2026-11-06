@@ -74,6 +74,7 @@ const tap: TrafficTap = {
   },
   connection: connection => {
     debugLines.forget()
+    publish('rig-dev.client', entries.client('connection', { target: 'indiserver', conn: connection.conn, status: connection.status, ...(connection.status === 'closed' ? { error: connection.error } : {}) }))
     console.error(`rig-stream-client: indiserver ${connection.status}${connection.status === 'closed' ? `: ${connection.error}` : ''}`)
   },
 }
@@ -89,6 +90,9 @@ await Promise.all([
   followPhd2(
     config.phd2,
     line => publish('rig-dev.phd2', entries.phd2(line)),
-    status => console.error(`rig-stream-client: phd2 ${status}`),
+    status => {
+      console.error(`rig-stream-client: phd2 ${JSON.stringify(status)}`)
+      publish('rig-dev.client', entries.client('connection', { target: 'phd2', ...status }))
+    },
   ),
 ])

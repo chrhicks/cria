@@ -61,7 +61,11 @@ export function classify(subject: string, text: string): Classified | undefined 
     return { source: 'system', command: false, problem: isRecord(body) && Number(body['PRIORITY']) <= 3, property: undefined, reading: undefined, group: undefined }
   }
 
-  if (kind.startsWith('client.')) return { source: 'client', command: false, problem: false, property: undefined, reading: undefined, group: kind }
+  if (kind.startsWith('client.')) {
+    const target = isRecord(body) && typeof body['target'] === 'string' ? `.${body['target']}` : ''
+
+    return { source: 'client', command: false, problem: false, property: undefined, reading: undefined, group: `${kind}${target}` }
+  }
 
   return { source: 'phd2', command: false, problem: problemEvents.has(kind), property: undefined, reading: undefined, group: kind }
 }
