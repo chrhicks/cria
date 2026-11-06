@@ -22,7 +22,7 @@ button:focus-visible, input:focus-visible, .row:focus-visible { outline: 2px sol
 .seq, .at, .dir { color: var(--mu); font-variant-numeric: tabular-nums }
 .xml { overflow: hidden; white-space: nowrap; text-overflow: ellipsis }
 .row.open .xml { white-space: pre-wrap; overflow-wrap: anywhere }
-.out .xml, .system .dir { color: var(--hi) }
+.out .xml, .system .dir, .phd2 .dir { color: var(--hi) }
 #empty { color: var(--mu); padding: 16px 12px }
 @media (max-width: 640px) { .row { grid-template-columns: 11ch 3ch 1fr } .seq { display: none } }
 </style>
@@ -89,7 +89,7 @@ function add(entry) {
   row.dataset.summary = view.summary
   row.dataset.full = view.full
   row.hidden = !matches(entry.xml)
-  row.append(cell('seq', entry.seq), cell('at', `${time.format(entry.at)} ET`), cell('dir', source === 'system' ? 'sys' : source), cell('xml', view.summary))
+  row.append(cell('seq', entry.seq), cell('at', `${time.format(entry.at)} ET`), cell('dir', ({ system: 'sys', phd2: 'phd' })[source] ?? source), cell('xml', view.summary))
   rows.prepend(row)
 
   while (rows.children.length > rowsKeptOnPage) rows.lastElementChild.remove()

@@ -5,6 +5,7 @@ import { Effect } from 'effect'
 import { ClientConfig } from './config.js'
 import { makeDebugChangeFilter } from './debug-lines.js'
 import { followJournal } from './journal.js'
+import { followPhd2 } from './phd2.js'
 
 const config = await Effect.runPromise(Effect.provide(Effect.service(ClientConfig), ClientConfig.layer))
 
@@ -47,4 +48,9 @@ await Promise.all([
     broker.publish('rig-dev.system', line)
     await broker.flush()
   }),
+  followPhd2(
+    config.phd2,
+    line => publish('rig-dev.phd2', line),
+    status => console.error(`rig-stream-client: phd2 ${status}`),
+  ),
 ])
