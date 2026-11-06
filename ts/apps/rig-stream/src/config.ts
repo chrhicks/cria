@@ -26,6 +26,17 @@ const ClientSettings = Schema.Struct({
   journalCursorFile: Schema.String.annotate({
     description: 'Remembers the last journal line sent, on disk, so lines written while this client was down, such as a boot after a power cut, still reach the stream',
   }).pipe(Schema.withDecodingDefaultKey(Effect.succeed(join(homedir(), '.local', 'state', 'rig-stream', 'journal-cursor')))),
+  phd2: Schema.Struct({
+    host: Schema.String.annotate({
+      description: 'Where PHD2 runs. errai itself: errai\'s firewall closes PHD2\'s ports to everything else',
+    }).pipe(Schema.withDecodingDefaultKey(Effect.succeed('127.0.0.1'))),
+    port: Schema.Number.annotate({
+      description: 'PHD2\'s event server: 4400 for its first instance, set by PHD2',
+    }).pipe(Schema.withDecodingDefaultKey(Effect.succeed(4400))),
+    reconnectSeconds: Schema.Number.annotate({
+      description: 'How soon to look for PHD2 again after it goes away. Matches RestartSec in phd2.service, so a restarted PHD2 is picked up about when it is back',
+    }).pipe(Schema.withDecodingDefaultKey(Effect.succeed(5))),
+  }).pipe(Schema.withDecodingDefaultKey(Effect.succeed({}))),
 })
 
 const ViewerSettings = Schema.Struct({
