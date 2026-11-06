@@ -60,6 +60,12 @@ button:focus-visible, input:focus-visible, .row:focus-visible { outline: 2px sol
 .row.problem { box-shadow: inset 2px 0 0 var(--bad) }
 .row.problem .state, .row.problem .detail { color: var(--bad) }
 .row.quiet .detail { color: var(--mu) }
+.group { grid-template-columns: 8ch 26ch minmax(0, 1fr) 8ch 8ch 7ch 7ch; }
+.columns.table { grid-template-columns: 8ch 26ch minmax(0, 1fr) 8ch 8ch 7ch 7ch }
+.group .age, .group .number, .columns.table .right { text-align: right; font-variant-numeric: tabular-nums; color: var(--mu) }
+.group.fresh { animation: fresh 1.2s ease-out }
+@keyframes fresh { from { background: color-mix(in srgb, var(--tone, var(--hi)) 22%, transparent) } to { background: transparent } }
+main[hidden], .columns[hidden] { display: none }
 .more { display: none; grid-column: 1 / -1; margin: 4px 0 6px; padding: 8px 10px; background: var(--sub); border-radius: 4px; cursor: auto }
 .row.open .more { display: block }
 .row.open .what, .row.open .detail { white-space: normal; overflow-wrap: anywhere }
@@ -74,6 +80,10 @@ button:focus-visible, input:focus-visible, .row:focus-visible { outline: 2px sol
   .row { grid-template-columns: 12ch 3ch minmax(0, 1fr) }
   .seq { display: none }
   .what, .detail { grid-column: 1 / -1 }
+  .group { grid-template-columns: 8ch minmax(0, 1fr) 7ch 7ch }
+  .group .what { grid-column: auto }
+  .group .detail { grid-column: 1 / -1; order: 1 }
+  .group .number { display: none }
 }
 </style>
 </head>
@@ -85,6 +95,7 @@ button:focus-visible, input:focus-visible, .row:focus-visible { outline: 2px sol
     <button id="pause" type="button">Pause</button>
   </div>
   <div class="bar">
+    <div class="chips" id="views" role="group" aria-label="View"></div>
     <div class="chips" id="windows" role="group" aria-label="Time window"></div>
     <div class="chips" id="range" hidden>
       <input id="from" type="datetime-local" step="1" aria-label="From"><span class="k">to</span><input id="to" type="datetime-local" step="1" aria-label="To">
@@ -99,12 +110,16 @@ button:focus-visible, input:focus-visible, .row:focus-visible { outline: 2px sol
     <div class="chips" id="show" role="group" aria-label="Show only"></div>
     <div class="chips" id="hidden" aria-label="Hidden properties"></div>
   </div>
-  <div class="columns" aria-hidden="true"><span>seq</span><span>time ET</span><span>src</span><span>who</span><span>what</span><span>detail</span></div>
+  <div class="columns" id="logColumns" aria-hidden="true"><span>seq</span><span>time ET</span><span>src</span><span>who</span><span>what</span><span>detail</span></div>
+  <div class="columns table" id="tableColumns" aria-hidden="true" hidden><span>who</span><span>property</span><span>latest</span><span class="right">read</span><span class="right">changed</span><span class="right">reads</span><span class="right">changes</span></div>
 </header>
 <main id="rows"><p id="empty">Waiting for messages from the stream.</p></main>
+<main id="table" hidden></main>
 <script type="module">
 const { rowsKeptOnPage } = await (await fetch('settings')).json()
 const rows = document.getElementById('rows')
+const table = document.getElementById('table')
+const groups = new Map()
 const empty = document.getElementById('empty')
 const statusLine = document.getElementById('status')
 const search = document.getElementById('search')
@@ -127,6 +142,7 @@ let matched = 0
 let reading = 0
 let phase = 'reading'
 let openedAt = 0
+let liveSince = 0
 let events = null
 
 const hash = new URLSearchParams(location.hash.slice(1))
@@ -136,6 +152,7 @@ const filter = {
   problems: hash.has('problems'),
   changes: hash.has('changes'),
   hidden: new Set((hash.get('hide') ?? '').split(',').filter(Boolean)),
+  view: hash.has('table') ? 'table' : 'log',
   window: hash.get('window') ?? '15m',
   from: hash.get('from') ?? '',
   to: hash.get('to') ?? '',
@@ -250,6 +267,7 @@ function setShown(row, view) {
 }
 
 function applyFilter() {
+  if (filter.view === 'table') drawTable()
   for (const row of rows.querySelectorAll('.row')) setShown(row, meta.get(row))
   saveFilter()
   drawChips()
@@ -263,6 +281,7 @@ function saveFilter() {
     next.set('from', filter.from)
     next.set('to', filter.to)
   } else next.set('window', filter.window)
+  if (filter.view === 'table') next.set('table', '')
   if (filter.show.size > 0) next.set('show', [...filter.show].join(','))
   if (filter.commands) next.set('commands', '')
   if (filter.problems) next.set('problems', '')
@@ -294,14 +313,15 @@ function drawChips() {
     ...sources.map(source => source === null ? element('span', 'gap') : chip(source, source, filter.show.has(source), source, () => {
       if (filter.show.has(source)) filter.show.delete(source)
       else filter.show.add(source)
-      openEvents()
+      refilter()
     })),
     element('span', 'gap'),
-    ...flags.map(([key, label]) => chip(label, key, filter[key], '', () => {
+    ...flags.filter(([key]) => filter.view === 'log' || key === 'problems').map(([key, label]) => chip(label, key, filter[key], '', () => {
       filter[key] = !filter[key]
-      openEvents()
+      refilter()
     })),
   )
+  drawViews()
   drawWindows()
   hidden.replaceChildren(...[...filter.hidden].map(name => {
     const made = element('button', 'chip')
@@ -312,6 +332,32 @@ function drawChips() {
     made.addEventListener('click', () => {
       filter.hidden.delete(name)
       applyFilter()
+    })
+
+    return made
+  }))
+}
+
+function refilter() {
+  if (filter.view === 'table') {
+    drawTable()
+    saveFilter()
+    drawChips()
+    showStatus()
+  } else {
+    openEvents()
+  }
+}
+
+function drawViews() {
+  document.getElementById('views').replaceChildren(...[['Log', 'log'], ['Latest by property', 'table']].map(([label, key]) => {
+    const made = element('button', 'chip', label)
+
+    made.type = 'button'
+    made.setAttribute('aria-pressed', String(filter.view === key))
+    made.addEventListener('click', () => {
+      filter.view = key
+      openEvents()
     })
 
     return made
@@ -451,13 +497,109 @@ function addHistory(entries) {
   kept += entries.length
 }
 
+function age(from) {
+  if (from === undefined || from === null) return '–'
+
+  const seconds = Math.max(0, Math.round((Date.now() - from) / 1000))
+
+  if (seconds < 90) return `${seconds} s`
+  if (seconds < 5400) return `${Math.round(seconds / 60)} min`
+
+  return `${(seconds / 3600).toFixed(1)} h`
+}
+
+function groupView(group) {
+  const entry = JSON.parse(group.latest.text)
+
+  return { ...describe(entry, group.latest.subject), problem: group.latest.problem, entry }
+}
+
+function groupPasses(group) {
+  const view = groupView(group)
+
+  if (filter.show.size > 0 && !filter.show.has(view.source)) return false
+  if (filter.problems && !view.problem) return false
+
+  return passes({ ...view, haystack: `${view.who} ${view.what} ${view.state} ${group.latest.text}`.toLowerCase() })
+}
+
+function fillGroupRow(row, group) {
+  const view = groupView(group)
+
+  row.className = `row group ${view.source} ${view.problem ? 'problem' : ''}`
+  row.replaceChildren(
+    element('span', 'who', view.who),
+    element('span', 'what', view.what),
+    detailOf(view),
+    element('span', 'age', age(group.latest.at)),
+    element('span', 'age', age(group.changedAt)),
+    element('span', 'number', group.reads.toLocaleString()),
+    element('span', 'number', group.changes.toLocaleString()),
+  )
+  row.dataset.key = group.group
+}
+
+function drawTable() {
+  const visible = [...groups.values()].filter(groupPasses).sort((a, b) => a.group.localeCompare(b.group))
+
+  table.replaceChildren(...visible.map(group => {
+    const row = element('div', '')
+
+    fillGroupRow(row, group)
+    row.tabIndex = 0
+
+    return row
+  }))
+  shown = visible.length
+}
+
+function updateGroup(message) {
+  if (message.group === undefined || message.group === null) return
+
+  const known = groups.get(message.group)
+  const group = {
+    group: message.group,
+    latest: message,
+    reads: (known?.reads ?? 0) + 1,
+    changes: (known?.changes ?? 0) + (message.differs ? 1 : 0),
+    changedAt: message.differs ? message.at : known?.changedAt,
+  }
+
+  groups.set(message.group, group)
+
+  const row = table.querySelector(`[data-key="${CSS.escape(message.group)}"]`)
+
+  if (row === null || known === undefined) {
+    drawTable()
+    return
+  }
+
+  fillGroupRow(row, group)
+  row.classList.toggle('fresh', false)
+  if (message.differs) {
+    void row.offsetWidth
+    row.classList.add('fresh')
+  }
+}
+
+function tickAges() {
+  for (const row of table.children) {
+    const group = groups.get(row.dataset.key)
+    const [read, changed] = row.querySelectorAll('.age')
+
+    read.textContent = age(group.latest.at)
+    changed.textContent = age(group.changedAt)
+  }
+}
+
 function statusText() {
   if (phase === 'reading') return reading > 0 ? `Reading history · ${reading.toLocaleString()} entries so far` : 'Reading history'
 
-  const place = phase === 'range' ? `${filter.from.replace('T', ' ')} to ${filter.to.replace('T', ' ')}` : `${connected ? 'Live' : 'Reconnecting'} · since ${clock.format(new Date(openedAt))} ET · ${recent.length.toLocaleString()} in the last minute`
+  const place = phase === 'range' ? `${filter.from.replace('T', ' ')} to ${filter.to.replace('T', ' ')}` : `${connected ? 'Live' : 'Reconnecting'} · since ${clock.format(new Date(openedAt))} ET${Date.now() - liveSince >= 60000 ? ` · ${recent.length.toLocaleString()} in the last minute` : ''}`
   const capped = matched > kept ? ` · this page keeps the newest ${kept.toLocaleString()}` : ''
+  const amount = filter.view === 'table' ? `${shown.toLocaleString()} of ${groups.size.toLocaleString()} properties` : `showing ${shown.toLocaleString()} of ${matched.toLocaleString()}${capped}`
 
-  return `${place} · showing ${shown.toLocaleString()} of ${matched.toLocaleString()}${capped}${paused ? ` · paused, ${held.length.toLocaleString()} held` : ''}`
+  return `${place} · ${amount}${paused ? ` · paused, ${held.length.toLocaleString()} held` : ''}`
 }
 
 function showStatus() {
@@ -484,6 +626,11 @@ function eventsUrl() {
     openedAt = windowStart()
     query.set('since', String(openedAt))
   }
+  if (filter.view === 'table') {
+    query.set('table', '')
+
+    return `events?${query}`
+  }
   if (filter.show.size > 0) query.set('show', [...filter.show].join(','))
   if (filter.commands) query.set('commands', '')
   if (filter.problems) query.set('problems', '')
@@ -495,6 +642,12 @@ function eventsUrl() {
 function openEvents() {
   events?.close()
   rows.querySelectorAll('.row').forEach(row => row.remove())
+  table.replaceChildren()
+  groups.clear()
+  rows.hidden = filter.view === 'table'
+  table.hidden = filter.view !== 'table'
+  document.getElementById('logColumns').hidden = filter.view === 'table'
+  document.getElementById('tableColumns').hidden = filter.view !== 'table'
   counts.clear()
   held.length = 0
   recent.length = 0
@@ -514,11 +667,14 @@ function openEvents() {
     showStatus()
   })
   events.addEventListener('history', event => {
-    const { entries, ...added } = JSON.parse(event.data)
+    const { entries, groups: latest, ...added } = JSON.parse(event.data)
 
     addCounts(added)
     addHistory(entries)
+    for (const group of latest) groups.set(group.group, group)
+    if (filter.view === 'table') drawTable()
     phase = 'live'
+    liveSince = Date.now()
     drawChips()
     showStatus()
   })
@@ -532,7 +688,9 @@ function openEvents() {
     const message = JSON.parse(event.data)
 
     recent.push(message.at)
-    if (paused) held.push(message)
+    if (filter.view === 'table') {
+      if (!paused) updateGroup(message)
+    } else if (paused) held.push(message)
     else add(message)
   })
   showStatus()
@@ -571,12 +729,29 @@ rows.addEventListener('click', event => {
 
   if (row && getSelection().isCollapsed) toggle(row)
 })
+table.addEventListener('click', event => {
+  const key = event.target.closest('.row')?.dataset.key
+  const group = groups.get(key)
+
+  if (group === undefined) return
+
+  const view = groupView(group)
+
+  filter.view = 'log'
+  filter.show = new Set([view.source])
+  search.value = `what:${view.what}`
+  openEvents()
+})
+table.addEventListener('keydown', event => {
+  if (event.key === 'Enter') event.target.click()
+})
 rows.addEventListener('keydown', event => {
   if (event.key === 'Enter' && event.target.classList.contains('row')) toggle(event.target)
 })
 
 openEvents()
 setInterval(() => {
+  tickAges()
   showStatus()
   for (const number of document.querySelectorAll('[data-count]')) number.textContent = (counts.get(number.dataset.count) ?? 0).toLocaleString()
 }, 1000)

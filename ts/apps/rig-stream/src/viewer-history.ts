@@ -12,6 +12,7 @@ export interface Classified {
   readonly command: boolean
   readonly property: string | undefined
   readonly reading: string | undefined
+  readonly group: string | undefined
 }
 
 const valueElement = /<(?:one|def)(?:Number|Text|Switch|Light)\b[^>]*?\bname="([^"]*)"[^>]*>([^<]*)</g
@@ -26,8 +27,11 @@ function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
   return typeof value === 'object' && value !== null
 }
 
-function classifyWire(subject: string, body: unknown): Classified {
-  const source = subject.split('.')[2] ?? 'other'
+function classifyWire(subject: string, body: unknown): Classified | undefined {
+  const source = /^rig-dev\.wire\.(\w+)\.(?:in|out)$/.exec(subject)?.[1]
+
+  if (source === undefined) return undefined
+
   const xml = isRecord(body) && typeof body['xml'] === 'string' ? body['xml'] : ''
   const firstTag = /^\s*<(\w+)[^>]*>?/.exec(xml)
   const tag = firstTag?.[1] ?? ''
@@ -39,6 +43,7 @@ function classifyWire(subject: string, body: unknown): Classified {
     source,
     property: carriesValues ? `${source}.${name}` : undefined,
     reading: carriesValues ? readingOf(xml, state) : undefined,
+    group: carriesValues ? `${source}.${name}` : undefined,
     command: tag.startsWith('new'),
     problem: (tag.startsWith('set') && state === 'Alert') || (tag === 'message' && xml.includes('[ERROR]')),
   }
@@ -53,10 +58,10 @@ export function classify(subject: string, text: string): Classified | undefined 
 
   if (kind === 'wire') return classifyWire(subject, body)
   if (kind === 'system') {
-    return { source: 'system', command: false, problem: isRecord(body) && Number(body['PRIORITY']) <= 3, property: undefined, reading: undefined }
+    return { source: 'system', command: false, problem: isRecord(body) && Number(body['PRIORITY']) <= 3, property: undefined, reading: undefined, group: undefined }
   }
 
-  return { source: 'phd2', command: false, problem: problemEvents.has(kind), property: undefined, reading: undefined }
+  return { source: 'phd2', command: false, problem: problemEvents.has(kind), property: undefined, reading: undefined, group: kind }
 }
 
 export interface HistoryQuery {
@@ -66,6 +71,7 @@ export interface HistoryQuery {
   readonly commands: boolean
   readonly problems: boolean
   readonly changes: boolean
+  readonly table: boolean
 }
 
 function time(value: string | null) {
@@ -82,6 +88,7 @@ export function parseQuery(parameters: URLSearchParams): HistoryQuery {
     commands: parameters.has('commands'),
     problems: parameters.has('problems'),
     changes: parameters.has('changes'),
+    table: parameters.has('table'),
   }
 }
 
@@ -95,11 +102,22 @@ export interface Raw {
 export interface Delivered extends Raw {
   readonly problem: boolean
   readonly command: boolean
+  readonly group: string | undefined
+  readonly differs: boolean
+}
+
+export interface Group {
+  readonly group: string
+  readonly latest: Delivered
+  readonly reads: number
+  readonly changes: number
+  readonly changedAt: number | undefined
 }
 
 export function makeHistory(query: HistoryQuery, keep: number) {
   const kept: Array<Delivered> = []
   const readings = new Map<string, string>()
+  const groups = new Map<string, Group>()
   let counts: Record<string, number> = {}
   let scanned = 0
   let matched = 0
@@ -120,17 +138,31 @@ export function makeHistory(query: HistoryQuery, keep: number) {
       if (classified.problem) count('problems')
 
       const { property, reading } = classified
-      const changed = property === undefined || readings.get(property) !== reading
+      const previous = property === undefined ? undefined : readings.get(property)
+      const changed = property === undefined || previous !== reading
+      const differs = property !== undefined && previous !== undefined && previous !== reading
+      const delivered = { ...raw, problem: classified.problem, command: classified.command, group: classified.group, differs }
 
       if (property !== undefined && reading !== undefined) readings.set(property, reading)
       if (changed) count('changes')
 
+      if (classified.group !== undefined) {
+        const known = groups.get(classified.group)
+
+        groups.set(classified.group, {
+          group: classified.group,
+          latest: delivered,
+          reads: (known?.reads ?? 0) + 1,
+          changes: (known?.changes ?? 0) + (differs ? 1 : 0),
+          changedAt: differs ? raw.at : known?.changedAt,
+        })
+      }
+
+      if (query.table) return delivered
       if (query.changes && !changed) return undefined
       if (query.show.size > 0 && !query.show.has(classified.source)) return undefined
       if (query.commands && !classified.command) return undefined
       if (query.problems && !classified.problem) return undefined
-
-      const delivered = { ...raw, problem: classified.problem, command: classified.command }
 
       matched += 1
       kept.push(delivered)
@@ -151,6 +183,10 @@ export function makeHistory(query: HistoryQuery, keep: number) {
 
     drained() {
       return kept.splice(0)
+    },
+
+    groups() {
+      return [...groups.values()]
     },
   }
 }
