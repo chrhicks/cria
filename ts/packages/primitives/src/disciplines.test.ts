@@ -6,7 +6,6 @@ import { Failed, Uncertain, fromExit, settle } from './outcome.js'
 import { writeOnce, type Answer } from './discipline/write-once.js'
 import { confirm, writeConfirmed } from './discipline/confirm.js'
 import { stoppable } from './discipline/stoppable.js'
-import { retryReads, type ReadResult } from './discipline/retry-reads.js'
 
 const forkUntilWaiting = <A, E>(effect: Effect.Effect<A, E>) =>
   Effect.gen(function* () {
@@ -252,28 +251,5 @@ describe('stoppable', () => {
       expect(yield* settle(motion())).toEqual({ kind: 'uncertain', reason: 'not-confirmed', message: 'MOVE started but did not complete: deadline passed' })
       expect(yield* settle(motion('failed'))).toEqual({ kind: 'failed', reason: 'rejected', message: 'deadline passed' })
       expect(events).toEqual(['stop', 'stop'])
-    }))
-})
-
-describe('retryReads', () => {
-  it.effect('reports a read that overruns its deadline as failed, at the same pace', () =>
-    Effect.gen(function* () {
-      const results: Array<ReadResult<number, never>> = []
-      let calls = 0
-
-      const loop = retryReads({
-        read: Effect.suspend(() => {
-          calls += 1
-
-          return calls === 2 ? Effect.never : Effect.succeed(calls)
-        }),
-        every: '5 millis',
-        timeout: '20 millis',
-        report: result => Effect.sync(() => void results.push(result)),
-      })
-
-      yield* after('80 millis', Effect.timeoutOption(loop, '80 millis'))
-
-      expect(results.map(result => (result.kind === 'read' ? result.value : result.error))).toEqual([1, 'timeout', 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
     }))
 })

@@ -108,7 +108,7 @@ export async function runScenario(scenario: Scenario): Promise<Recorded[]> {
       await until(`${operation.deviceId} at rest after ${operation.kind}`, async () => {
         const availability = (await cria.device(operation.deviceId)).availability
 
-        return availability.ready || !['busy', 'refreshing'].includes(availability.reason)
+        return availability.ready || availability.reason !== 'busy'
       })
       const reply = await client.operation(operationId)
 

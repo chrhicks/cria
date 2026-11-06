@@ -7,7 +7,7 @@ import type { Recorder } from '@cria/recording'
 import type { FailureDomain, InstanceId } from '@cria/wire'
 import type { CapabilityContext } from './capability/context.js'
 import { switchElement, takeSnapshot } from './capability/fields.js'
-import { makeLiveness, type Liveness } from './capability/liveness.js'
+import { trackDefinitions } from './capability/definitions.js'
 import { makeDeviceSetup, type DeviceSetup } from './capability/setup.js'
 import type { Config, DeviceConfig } from './config.js'
 import { equip, type Equipment } from './device.js'
@@ -22,7 +22,6 @@ export interface RigDevice extends Equipment {
   readonly config: DeviceConfig
   readonly failureDomain: FailureDomain
   readonly indi: IndiDevice
-  readonly liveness: Liveness
   readonly setup: DeviceSetup
 }
 
@@ -48,11 +47,11 @@ export function makeRig(config: Config, options: { readonly recording?: Recordin
 
     for (const deviceConfig of config.devices) {
       const indi = client.device(deviceConfig.indiDevice)
-      const liveness = yield* makeLiveness(indi, config.livenessMs)
+      const definitions = yield* trackDefinitions(indi)
       const context: CapabilityContext = {
         feedback: { envelope: deviceConfig.envelope ?? null, fix: null },
         device: indi,
-        snapshot: takeSnapshot(indi, liveness, client.status),
+        snapshot: takeSnapshot(indi, definitions, client.status),
         timing,
       }
       const setup = yield* makeDeviceSetup(context, deviceConfig)
@@ -65,7 +64,6 @@ export function makeRig(config: Config, options: { readonly recording?: Recordin
         config: deviceConfig,
         failureDomain: deviceConfig.failureDomain,
         indi,
-        liveness,
         setup,
         ...equipment,
       })

@@ -232,7 +232,7 @@ describe('quarantine and recovery', () => {
   it('rotates the binding, releases the hold, and records the recovery on the operation it ended', () => {
     const [step, next] = recovery(held)
 
-    expect(step.result).toEqual({ binding: uuid(4), quarantine: { held: false }, busy: false, recentlySettled: [{ id: id(1), settledAt: 51 }] })
+    expect(step.result).toEqual({ binding: uuid(4), quarantine: { held: false }, busy: false })
     expect(resultOf(cancel(next, id(1)))).toMatchObject({ outcome: lost, recovery: { at: 70, note: 'Chris checked' } })
     expect(resultOf(admitted(next, 2, tracking))).toMatchObject({ code: 'binding-changed' })
   })

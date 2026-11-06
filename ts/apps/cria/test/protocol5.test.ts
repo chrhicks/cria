@@ -64,9 +64,7 @@ describe('protocol 5', () => {
     expect(operation.outcome).toMatchObject({ kind: 'confirmed', value: { image: { width: 8, height: 6 } } })
     expect((await client.download(operation)).status).toBe(200)
 
-    const after = (await cria.waitFor(current => current.devices[0]!.afterOperation === operation.id, 4000)).devices[0]!
-
-    expect(after.availability).toEqual({ ready: true })
+    expect((await cria.state()).devices[0]!.availability).toEqual({ ready: true })
   })
 
   it('reports a cooling setpoint as commanded, never as a reading', async () => {

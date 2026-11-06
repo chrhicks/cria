@@ -29,8 +29,6 @@ export function liveSnapshot(context: CapabilityContext): Effect.Effect<DeviceSn
 
     if (snapshot.connected.status === 'fresh' && !snapshot.connected.value)
       return yield* new Failed({ reason: 'disconnected', message: `${snapshot.device} is disconnected` })
-    if (!snapshot.live)
-      return yield* new Failed({ reason: 'unavailable', message: `${snapshot.device} readings are not current` })
 
     return snapshot
   })

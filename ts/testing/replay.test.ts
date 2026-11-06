@@ -10,7 +10,7 @@
  * starts depends on the time of day. So the night is aimed by hour angle, not
  * by the right ascension the mount happens to start at.
  *
- * REPLAY_LIVENESS_SECONDS sets how long the liveness test keeps Cria running
+ * REPLAY_SECONDS sets how long the liveness test keeps Cria running
  * (default 15; 600 is the ten-minute check).
  */
 import { spawn } from 'node:child_process'
@@ -212,9 +212,9 @@ describe('the real Cria on the replay', () => {
     await cria.waitFor(allReady(['primary']))
   })
 
-  it('keeps every device fresh for as long as it runs (REPLAY_LIVENESS_SECONDS)', async () => {
+  it('keeps every device ready for as long as it runs (REPLAY_SECONDS)', async () => {
     const { cria } = await run()
-    const seconds = Number(process.env.REPLAY_LIVENESS_SECONDS ?? 15)
+    const seconds = Number(process.env.REPLAY_SECONDS ?? 15)
     const deadline = Date.now() + seconds * 1000
     let looks = 0
 
@@ -229,9 +229,9 @@ describe('the real Cria on the replay', () => {
       await new Promise(resolve => setTimeout(resolve, 1000))
     }
 
-    console.log(`liveness: ${looks} looks over ${seconds} s, every device ready and no reading stale each time`)
+    console.log(`${looks} looks over ${seconds} s, every device ready and no reading stale each time`)
     expect(looks).toBeGreaterThanOrEqual(Math.floor(seconds * 0.8))
-  }, Number(process.env.REPLAY_LIVENESS_SECONDS ?? 15) * 1000 + 60_000)
+  }, Number(process.env.REPLAY_SECONDS ?? 15) * 1000 + 60_000)
 })
 
 describe('the indi-replay program', () => {

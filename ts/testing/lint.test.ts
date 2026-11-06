@@ -22,10 +22,6 @@ const allowed: Record<string, Partial<Record<Rule, readonly [count: number, why:
   },
   'packages/primitives/src/discipline/stoppable.ts': { 'catch-all': [4, 'classifies start, settle and stop endings'] },
   'packages/primitives/src/discipline/confirm.ts': { 'catch-all': [1, 'a failed read is retried; reads only'] },
-  'packages/primitives/src/discipline/retry-reads.ts': {
-    'catch-all': [1, 'a failed read is reported as stale'],
-    'wall-clock': [1, "a read's startedAt is compared with INDI receive times, which are wall-clock"],
-  },
   'packages/fake-indi/src/play.ts': { 'node-timer': [1, 'the one real timer a played motion waits on; tests pass their own clock'] },
   'packages/fake-indi/src/server.ts': { 'promise-catch': [1, 'a write to a client that closed mid-image must not stop the writes queued behind it'] },
   'packages/fits/src/frame.ts': { 'wall-clock': [1, 'a test frame is stamped with the moment it was made unless the caller says when'] },
@@ -65,7 +61,6 @@ const allowed: Record<string, Partial<Record<Rule, readonly [count: number, why:
     'wall-clock': [3, 'dispatch time compared with the driver-stamped DATE-OBS; elapsed progress; commandedAt on the wire'],
   },
   'apps/cria/src/capability/fields.ts': { 'wall-clock': [1, 'takenAt compared with receive times, which are wall-clock'] },
-  'apps/cria/src/capability/liveness.ts': { 'wall-clock': [2, 'connectedSince and definedAt, compared with takenAt'] },
   'apps/cria/src/capability/mount.ts': { 'wall-clock': [1, 'sidereal time is a function of real time'] },
   'apps/cria/src/image/store.ts': {
     'try-catch': [1, 'removes the partial file, then rethrows into Effect.tryPromise'],

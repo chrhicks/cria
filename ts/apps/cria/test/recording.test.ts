@@ -219,7 +219,6 @@ describe('kill -9 of the whole service', () => {
         listen: { host: '127.0.0.1', port: 0 },
         indi: { host: '127.0.0.1', port: indi.port },
         imageDirectory: join(directory, 'images'),
-        livenessMs: 500,
         devices: [camera],
         record: { dir: join(directory, 'recordings'), reserveGb: 0, queueMb: 64 },
       }),
@@ -270,6 +269,6 @@ describe('kill -9 of the whole service', () => {
     const report = await killedAfter(delayMs)
 
     expect(report).toMatchObject({ valid: true, ended: false, problems: [] })
-    expect(report.messages).toBeGreaterThan(50)
+    expect(report.messages).toBeGreaterThan(5)
   }, 60_000)
 })

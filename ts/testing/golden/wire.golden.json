@@ -140,7 +140,6 @@
       "commandsEnabled": true,
       "devices": [
         {
-          "afterOperation": null,
           "availability": {
             "ready": true
           },
@@ -303,7 +302,6 @@
           }
         },
         {
-          "afterOperation": "<operation-1>",
           "availability": {
             "ready": true
           },
@@ -471,7 +469,6 @@
           }
         },
         {
-          "afterOperation": null,
           "availability": {
             "ready": true
           },
@@ -526,7 +523,6 @@
           }
         },
         {
-          "afterOperation": null,
           "availability": {
             "ready": true
           },
@@ -591,7 +587,6 @@
           }
         },
         {
-          "afterOperation": null,
           "availability": {
             "ready": true
           },
@@ -795,7 +790,6 @@
       "commandsEnabled": true,
       "devices": [
         {
-          "afterOperation": null,
           "availability": {
             "ready": true
           },
@@ -958,7 +952,6 @@
           }
         },
         {
-          "afterOperation": "<operation-1>",
           "availability": {
             "ready": true
           },
@@ -1126,7 +1119,6 @@
           }
         },
         {
-          "afterOperation": null,
           "availability": {
             "ready": true
           },
@@ -1181,7 +1173,6 @@
           }
         },
         {
-          "afterOperation": null,
           "availability": {
             "ready": true
           },
@@ -1246,7 +1237,6 @@
           }
         },
         {
-          "afterOperation": null,
           "availability": {
             "ready": true
           },
@@ -2052,7 +2042,6 @@
       "commandsEnabled": true,
       "devices": [
         {
-          "afterOperation": "<operation-1>",
           "availability": {
             "ready": true
           },
@@ -4426,7 +4415,6 @@
     },
     "status": 200,
     "body": {
-      "afterOperation": "<operation-1>",
       "availability": {
         "ready": true
       },
@@ -5168,7 +5156,6 @@
       "commandsEnabled": false,
       "devices": [
         {
-          "afterOperation": null,
           "availability": {
             "message": "Commands are disabled in the Cria configuration",
             "ready": false,
@@ -6336,7 +6323,6 @@
       "commandsEnabled": true,
       "devices": [
         {
-          "afterOperation": "<operation-1>",
           "availability": {
             "ready": true
           },
@@ -6695,7 +6681,6 @@
     },
     "status": 200,
     "body": {
-      "afterOperation": "<operation-2>",
       "availability": {
         "ready": true
       },
@@ -6900,7 +6885,6 @@
       "commandsEnabled": true,
       "devices": [
         {
-          "afterOperation": null,
           "availability": {
             "ready": true
           },
@@ -7063,7 +7047,6 @@
           }
         },
         {
-          "afterOperation": null,
           "availability": {
             "ready": true
           },
@@ -7135,7 +7118,6 @@
       "commandsEnabled": true,
       "devices": [
         {
-          "afterOperation": null,
           "availability": {
             "ready": true
           },
@@ -7298,7 +7280,6 @@
           }
         },
         {
-          "afterOperation": null,
           "availability": {
             "ready": true
           },
@@ -7369,7 +7350,6 @@
       "commandsEnabled": true,
       "devices": [
         {
-          "afterOperation": null,
           "availability": {
             "ready": true
           },
@@ -7532,7 +7512,6 @@
           }
         },
         {
-          "afterOperation": null,
           "availability": {
             "ready": true
           },

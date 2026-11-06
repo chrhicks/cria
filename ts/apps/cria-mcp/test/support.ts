@@ -226,7 +226,6 @@ export const startRealCria = (indiPort: number, options: { readonly token?: stri
           listen: { host: '127.0.0.1', port: 0 },
           indi: { host: '127.0.0.1', port: indiPort },
           imageDirectory: join(directory, 'images'),
-          livenessMs: 500,
           acknowledgeMs: 2000,
           commandsEnabled: options.commandsEnabled ?? false,
           devices: [
