@@ -7,6 +7,7 @@ import type { AddressInfo } from 'node:net'
 import { Effect, Exit, Scope } from 'effect'
 import type { Config } from './config.js'
 import type { RecordingOptions } from './recording.js'
+import type { OpenPublisher } from './stream.js'
 import { makeRig, type Rig } from './rig.js'
 import { makeHttpServer } from './wire/http.js'
 
@@ -16,11 +17,14 @@ export interface RunningService {
   readonly stop: () => Promise<void>
 }
 
-export async function startService(config: Config, options: { readonly token?: string; readonly recording?: RecordingOptions } = {}): Promise<RunningService> {
+export async function startService(config: Config, options: { readonly token?: string; readonly recording?: RecordingOptions; readonly stream?: OpenPublisher } = {}): Promise<RunningService> {
   const scope = Effect.runSync(Scope.make())
 
   const program = Effect.gen(function* () {
-    const rig = yield* makeRig(config, options.recording ? { recording: options.recording } : {})
+    const rig = yield* makeRig(config, {
+      ...(options.recording ? { recording: options.recording } : {}),
+      ...(options.stream ? { stream: options.stream } : {}),
+    })
     const server = makeHttpServer(rig, options)
 
     yield* Effect.acquireRelease(

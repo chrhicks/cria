@@ -63,6 +63,19 @@ describe('classify', () => {
     expect(classify('rig-dev.client', entry('client.connection', { target: 'phd2', status: 'closed' }))?.group).toBe('client.connection.phd2')
   })
 
+  it('counts what Cria was asked as a command, and a refusal or bad ending as a problem', () => {
+    const request = (result: string) => classify('rig-dev.cria.request', entry('cria.request', { deviceId: 'primary', kind: 'capture', result }))
+
+    expect(request('accepted')).toMatchObject({ source: 'cria', command: true, problem: false, group: 'cria.request.primary.capture' })
+    expect(request('refused')?.problem).toBe(true)
+
+    const settled = (kind: string) => classify('rig-dev.cria.settled', entry('cria.settled', { deviceId: 'mount', kind: 'mount-stop', outcome: { kind } }))
+
+    expect(settled('confirmed')).toMatchObject({ command: false, problem: false, group: 'cria.settled.mount.mount-stop' })
+    expect(settled('failed')?.problem).toBe(true)
+    expect(settled('uncertain')?.problem).toBe(true)
+  })
+
   it('skips a wire entry without a device in its subject', () => {
     expect(classify('rig-dev.wire.in', wire('<setNumberVector state="Ok"></setNumberVector>'))).toBeUndefined()
   })

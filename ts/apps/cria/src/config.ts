@@ -96,6 +96,7 @@ export const ConfigSchema = Schema.Struct({
   initializeTimeoutMs: Milliseconds(1000, 300_000),
   operationHistory: Schema.Number.pipe(Schema.check(Schema.isInt(), Schema.isBetween({ minimum: 10, maximum: 100_000 }))),
   record: Schema.optionalKey(Record),
+  streamClientConfig: Schema.optionalKey(Schema.String),
   devices: Schema.Array(Device).pipe(Schema.check(Schema.isBetweenLength(1, 16))),
 })
 

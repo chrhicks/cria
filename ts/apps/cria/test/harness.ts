@@ -12,6 +12,7 @@ import { makeCriaClient, type CriaClient, type Reply } from '../../../testing/cr
 import { decodeConfig } from '../src/config.js'
 import type { RecordingOptions } from '../src/recording.js'
 import { startService, type RunningService } from '../src/service.js'
+import type { OpenPublisher } from '../src/stream.js'
 
 export type { Device, Operation, State }
 
@@ -82,7 +83,7 @@ export async function startCria(
   indiPort: number,
   devices: ReadonlyArray<DeviceSpec>,
   overrides: object = {},
-  options: { readonly token?: string; readonly recording?: RecordingOptions } = {},
+  options: { readonly token?: string; readonly recording?: RecordingOptions; readonly stream?: OpenPublisher } = {},
 ): Promise<Cria> {
   const imageDirectory = await mkdtemp(join(tmpdir(), 'cria-test-images-'))
   // CRIA_TEST_RECORD=1 runs any scenario with recording on, to show recording changes nothing it asserts.
