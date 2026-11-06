@@ -234,18 +234,17 @@ function describePhd2(entry) {
 }
 
 function describeClient(entry) {
-  const { client, connection, version, sources: published } = entry.body
+  const base = { source: 'client', who: 'stream-client', label: 'cli', state: '', text: '', quiet: false }
 
-  return {
-    source: 'client',
-    who: client,
-    label: 'cli',
-    what: entry.kind.slice('client.'.length),
-    state: '',
-    pairs: [['connection', String(connection)], ['version', String(version)], ['sources', published.join(', ')]],
-    text: '',
-    quiet: false,
+  if (entry.kind === 'client.connection') {
+    const { target, status, error } = entry.body
+
+    return { ...base, what: `connection ${target}`, state: status, pairs: [], text: error ?? '' }
   }
+
+  const { connection, version, sources: published } = entry.body
+
+  return { ...base, what: 'connected', pairs: [['connection', String(connection)], ['version', String(version)], ['sources', published.join(', ')]] }
 }
 
 function describe(entry, subject) {

@@ -59,6 +59,10 @@ describe('classify', () => {
     })
   })
 
+  it('groups a client connection by what it connected to', () => {
+    expect(classify('rig-dev.client', entry('client.connection', { target: 'phd2', status: 'closed' }))?.group).toBe('client.connection.phd2')
+  })
+
   it('skips a wire entry without a device in its subject', () => {
     expect(classify('rig-dev.wire.in', wire('<setNumberVector state="Ok"></setNumberVector>'))).toBeUndefined()
   })
