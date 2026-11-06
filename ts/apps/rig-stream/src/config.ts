@@ -18,6 +18,15 @@ const ClientSettings = Schema.Struct({
     port: Schema.Number.annotate({ description: 'indiserver port' }),
   }),
   broker: Broker,
+  wireDevices: Schema.Record(Schema.String, Schema.String).annotate({
+    description: 'INDI device name to the short id used in wire subjects. Cria\'s ids where one fits; Cria splits the power box into two views, and the wire has one device',
+  }).pipe(Schema.withDecodingDefaultKey(Effect.succeed({
+    'ZWO CCD ASI2600MC Pro': 'primary',
+    'ZWO CCD ASI220MM Mini': 'guide',
+    'ZWO EAF': 'focuser',
+    'ZWO AM5': 'mount',
+    'Pegasus PPBA': 'box',
+  }))),
   journalExclusions: Schema.Struct({
     identifiers: Schema.Array(Schema.String).annotate({
       description: 'Log sources left off the stream. Chris, 2026-11-04: ssh sessions and Tailscale routes are off',

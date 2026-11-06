@@ -9,6 +9,7 @@ import { makeDebugChangeFilter } from './debug-lines.js'
 import { makeEntries, type Entry } from './entry.js'
 import { followJournal } from './journal.js'
 import { followPhd2 } from './phd2.js'
+import { wireSubject } from './subjects.js'
 
 const config = await Effect.runPromise(Effect.provide(Effect.service(ClientConfig), ClientConfig.layer))
 
@@ -44,7 +45,7 @@ const debugLines = makeDebugChangeFilter()
 
 const tap: TrafficTap = {
   message: ({ conn, dir, xml }) => {
-    for (const line of debugLines.pass(xml)) publish(`rig-dev.wire.${dir}`, entries.wire(conn, dir, line))
+    for (const line of debugLines.pass(xml)) publish(wireSubject(config.wireDevices, dir, line), entries.wire(conn, dir, line))
   },
   connection: connection => {
     debugLines.forget()
