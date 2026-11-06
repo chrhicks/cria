@@ -41,6 +41,19 @@ export function readFitsHeader(fits: Buffer): { cards: Map<string, string>; data
   throw new FitsError('FITS header has no END card')
 }
 
+export function readFitsCards(fits: Buffer): ReadonlyArray<string> {
+  const cards: Array<string> = []
+
+  for (let offset = 0; offset + card <= fits.length; offset += card) {
+    const line = fits.toString('latin1', offset, offset + card).trimEnd()
+
+    if (line === 'END') return cards
+    if (line !== '') cards.push(line)
+  }
+
+  throw new FitsError('FITS header has no END card')
+}
+
 function integerCard(cards: Map<string, string>, key: string, fallback?: number): number {
   const text = cards.get(key)
 

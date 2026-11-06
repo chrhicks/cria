@@ -21,6 +21,7 @@ export declare function readFitsHeader(fits: Buffer): {
     cards: Map<string, string>;
     dataStart: number;
 };
+export declare function readFitsCards(fits: Buffer): ReadonlyArray<string>;
 export declare function fitsToImageBytes(fits: Buffer, expected: {
     readonly width: number;
     readonly height: number;

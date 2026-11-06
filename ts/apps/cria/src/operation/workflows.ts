@@ -1,11 +1,11 @@
 /** Workflow bodies: one short body per operation kind. */
 import { Effect } from 'effect'
 import { Failed, type Ending, type Report } from '@cria/primitives'
-import { commands, type CommandKind, type DeviceFor, type DeviceKind, type OperationResult, type ParamsOf, type Progress } from '@cria/wire'
+import { commands, type CommandKind, type DeviceFor, type DeviceId, type DeviceKind, type ImageId, type OperationId, type OperationResult, type ParamsOf, type Progress } from '@cria/wire'
 import type { Connection } from '../capability/connection.js'
 import type { Note } from '../capability/motion-record.js'
 import type { CapabilityOf, Equipment } from '../device.js'
-import { FitsError, fitsToImageBytes } from '@cria/fits'
+import { FitsError, fitsToImageBytes, readFitsCards } from '@cria/fits'
 import type { ImageStore } from '../image/store.js'
 import type { Running } from './ledger.js'
 
@@ -30,18 +30,44 @@ const values = (result: Readonly<Record<string, Json | undefined>>): OperationRe
   image: null,
 })
 
-export function makeWorkflows(images: ImageStore): Workflows {
+export interface FrameKept {
+  readonly operationId: OperationId
+  readonly deviceId: DeviceId
+  readonly imageId: ImageId
+  readonly bytes: number
+  readonly sha256: string
+  readonly width: number
+  readonly height: number
+  readonly exposureSeconds: number
+  readonly capturedAt: number
+  readonly header: ReadonlyArray<string>
+}
+
+export function makeWorkflows(images: ImageStore, onFrame: (frame: FrameKept) => void = () => {}): Workflows {
   return {
     capture: (camera, parameters, { report, operation }) =>
       Effect.gen(function* () {
         const frame = yield* camera.capture(parameters, report)
 
         yield* report({ phase: 'retaining' })
-        const image = yield* Effect.try({
-          try: () => fitsToImageBytes(frame.fits, frame),
+        const { image, header } = yield* Effect.try({
+          try: () => ({ image: fitsToImageBytes(frame.fits, frame), header: readFitsCards(frame.fits) }),
           catch: error => new Failed({ reason: 'invalid', message: error instanceof FitsError ? error.message : String(error) }),
         })
         const stored = yield* images.adopt(image.bytes)
+
+        onFrame({
+          operationId: operation.id,
+          deviceId: operation.deviceId,
+          imageId: stored.id,
+          bytes: stored.bytes,
+          sha256: stored.sha256,
+          width: image.width,
+          height: image.height,
+          exposureSeconds: parameters.exposureSeconds,
+          capturedAt: image.capturedAt ?? frame.dispatchedAt,
+          header,
+        })
 
         return {
           values: {},

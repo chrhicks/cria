@@ -52,7 +52,7 @@ function classifyWire(subject: string, body: unknown): Classified | undefined {
 function classifyCria(kind: string, body: unknown): Classified {
   const text = (name: string) => (isRecord(body) && typeof body[name] === 'string' ? body[name] : '')
   const device = kind === 'cria.write' ? text('device') : text('deviceId')
-  const operation = kind === 'cria.write' ? text('property') : text('kind')
+  const operation = kind === 'cria.write' ? text('property') : kind === 'cria.frame' ? 'frame' : text('kind')
   const refused = kind === 'cria.request' && isRecord(body) && body['result'] === 'refused'
   const outcome = isRecord(body) && isRecord(body['outcome']) ? body['outcome']['kind'] : undefined
 
