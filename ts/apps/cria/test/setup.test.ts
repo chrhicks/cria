@@ -154,13 +154,8 @@ describe('a mount', () => {
     await fake.start()
     addMount(fake, mount, { connected: true })
     fake.define({ device: mount, name: 'DEBUG', kind: 'switch', perm: 'rw', rule: 'OneOfMany', state: 'Ok', elements: { ENABLE: { value: false }, DISABLE: { value: true } } })
-    fake.behaviour = (fake, vector, values) => {
-      if (vector.name === 'DEBUG') {
-        fake.apply(vector, values)
-        setTimeout(() => fake.define({ device: mount, name: 'DEBUG_LEVEL', kind: 'switch', perm: 'rw', rule: 'AnyOfMany', state: 'Ok', elements: { DBG_DEBUG: { value: false } } }), 200)
-
-        return 'handled'
-      }
+    fake.behaviour = (fake, vector) => {
+      if (vector.name === 'DEBUG') setTimeout(() => fake.define({ device: mount, name: 'DEBUG_LEVEL', kind: 'switch', perm: 'rw', rule: 'AnyOfMany', state: 'Ok', elements: { DBG_DEBUG: { value: false } } }), 200)
 
       return 'default'
     }
