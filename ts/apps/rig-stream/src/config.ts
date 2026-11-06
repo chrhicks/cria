@@ -10,6 +10,9 @@ const Broker = Schema.Struct({
 })
 
 const ClientSettings = Schema.Struct({
+  rig: Schema.String.annotate({
+    description: 'The rig each entry belongs to: the id Vela already uses for it',
+  }).pipe(Schema.withDecodingDefaultKey(Effect.succeed('fra-cria'))),
   indi: Schema.Struct({
     host: Schema.String.annotate({ description: 'Where indiserver listens' }),
     port: Schema.Number.annotate({ description: 'indiserver port' }),
@@ -43,7 +46,7 @@ const ViewerSettings = Schema.Struct({
   port: Schema.Number.annotate({ description: 'Local port the page is served on' }),
   broker: Broker,
   streamMaxAgeDays: Schema.Number.annotate({
-    description: 'Days the dev stream keeps messages. Throwaway data: long enough to look back across a few iterations, at about 125 MB a day',
+    description: 'Days the dev stream keeps messages. Throwaway data: long enough to look back across a few iterations, at about 230 MB a day idle, estimated from the 125 MB measured before the entry format',
   }).pipe(Schema.withDecodingDefaultKey(Effect.succeed(7))),
   messagesShownOnOpen: Schema.Number.annotate({
     description: 'Messages a newly opened page shows at once: enough to fill a screen before live messages arrive',
