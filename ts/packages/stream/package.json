@@ -1,0 +1,22 @@
+{
+  "name": "@cria/stream",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "What anything adding to the rig stream shares: the entry format",
+  "exports": {
+    ".": {
+      "@cria/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test.json"
+  },
+  "dependencies": {
+    "@cria/indi": "workspace:*",
+    "effect": "4.0.3"
+  }
+}
