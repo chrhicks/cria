@@ -48,7 +48,7 @@ async function follow(response: ServerResponse, query: HistoryQuery, lastSeen: n
 
   const finishReading = () => {
     reading = false
-    send(response, 'history', { entries: history.drained(), ...history.counted() }, lastRead)
+    send(response, 'history', { entries: history.drained(), groups: query.table ? history.groups() : [], ...history.counted() }, lastRead)
   }
 
   const finishRange = () => {

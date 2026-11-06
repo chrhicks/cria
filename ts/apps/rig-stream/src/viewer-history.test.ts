@@ -23,6 +23,7 @@ describe('classify', () => {
       problem: false,
       property: undefined,
       reading: undefined,
+      group: undefined,
     })
   })
 
@@ -41,10 +42,14 @@ describe('classify', () => {
   })
 
   it('reads journal priority and PHD2 events', () => {
-    expect(classify('rig-dev.system', entry('system', { PRIORITY: '3' }))).toEqual({ source: 'system', command: false, problem: true, property: undefined, reading: undefined })
+    expect(classify('rig-dev.system', entry('system', { PRIORITY: '3' }))).toEqual({ source: 'system', command: false, problem: true, property: undefined, reading: undefined, group: undefined })
     expect(classify('rig-dev.system', entry('system', { PRIORITY: '6' }))?.problem).toBe(false)
-    expect(classify('rig-dev.phd2', entry('phd2.StarLost', {}))).toEqual({ source: 'phd2', command: false, problem: true, property: undefined, reading: undefined })
+    expect(classify('rig-dev.phd2', entry('phd2.StarLost', {}))).toEqual({ source: 'phd2', command: false, problem: true, property: undefined, reading: undefined, group: 'phd2.StarLost' })
     expect(classify('rig-dev.phd2', entry('phd2.GuideStep', {}))?.problem).toBe(false)
+  })
+
+  it('skips a wire entry without a device in its subject', () => {
+    expect(classify('rig-dev.wire.in', wire('<setNumberVector state="Ok"></setNumberVector>'))).toBeUndefined()
   })
 
   it('skips raw entries from before the entry format', () => {
@@ -155,6 +160,55 @@ describe('history', () => {
       history.take(raw(1, mountWire, defined))
 
       expect(history.take(raw(2, mountWire, value('1')))).toBeUndefined()
+    })
+  })
+
+  describe('each property\'s latest reading', () => {
+    const value = (ra: string) => wire(`<setNumberVector device="ZWO AM5" name="COORD" state="Ok"><oneNumber name="RA">${ra}</oneNumber></setNumberVector>`)
+    const table = () => makeHistory(parseQuery(new URLSearchParams('table=')), 10)
+
+    it('holds the latest reading, how many, and when it last changed', () => {
+      const history = table()
+
+      history.take(raw(1, mountWire, value('1')))
+      history.take(raw(2, mountWire, value('2')))
+      history.take(raw(3, mountWire, value('2')))
+
+      const [group] = history.groups()
+
+      expect(group?.group).toBe('mount.COORD')
+      expect(group?.latest.seq).toBe(3)
+      expect(group?.reads).toBe(3)
+      expect(group?.changes).toBe(1)
+      expect(group?.changedAt).toBe(2)
+    })
+
+    it('does not call the first reading in a window a change', () => {
+      const history = table()
+
+      history.take(raw(1, mountWire, value('1')))
+
+      expect(history.groups()[0]?.changes).toBe(0)
+      expect(history.groups()[0]?.changedAt).toBeUndefined()
+    })
+
+    it('delivers every entry, whatever the other filters', () => {
+      const history = makeHistory(parseQuery(new URLSearchParams('table=&changes=&show=box')), 10)
+
+      history.take(raw(1, mountWire, value('1')))
+
+      expect(history.take(raw(2, mountWire, value('1')))?.differs).toBe(false)
+      expect(history.take(raw(3, mountWire, value('2')))?.differs).toBe(true)
+    })
+
+    it('groups PHD2 by event and leaves the journal out', () => {
+      const history = table()
+
+      history.take(raw(1, 'rig-dev.phd2', entry('phd2.GuideStep', {})))
+      history.take(raw(2, 'rig-dev.phd2', entry('phd2.GuideStep', {})))
+      history.take(raw(3, 'rig-dev.system', entry('system', { PRIORITY: '6' })))
+
+      expect(history.groups().map(group => [group.group, group.reads])).toEqual([['phd2.GuideStep', 2]])
     })
   })
 })
