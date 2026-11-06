@@ -1,0 +1,130 @@
+import { Option, Schema } from 'effect'
+
+const decodeEntry = Schema.decodeUnknownOption(
+  Schema.fromJsonString(Schema.Struct({ v: Schema.Literal(1), kind: Schema.String, body: Schema.Unknown })),
+)
+
+const problemEvents = new Set(['phd2.StarLost', 'phd2.Alert', 'phd2.CalibrationFailed'])
+
+export interface Classified {
+  readonly source: string
+  readonly problem: boolean
+  readonly command: boolean
+}
+
+function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
+  return typeof value === 'object' && value !== null
+}
+
+function classifyWire(subject: string, body: unknown): Classified {
+  const source = subject.split('.')[2] ?? 'other'
+  const xml = isRecord(body) && typeof body['xml'] === 'string' ? body['xml'] : ''
+  const firstTag = /^\s*<(\w+)[^>]*>?/.exec(xml)
+  const tag = firstTag?.[1] ?? ''
+  const state = /\bstate="(\w+)"/.exec(firstTag?.[0] ?? '')?.[1]
+
+  return {
+    source,
+    command: tag.startsWith('new'),
+    problem: (tag.startsWith('set') && state === 'Alert') || (tag === 'message' && xml.includes('[ERROR]')),
+  }
+}
+
+export function classify(subject: string, text: string): Classified | undefined {
+  const entry = decodeEntry(text)
+
+  if (Option.isNone(entry)) return undefined
+
+  const { kind, body } = entry.value
+
+  if (kind === 'wire') return classifyWire(subject, body)
+  if (kind === 'system') return { source: 'system', command: false, problem: isRecord(body) && Number(body['PRIORITY']) <= 3 }
+
+  return { source: 'phd2', command: false, problem: problemEvents.has(kind) }
+}
+
+export interface HistoryQuery {
+  readonly since: number | undefined
+  readonly until: number | undefined
+  readonly show: ReadonlySet<string>
+  readonly commands: boolean
+  readonly problems: boolean
+}
+
+function time(value: string | null) {
+  const parsed = Number(value)
+
+  return value !== null && value !== '' && Number.isFinite(parsed) ? parsed : undefined
+}
+
+export function parseQuery(parameters: URLSearchParams): HistoryQuery {
+  return {
+    since: time(parameters.get('since')),
+    until: time(parameters.get('until')),
+    show: new Set((parameters.get('show') ?? '').split(',').filter(Boolean)),
+    commands: parameters.has('commands'),
+    problems: parameters.has('problems'),
+  }
+}
+
+export interface Raw {
+  readonly seq: number
+  readonly at: number
+  readonly subject: string
+  readonly text: string
+}
+
+export interface Delivered extends Raw {
+  readonly problem: boolean
+  readonly command: boolean
+}
+
+export function makeHistory(query: HistoryQuery, keep: number) {
+  const kept: Array<Delivered> = []
+  let counts: Record<string, number> = {}
+  let scanned = 0
+  let matched = 0
+
+  const count = (key: string) => {
+    counts[key] = (counts[key] ?? 0) + 1
+  }
+
+  return {
+    take(raw: Raw): Delivered | undefined {
+      const classified = classify(raw.subject, raw.text)
+
+      if (classified === undefined) return undefined
+
+      scanned += 1
+      count(classified.source)
+      if (classified.command) count('commands')
+      if (classified.problem) count('problems')
+
+      if (query.show.size > 0 && !query.show.has(classified.source)) return undefined
+      if (query.commands && !classified.command) return undefined
+      if (query.problems && !classified.problem) return undefined
+
+      const delivered = { ...raw, problem: classified.problem, command: classified.command }
+
+      matched += 1
+      kept.push(delivered)
+      if (kept.length > keep) kept.shift()
+
+      return delivered
+    },
+
+    counted() {
+      const now = { counts, scanned, matched }
+
+      counts = {}
+      scanned = 0
+      matched = 0
+
+      return now
+    },
+
+    drained() {
+      return kept.splice(0)
+    },
+  }
+}
