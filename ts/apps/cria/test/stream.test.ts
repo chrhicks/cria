@@ -19,7 +19,11 @@ const fakePublisher: OpenPublisher = (_broker, onConnected) => {
   const publisher: Publisher = {
     ready: Promise.resolve(),
     publish: (subject, entry) => published.push({ subject, entry }),
-    flush: () => Promise.resolve(),
+    publishConfirmed: (subject, entry) => {
+      published.push({ subject, entry })
+
+      return Promise.resolve()
+    },
     close: () => Promise.resolve(),
   }
 

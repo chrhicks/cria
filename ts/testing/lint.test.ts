@@ -49,7 +49,7 @@ const allowed: Record<string, Partial<Record<Rule, readonly [count: number, why:
     'wall-clock': [1, 'a recorded line carries its wall-clock time'],
   },
   'packages/stream/src/publisher.ts': {
-    'try-catch': [1, 'a message the broker refuses is logged and skipped: whatever publishes must never stop for it'],
+    'try-catch': [2, 'a message the broker refuses is logged and skipped, and an unconfirmed one is sent again once it returns: whatever publishes must never stop for it'],
     'promise-catch': [1, 'a broker that refuses the login is logged: Cria still has to run without it'],
   },
   'apps/cria/src/stream.ts': {
