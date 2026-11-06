@@ -24,6 +24,13 @@ await manager.streams.add({
 })
 
 const progressEvery = 100000
+const openPages = new Set<ServerResponse>()
+
+void (async () => {
+  for await (const status of broker.status()) {
+    if (status.type === 'reconnect') for (const page of openPages) page.end()
+  }
+})()
 
 function send(response: ServerResponse, event: string, data: unknown, id?: number) {
   response.write(`${id === undefined ? '' : `id: ${id}\n`}event: ${event}\ndata: ${JSON.stringify(data)}\n\n`)
@@ -117,6 +124,8 @@ createServer((request, response) => {
   if (url.pathname === '/events') {
     response.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-store' })
     response.flushHeaders()
+    openPages.add(response)
+    response.on('close', () => openPages.delete(response))
 
     const lastSeenByBrowser = Number(request.headers['last-event-id'])
 
