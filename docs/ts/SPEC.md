@@ -855,6 +855,7 @@ first that does not confirm.
 | Kind | Step | Writes | Nothing written when |
 |---|---|---|---|
 | camera | frames to Cria | `UPLOAD_MODE` `UPLOAD_CLIENT=On`, confirmed by readback | `UPLOAD_LOCAL` is already off, or the camera has no `UPLOAD_MODE` |
+| mount | driver debug, when the device's `driverDebug` is true | `DEBUG` `ENABLE=On`, then `DEBUG_LEVEL` `DBG_DEBUG=On` once the driver defines it, confirmed by readback | Not asked for, the driver has no `DEBUG`, or both are already on |
 | mount | site | `GEOGRAPHIC_COORD` `LAT`, `LONG` (0 to 360 east), `ELEV` from the device's `site`, confirmed by the driver's echo (`numbersApplied`) | no `site` configured or the mount has no `GEOGRAPHIC_COORD` |
 | mount | time, after the site | `TIME_UTC` `UTC` from the system clock (`YYYY-MM-DDTHH:MM:SS`), `OFFSET=0.00`, confirmed by the echoed `UTC` | the mount has no `TIME_UTC` |
 
@@ -862,6 +863,7 @@ Why each step exists:
 
 - **Frames to Cria.** A camera on `UPLOAD_LOCAL` saves frames on the rig's disk
   and sends Cria nothing, so captures were refused. errai's 2600 was on local.
+- **Driver debug.** It's how the mount's raw status replies reach the rig stream, and it doesn't survive a driver restart or a power cut (Chris, 2026-11-05), so Cria sets it on each connection.
 - **Site, then time.** The AM5 refuses every goto until its site and time are
   set after it powers on. It answers `:MS#` with `e7#` ("time and site not
   synchronized"). In indi_lx200am5 the `GEOGRAPHIC_COORD` write sends `:Sg` then
