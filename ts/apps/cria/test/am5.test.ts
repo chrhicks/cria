@@ -1,3 +1,4 @@
+import { mountMotionDefaults } from '../src/config.js'
 import { afterEach, describe, expect, it } from 'vitest'
 import { FakeIndi, addMount } from '@cria/fake-indi'
 import { am5, type Am5Options, type FakeAm5 } from './drivers.js'
@@ -127,7 +128,7 @@ describe('mount-rotate on an AM5 with the older 0.9 s coast model', () => {
 
     await until('the mount to stand still', () => !model.moving())
     expect(operation.kind).toBe('confirmed')
-    expect(operation.values).toMatchObject({ travelledDegrees: expect.closeTo(travelled(), 3) })
+    expect(Math.abs((operation.values as { travelledDegrees: number }).travelledDegrees - travelled())).toBeLessThanOrEqual(mountMotionDefaults.stationaryDegrees)
   })
 
   it('finishes a small fast-rate request with one slow approach', async () => {

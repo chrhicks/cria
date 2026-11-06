@@ -60,14 +60,8 @@ export interface Rules {
   readonly devices: ReadonlyMap<DeviceId, Placement>
 }
 
-export interface SettledMark {
-  readonly id: OperationId
-  readonly settledAt: number
-}
-
 interface Domain {
   readonly binding: BindingId
-  readonly recentlySettled: ReadonlyArray<SettledMark>
   readonly lease?: MountLease
 }
 
@@ -97,7 +91,6 @@ export interface DomainFacts {
   readonly binding: BindingId
   readonly quarantine: QuarantineState
   readonly busy: boolean
-  readonly recentlySettled: ReadonlyArray<SettledMark>
   readonly lease?: MountLease
 }
 
@@ -117,7 +110,7 @@ export function initialState(bindings: Iterable<readonly [FailureDomain, Binding
   return {
     operations: new Map(),
     requests: new Map(),
-    domains: new Map([...bindings].map(([domain, binding]) => [domain, { binding, recentlySettled: [] }])),
+    domains: new Map([...bindings].map(([domain, binding]) => [domain, { binding }])),
     recoveredBindings: new Map(),
     waiters: new Map(),
     revision: 0,
@@ -158,9 +151,9 @@ const blocks = (rules: Rules, state: LedgerState, operation: Stored) =>
   operation.bindingId === known(state.domains, operation.failureDomain).binding
 
 function factsOf(rules: Rules, state: LedgerState, failureDomain: FailureDomain): DomainFacts {
-  const { binding, recentlySettled, lease } = known(state.domains, failureDomain)
+  const { binding, lease } = known(state.domains, failureDomain)
 
-  return { binding, quarantine: quarantineIn(rules, state, failureDomain), busy: openIn(state, failureDomain).length > 0, recentlySettled, ...(lease ? { lease } : {}) }
+  return { binding, quarantine: quarantineIn(rules, state, failureDomain), busy: openIn(state, failureDomain).length > 0, ...(lease ? { lease } : {}) }
 }
 
 const settledView = (state: LedgerState, operation: Ended): Settled => ({
@@ -268,7 +261,6 @@ export function settle(
 
   if (operation?.state !== 'running') return [step(undefined), state]
   const ended = endedOf(operation, input)
-  const domain = known(state.domains, operation.failureDomain)
   const next = openIn(state, operation.failureDomain).find((open): open is Waiting => open.state === 'waiting')
   const following: Running | undefined = next && { ...next, state: 'running', startedAt: input.now, progress: initialProgress }
   const operations = put(state.operations, ended.id, ended)
@@ -276,7 +268,6 @@ export function settle(
     rules,
     changed(state, {
       operations: following ? put(operations, following.id, following) : operations,
-      domains: put(state.domains, operation.failureDomain, { ...domain, recentlySettled: [...domain.recentlySettled, { id: ended.id, settledAt: ended.settledAt }].slice(-settledKept) }),
       waiters: new Map([...state.waiters].filter(([id]) => id !== ended.id)),
     }),
   )

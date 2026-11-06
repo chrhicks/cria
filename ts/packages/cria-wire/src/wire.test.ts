@@ -108,9 +108,8 @@ describe('protocol 5 contract', () => {
       name: 'ZWO EAF',
       bindingId: id,
       failureDomain: 'zwo-eaf',
-      availability: { ready: false, reason: 'refreshing', message: 'waiting for a reading after the last operation' },
+      availability: { ready: false, reason: 'busy', message: 'waiting for a reading after the last operation' },
       quarantine: { held: false },
-      afterOperation: null,
       readings: {
         connected: { status: 'fresh', value: true, observedAt: 5 },
         name: { status: 'fresh', value: 'ZWO EAF', observedAt: 5 },

@@ -15,7 +15,6 @@ export const availabilityReasons = [
     'disconnected',
     'stale',
     'busy',
-    'refreshing',
 ];
 export const Availability = Schema.Union([
     Schema.Struct({ ready: Schema.Literal(true) }),
@@ -127,7 +126,6 @@ const identity = {
     availability: Availability,
     quarantine: Quarantine,
     /** The latest settled operation in the domain that every fresh reading here postdates. */
-    afterOperation: Schema.NullOr(OperationId),
 };
 export const Device = Schema.Union([
     Schema.Struct({

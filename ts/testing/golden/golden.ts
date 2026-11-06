@@ -56,7 +56,6 @@ const labels: Record<string, string> = {
   bindingId: 'binding',
   requestId: 'request',
   operationId: 'operation',
-  afterOperation: 'operation',
   url: 'image',
 }
 

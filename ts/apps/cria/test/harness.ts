@@ -91,7 +91,6 @@ export async function startCria(
     listen: { host: '127.0.0.1', port: 0 },
     indi: { host: '127.0.0.1', port: indiPort },
     imageDirectory,
-    livenessMs: 500,
     acknowledgeMs: 2000,
     operationTimeoutMs: 20_000,
     devices,

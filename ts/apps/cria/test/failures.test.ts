@@ -163,15 +163,6 @@ describe('a camera that misbehaves', () => {
     expect(operation).toMatchObject({ kind: 'uncertain', reason: 'connection-lost', message: 'indiserver connection lost during the exposure', quarantined: false })
   })
 
-  it('stops answering: readings turn stale and the camera is not command-ready, without any command sent', async () => {
-    fake.answering = false
-    const state = await cria.waitFor(current => current.devices[0]!.readings.connected!.status === 'stale', 10_000)
-
-    expect(state.devices[0]!.availability).toEqual({ ready: false, reason: 'stale', message: 'The driver is not answering' })
-    expect(state.devices[0]!.readings.connected!.value).toBe(true)
-    expect(exposures()).toBe(0)
-  })
-
   it('adjusts a requested subframe: failed with what the driver chose, not uncertain', async () => {
     fake.behaviour = (fake, vector, values) => {
       if (vector.name !== 'CCD_FRAME') return 'default'

@@ -38,7 +38,6 @@ async function slewThenTerminate() {
       listen: { host: '127.0.0.1', port: 0 },
       indi: { host: '127.0.0.1', port: fake.port },
       imageDirectory: join(directory, 'images'),
-      livenessMs: 500,
       acknowledgeMs: 600,
       devices: [{ id: 'mount', kind: 'mount', indiDevice: mount }],
     }),

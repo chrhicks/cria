@@ -41,7 +41,7 @@ layers above it in this list.
 1. **Types** (`@cria/primitives`). `Outcome` and `Reading`. The wire schemas in
    `@cria/wire` are Views: one Effect Schema gives the type and the validator.
 2. **Disciplines** (`@cria/primitives`). `writeOnce`, `confirm`, `stoppable`,
-   `retryReads`, and the `quarantineOf` fold. They encode "no blind replay" and
+   and the `quarantineOf` fold. They encode "no blind replay" and
    "honest state" once, so capabilities do not each derive them again.
 3. **Capabilities** (`apps/cria/src/capability`). Camera, mount, focuser,
    weather, power (switch) and connection. Each is an INDI device seen through the
@@ -133,12 +133,13 @@ other Reading that is not fresh (stale, not read, failed). `what` names the fact
 in the message. Cria's capabilities and a consumer's commands use the same one.
 
 **What fresh means on INDI.** INDI drivers poll their own hardware and push
-changes. They do not send an unchanged value again, so Cria cannot wait for a push
-to call a value fresh. A value is fresh when, within its freshness window, the INDI
-connection is up, the driver answered Cria's last liveness read for that device,
-and the property is not in `Alert`. A property in `Alert`, a device whose liveness
-read timed out, or a lost connection makes every affected value stale (value kept,
-age kept). A missing property is `unavailable: unsupported` once the device's
+changes, and don't send an unchanged value again. Cria doesn't judge how recent a
+value is: `observedAt` is when the driver last reported it, and a reader decides
+whether that's recent enough (Chris, 2026-11-05: "alive" isn't a real state). A
+value is fresh when the INDI connection is up, the driver hasn't removed the device
+and the property is not in `Alert`. A property in `Alert`, a removed device or a
+lost connection makes the affected values stale (value kept, age kept). A missing
+property is `unavailable: unsupported` once the device's
 definitions are complete.
 
 **Alert has two meanings.** On telemetry (a temperature) `Alert` means the read
@@ -204,11 +205,6 @@ reading during a rotate, settling outside the target tolerance) is `uncertain`,
 because the device moved by an unknown amount. The one opt-out is a camera
 exposure (`settleFailure: 'failed'`). With the abort confirmed the camera is idle
 and nothing persists, so an exposure error does not quarantine the camera.
-
-**`retryReads({ read, every, timeout })`.** The paced, bounded, cancellable read
-loop behind every Reading. Each read has its own timeout. A failed read makes the
-affected values stale and is tried again at the same pace, never faster. The
-device liveness loop and `confirm` use it.
 
 ### Run
 
@@ -372,8 +368,6 @@ is available whatever the bound.
 The ledger keeps the newest `operationHistory` settled operations (config, default
 1000), never pruning one that holds its domain (a mount's uncertain ending). A snapshot lists every open
 operation, every one that holds a domain, and the newest 20 other settled ones.
-Each domain also keeps its 16 most recently settled operation IDs, from which
-`afterOperation` and the `refreshing` availability are computed.
 
 ## Module map
 
@@ -387,7 +381,6 @@ the same tag in their doc comment.
 | `packages/primitives/src/discipline/write-once.ts` | Discipline: writeOnce | Outcome |
 | `packages/primitives/src/discipline/confirm.ts` | Discipline: confirm | `confirm`, `writeConfirmed`; Outcome |
 | `packages/primitives/src/discipline/stoppable.ts` | Discipline: stoppable | writeOnce, Outcome |
-| `packages/primitives/src/discipline/retry-reads.ts` | Discipline: retryReads | Effect `Schedule` |
 | `packages/primitives/src/quarantine.ts` | Quarantine | `quarantineOf`, a fold over endings; `ExternalRecovery` |
 | `packages/primitives/src/run.ts` | Run | Outcome, Effect `Fiber`, `SubscriptionRef` |
 | `packages/primitives/src/index.ts` | | The package's exports |
@@ -409,7 +402,7 @@ the same tag in their doc comment.
 | `packages/cria-wire/src/state.ts` | View | `State`, `Health`, `ErrorBody`, `errorCodes`, `RecoveryRequest`, `protocolVersion` |
 | `packages/cria-wire/src/index.ts` | | The package's exports |
 | `apps/cria/src/capability/fields.ts` | Reading | Property to Reading, decided once: fresh, stale, unavailable |
-| `apps/cria/src/capability/liveness.ts` | Reading via retryReads | Per-device liveness read; makes values fresh or stale |
+| `apps/cria/src/capability/definitions.ts` | Reading | When a device connected and last defined a property, and whether the driver removed it |
 | `apps/cria/src/capability/commands.ts` | Disciplines on INDI | How writeOnce, confirm and stoppable meet INDI states: `sendOnce`, `startMotion`, `switchConfirmed`, `numbersApplied`, `untilSettled` |
 | `apps/cria/src/capability/context.ts` | Capability (shared) | What every capability is built from; acts only on fresh facts |
 | `apps/cria/src/capability/camera.ts` | Capability: camera | writeOnce, confirm, stoppable |
@@ -425,7 +418,7 @@ the same tag in their doc comment.
 | `apps/cria/src/ids.ts` | Composition | `mint`: new instance, operation, image and binding IDs, and start-up request IDs |
 | `packages/fits/src/fits.ts` | Image boundary (`@cria/fits`) | FITS (INDI BLOB) to ASCOM ImageBytes v1, and `fitsFrame`, a FITS test frame |
 | `apps/cria/src/image/store.ts` | Domain storage | The rolling set: budget, `410 image-gone` after a drop |
-| `apps/cria/src/wire/project.ts` | View | Readings and the ledger's facts to protocol 5 values; availability and `afterOperation` |
+| `apps/cria/src/wire/project.ts` | View | Readings and the ledger's facts to protocol 5 values; availability |
 | `apps/cria/src/wire/http.ts` | Wire boundary | Routes, token, origin refusal, body decoding, error code to status, image download |
 | `apps/cria/src/wire/sse.ts` | Wire boundary | The event stream (see "Event stream") |
 | `apps/cria/src/device.ts` | Composition | What a configured device is made of: its capability and its connection, per kind |
@@ -469,7 +462,7 @@ What crosses it:
 - **Out.** One `IndiDevice` per INDI device name. It has `property(name)` (a typed
   snapshot: kind, state `Idle|Ok|Busy|Alert`, permission, elements with values and
   number limits, `receivedAt`), a stream of changes, `send(name, values)` (one
-  `new*Vector`, which returns when written to the socket), a liveness ping,
+  `new*Vector`, which returns when written to the socket), a one-off read,
   BLOBs while enabled, and whether the definitions are complete.
 - **Never out.** XML, sockets, base64, the `getProperties` exchange, entity
   decoding.
@@ -491,12 +484,10 @@ Behaviour inside the boundary:
 - `delProperty` without a name (driver gone or device removed) clears the device.
   Its capabilities report every value unavailable, and its in-flight command ends
   uncertain.
-- The liveness read is `getProperties device=X name=CONNECTION`. The driver
-  answers with that one definition (checked against libindi 2.2.5). INDI forwards
-  the answer to every client of the device, so other clients (PHD2) see one small
-  redundant definition per poll. libindi clients ignore a repeated definition. The
-  default is every 1 s, so a value is fresh for 3 s at most without a new
-  confirmation, inside Vela's 6 s budget.
+- A one-off read is `getProperties device=X name=Y`. The driver answers with that
+  one definition (checked against libindi 2.2.5), and INDI forwards the answer to
+  every client of the device. Only a mount's stop check uses it, while the mount
+  is moving.
 - Cria enables BLOBs for a camera only around its own capture (`enableBLOB Also`
   before the exposure, `Never` after), so PHD2's guide frames do not flow through
   Cria. A capture takes only a `CCD1` BLOB that arrives after its own `Busy` and
@@ -759,7 +750,7 @@ property state says the mount stopped, and Cria has one definition of "stopped"
 > position no longer changing.
 
 Each reading is a definition the driver sends again (`getProperties` for the
-coordinates, as the liveness read does), `positionReadMs` apart (1.5 s). The mount
+coordinates), `positionReadMs` apart (1.5 s). The mount
 has stopped when the newest reading and an earlier one at least that window before
 it, and every reading between them, differ by at most `stationaryDegrees` (0.02°)
 on each axis. Which readings count:
@@ -1057,7 +1048,6 @@ Device = {
   failureDomain: string
   availability: { ready: true } | { ready: false; reason: AvailabilityReason; message: string }
   quarantine: { held: false } | { held: true; reason: string; since: number }
-  afterOperation: string | null
   readings: { ... per kind, below }
   // kind 'switch' only:
   channels: Array<{ id, name, writable, minimum, maximum, step, on, value }>   // each a Reading
@@ -1066,23 +1056,16 @@ Device = {
 }
 
 AvailabilityReason = 'commands-disabled' | 'blocked' | 'unavailable' | 'starting'
-                   | 'disconnected' | 'stale' | 'busy' | 'refreshing'
+                   | 'disconnected' | 'stale' | 'busy'
 ```
 
 `availability` says why a device cannot take a command now. The reasons, in order
 of precedence: commands disabled; quarantine held; indiserver or the driver gone;
-no liveness read yet; device disconnected; connection or name not fresh; device
-setup not run yet on this connection (`starting`, see "Device setup"); a Cria
-operation open in the failure domain; not read again since the last operation
-settled. Work started by another INDI client does not make a device unavailable.
+device disconnected; connection or name not fresh; device setup not run yet on
+this connection (`starting`, see "Device setup"); a Cria operation open in the
+failure domain. Work started by another INDI client does not make a device unavailable.
 It shows in the readings (a camera's `activity` is `exposing`), and Cria refuses
 the operation as `failed: busy`.
-
-`afterOperation` is the ID of the latest settled operation in the device's failure
-domain that every fresh reading on the device postdates (the driver was read after
-it settled), or null. After Vela's own operation settles, Vela waits until each
-device it reads shows `afterOperation` equal to that operation's ID before it
-treats the readings as the result of the write.
 
 `lastCommandedSetpointC` is the last setpoint Cria sent that the driver
 acknowledged (`Busy`, or `Ok` at the setpoint), with when. `readings.setpointC` is
@@ -1329,7 +1312,6 @@ stop the process. `ts/deploy/rig.errai.json` is the rig's config:
   "imageDirectory": "/var/lib/cria/images",
   "imageBudgetBytes": 10737418240,
   "commandsEnabled": true,
-  "livenessMs": 1000,
   "acknowledgeMs": 5000,
   "operationTimeoutMs": 180000,
   "readoutAllowanceMs": 30000,
@@ -1587,13 +1569,13 @@ not mid-night), listens on the loopback interface and prints
 order. Reserving frame *k* brings every property to what the drivers had said
 by the time frame *k* arrived: mount, weather, power and the camera's other
 properties jump together. Between frames nothing moves. What is not astronomy
-(how long an exposure takes, how long a fault lasts, liveness, timeouts) is
+(how long an exposure takes, how long a fault lasts, timeouts) is
 real time, not scaled.
 
 **Discovery and writes.**
 
 - Every `getProperties` is answered from current values, for the whole
-  connection, so Cria's one-second liveness read keeps confirming the readings.
+  connection.
 - A client write is echoed (`Ok`) and honours the property's switch rule. The
   property then belongs to that write for the rest of the replay: later recorded
   updates to it are ignored. A recorded definition of a property replay already
@@ -1710,7 +1692,7 @@ effect, because indiserver writes to each client in turn.
 1. **Primitives, on Effect's TestClock.** Outcome precedence; `writeOnce` against
    every row of its table; the confirm deadline; `stoppable` interrupted
    mid-motion with a stop that confirms, fails and hangs; Run single flight and
-   stop after settle; the exact `retryReads` pace; the quarantine fold. No real
+   stop after settle; the quarantine fold. No real
    time passes.
 2. **INDI boundary.** XML framing from recorded traffic split at random byte
    boundaries; entities; BLOB decode; `delProperty`; one client test against a
@@ -1748,8 +1730,8 @@ effect, because indiserver writes to each client in turn.
    runs against `indi-replay` on it: every capture confirms and its ImageBytes
    SHA-256 equals the one the recorded `op` line has, the hour angle at each
    capture is the recording's, an abort sends no late image, one exposure past
-   the end fails cleanly, and every device stays fresh for as long as it runs
-   (15 s in the suite; `REPLAY_LIVENESS_SECONDS=600` for ten minutes).
+   the end fails cleanly, and every device stays ready for as long as it runs
+   (15 s in the suite; `REPLAY_SECONDS=600` for ten minutes).
 8. **Source rules** (`testing/lint.test.ts`).
 
 `pnpm golden` drives the scenarios in `testing/golden/scenarios.ts` through the
@@ -1922,8 +1904,7 @@ Gaps that need a decision:
    rotate step might be better as a slew to a computed RA. That needs a look at how
    Vela uses `mount-rotate`.
 4. **ZWO property names.** Resolved against errai (see "Checked on errai").
-5. **Liveness reads and other clients.** The 1 s `getProperties` definition is
-   sent to PHD2 too. Expected harmless; confirm with PHD2 connected.
+5. Removed: Cria no longer polls drivers.
 6. **Protocol 5.** Resolved: adopted with no compatibility layer (Chris,
    2026-10-15), with the shared schema in `@cria/wire`.
 7. **Telemetry.** The .NET SQLite telemetry is dropped. Keep it dropped (journald)
@@ -1938,8 +1919,7 @@ Gaps that need a decision:
     reads `exposing` but stays `availability.ready: true`, so Vela learns it is
     busy only from the capture's `failed: busy`. Whether `availability` should
     show it is part of the open decision on availability precedence.
-11. **Availability before the definitions settle.** `availability` turns ready on
-    the first liveness read. A property that has not arrived yet reads
+11. **Availability before the definitions settle.** A property that has not arrived yet reads
     `unavailable: not-read` for up to 2 s after connecting, and a command that
     needs it settles `failed: unavailable` before sending anything. Seen in the
     shutdown test, where Cria runs in its own process. The tests wait for

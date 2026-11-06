@@ -86,7 +86,6 @@ export const ConfigSchema = Schema.Struct({
   imageBudgetBytes: Schema.Number.pipe(Schema.check(Schema.isInt(), Schema.isGreaterThan(0))),
   commandsEnabled: Schema.Boolean,
   mountLeaseRequired: Schema.optionalKey(Schema.Boolean),
-  livenessMs: Milliseconds(250, 30_000),
   /** How long a driver has to acknowledge a command before it is uncertain. */
   acknowledgeMs: Milliseconds(500, 60_000),
   /** Overrun allowance for a motion, and for a camera's frame to settle after a binning change. */
@@ -110,7 +109,6 @@ export const defaults = {
   indi: { host: '127.0.0.1', port: 7624 },
   imageBudgetBytes: 10 * 1024 ** 3,
   commandsEnabled: true,
-  livenessMs: 1000,
   acknowledgeMs: 5000,
   operationTimeoutMs: 180_000,
   readoutAllowanceMs: 30_000,

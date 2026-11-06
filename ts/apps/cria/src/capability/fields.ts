@@ -1,7 +1,7 @@
 /**
  * Reading: INDI properties as Readings, decided once for every capability.
  *
- * - fresh: the driver is answering (liveness), the indiserver connection is up
+ * - fresh: the indiserver connection is up, the driver hasn't removed the device
  *   and the property is not in Alert;
  * - stale: we have a value but one of those is not true;
  * - unavailable: never read, not supported by this device, or gone.
@@ -9,7 +9,7 @@
 import { Effect } from 'effect'
 import type { ConnectionStatus, IndiDevice, Property } from '@cria/indi'
 import { Reading } from '@cria/primitives'
-import type { Liveness } from './liveness.js'
+import type { Definitions } from './definitions.js'
 
 type ReadingOf<T> = Reading.Reading<T>
 
@@ -27,8 +27,6 @@ export interface DeviceSnapshot {
   ) => ReadingOf<T>
   readonly connected: ReadingOf<boolean>
   readonly name: ReadingOf<string>
-  /** Liveness, connection and CONNECT all good: values may be acted on. */
-  readonly live: boolean
 }
 
 export interface ReadingOptions {
@@ -44,20 +42,16 @@ export interface ReadingOptions {
 
 export function takeSnapshot(
   device: IndiDevice,
-  liveness: Liveness,
+  definitions: Definitions,
   connection: Effect.Effect<ConnectionStatus>,
 ): Effect.Effect<DeviceSnapshot> {
   return Effect.gen(function* () {
     const takenAt = Date.now()
     const properties = new Map((yield* device.properties).map(property => [property.name, property]))
-    const state = yield* liveness.state
+    const state = yield* definitions
     const status = yield* connection
 
-    const alive =
-      status.kind === 'connected' &&
-      state.failing === undefined &&
-      state.confirmedAt !== undefined &&
-      takenAt - state.confirmedAt <= liveness.freshForMs
+    const alive = status.kind === 'connected' && state.removed !== true
 
     const connectedNow = properties.get('CONNECTION')?.elements.get('CONNECT')
     const isConnected = connectedNow?.kind === 'switch' && connectedNow.on
@@ -85,7 +79,7 @@ export function takeSnapshot(
       const value = extract(property)
 
       if (value === undefined) return Reading.unavailable('unsupported')
-      const observedAt = Math.max(state.confirmedAt ?? 0, property.receivedAt)
+      const observedAt = property.receivedAt
 
       if (!alive || (property.state === 'Alert' && options.alertMeansStale !== false)) return Reading.stale(value, observedAt)
 
@@ -102,8 +96,8 @@ export function takeSnapshot(
       properties.size === 0
         ? Reading.unavailable('failed', `${device.name} is not defined by indiserver`)
         : alive
-          ? Reading.fresh(device.name, state.confirmedAt ?? takenAt)
-          : Reading.stale(device.name, state.confirmedAt ?? 0)
+          ? Reading.fresh(device.name, properties.get('CONNECTION')?.receivedAt ?? takenAt)
+          : Reading.stale(device.name, properties.get('CONNECTION')?.receivedAt ?? 0)
 
     return {
       device: device.name,
@@ -111,7 +105,6 @@ export function takeSnapshot(
       reading,
       connected,
       name,
-      live: alive && isConnected,
     }
   })
 }

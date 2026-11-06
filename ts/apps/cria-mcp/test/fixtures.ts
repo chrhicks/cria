@@ -106,7 +106,6 @@ export const switchDevice = (held: boolean) => ({
   failureDomain: 'power',
   availability: { ready: true },
   quarantine: held ? { held: true, reason: 'uncertain', since: 1_793_361_600_000 } : { held: false },
-  afterOperation: null,
   kind: 'switch',
   readings: { connected: fresh(true), name: fresh('Fake Switch'), channelCount: fresh(0) },
   channels: [],

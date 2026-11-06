@@ -52,10 +52,6 @@ export function makeConnection(context: CapabilityContext, connectTimeoutMs: num
         yield* confirmProperty(device, 'DEVICE_PORT', property => textElement('PORT')(property) === port, 10_000)
       }
 
-      // Idleness has to be a current fact before disconnecting, not a stale one.
-      if (!connected && !snapshot.live)
-        return yield* new Failed({ reason: 'unavailable', message: `${device.name} readings are not current; cannot tell it is idle` })
-
       if (!connected && activity.some(name => snapshot.property(name)?.state === 'Busy'))
         return yield* new Failed({ reason: 'busy', message: 'Disconnecting needs idle equipment' })
 

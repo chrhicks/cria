@@ -20,7 +20,6 @@ export const availabilityReasons = [
   'disconnected',
   'stale',
   'busy',
-  'refreshing',
 ] as const
 
 export const Availability = Schema.Union([
@@ -143,7 +142,6 @@ const identity = {
   availability: Availability,
   quarantine: Quarantine,
   /** The latest settled operation in the domain that every fresh reading here postdates. */
-  afterOperation: Schema.NullOr(OperationId),
 }
 
 export const Device = Schema.Union([

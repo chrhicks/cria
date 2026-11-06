@@ -70,7 +70,6 @@ class FakeCria {
         failureDomain: domains[id] ?? id,
         availability: device.reason ? { ready: false, reason: device.reason, message: device.reason } : { ready: true },
         quarantine: device.held ? { held: true, reason: 'test', since: 0 } : { held: false },
-        afterOperation: null,
         readings: device.readings ?? {},
       })),
     }
