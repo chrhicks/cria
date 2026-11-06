@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
+import { defaultWireDevices } from '@cria/stream'
 import { Config, ConfigProvider, Context, Effect, Layer, Schema } from 'effect'
 
 const Broker = Schema.Struct({
@@ -20,13 +21,7 @@ const ClientSettings = Schema.Struct({
   broker: Broker,
   wireDevices: Schema.Record(Schema.String, Schema.String).annotate({
     description: 'INDI device name to the short id used in wire subjects. Cria\'s ids where one fits; Cria splits the power box into two views, and the wire has one device',
-  }).pipe(Schema.withDecodingDefaultKey(Effect.succeed({
-    'ZWO CCD ASI2600MC Pro': 'primary',
-    'ZWO CCD ASI220MM Mini': 'guide',
-    'ZWO EAF': 'focuser',
-    'ZWO AM5': 'mount',
-    'Pegasus PPBA': 'box',
-  }))),
+  }).pipe(Schema.withDecodingDefaultKey(Effect.succeed(defaultWireDevices))),
   journalExclusions: Schema.Struct({
     identifiers: Schema.Array(Schema.String).annotate({
       description: 'Log sources left off the stream. Chris, 2026-11-04: ssh sessions and Tailscale routes are off',

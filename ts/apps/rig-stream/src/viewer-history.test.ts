@@ -76,6 +76,15 @@ describe('classify', () => {
     expect(settled('uncertain')?.problem).toBe(true)
   })
 
+  it('groups what Cria wrote by device and property', () => {
+    expect(classify('rig-dev.cria.write', entry('cria.write', { device: 'mount', property: 'TIME_UTC', xml: '<newTextVector/>' }))).toMatchObject({
+      source: 'cria',
+      command: false,
+      problem: false,
+      group: 'cria.write.mount.TIME_UTC',
+    })
+  })
+
   it('skips a wire entry without a device in its subject', () => {
     expect(classify('rig-dev.wire.in', wire('<setNumberVector state="Ok"></setNumberVector>'))).toBeUndefined()
   })

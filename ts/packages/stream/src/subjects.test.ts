@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { wireSubject } from './subjects.js'
+import { defaultWireDevices, wireDevice, wireSubject } from './subjects.js'
 
 const devices = { 'ZWO AM5': 'mount', 'Pegasus PPBA': 'box' }
 
@@ -21,5 +21,11 @@ describe('wire subjects', () => {
 
   it('does not read a device from a later element', () => {
     expect(wireSubject(devices, 'in', '<message message="hello"/><setNumberVector device="ZWO AM5"/>')).toBe('rig-dev.wire.server.in')
+  })
+})
+
+describe('the rig\'s device names', () => {
+  it('give one id to the power box, which Cria splits into two views', () => {
+    expect(wireDevice(defaultWireDevices, '<newSwitchVector device="Pegasus PPBA" name="X">')).toBe('box')
   })
 })

@@ -2,7 +2,8 @@ import { spawnSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import { hostname } from 'node:os'
 import { Effect, Option, Schema, Scope } from 'effect'
-import { makeEntries, openPublisher, type BrokerSettings, type Publisher } from '@cria/stream'
+import type { TrafficTap } from '@cria/indi'
+import { defaultWireDevices, makeEntries, openPublisher, wireDevice, type BrokerSettings, type Publisher } from '@cria/stream'
 import type { InstanceId, Operation } from '@cria/wire'
 import type { Config } from './config.js'
 import type { Submission } from './operation/ledger.js'
@@ -13,6 +14,7 @@ type Settled = Extract<Operation, { readonly state: 'settled' }>
 const StreamSettings = Schema.fromJsonString(
   Schema.Struct({
     rig: Schema.optionalKey(Schema.String),
+    wireDevices: Schema.optionalKey(Schema.Record(Schema.String, Schema.String)),
     broker: Schema.Struct({ servers: Schema.String, user: Schema.String, pass: Schema.String }),
   }),
 )
@@ -21,7 +23,10 @@ export interface CriaStream {
   readonly accepted: (submission: Submission, operation: Operation) => void
   readonly refused: (submission: Submission, refusal: Refusal) => void
   readonly settled: (operation: Settled) => void
+  readonly traffic: TrafficTap
 }
+
+const firstTagName = /^\s*<[^>]*?\bname="([^"]*)"/
 
 export type OpenPublisher = (broker: BrokerSettings, onConnected: (connection: number) => void) => Publisher
 
@@ -56,6 +61,7 @@ export function makeCriaStream(
       run: instanceId,
       now: () => Date.now(),
     })
+    const wireDevices = read.value.wireDevices ?? defaultWireDevices
     const build = spawnSync('git', ['-C', import.meta.dirname, 'rev-parse', '--short', 'HEAD'], { encoding: 'utf8' })
     const version = build.status === 0 ? build.stdout.trim() : 'unknown'
     const publisher = open(read.value.broker, connection =>
@@ -72,6 +78,14 @@ export function makeCriaStream(
         publisher.publish('rig-dev.cria.request', entries.cria('request', { ...asked(submission), result: 'accepted', operationId: operation.id })),
       refused: (submission, refusal) =>
         publisher.publish('rig-dev.cria.request', entries.cria('request', { ...asked(submission), result: 'refused', code: refusal.code, message: refusal.message })),
+      traffic: {
+        connection: () => {},
+        message: ({ conn, dir, xml }) => {
+          if (dir !== 'out' || !xml.startsWith('<new')) return
+
+          publisher.publish('rig-dev.cria.write', entries.cria('write', { device: wireDevice(wireDevices, xml), property: firstTagName.exec(xml)?.[1] ?? '', conn, xml }))
+        },
+      },
       settled: ({ bindingId: _binding, expectedName: _name, leaseId: _lease, failureDomain: _domain, recovery: _recovery, ...operation }) =>
         publisher.publish('rig-dev.cria.settled', entries.cria('settled', operation)),
     }
