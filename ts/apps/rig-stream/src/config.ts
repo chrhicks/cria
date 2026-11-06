@@ -1,4 +1,6 @@
 import { readFileSync } from 'node:fs'
+import { homedir } from 'node:os'
+import { join } from 'node:path'
 import { Config, ConfigProvider, Context, Effect, Layer, Schema } from 'effect'
 
 const Broker = Schema.Struct({
@@ -21,6 +23,9 @@ const ClientSettings = Schema.Struct({
       description: 'Units left off the stream. session- is an ssh session. rig-stream-client is this program: publishing its own log lines would feed back into the stream',
     }).pipe(Schema.withDecodingDefaultKey(Effect.succeed(['session-', 'rig-stream-client']))),
   }).pipe(Schema.withDecodingDefaultKey(Effect.succeed({}))),
+  journalCursorFile: Schema.String.annotate({
+    description: 'Remembers the last journal line sent, on disk, so lines written while this client was down, such as a boot after a power cut, still reach the stream',
+  }).pipe(Schema.withDecodingDefaultKey(Effect.succeed(join(homedir(), '.local', 'state', 'rig-stream', 'journal-cursor')))),
 })
 
 const ViewerSettings = Schema.Struct({

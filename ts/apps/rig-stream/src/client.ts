@@ -43,5 +43,8 @@ const tap: TrafficTap = {
 
 await Promise.all([
   Effect.runPromise(Effect.scoped(Effect.andThen(makeIndiClient({ ...config.indi, tap }), Effect.never))),
-  followJournal(config.journalExclusions, line => publish('rig-dev.system', line)),
+  followJournal(config.journalExclusions, config.journalCursorFile, async line => {
+    broker.publish('rig-dev.system', line)
+    await broker.flush()
+  }),
 ])
