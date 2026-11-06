@@ -2,7 +2,7 @@
  * Composition: the one place that shows what is connected to what.
  */
 import { Effect, Option, Schedule, Scope, Stream } from 'effect'
-import { makeIndiClient, type DeviceEvent, type IndiClient, type IndiDevice } from '@cria/indi'
+import { makeIndiClient, type DeviceEvent, type IndiClient, type IndiDevice, type TrafficTap } from '@cria/indi'
 import type { Recorder } from '@cria/recording'
 import type { FailureDomain, InstanceId } from '@cria/wire'
 import type { CapabilityContext } from './capability/context.js'
@@ -42,7 +42,17 @@ export function makeRig(config: Config, options: { readonly recording?: Recordin
     const instanceId = mint.instanceId()
     const recorder = yield* makeRecorder(config, instanceId, options.recording ?? {})
     const stream = yield* makeCriaStream(config, instanceId, options.stream)
-    const client = yield* makeIndiClient({ ...config.indi, ...(recorder ? { tap: recorder } : {}) })
+    const tap: TrafficTap = {
+      message: message => {
+        recorder?.message(message)
+        stream?.traffic.message(message)
+      },
+      connection: connection => {
+        recorder?.connection(connection)
+        stream?.traffic.connection(connection)
+      },
+    }
+    const client = yield* makeIndiClient({ ...config.indi, tap })
     const images = yield* makeImageStore({ directory: config.imageDirectory, budgetBytes: config.imageBudgetBytes })
     const timing = { acknowledgeMs: config.acknowledgeMs, operationTimeoutMs: config.operationTimeoutMs, readoutAllowanceMs: config.readoutAllowanceMs }
     const devices: RigDevice[] = []

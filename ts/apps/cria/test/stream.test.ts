@@ -84,6 +84,30 @@ describe('Cria on the rig stream', () => {
     expect(settled).not.toHaveProperty('bindingId')
   })
 
+  it('publishes each write it sends, naming the device and property, and nothing it only reads', async () => {
+    cria = await startCria(fake.port, devices, { streamClientConfig: await settings(broker) }, { stream: fakePublisher })
+    await cria.waitFor(allReady(['primary']))
+    await cria.run('primary', 'capture', { exposureSeconds: 0.01, light: true })
+
+    const writes = body('cria.write')
+    const exposure = writes.find(write => write['property'] === 'CCD_EXPOSURE')
+
+    expect(exposure).toMatchObject({ device: 'other', conn: 1 })
+    expect(exposure?.['xml']).toContain('CCD_EXPOSURE_VALUE')
+    expect(writes.every(write => String(write['xml']).startsWith('<new'))).toBe(true)
+    expect(published.find(({ entry }) => entry.kind === 'cria.write')?.subject).toBe('rig-dev.cria.write')
+  })
+
+  it('names the device from the settings file when it has one', async () => {
+    const named = JSON.stringify({ wireDevices: { [camera]: 'primary' }, broker: { servers: 'nats://nowhere', user: 'u', pass: 'p' } })
+
+    cria = await startCria(fake.port, devices, { streamClientConfig: await settings(named) }, { stream: fakePublisher })
+    await cria.waitFor(allReady(['primary']))
+    await cria.run('primary', 'capture', { exposureSeconds: 0.01, light: true })
+
+    expect(body('cria.write').find(write => write['property'] === 'CCD_EXPOSURE')).toMatchObject({ device: 'primary' })
+  })
+
   it('publishes a refusal with its reason', async () => {
     cria = await startCria(fake.port, devices, { streamClientConfig: await settings(broker) }, { stream: fakePublisher })
     const state = await cria.waitFor(allReady(['primary']))

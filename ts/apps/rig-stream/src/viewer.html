@@ -249,6 +249,14 @@ function describeClient(entry) {
 
 function describeCria(entry) {
   const body = entry.body
+
+  if (entry.kind === 'cria.write') {
+    const root = xml.parseFromString(body.xml, 'text/xml').documentElement
+    const pairs = [...root.children].map(child => [child.getAttribute('name') ?? child.nodeName, shortNumber(child.textContent.trim())])
+
+    return { source: 'cria', who: body.device, label: 'wri', what: body.property, state: '', pairs, text: '', quiet: false }
+  }
+
   const base = { source: 'cria', who: body.deviceId, label: 'cri', what: body.kind, text: '', quiet: false }
   const parameters = Object.entries(body.parameters ?? {}).map(([key, value]) => [key, String(value)])
 
@@ -467,7 +475,7 @@ function moreOf(view, subject) {
     )
   }
   actions.append(action('Copy entry', () => void navigator.clipboard?.writeText(JSON.stringify(view.entry, null, 2))))
-  more.append(facts, actions, element('pre', '', view.entry.kind === 'wire' ? body.xml.trim() : JSON.stringify(body, null, 2)))
+  more.append(facts, actions, element('pre', '', typeof body?.xml === 'string' ? body.xml.trim() : JSON.stringify(body, null, 2)))
   more.addEventListener('click', event => event.stopPropagation())
 
   return more

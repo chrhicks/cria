@@ -3,13 +3,12 @@ import { spawnSync } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
 import { hostname } from 'node:os'
 import { makeIndiClient, type TrafficTap } from '@cria/indi'
-import { makeEntries, openPublisher } from '@cria/stream'
+import { makeEntries, openPublisher, wireSubject } from '@cria/stream'
 import { Effect } from 'effect'
 import { ClientConfig } from './config.js'
 import { makeDebugChangeFilter } from './debug-lines.js'
 import { followJournal } from './journal.js'
 import { followPhd2 } from './phd2.js'
-import { wireSubject } from './subjects.js'
 
 const config = await Effect.runPromise(Effect.provide(Effect.service(ClientConfig), ClientConfig.layer))
 
