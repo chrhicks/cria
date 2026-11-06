@@ -21,6 +21,8 @@ describe('classify', () => {
       source: 'mount',
       command: false,
       problem: false,
+      property: undefined,
+      reading: undefined,
     })
   })
 
@@ -39,9 +41,9 @@ describe('classify', () => {
   })
 
   it('reads journal priority and PHD2 events', () => {
-    expect(classify('rig-dev.system', entry('system', { PRIORITY: '3' }))).toEqual({ source: 'system', command: false, problem: true })
+    expect(classify('rig-dev.system', entry('system', { PRIORITY: '3' }))).toEqual({ source: 'system', command: false, problem: true, property: undefined, reading: undefined })
     expect(classify('rig-dev.system', entry('system', { PRIORITY: '6' }))?.problem).toBe(false)
-    expect(classify('rig-dev.phd2', entry('phd2.StarLost', {}))).toEqual({ source: 'phd2', command: false, problem: true })
+    expect(classify('rig-dev.phd2', entry('phd2.StarLost', {}))).toEqual({ source: 'phd2', command: false, problem: true, property: undefined, reading: undefined })
     expect(classify('rig-dev.phd2', entry('phd2.GuideStep', {}))?.problem).toBe(false)
   })
 
@@ -79,7 +81,7 @@ describe('history', () => {
     history.take(raw(4, mountWire, quiet))
 
     expect(history.drained().map(kept => kept.seq)).toEqual([3, 4])
-    expect(history.counted()).toEqual({ counts: { mount: 3, box: 1 }, scanned: 4, matched: 3 })
+    expect(history.counted()).toEqual({ counts: { mount: 3, box: 1, changes: 4 }, scanned: 4, matched: 3 })
   })
 
   it('reports counts once, so a reader can add them up', () => {
@@ -100,6 +102,59 @@ describe('history', () => {
     expect(history.take(raw(1, mountWire, quiet))).toBeUndefined()
     expect(history.take(raw(2, mountWire, command))).toBeUndefined()
     expect(history.take(raw(3, mountWire, alert))?.problem).toBe(true)
-    expect(history.counted().counts).toEqual({ mount: 3, commands: 1, problems: 1 })
+    expect(history.counted().counts).toEqual({ mount: 3, commands: 1, problems: 1, changes: 3 })
+  })
+
+  describe('changes only', () => {
+    const value = (ra: string, state = 'Ok', timestamp = '2026-11-06T19:00:00') =>
+      wire(`<setNumberVector device="ZWO AM5" name="COORD" state="${state}" timestamp="${timestamp}">\n  <oneNumber name="RA">\n ${ra}\n</oneNumber>\n</setNumberVector>`)
+
+    function changes() {
+      return makeHistory(parseQuery(new URLSearchParams('changes=')), 10)
+    }
+
+    it('keeps the first reading of a property, then only a different one', () => {
+      const history = changes()
+
+      expect(history.take(raw(1, mountWire, value('1')))).toBeDefined()
+      expect(history.take(raw(2, mountWire, value('1', 'Ok', '2026-11-06T19:00:01')))).toBeUndefined()
+      expect(history.take(raw(3, mountWire, value('2')))).toBeDefined()
+    })
+
+    it('counts a change of state as a change', () => {
+      const history = changes()
+
+      history.take(raw(1, mountWire, value('1')))
+
+      expect(history.take(raw(2, mountWire, value('1', 'Alert')))).toBeDefined()
+    })
+
+    it('tracks each property on each device apart', () => {
+      const history = changes()
+
+      history.take(raw(1, mountWire, value('1')))
+
+      expect(history.take(raw(2, 'rig-dev.wire.box.in', value('1')))).toBeDefined()
+    })
+
+    it('always keeps entries that are not readings', () => {
+      const history = changes()
+      const message = wire('<message device="ZWO AM5" message="hello"/>')
+      const journal = entry('system', { PRIORITY: '6' })
+
+      expect(history.take(raw(1, mountWire, message))).toBeDefined()
+      expect(history.take(raw(2, mountWire, message))).toBeDefined()
+      expect(history.take(raw(3, 'rig-dev.system', journal))).toBeDefined()
+      expect(history.take(raw(4, 'rig-dev.system', journal))).toBeDefined()
+    })
+
+    it('reads a definition and a later value as the same reading', () => {
+      const history = changes()
+      const defined = wire('<defNumberVector device="ZWO AM5" name="COORD" state="Ok"><defNumber name="RA" format="%f">1</defNumber></defNumberVector>')
+
+      history.take(raw(1, mountWire, defined))
+
+      expect(history.take(raw(2, mountWire, value('1')))).toBeUndefined()
+    })
   })
 })

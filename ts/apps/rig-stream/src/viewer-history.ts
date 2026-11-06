@@ -10,6 +10,16 @@ export interface Classified {
   readonly source: string
   readonly problem: boolean
   readonly command: boolean
+  readonly property: string | undefined
+  readonly reading: string | undefined
+}
+
+const valueElement = /<(?:one|def)(?:Number|Text|Switch|Light)\b[^>]*?\bname="([^"]*)"[^>]*>([^<]*)</g
+
+function readingOf(xml: string, state: string | undefined) {
+  const values = [...xml.matchAll(valueElement)].map(([, name, value]) => `${name}=${(value ?? '').trim()}`)
+
+  return `${state ?? ''} ${values.join(' ')}`
 }
 
 function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
@@ -22,9 +32,13 @@ function classifyWire(subject: string, body: unknown): Classified {
   const firstTag = /^\s*<(\w+)[^>]*>?/.exec(xml)
   const tag = firstTag?.[1] ?? ''
   const state = /\bstate="(\w+)"/.exec(firstTag?.[0] ?? '')?.[1]
+  const name = /\bname="([^"]*)"/.exec(firstTag?.[0] ?? '')?.[1]
+  const carriesValues = name !== undefined && name !== '' && (tag.startsWith('set') || tag.startsWith('def'))
 
   return {
     source,
+    property: carriesValues ? `${source}.${name}` : undefined,
+    reading: carriesValues ? readingOf(xml, state) : undefined,
     command: tag.startsWith('new'),
     problem: (tag.startsWith('set') && state === 'Alert') || (tag === 'message' && xml.includes('[ERROR]')),
   }
@@ -38,9 +52,11 @@ export function classify(subject: string, text: string): Classified | undefined 
   const { kind, body } = entry.value
 
   if (kind === 'wire') return classifyWire(subject, body)
-  if (kind === 'system') return { source: 'system', command: false, problem: isRecord(body) && Number(body['PRIORITY']) <= 3 }
+  if (kind === 'system') {
+    return { source: 'system', command: false, problem: isRecord(body) && Number(body['PRIORITY']) <= 3, property: undefined, reading: undefined }
+  }
 
-  return { source: 'phd2', command: false, problem: problemEvents.has(kind) }
+  return { source: 'phd2', command: false, problem: problemEvents.has(kind), property: undefined, reading: undefined }
 }
 
 export interface HistoryQuery {
@@ -49,6 +65,7 @@ export interface HistoryQuery {
   readonly show: ReadonlySet<string>
   readonly commands: boolean
   readonly problems: boolean
+  readonly changes: boolean
 }
 
 function time(value: string | null) {
@@ -64,6 +81,7 @@ export function parseQuery(parameters: URLSearchParams): HistoryQuery {
     show: new Set((parameters.get('show') ?? '').split(',').filter(Boolean)),
     commands: parameters.has('commands'),
     problems: parameters.has('problems'),
+    changes: parameters.has('changes'),
   }
 }
 
@@ -81,6 +99,7 @@ export interface Delivered extends Raw {
 
 export function makeHistory(query: HistoryQuery, keep: number) {
   const kept: Array<Delivered> = []
+  const readings = new Map<string, string>()
   let counts: Record<string, number> = {}
   let scanned = 0
   let matched = 0
@@ -100,6 +119,13 @@ export function makeHistory(query: HistoryQuery, keep: number) {
       if (classified.command) count('commands')
       if (classified.problem) count('problems')
 
+      const { property, reading } = classified
+      const changed = property === undefined || readings.get(property) !== reading
+
+      if (property !== undefined && reading !== undefined) readings.set(property, reading)
+      if (changed) count('changes')
+
+      if (query.changes && !changed) return undefined
       if (query.show.size > 0 && !query.show.has(classified.source)) return undefined
       if (query.commands && !classified.command) return undefined
       if (query.problems && !classified.problem) return undefined
