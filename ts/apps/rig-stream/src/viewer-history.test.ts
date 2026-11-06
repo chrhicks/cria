@@ -48,6 +48,17 @@ describe('classify', () => {
     expect(classify('rig-dev.phd2', entry('phd2.GuideStep', {}))?.problem).toBe(false)
   })
 
+  it('names a client entry as its own source', () => {
+    expect(classify('rig-dev.client', entry('client.connected', {}))).toEqual({
+      source: 'client',
+      command: false,
+      problem: false,
+      property: undefined,
+      reading: undefined,
+      group: 'client.connected',
+    })
+  })
+
   it('skips a wire entry without a device in its subject', () => {
     expect(classify('rig-dev.wire.in', wire('<setNumberVector state="Ok"></setNumberVector>'))).toBeUndefined()
   })

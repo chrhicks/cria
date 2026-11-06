@@ -37,6 +37,7 @@ export function makeEntries({ rig, source, run, now }: EntryContext) {
   const wireCounts = new Map<string, number>()
   let systemCount = 0
   let phd2Count = 0
+  let clientCount = 0
 
   const entry = (kind: string, id: string, at: number, body: unknown): Entry => ({
     v: 1,
@@ -75,6 +76,12 @@ export function makeEntries({ rig, source, run, now }: EntryContext) {
         microseconds === undefined ? now() : Math.round(microseconds / 1000),
         record.value,
       )
+    },
+
+    client(kind: string, body: unknown) {
+      clientCount += 1
+
+      return entry(`client.${kind}`, `client:${run}:${clientCount}`, now(), body)
     },
 
     phd2(line: string) {
