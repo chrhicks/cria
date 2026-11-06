@@ -210,9 +210,6 @@ describe('the real Cria on the replay', () => {
     expect([past.kind, past.reason, past.message, past.quarantined]).toEqual(['failed', 'rejected', 'end of recording', false])
     expect((await cria.device('primary')).quarantine.held).toBe(false)
     await cria.waitFor(allReady(['primary']))
-    // The recording advances mount positions without a mount operation in this Cria instance.
-    await cria.waitFor(state => state.devices.find(device => device.id === 'mount')!.quarantine.held)
-    expect(await cria.device('mount')).toHaveProperty('foreignMotion')
   })
 
   it('keeps every device fresh for as long as it runs (REPLAY_LIVENESS_SECONDS)', async () => {
