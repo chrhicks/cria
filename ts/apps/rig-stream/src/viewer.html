@@ -113,7 +113,8 @@ main[hidden], .columns[hidden] { display: none }
   <div class="columns" id="logColumns" aria-hidden="true"><span>seq</span><span>time ET</span><span>src</span><span>who</span><span>what</span><span>detail</span></div>
   <div class="columns table" id="tableColumns" aria-hidden="true" hidden><span>who</span><span>property</span><span>latest</span><span class="right">read</span><span class="right">changed</span><span class="right">reads</span><span class="right">changes</span></div>
 </header>
-<main id="rows"><p id="empty">Waiting for messages from the stream.</p></main>
+<p id="empty" hidden></p>
+<main id="rows"></main>
 <main id="table" hidden></main>
 <script type="module">
 const { rowsKeptOnPage } = await (await fetch('settings')).json()
