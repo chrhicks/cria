@@ -23,7 +23,8 @@ header { position: sticky; top: 0; z-index: 1; background: var(--bg); border-bot
 h1 { font-size: 15px; font-weight: 600; margin: 0 }
 #status { color: var(--mu); font-variant-numeric: tabular-nums; flex: 1 1 auto }
 #status.down { color: var(--bad); font-weight: 600 }
-input { flex: 1 1 260px; min-width: 0; font: inherit; padding: 4px 8px; background: var(--bg); color: var(--fg); border: 1px solid var(--ln); border-radius: 4px }
+input[type=search] { flex: 1 1 260px }
+input { min-width: 0; font: inherit; padding: 4px 8px; background: var(--bg); color: var(--fg); border: 1px solid var(--ln); border-radius: 4px }
 button { font: inherit; padding: 3px 9px; background: var(--bg); color: var(--fg); border: 1px solid var(--ln); border-radius: 4px; cursor: pointer }
 button:hover { background: var(--sub) }
 button:focus-visible, input:focus-visible, .row:focus-visible { outline: 2px solid var(--hi); outline-offset: -2px }
@@ -33,6 +34,8 @@ button:focus-visible, input:focus-visible, .row:focus-visible { outline: 2px sol
 .chip span { font-variant-numeric: tabular-nums }
 .chip[aria-pressed="true"] { background: color-mix(in srgb, var(--tone, var(--hi)) 16%, transparent); border-color: var(--tone, var(--hi)) }
 .gap { width: 8px }
+#range[hidden] { display: none }
+#windows .chip { padding: 1px 10px }
 #hidden:empty { display: none }
 #hidden::before { content: 'Hidden:'; color: var(--mu); font-size: 12px; margin-right: 2px }
 .columns, .row { display: grid; grid-template-columns: 7ch 12ch 3ch 8ch 24ch minmax(0, 1fr); gap: 0 10px; padding: 2px 12px; font: 12px/1.45 ui-monospace, Menlo, monospace }
@@ -82,7 +85,14 @@ button:focus-visible, input:focus-visible, .row:focus-visible { outline: 2px sol
     <button id="pause" type="button">Pause</button>
   </div>
   <div class="bar">
-    <input id="search" type="search" placeholder="Search, or prop:COORD state:Alert who:kernel -debug" aria-label="Search entries">
+    <div class="chips" id="windows" role="group" aria-label="Time window"></div>
+    <div class="chips" id="range" hidden>
+      <input id="from" type="datetime-local" step="1" aria-label="From"><span class="k">to</span><input id="to" type="datetime-local" step="1" aria-label="To">
+      <button id="apply" type="button">Show</button>
+    </div>
+  </div>
+  <div class="bar">
+    <input id="search" type="search" placeholder="Search what's shown, or prop:COORD state:Alert who:kernel -debug" aria-label="Search entries">
     <button id="clear" type="button">Clear</button>
   </div>
   <div class="bar">
@@ -104,15 +114,20 @@ const stamp = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', y
 const xml = new DOMParser()
 const sources = ['primary', 'guide', 'focuser', 'mount', 'box', 'server', 'other', null, 'system', 'phd2']
 const flags = [['commands', 'Commands'], ['problems', 'Problems']]
-const problemEvents = new Set(['StarLost', 'Alert', 'CalibrationFailed'])
+const windows = [['15 min', '15m', 900000], ['1 hour', '1h', 3600000], ['6 hours', '6h', 21600000], ['24 hours', '24h', 86400000], ['7 days', '7d', 604800000]]
 const counts = new Map()
 const meta = new WeakMap()
 const held = []
 const recent = []
 let paused = false
-let total = 0
 let connected = false
 let shown = 0
+let kept = 0
+let matched = 0
+let reading = 0
+let phase = 'reading'
+let openedAt = 0
+let events = null
 
 const hash = new URLSearchParams(location.hash.slice(1))
 const filter = {
@@ -120,6 +135,9 @@ const filter = {
   commands: hash.has('commands'),
   problems: hash.has('problems'),
   hidden: new Set((hash.get('hide') ?? '').split(',').filter(Boolean)),
+  window: hash.get('window') ?? '15m',
+  from: hash.get('from') ?? '',
+  to: hash.get('to') ?? '',
 }
 
 search.value = hash.get('q') ?? ''
@@ -142,7 +160,7 @@ function shortNumber(text) {
 function describeWire(entry, subject) {
   const device = subject.split('.')[2]
   const root = xml.parseFromString(entry.body.xml, 'text/xml').documentElement
-  const base = { source: device, who: device, label: entry.body.dir, what: '', state: '', pairs: [], text: '', problem: false, command: false, quiet: false }
+  const base = { source: device, who: device, label: entry.body.dir, what: '', state: '', pairs: [], text: '', quiet: false }
 
   if (root.querySelector('parsererror') || root.nodeName === 'parsererror') return { ...base, what: 'unreadable', text: entry.body.xml.trim() }
 
@@ -151,7 +169,7 @@ function describeWire(entry, subject) {
   if (tag === 'message') {
     const text = root.getAttribute('message') ?? ''
 
-    return { ...base, what: 'message', text, problem: text.includes('[ERROR]'), quiet: text.includes('[DEBUG]') }
+    return { ...base, what: 'message', text, quiet: text.includes('[DEBUG]') }
   }
 
   const state = root.getAttribute('state') ?? ''
@@ -160,17 +178,17 @@ function describeWire(entry, subject) {
   const isSwitch = tag.endsWith('SwitchVector')
   const pairs = children.filter(([, value]) => !isSwitch || value === 'On').map(([key, value]) => [key, shortNumber(value)])
 
-  if (tag.startsWith('new')) return { ...base, label: 'cmd', what: name, pairs, command: true }
+  if (tag.startsWith('new')) return { ...base, label: 'cmd', what: name, pairs }
   if (tag.startsWith('def')) return { ...base, what: name, state, pairs, text: pairs.length === 0 ? 'defined' : '', quiet: true }
-  if (tag.startsWith('set')) return { ...base, what: name, state, pairs, problem: state === 'Alert' }
+  if (tag.startsWith('set')) return { ...base, what: name, state, pairs }
 
   return { ...base, what: name || tag, text: name ? tag : '', quiet: true }
 }
 
 function describeSystem(entry) {
-  const base = { source: 'system', label: 'sys', what: '', state: '', pairs: [], command: false }
+  const base = { source: 'system', label: 'sys', what: '', state: '', pairs: [] }
 
-  if (typeof entry.body === 'string') return { ...base, who: 'journal', text: entry.body, problem: false, quiet: false }
+  if (typeof entry.body === 'string') return { ...base, who: 'journal', text: entry.body, quiet: false }
 
   const message = entry.body.MESSAGE
   const text = typeof message === 'string' ? message : JSON.stringify(message)
@@ -181,14 +199,13 @@ function describeSystem(entry) {
     who: entry.body.SYSLOG_IDENTIFIER ?? entry.body._COMM ?? 'journal',
     what: entry.body._SYSTEMD_USER_UNIT ?? entry.body._SYSTEMD_UNIT ?? '',
     text,
-    problem: priority <= 3,
     quiet: priority >= 6 && priority !== 6,
   }
 }
 
 function describePhd2(entry) {
   const event = entry.kind.slice('phd2.'.length)
-  const base = { source: 'phd2', who: 'phd2', label: 'phd', what: event, state: '', command: false, quiet: false, problem: problemEvents.has(event) }
+  const base = { source: 'phd2', who: 'phd2', label: 'phd', what: event, state: '', quiet: false }
 
   if (typeof entry.body === 'string') return { ...base, pairs: [], text: entry.body }
 
@@ -218,9 +235,6 @@ function tokenMatches(token, view) {
 }
 
 function passes(view) {
-  if (filter.show.size > 0 && !filter.show.has(view.source)) return false
-  if (filter.commands && !view.command) return false
-  if (filter.problems && !view.problem) return false
   if (filter.hidden.has(view.what)) return false
 
   return search.value.toLowerCase().split(/\s+/).filter(Boolean).every(token =>
@@ -244,6 +258,10 @@ function applyFilter() {
 function saveFilter() {
   const next = new URLSearchParams()
 
+  if (filter.window === 'range') {
+    next.set('from', filter.from)
+    next.set('to', filter.to)
+  } else next.set('window', filter.window)
   if (filter.show.size > 0) next.set('show', [...filter.show].join(','))
   if (filter.commands) next.set('commands', '')
   if (filter.problems) next.set('problems', '')
@@ -257,7 +275,10 @@ function chip(label, key, pressed, tone, onClick) {
 
   made.type = 'button'
   made.setAttribute('aria-pressed', String(pressed))
-  made.append(element('b', '', label), element('span', '', (counts.get(key) ?? 0).toLocaleString()))
+  const number = element('span', '', (counts.get(key) ?? 0).toLocaleString())
+
+  number.dataset.count = key
+  made.append(element('b', '', label), number)
   made.addEventListener('click', onClick)
 
   return made
@@ -271,14 +292,15 @@ function drawChips() {
     ...sources.map(source => source === null ? element('span', 'gap') : chip(source, source, filter.show.has(source), source, () => {
       if (filter.show.has(source)) filter.show.delete(source)
       else filter.show.add(source)
-      applyFilter()
+      openEvents()
     })),
     element('span', 'gap'),
     ...flags.map(([key, label]) => chip(label, key, filter[key], '', () => {
       filter[key] = !filter[key]
-      applyFilter()
+      openEvents()
     })),
   )
+  drawWindows()
   hidden.replaceChildren(...[...filter.hidden].map(name => {
     const made = element('button', 'chip')
 
@@ -294,10 +316,32 @@ function drawChips() {
   }))
 }
 
-function count(view, change) {
-  const keys = [view.source, ...(view.command ? ['commands'] : []), ...(view.problem ? ['problems'] : [])]
+function drawWindows() {
+  const choices = windows.map(([label, key]) => [label, key])
 
-  for (const key of keys) counts.set(key, (counts.get(key) ?? 0) + change)
+  document.getElementById('windows').replaceChildren(...[...choices, ['Range', 'range']].map(([label, key]) => {
+    const made = element('button', 'chip', label)
+
+    made.type = 'button'
+    made.setAttribute('aria-pressed', String(filter.window === key))
+    made.addEventListener('click', () => {
+      filter.window = key
+      if (key === 'range') {
+        document.getElementById('range').hidden = false
+        drawChips()
+      } else {
+        openEvents()
+      }
+    })
+
+    return made
+  }))
+  document.getElementById('range').hidden = filter.window !== 'range'
+}
+
+function addCounts(added) {
+  for (const [key, value] of Object.entries(added.counts)) counts.set(key, (counts.get(key) ?? 0) + value)
+  matched += added.matched
 }
 
 function action(label, onClick) {
@@ -330,7 +374,7 @@ function moreOf(view, subject) {
 
   actions.append(action(`Only ${view.source}`, () => {
     filter.show = new Set([view.source])
-    applyFilter()
+    openEvents()
   }))
   if (view.what !== '') {
     actions.append(
@@ -367,14 +411,9 @@ function detailOf(view) {
   return detail
 }
 
-function add(message) {
-  const entry = message.text.startsWith('{"v":1,') ? JSON.parse(message.text) : null
-
-  if (entry === null) return
-
-  empty.hidden = true
-
-  const view = { ...describe(entry, message.subject), entry, subject: message.subject, seq: message.seq }
+function rowOf(message) {
+  const entry = JSON.parse(message.text)
+  const view = { ...describe(entry, message.subject), problem: message.problem, command: message.command, entry, subject: message.subject, seq: message.seq }
   const when = new Date(entry.at)
   const row = element('div', `row ${view.source} ${entry.kind === 'wire' ? entry.body.dir : ''} ${view.command ? 'command' : ''} ${view.problem ? 'problem' : ''} ${view.quiet ? 'quiet' : ''}`)
   const time = element('span', 'at', clock.format(when))
@@ -388,42 +427,112 @@ function add(message) {
   row.append(element('span', 'seq', message.seq), time, element('span', 'src', view.label), element('span', 'who', view.who), what, detailOf(view))
   meta.set(row, view)
   setShown(row, view)
-  count(view, 1)
-  rows.prepend(row)
 
-  while (rows.querySelectorAll('.row').length > rowsKeptOnPage) {
-    const oldest = rows.lastElementChild
+  return row
+}
 
-    if (!oldest.hidden) shown -= 1
-    count(meta.get(oldest), -1)
-    oldest.remove()
+function add(message) {
+  rows.prepend(rowOf(message))
+  kept += 1
+  while (kept > rowsKeptOnPage) {
+    if (!rows.lastElementChild.hidden) shown -= 1
+    rows.lastElementChild.remove()
+    kept -= 1
   }
+}
+
+function addHistory(entries) {
+  const batch = document.createDocumentFragment()
+
+  for (const message of entries.toReversed()) batch.append(rowOf(message))
+  rows.prepend(batch)
+  kept += entries.length
+}
+
+function statusText() {
+  if (phase === 'reading') return reading > 0 ? `Reading history · ${reading.toLocaleString()} entries so far` : 'Reading history'
+
+  const place = phase === 'range' ? `${filter.from.replace('T', ' ')} to ${filter.to.replace('T', ' ')}` : `${connected ? 'Live' : 'Reconnecting'} · since ${clock.format(new Date(openedAt))} ET · ${recent.length.toLocaleString()} in the last minute`
+  const capped = matched > kept ? ` · this page keeps the newest ${kept.toLocaleString()}` : ''
+
+  return `${place} · showing ${shown.toLocaleString()} of ${matched.toLocaleString()}${capped}${paused ? ` · paused, ${held.length.toLocaleString()} held` : ''}`
 }
 
 function showStatus() {
   const now = Date.now()
-  const kept = rows.querySelectorAll('.row').length
 
   while (recent.length > 0 && now - recent[0] > 60000) recent.shift()
-  statusLine.textContent = `${connected ? 'Live' : 'Reconnecting'} · ${recent.length.toLocaleString()} in the last minute · showing ${shown.toLocaleString()} of the last ${kept.toLocaleString()}${paused ? ` · paused, ${held.length.toLocaleString()} held` : ''}`
-  statusLine.classList.toggle('down', !connected)
-  if (kept > 0) {
-    empty.hidden = shown > 0
-    empty.textContent = `Nothing matches in the last ${kept.toLocaleString()} entries. New matches appear here as they arrive.`
-  }
+  statusLine.textContent = statusText()
+  statusLine.classList.toggle('down', phase === 'live' && !connected)
+  empty.hidden = shown > 0 || phase === 'reading'
+  empty.textContent = 'Nothing matches in this window.'
 }
 
-const events = new EventSource('events')
+function windowStart() {
+  return Date.now() - (windows.find(([, key]) => key === filter.window) ?? windows[0])[2]
+}
 
-events.onopen = () => { connected = true; showStatus() }
-events.onerror = () => { connected = false; showStatus() }
-events.onmessage = event => {
-  const message = JSON.parse(event.data)
+function eventsUrl() {
+  const query = new URLSearchParams()
 
-  total += 1
-  recent.push(message.at)
-  if (paused) held.push(message)
-  else add(message)
+  if (filter.window === 'range') {
+    query.set('since', String(new Date(filter.from).getTime()))
+    query.set('until', String(new Date(filter.to).getTime()))
+  } else {
+    openedAt = windowStart()
+    query.set('since', String(openedAt))
+  }
+  if (filter.show.size > 0) query.set('show', [...filter.show].join(','))
+  if (filter.commands) query.set('commands', '')
+  if (filter.problems) query.set('problems', '')
+
+  return `events?${query}`
+}
+
+function openEvents() {
+  events?.close()
+  rows.querySelectorAll('.row').forEach(row => row.remove())
+  counts.clear()
+  held.length = 0
+  recent.length = 0
+  shown = 0
+  kept = 0
+  matched = 0
+  reading = 0
+  phase = 'reading'
+  saveFilter()
+  drawChips()
+
+  events = new EventSource(eventsUrl())
+  events.onopen = () => { connected = true; showStatus() }
+  events.onerror = () => { connected = false; showStatus() }
+  events.addEventListener('progress', event => {
+    reading = JSON.parse(event.data).read
+    showStatus()
+  })
+  events.addEventListener('history', event => {
+    const { entries, ...added } = JSON.parse(event.data)
+
+    addCounts(added)
+    addHistory(entries)
+    phase = 'live'
+    drawChips()
+    showStatus()
+  })
+  events.addEventListener('end', () => {
+    events.close()
+    phase = 'range'
+    showStatus()
+  })
+  events.addEventListener('counts', event => addCounts(JSON.parse(event.data)))
+  events.addEventListener('message', event => {
+    const message = JSON.parse(event.data)
+
+    recent.push(message.at)
+    if (paused) held.push(message)
+    else add(message)
+  })
+  showStatus()
 }
 
 search.addEventListener('input', applyFilter)
@@ -434,8 +543,17 @@ document.getElementById('clear').addEventListener('click', () => {
   filter.hidden.clear()
   filter.commands = false
   filter.problems = false
-  applyFilter()
+  openEvents()
 })
+
+document.getElementById('apply').addEventListener('click', () => {
+  filter.from = document.getElementById('from').value
+  filter.to = document.getElementById('to').value
+  if (filter.from !== '' && filter.to !== '') openEvents()
+})
+document.getElementById('from').value = filter.from
+document.getElementById('to').value = filter.to
+if (filter.from !== '' && filter.to !== '') filter.window = 'range'
 
 pauseButton.addEventListener('click', () => {
   paused = !paused
@@ -453,10 +571,10 @@ rows.addEventListener('keydown', event => {
   if (event.key === 'Enter' && event.target.classList.contains('row')) toggle(event.target)
 })
 
-drawChips()
+openEvents()
 setInterval(() => {
   showStatus()
-  drawChips()
+  for (const number of document.querySelectorAll('[data-count]')) number.textContent = (counts.get(number.dataset.count) ?? 0).toLocaleString()
 }, 1000)
 </script>
 </body>

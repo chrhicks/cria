@@ -57,11 +57,11 @@ const ViewerSettings = Schema.Struct({
   streamMaxAgeDays: Schema.Number.annotate({
     description: 'Days the dev stream keeps messages. Throwaway data: long enough to look back across a few iterations, at about 230 MB a day idle, estimated from the 125 MB measured before the entry format',
   }).pipe(Schema.withDecodingDefaultKey(Effect.succeed(7))),
-  messagesShownOnOpen: Schema.Number.annotate({
-    description: 'Messages a newly opened page shows at once: enough to fill a screen before live messages arrive',
-  }).pipe(Schema.withDecodingDefaultKey(Effect.succeed(200))),
+  historyReadBatch: Schema.Number.annotate({
+    description: 'Entries asked of the broker at a time when reading history. The client library defaults to 100; 2048 read 200,000 entries in 0.8 s on thuban, 2026-11-06',
+  }).pipe(Schema.withDecodingDefaultKey(Effect.succeed(2048))),
   rowsKeptOnPage: Schema.Number.annotate({
-    description: 'Rows one page keeps so a tab left open stays responsive: about 6 minutes of the idle rig. Not measured',
+    description: 'Newest matching entries sent to one page and kept on it, so a tab stays responsive: about 7 minutes of the idle rig at 280 a minute. The page\'s own speed at this size was not measured',
   }).pipe(Schema.withDecodingDefaultKey(Effect.succeed(2000))),
 })
 
