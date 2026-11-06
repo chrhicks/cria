@@ -8,12 +8,12 @@
 :root {
   color-scheme: light dark;
   --bg: #fff; --fg: #1c1c1c; --mu: #6b6f76; --ln: #e4e6e9; --sub: #f5f6f7; --hi: #0b6bcb; --bad: #c0392b; --warn: #a8660a;
-  --primary: #8250df; --guide: #0f7b8a; --focuser: #a8590a; --mount: #1a7f37; --box: #b0397a; --sys: #3f6fb5; --phd: #7c5cbf; --cli: #4a7a3a;
+  --primary: #8250df; --guide: #0f7b8a; --focuser: #a8590a; --mount: #1a7f37; --box: #b0397a; --sys: #3f6fb5; --phd: #7c5cbf; --cli: #4a7a3a; --cri: #b2541a;
 }
 @media (prefers-color-scheme: dark) {
   :root {
     --bg: #0d0f12; --fg: #e8e8e8; --mu: #9aa0a6; --ln: #2a2d32; --sub: #171a1e; --hi: #6cb2ff; --bad: #ff7b72; --warn: #e3b341;
-    --primary: #b9a0f5; --guide: #5cc8d8; --focuser: #e6a95c; --mount: #7ee2a0; --box: #f08fc0; --sys: #8ab4f0; --phd: #b39ddb; --cli: #a5d68f;
+    --primary: #b9a0f5; --guide: #5cc8d8; --focuser: #e6a95c; --mount: #7ee2a0; --box: #f08fc0; --sys: #8ab4f0; --phd: #b39ddb; --cli: #a5d68f; --cri: #f0a070;
   }
 }
 * { box-sizing: border-box }
@@ -52,9 +52,9 @@ button:focus-visible, input:focus-visible, .row:focus-visible { outline: 2px sol
 .k { margin-left: 8px }
 .k:first-of-type { margin-left: 0 }
 .primary { --tone: var(--primary) } .guide { --tone: var(--guide) } .focuser { --tone: var(--focuser) } .mount { --tone: var(--mount) } .box { --tone: var(--box) }
-.system { --tone: var(--sys) } .phd2 { --tone: var(--phd) } .client { --tone: var(--cli) }
+.system { --tone: var(--sys) } .phd2 { --tone: var(--phd) } .client { --tone: var(--cli) } .cria { --tone: var(--cri) }
 .row .src { color: var(--mu) }
-.row.out .src, .row.system .src, .row.phd2 .src, .row.client .src { color: var(--tone, var(--hi)) }
+.row.out .src, .row.system .src, .row.phd2 .src, .row.client .src, .row.cria .src { color: var(--tone, var(--hi)) }
 .row.command { background: color-mix(in srgb, var(--hi) 7%, transparent) }
 .row.command .src { color: var(--hi); font-weight: 600 }
 .row.problem { box-shadow: inset 2px 0 0 var(--bad) }
@@ -128,7 +128,7 @@ const pauseButton = document.getElementById('pause')
 const clock = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' })
 const stamp = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' })
 const xml = new DOMParser()
-const sources = ['primary', 'guide', 'focuser', 'mount', 'box', 'server', 'other', null, 'system', 'phd2', 'client']
+const sources = ['primary', 'guide', 'focuser', 'mount', 'box', 'server', 'other', null, 'system', 'phd2', 'client', 'cria']
 const flags = [['commands', 'Commands'], ['problems', 'Problems'], ['changes', 'Changes only']]
 const windows = [['15 min', '15m', 900000], ['1 hour', '1h', 3600000], ['6 hours', '6h', 21600000], ['24 hours', '24h', 86400000], ['7 days', '7d', 604800000]]
 const counts = new Map()
@@ -234,7 +234,7 @@ function describePhd2(entry) {
 }
 
 function describeClient(entry) {
-  const base = { source: 'client', who: 'stream-client', label: 'cli', state: '', text: '', quiet: false }
+  const base = { source: 'client', who: entry.source.split(':').at(-1), label: 'cli', state: '', text: '', quiet: false }
 
   if (entry.kind === 'client.connection') {
     const { target, status, error } = entry.body
@@ -247,8 +247,22 @@ function describeClient(entry) {
   return { ...base, what: 'connected', pairs: [['connection', String(connection)], ['version', String(version)], ['sources', published.join(', ')]] }
 }
 
+function describeCria(entry) {
+  const body = entry.body
+  const base = { source: 'cria', who: body.deviceId, label: 'cri', what: body.kind, text: '', quiet: false }
+  const parameters = Object.entries(body.parameters ?? {}).map(([key, value]) => [key, String(value)])
+
+  if (entry.kind === 'cria.request') return { ...base, state: body.result, pairs: parameters, text: body.message ?? '' }
+
+  const { kind, message, reason } = body.outcome
+  const seconds = ((body.settledAt - body.startedAt) / 1000).toFixed(2)
+
+  return { ...base, state: kind, pairs: [['took', `${seconds} s`]], text: [reason, message].filter(Boolean).join(': ') }
+}
+
 function describe(entry, subject) {
   if (entry.kind === 'wire') return describeWire(entry, subject)
+  if (entry.kind.startsWith('cria.')) return describeCria(entry)
   if (entry.kind.startsWith('client.')) return describeClient(entry)
 
   return entry.kind === 'system' ? describeSystem(entry) : describePhd2(entry)

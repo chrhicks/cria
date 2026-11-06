@@ -16,6 +16,7 @@ import { makeImageStore, type ImageStore } from './image/store.js'
 import { makeLedger, type Ledger } from './operation/ledger.js'
 import { makeWorkflows, workflowFor } from './operation/workflows.js'
 import { makeRecorder, type RecordingOptions } from './recording.js'
+import { makeCriaStream, type OpenPublisher } from './stream.js'
 
 export interface RigDevice extends Equipment {
   readonly feedback: CapabilityContext['feedback']
@@ -36,10 +37,11 @@ export interface Rig {
   readonly recorder: Recorder | undefined
 }
 
-export function makeRig(config: Config, options: { readonly recording?: RecordingOptions } = {}): Effect.Effect<Rig, Error, Scope.Scope> {
+export function makeRig(config: Config, options: { readonly recording?: RecordingOptions; readonly stream?: OpenPublisher } = {}): Effect.Effect<Rig, Error, Scope.Scope> {
   return Effect.gen(function* () {
     const instanceId = mint.instanceId()
     const recorder = yield* makeRecorder(config, instanceId, options.recording ?? {})
+    const stream = yield* makeCriaStream(config, instanceId, options.stream)
     const client = yield* makeIndiClient({ ...config.indi, ...(recorder ? { tap: recorder } : {}) })
     const images = yield* makeImageStore({ directory: config.imageDirectory, budgetBytes: config.imageBudgetBytes })
     const timing = { acknowledgeMs: config.acknowledgeMs, operationTimeoutMs: config.operationTimeoutMs, readoutAllowanceMs: config.readoutAllowanceMs }
@@ -70,12 +72,15 @@ export function makeRig(config: Config, options: { readonly recording?: Recordin
     }
 
     const workflows = makeWorkflows(images)
-    const ledger = yield* makeLedger({
+    const inner = yield* makeLedger({
       instanceId,
       commandsEnabled: config.commandsEnabled,
       mountLeaseRequired: config.mountLeaseRequired ?? false,
       history: config.operationHistory,
-      ...(recorder ? { onSettled: operation => recorder.operation(operation) } : {}),
+      onSettled: operation => {
+        recorder?.operation(operation)
+        stream?.settled(operation)
+      },
       devices: devices.map(device => ({
         id: device.config.id,
         kind: device.config.kind,
@@ -84,6 +89,17 @@ export function makeRig(config: Config, options: { readonly recording?: Recordin
         work: workflowFor(device, workflows),
       })),
     })
+
+    const ledger: Ledger = stream
+      ? {
+          ...inner,
+          submit: submission =>
+            inner.submit(submission).pipe(
+              Effect.tap(operation => Effect.sync(() => stream.accepted(submission, operation))),
+              Effect.tapError(refusal => Effect.sync(() => stream.refused(submission, refusal))),
+            ),
+        }
+      : inner
 
     // The Pegasus weather and switch are one INDI device: connect it once.
     const preparing = new Set<string>()
