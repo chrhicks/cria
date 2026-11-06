@@ -65,6 +65,7 @@ const Device = Schema.Struct({
   /** A camera's subframe alignment in binned pixels, which indi_asi_ccd's CCD_FRAME definition does not give. */
   frameGrid: Schema.optionalKey(Schema.Struct({ width: Schema.optionalKey(BinnedPixels), height: Schema.optionalKey(BinnedPixels) })),
   site: Schema.optionalKey(Site),
+  driverDebug: Schema.optionalKey(Schema.Boolean),
   motion: Schema.optionalKey(MountMotion),
   envelope: Schema.optionalKey(MountEnvelope),
   travel: Schema.optionalKey(FocuserTravel),

@@ -53,6 +53,30 @@ const uploadToClient: Step = (context, snapshot) =>
     }
   })
 
+const driverDebug: Step = (context, snapshot) =>
+  Effect.gen(function* () {
+    const enabled = snapshot.reading('DEBUG', switchElement('ENABLE'), setting)
+
+    if (!(yield* defines(enabled, 'DEBUG'))) return kept('DEBUG', 'is not defined by this driver')
+
+    const level = snapshot.reading('DEBUG_LEVEL', switchElement('DBG_DEBUG'), setting)
+
+    if (enabled.status !== 'unavailable' && enabled.value && level.status !== 'unavailable' && level.value) return kept('DEBUG', 'is already on')
+
+    const enable = switchConfirmed(context.device, 'DEBUG', { ENABLE: true }, property => switchElement('ENABLE')(property) === true, context.timing)
+    const levelDefined = confirmProperty(context.device, 'DEBUG_LEVEL', () => true, context.timing.acknowledgeMs)
+    const raise = switchConfirmed(context.device, 'DEBUG_LEVEL', { DBG_DEBUG: true }, property => switchElement('DBG_DEBUG')(property) === true, context.timing)
+
+    return {
+      kind: 'write',
+      property: 'DEBUG',
+      values: { ENABLE: true, DBG_DEBUG: true },
+      write: Effect.andThen(enable, Effect.andThen(levelDefined, raise)).pipe(
+        Effect.catch(error => Effect.logWarning(`${context.device.name}: driver debug not set: ${error.message}`)),
+      ),
+    }
+  })
+
 const site: Step = (context, snapshot, device) =>
   Effect.gen(function* () {
     if (!device.site) return notSent('GEOGRAPHIC_COORD', 'no site is configured for this mount')
@@ -108,7 +132,7 @@ export interface DeviceSetup {
 }
 
 export function makeDeviceSetup(context: CapabilityContext, device: DeviceConfig): Effect.Effect<DeviceSetup> {
-  const kindSteps = steps[device.kind]
+  const kindSteps = device.driverDebug === true ? [...steps[device.kind], driverDebug] : steps[device.kind]
 
   return Effect.gen(function* () {
     const state = yield* Ref.make<{ readonly session: number; readonly outcomes: ReadonlyArray<StepOutcome> | undefined }>({

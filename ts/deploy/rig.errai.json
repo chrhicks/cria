@@ -19,6 +19,7 @@
       "kind": "mount",
       "indiDevice": "ZWO AM5",
       "connect": false,
+      "driverDebug": true,
       "port": "/dev/serial/by-id/usb-ZWO_Systems_ZWO_Device_123456-if00",
       "envelope": {
         "keepOut": [
