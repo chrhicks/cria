@@ -67,6 +67,7 @@ const allowed: Record<string, Partial<Record<Rule, readonly [count: number, why:
     'try-catch': [1, 'an unreadable FITS header means the frame is not ours, in a plain function'],
     'wall-clock': [3, 'dispatch time compared with the driver-stamped DATE-OBS; elapsed progress; commandedAt on the wire'],
   },
+  'apps/cria/src/capability/setup.ts': { 'catch-all': [1, 'driver debug only helps watching the rig, so failing to set it is logged and never stops a device'] },
   'apps/cria/src/capability/fields.ts': { 'wall-clock': [1, 'takenAt compared with receive times, which are wall-clock'] },
   'apps/cria/src/capability/mount.ts': { 'wall-clock': [1, 'sidereal time is a function of real time'] },
   'apps/cria/src/image/store.ts': {

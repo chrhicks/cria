@@ -53,10 +53,8 @@ const uploadToClient: Step = (context, snapshot) =>
     }
   })
 
-const driverDebug: Step = (context, snapshot, device) =>
+const driverDebug: Step = (context, snapshot) =>
   Effect.gen(function* () {
-    if (device.driverDebug !== true) return kept('DEBUG', 'driver debug is not asked for')
-
     const enabled = snapshot.reading('DEBUG', switchElement('ENABLE'), setting)
 
     if (!(yield* defines(enabled, 'DEBUG'))) return kept('DEBUG', 'is not defined by this driver')
@@ -73,7 +71,9 @@ const driverDebug: Step = (context, snapshot, device) =>
       kind: 'write',
       property: 'DEBUG',
       values: { ENABLE: true, DBG_DEBUG: true },
-      write: Effect.andThen(enable, Effect.andThen(levelDefined, raise)),
+      write: Effect.andThen(enable, Effect.andThen(levelDefined, raise)).pipe(
+        Effect.catch(error => Effect.logWarning(`${context.device.name}: driver debug not set: ${error.message}`)),
+      ),
     }
   })
 
@@ -104,7 +104,7 @@ const time: Step = (context, snapshot, _device, now) =>
 
 const steps: { readonly [K in DeviceKind]: ReadonlyArray<Step> } = {
   camera: [uploadToClient],
-  mount: [driverDebug, site, time],
+  mount: [site, time],
   focuser: [],
   weather: [],
   switch: [],
@@ -132,7 +132,7 @@ export interface DeviceSetup {
 }
 
 export function makeDeviceSetup(context: CapabilityContext, device: DeviceConfig): Effect.Effect<DeviceSetup> {
-  const kindSteps = steps[device.kind]
+  const kindSteps = device.driverDebug === true ? [...steps[device.kind], driverDebug] : steps[device.kind]
 
   return Effect.gen(function* () {
     const state = yield* Ref.make<{ readonly session: number; readonly outcomes: ReadonlyArray<StepOutcome> | undefined }>({

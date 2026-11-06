@@ -167,6 +167,20 @@ describe('a mount', () => {
     expect(fake.vector(mount, 'DEBUG_LEVEL').elements.DBG_DEBUG!.value).toBe(true)
   })
 
+  it('stays usable when driver debug can\'t be set, with the site and time already written', async () => {
+    fake = new FakeIndi()
+    await fake.start()
+    addMount(fake, mount, { connected: true })
+    fake.update(mount, 'GEOGRAPHIC_COORD', { values: { LAT: 0, LONG: 0, ELEV: 0 } })
+    fake.define({ device: mount, name: 'DEBUG', kind: 'switch', perm: 'rw', rule: 'OneOfMany', state: 'Ok', elements: { ENABLE: { value: false }, DISABLE: { value: true } } })
+    cria = await startCria(fake.port, [{ id: 'mount', kind: 'mount', indiDevice: mount, site, driverDebug: true }], { acknowledgeMs: 500 })
+    await until('debug to be tried', () => writes('DEBUG').length === 1)
+    await cria.waitFor(allReady(['mount']))
+
+    expect(writes('GEOGRAPHIC_COORD')).toHaveLength(1)
+    expect(writes('TIME_UTC')).toHaveLength(1)
+  })
+
   it('leaves driver debug alone unless asked', async () => {
     fake = new FakeIndi()
     await fake.start()
