@@ -1,6 +1,7 @@
 import { FakeIndi, connection } from '../../testing/fake-indi/index.ts'
 import { Effect, Option, Stream } from 'effect'
 import { describe, expect, it } from 'vitest'
+import { propertyOf } from '../../testing/property.ts'
 import { makeIndiClient, type DeviceEvent } from './client.ts'
 
 const camera = 'Fake CCD'
@@ -32,7 +33,7 @@ describe('the property mirror and a new connection', () => {
           const device = client.device(camera)
 
           yield* Effect.forkScoped(Stream.runForEach(device.events, event => Effect.sync(() => void events.push(event))))
-          yield* waitFor(device.property('CONNECTION'))
+          yield* waitFor(propertyOf(device, 'CONNECTION'))
 
           yield* Effect.promise(() => first.stop())
           yield* waitFor(client.status.pipe(Effect.map(Option.liftPredicate(status => status.kind !== 'connected'))))
@@ -42,7 +43,7 @@ describe('the property mirror and a new connection', () => {
           yield* waitFor(client.status.pipe(Effect.map(Option.liftPredicate(status => status.kind === 'connected'))))
           yield* Effect.sleep('100 millis')
 
-          return { whileDown, afterReconnect: yield* device.properties, connection: yield* device.property('CONNECTION') }
+          return { whileDown, afterReconnect: yield* device.properties, connection: yield* propertyOf(device, 'CONNECTION') }
         }),
       ),
     )

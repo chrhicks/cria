@@ -1,6 +1,7 @@
 import net from 'node:net'
-import { Effect, Option } from 'effect'
+import { Effect, Option, Stream } from 'effect'
 import { afterEach, describe, expect, it } from 'vitest'
+import { propertyOf } from '../../testing/property.ts'
 import { makeIndiClient } from './client.ts'
 import { ProblemLog } from './problems.ts'
 import type { TappedConnection, TappedMessage } from './tap.ts'
@@ -79,18 +80,6 @@ describe('what the framer and parser do with unexpected input', () => {
     expect(junk.excerpt.length).toBeLessThan(260)
     expect(junk.excerpt).not.toContain('\u0007')
     expect(junk.bytes).toBeGreaterThan(5000)
-  })
-
-  it('frames a large BLOB vector split into chunks as one skipped element without its payload', () => {
-    const image = Buffer.alloc(3 * 1024 * 1024)
-
-    for (let i = 0; i < image.length; i += 1) image[i] = (i * 31 + (i >> 8)) & 0xff
-    const wire = `<setBLOBVector device="D" name="CCD1" state="Ok"><oneBLOB name="CCD1" size="${image.length}" format=".fits">${image.toString('base64')}</oneBLOB></setBLOBVector><message message="after"/>`
-    const framer = new IndiFramer()
-    const elements = Array.from({ length: Math.ceil(wire.length / 65536) }, (_, i) => Buffer.from(wire.slice(i * 65536, (i + 1) * 65536))).flatMap(chunk => framer.pushFramed(chunk))
-
-    expect(elements.map(element => [element.message?.type, element.problem])).toEqual([[undefined, undefined], ['message', undefined]])
-    expect(elements[0]!.xml).toBe(`<setBLOBVector device="D" name="CCD1" state="Ok"><oneBLOB name="CCD1" size="${image.length}" format=".fits"/></setBLOBVector>`)
   })
 
   it('reads invalid UTF-8 as replacement characters without failing, and says so when it is part of a bad element', () => {
@@ -264,12 +253,9 @@ describe('the client when indiserver sends something unexpected', () => {
         Effect.gen(function* () {
           const client = yield* makeIndiClient({ host: '127.0.0.1', port: fake.port, tap, warn: line => void warnings.push(line) })
           const focuser = client.device(deviceName)
-          const subscription = yield* focuser.subscribe
 
           yield* Effect.forkScoped(
-            Effect.forever(
-              Effect.flatMap(subscription.next, event => (event.type === 'deleted' ? Effect.sync(() => void deleted.push(event.name ?? '')) : Effect.void)),
-            ),
+            Stream.runForEach(focuser.events, event => (event.type === 'deleted' ? Effect.sync(() => void deleted.push(event.name ?? '')) : Effect.void)),
           )
           yield* Effect.promise(() =>
             run({
@@ -278,7 +264,7 @@ describe('the client when indiserver sends something unexpected', () => {
               tapped,
               closed,
               deleted,
-              property: name => Option.getOrUndefined(Effect.runSync(focuser.property(name))),
+              property: name => Option.getOrUndefined(Effect.runSync(propertyOf(focuser, name))),
               socket: async n => {
                 await until(() => fake.connections.length >= n)
 
@@ -290,19 +276,6 @@ describe('the client when indiserver sends something unexpected', () => {
       ),
     )
   }
-
-  it('skips a BLOB vector without a warning, hands the recording its wire text without the payload, and keeps reading', async () => {
-    await session(async ({ warnings, tapped, closed, socket, property }) => {
-      const first = await socket(1)
-
-      first.write(`<setBLOBVector device="Test Focuser" name="CCD1" state="Ok"><oneBLOB name="CCD1" size="3" format=".fits">QUJD</oneBLOB></setBLOBVector>${good()}`)
-      await until(() => property('POSITION') !== undefined)
-
-      expect(tapped.find(item => item.dir === 'in')!.xml).toBe('<setBLOBVector device="Test Focuser" name="CCD1" state="Ok"><oneBLOB name="CCD1" size="3" format=".fits"/></setBLOBVector>')
-      expect(warnings).toEqual([])
-      expect(closed.filter(item => item.status === 'closed')).toEqual([])
-    })
-  })
 
   it('logs one short physical line for a number made of ten thousand lines of junk', async () => {
     await session(async ({ warnings, property, socket }) => {

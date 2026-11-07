@@ -103,16 +103,6 @@ export class IndiFramer {
   private closing: Buffer | undefined
   private stopped: ProtocolProblem | undefined
 
-  /** The messages in `chunk`. A bad element is skipped; see `frame`. */
-  push(chunk: Buffer): IndiMessage[] {
-    return this.frame(chunk, false).elements.flatMap(element => (element.message ? [element.message] : []))
-  }
-
-  /** Like `push`, and keeps every element, the ignored and the bad ones too, with its wire text. For the traffic tap; `push` costs none of this. */
-  pushFramed(chunk: Buffer): FramedElement[] {
-    return this.frame(chunk, true).elements
-  }
-
   /**
    * Every whole top-level element in the bytes so far, in order. A bad element does not throw: it comes back
    * with a `problem` and no message, and the elements after it are read as usual. `stopped` is set when the
@@ -273,7 +263,7 @@ export interface FramedElement {
   readonly message: IndiMessage | undefined
   /** Why this element could not be read. It is still in `xml`, byte for byte, for the recording. */
   readonly problem?: ProtocolProblem
-  /** The element's wire text with each BLOB payload removed: `<oneBLOB name="CCD1" size="9" format=".fits"/>`. */
+  /** The element's wire text, kept only when the caller asked for it. */
   readonly xml: string
 }
 
@@ -289,7 +279,7 @@ function frameElement(element: Buffer, keepText: boolean): FramedElement {
   }
 
 
-  return { message, ...(problem ? { problem } : {}), xml: keepText ? elideBlobs(element) : '' }
+  return { message, ...(problem ? { problem } : {}), xml: keepText ? element.toString('utf8') : '' }
 }
 
 /** The error path only: where the bad bytes are from and a bounded look at them. */
@@ -327,36 +317,6 @@ function leading(element: Buffer): Buffer {
   while (end > inspectedBytes - 4 && (element[end]! & 0xc0) === 0x80) end--
 
   return element.subarray(0, end)
-}
-
-/** `element` as text with each `oneBLOB` payload dropped. */
-function elideBlobs(element: Buffer): string {
-  if (!element.toString('latin1', 0, 14).startsWith('<setBLOBVector')) return element.toString('utf8')
-
-  const parts: string[] = []
-  let kept = 0
-  let from = 0
-
-  while (true) {
-    const open = element.indexOf('<oneBLOB', from)
-
-    if (open < 0) break
-    const openEnd = element.indexOf(GT, open)
-
-    if (openEnd < 0) break
-    from = openEnd + 1
-    if (element[openEnd - 1] === SLASH) continue
-    const close = element.indexOf('</oneBLOB>', openEnd)
-
-    if (close < 0) break
-    parts.push(element.toString('utf8', kept, openEnd), '/>')
-    kept = close + 10
-    from = kept
-  }
-
-  parts.push(element.toString('utf8', kept))
-
-  return parts.join('')
 }
 
 // ---------------------------------------------------------------- parsing

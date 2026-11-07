@@ -4,9 +4,11 @@ import { IndiFramer, parseNumber, serialize, type IndiMessage } from './xml.ts'
 import { Mirror } from './mirror.ts'
 
 // Real traffic from indiserver 2.2.5 with the CCD, telescope, focuser and
-// weather simulators: definitions, a 64x48 exposure with its BLOB, a focuser
+// weather simulators: definitions, a 64x48 exposure, a focuser
 // move and a weather disconnect (which deletes properties).
 const recorded = readFileSync(new URL('./fixtures/simulators.xml', import.meta.url))
+
+const messagesIn = (framer: IndiFramer, chunk: Buffer) => framer.frame(chunk, false).elements.flatMap(element => (element.message ? [element.message] : []))
 
 function parseInChunks(bytes: Buffer, sizes: () => number): IndiMessage[] {
   const framer = new IndiFramer()
@@ -15,7 +17,7 @@ function parseInChunks(bytes: Buffer, sizes: () => number): IndiMessage[] {
   for (let at = 0; at < bytes.length; ) {
     const size = Math.max(1, sizes())
 
-    messages.push(...framer.push(bytes.subarray(at, at + size)))
+    messages.push(...messagesIn(framer, bytes.subarray(at, at + size)))
     at += size
   }
 
@@ -54,7 +56,7 @@ describe('INDI XML framing', () => {
   it('builds a mirror that knows the current values and deletes what the driver removed', () => {
     const mirror = new Mirror()
 
-    for (const message of whole) mirror.apply(message, 0)
+    for (const message of whole) mirror.apply(message)
 
     expect(mirror.property('Focuser Simulator', 'ABS_FOCUS_POSITION')?.elements.get('FOCUS_ABSOLUTE_POSITION')).toMatchObject({ value: 50200 })
     expect(mirror.property('Telescope Simulator', 'TELESCOPE_TRACK_MODE')?.elements.get('TRACK_SIDEREAL')).toMatchObject({ on: true })
@@ -73,7 +75,7 @@ describe('INDI values', () => {
 
   it('trims the whitespace indiserver puts around text values (errai, libindi 2.2.5)', () => {
     const framer = new IndiFramer()
-    const [definition, update] = framer.push(
+    const [definition, update] = messagesIn(framer, 
       Buffer.from(
         '<defTextVector device="ZWO CCD ASI2600MC Pro" name="CCD_CFA" state="Idle" perm="rw">\n' +
           '    <defText name="CFA_TYPE" label="Filter">\nRGGB\n    </defText>\n</defTextVector>\n' +
@@ -87,7 +89,7 @@ describe('INDI values', () => {
   })
 
   it('decodes entities in text and attributes', () => {
-    const [message] = new IndiFramer().push(
+    const [message] = messagesIn(new IndiFramer(), 
       Buffer.from('<defTextVector device="A &amp; B" name="N" label="x &lt; 1 &#x263A;"><defText name="T">a &amp; b</defText></defTextVector>'),
     )
 
@@ -103,17 +105,15 @@ describe('INDI values', () => {
 })
 
 describe('INDI framing for the traffic tap', () => {
-  const blobVector = (elements: string) => `<setBLOBVector device="CCD" name="CCD1" state="Ok" timestamp="2026-10-18T01:02:03">${elements}</setBLOBVector>`
-
   it('keeps an element ignored by the parser, with its wire text', () => {
     const relayed = '<newNumberVector device="CCD" name="CCD_CONTROLS"><oneNumber name="Gain">100</oneNumber></newNumberVector>'
-    const framed = new IndiFramer().pushFramed(Buffer.from(relayed))
+    const framed = new IndiFramer().frame(Buffer.from(relayed), true).elements
 
     expect(framed).toEqual([{ message: undefined, xml: relayed }])
   })
 
   it('reads a driver message with its device and text', () => {
-    const framed = new IndiFramer().pushFramed(Buffer.from('<message device="CCD" message="hello &amp; bye"/><message message="no device"/>'))
+    const framed = new IndiFramer().frame(Buffer.from('<message device="CCD" message="hello &amp; bye"/><message message="no device"/>'), true).elements
 
     expect(framed.map(element => element.message)).toEqual([
       { type: 'message', device: 'CCD', text: 'hello & bye' },
@@ -121,21 +121,8 @@ describe('INDI framing for the traffic tap', () => {
     ])
   })
 
-  it('frames a BLOB vector without reading it and drops each payload from the wire text', () => {
-    const wire = blobVector(
-      '<oneBLOB name="CCD1" size="3" format=".fits">AQID</oneBLOB><oneBLOB name="A" size="0" format=".fits"/><oneBLOB name="CCD2" size="2" format=".fits">\nBAU=\n</oneBLOB>',
-    )
-    const framed = new IndiFramer().pushFramed(Buffer.from(`${wire}<message message="after"/>`))
-
-    expect(framed[0]).toEqual({
-      message: undefined,
-      xml: blobVector('<oneBLOB name="CCD1" size="3" format=".fits"/><oneBLOB name="A" size="0" format=".fits"/><oneBLOB name="CCD2" size="2" format=".fits"/>'),
-    })
-    expect(framed[1]!.message).toEqual({ type: 'message', text: 'after' })
-  })
-
-  it('frames real indiserver traffic the same however the bytes are split, and never changes what push returns', () => {
-    const whole = new IndiFramer().pushFramed(recorded)
+  it('frames real indiserver traffic the same however the bytes are split, and keeps the same messages with or without the wire text', () => {
+    const whole = new IndiFramer().frame(recorded, true).elements
 
     expect(whole.map(element => element.message).filter(message => message !== undefined)).toEqual(parseInChunks(recorded, () => recorded.length))
 
@@ -147,24 +134,11 @@ describe('INDI framing for the traffic tap', () => {
       for (let at = 0; at < recorded.length; ) {
         const size = Math.max(1, sizes())
 
-        split.push(...framer.pushFramed(recorded.subarray(at, at + size)))
+        split.push(...framer.frame(recorded.subarray(at, at + size), true).elements)
         at += size
       }
 
       expect(split.map(element => element.xml)).toEqual(whole.map(element => element.xml))
     }
-  })
-
-  it('gives the exposure BLOB of the real traffic as one elided element', () => {
-    const framed = new IndiFramer().pushFramed(recorded).filter(element => element.xml.startsWith('<setBLOBVector'))
-
-    expect(framed).toHaveLength(1)
-    expect(framed[0]!.message).toBeUndefined()
-    expect(framed[0]!.problem).toBeUndefined()
-    expect(framed[0]!.xml).toBe(
-      '<setBLOBVector device="CCD Simulator" name="CCD1" state="Ok" timeout="60" timestamp="2026-10-15T03:27:32">\n' +
-        '    <oneBLOB name="CCD1" size="14400" format=".fits" len="14400"/>\n' +
-        '</setBLOBVector>',
-    )
   })
 })

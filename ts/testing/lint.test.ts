@@ -17,7 +17,7 @@ type Rule = keyof typeof rules
 const allowed: Record<string, Partial<Record<Rule, readonly [count: number, why: string]>>> = {
   'src/indi/client.ts': {
     'try-catch': [1, 'a bug in applying a message closes the socket from inside a Node data handler'],
-    'wall-clock': [6, 'receive times and connection status times; the reconnect backoff resets after 10 s connected; the receive time of a forgotten property'],
+    'wall-clock': [4, 'connection status times; the reconnect backoff resets after 10 s connected'],
   },
   'src/indi/xml.ts': {
     'try-catch': [2, 'an IndiProtocolError from one element or from the framing becomes a problem the client logs, never a throw out of a data handler'],

@@ -13,7 +13,6 @@ export interface Publisher {
   readonly ready: Promise<void>
   readonly publish: (subject: string, entry: Entry) => void
   readonly publishConfirmed: (subject: string, entry: Entry) => Promise<void>
-  readonly listen: (subject: string, onMessage: () => void) => void
   readonly close: () => Promise<void>
 }
 
@@ -24,7 +23,7 @@ export interface PublisherOptions {
   readonly onConnected: (connection: number) => void
 }
 
-export type BrokerConnection = Pick<NatsConnection, 'publish' | 'close' | 'getServer' | 'subscribe'> & {
+export type BrokerConnection = Pick<NatsConnection, 'publish' | 'close' | 'getServer'> & {
   readonly status: () => AsyncIterable<Status>
   readonly store: (subject: string, payload: string, messageId: string) => Promise<unknown>
 }
@@ -39,7 +38,6 @@ const connectToBroker: ConnectToBroker = async options => {
     publish: (subject, payload) => connection.publish(subject, payload),
     close: () => connection.close(),
     getServer: () => connection.getServer(),
-    subscribe: (subject, subscriptionOptions) => connection.subscribe(subject, subscriptionOptions),
     status: () => connection.status(),
     store: (subject, payload, messageId) => stream.publish(subject, payload, { msgID: messageId }),
   }
@@ -118,9 +116,6 @@ export function openPublisher({ broker: { retryDelayMs, ...login }, name, log, o
       }
 
       throw new Error('the publisher closed before the stream stored the entry')
-    },
-    listen(subject, onMessage) {
-      void ready.then(() => connection?.subscribe(subject, { callback: error => (error ? log(`listening on ${subject} failed: ${String(error)}`) : onMessage()) }))
     },
     async close() {
       closed = true

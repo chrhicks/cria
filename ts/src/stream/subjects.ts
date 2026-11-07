@@ -12,8 +12,6 @@ export function wireSubject(devices: Readonly<Record<string, string>>, dir: Dire
   return `rig-dev.wire.${wireDevice(devices, xml)}.${dir}`
 }
 
-export const refreshSubject = 'rig-dev.refresh'
-
 export const streamName = 'RIG_DEV'
 
 export const streamSubjects = ['rig-dev.>']
