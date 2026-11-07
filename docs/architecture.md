@@ -36,7 +36,7 @@ Each device takes one command at a time. The Pegasus power box is one device, `b
 
 INDI already runs each driver as its own process, so Cria runs no worker processes of its own. A driver crash shows up as the driver's properties disappearing, and Cria reports the device unavailable. INDI pushes property changes, so readings stay fresh while a camera exposes.
 
-Cria now decides freshness once, as of each snapshot, and Vela reads `fresh`, `stale` or `unavailable` instead of deriving freshness from read times. Vela and Cria import the same `@cria/wire` package, so they agree on the wire by construction. [SPEC.md, "Changed from protocol 4"](ts/SPEC.md#changed-from-protocol-4) lists every wire change.
+Cria now decides freshness once, as of each snapshot, and Vela reads `fresh`, `stale` or `unavailable` instead of deriving freshness from read times. Vela and Cria import the same `@cria/wire` package, so they agree on the wire by construction.
 
 ## The layers of the service
 
@@ -55,11 +55,11 @@ INDI boundary    @cria/indi                  XML framing, the TCP connection, th
 
 For the details, read these sections of SPEC.md:
 
-- [The layers](ts/SPEC.md#the-layers) and [the module map](ts/SPEC.md#module-map), for what each file is.
+- [The layers](ts/SPEC.md#the-layers), for what each part is.
 - [Primitives](ts/SPEC.md#primitives), for Outcome, Reading and the disciplines.
 - [The ledger](ts/SPEC.md#the-ledger), for admission, halts and cancel.
 - [The INDI boundary](ts/SPEC.md#the-indi-boundary), for which INDI property backs each reading.
-- [The wire (protocol 5)](ts/SPEC.md#the-wire-protocol-5), for endpoints, errors and shapes.
+- [The wire (protocol 5)](ts/SPEC.md#the-wire-protocol-5), for endpoints, errors and the rules behind the shapes.
 
 ## Unknown outcomes
 

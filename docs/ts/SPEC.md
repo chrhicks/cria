@@ -1,35 +1,25 @@
 # Cria on Linux: TypeScript, INDI and Effect
 
-The contract and design of the TypeScript Cria under `ts/`, as it is on `main`
-in chrhicks/cria. Where the code and this file
-disagree, this file is the intent and the code has the bug.
+The rules of the TypeScript Cria under `ts/`, and why each one exists. The wire
+is `@cria/wire` and the golden (`ts/testing/golden/wire.golden.json`); those are
+enforced, so this file does not repeat them. Where this file and the code
+disagree on a rule, one of them has a bug: find out which.
 
 ## What this is
 
-Cria used to be a .NET service on Windows that drove ASCOM through isolated
-worker processes. On Linux every rig device has an INDI driver, and INDI already runs one
-process per driver. So the new Cria is an INDI client. It is a TypeScript service
-that connects to `indiserver` on TCP 7624, turns INDI properties into Readings,
-runs bounded operations as Runs, and serves Vela over HTTP and SSE (wire protocol
-5).
+Cria is an INDI client. It is a TypeScript service that connects to
+`indiserver` on TCP 7624, turns INDI properties into Readings, runs one bounded
+operation at a time per device, and serves its clients over HTTP and SSE (wire
+protocol 5). INDI runs one process per driver, and those processes are the
+isolation boundary: Cria sees a driver crash as the device's properties
+disappearing.
 
 ```
 Vela server ──HTTP/SSE (protocol 5)──▶ Cria (Node, Effect) ──INDI XML/TCP──▶ indiserver ──▶ one process per driver ──▶ devices
 ```
 
-What changes for the rig:
-
-- Cria runs no worker processes. INDI's driver processes are the isolation
-  boundary. Cria sees a driver crash as the device's properties disappearing.
-- No COM, no STA threads, no ZWO setup dialog. Each camera is its own named INDI
-  device (`ZWO CCD ASI2600MC Pro`, `ZWO CCD ASI220MM Mini`).
-- INDI pushes property changes, and Cria can read a camera while it exposes, so
-  Readings stay fresh during an exposure. The Windows "refresh pending for the
-  whole exposure" problem (Vela PR #110) does not exist here.
-
-Some things do not change. Vela owns runs, decisions, processing and archives. Cria owns
-current device state and one bounded operation at a time per device. Runs
-are ephemeral. Images are a rolling set. An uncertain outcome on any device, the mount included, settles `uncertain` and holds nothing: the next command is accepted. Cria never resends a command blindly.
+Cria says one thing to one device and tells the truth about what happened. The
+client owns runs, decisions, processing and archives. Images are a rolling set. An uncertain outcome on any device, the mount included, settles `uncertain` and holds nothing: the next command is accepted. Cria never resends a command blindly.
 
 ## The layers
 
@@ -149,7 +139,7 @@ properties).
 
 ### Disciplines
 
-All four are functions in `@cria/primitives`, generic over the device. They take
+All three are functions in `@cria/primitives`, generic over the device. They take
 small Effects (send, read, stop) and know nothing of INDI.
 
 **`writeOnce({ send, acknowledged })`.** Sends a command exactly once and
@@ -235,7 +225,7 @@ settled operation.
 4. A kind for another device kind: `400 request-error`.
 5. Commands disabled in the config: `403 commands-disabled`.
 6. A halt (`mount-stop`, `focuser-halt`) is admitted now (see below).
-7. An open operation in the domain: `409 device-busy`.
+7. An open operation on the device: `409 device-busy`.
 
 Otherwise the operation starts at once, as `running`. A motion or setting is
 never queued. Admission and the start happen in one step, so nothing else is
@@ -243,8 +233,8 @@ admitted between them.
 
 ### Halts, stops and cancel
 
-On an idle domain a halt starts at once. On a busy
-domain it is `waiting`, and if the running operation is not itself a halt, the
+On an idle device a halt starts at once. On a busy
+device it is `waiting`, and if the running operation is not itself a halt, the
 ledger stops it (its own `stoppable` halts and confirms). When an
 operation settles, the oldest waiting halt starts in the same step.
 
@@ -260,9 +250,7 @@ unchanged.
 Cancel of an operation ID Cria does not hold answers an error and cancels
 nothing: `404 not-found` for an ID it never held, `410 result-expired` for one it
 pruned (its request ID is still known). Both mean there is nothing to cancel, and
-`GET /v2/operations/{id}` answers the same two. The first is pinned by the golden
-scenario "refused: unknown operation and request"; the second by the
-ledger test for a pruned operation.
+`GET /v2/operations/{id}` answers the same two.
 
 ### Settle bounds
 
@@ -290,86 +278,10 @@ operation and the newest 20 settled ones.
 
 ## Module map
 
-Each module, the primitive it is, and what it uses. Most source files start with
-the same tag in their doc comment.
-
-| Module | Primitive | Built from, notes |
-|---|---|---|
-| `packages/primitives/src/outcome.ts` | Outcome | Tagged errors `Failed`, `Stopped`, `Uncertain`; `settle`, `fromExit`; the reason lists |
-| `packages/primitives/src/reading.ts` | Reading | `fresh`, `stale`, `unavailable`, `map`, `both`, `required`; `unavailableReasons` |
-| `packages/primitives/src/discipline/write-once.ts` | Discipline: writeOnce | Outcome |
-| `packages/primitives/src/discipline/confirm.ts` | Discipline: confirm | `confirm`, `writeConfirmed`; Outcome |
-| `packages/primitives/src/discipline/stoppable.ts` | Discipline: stoppable | writeOnce, Outcome |
-| `packages/primitives/src/index.ts` | | The package's exports |
-| `packages/indi/src/xml.ts` | INDI boundary | XML framing, the INDI message union, request serialization |
-| `packages/indi/src/mirror.ts` | INDI boundary | Every property of every device from def, set and del messages |
-| `packages/indi/src/client.ts` | INDI boundary | The TCP connection, paced reconnect, `send`, BLOB routing, and `IndiDevice` |
-| `packages/indi/src/tap.ts` | INDI boundary | `TrafficTap`: what the client tells a recorder about each element sent and received |
-| `packages/indi/src/index.ts` | | The package's exports |
-| `packages/recording/src/format.ts` | View | The recording on disk: manifest, the line union `msg`, `conn`, `gap`, `end` and the pruned-frames list as Effect Schemas |
-| `packages/recording/src/recorder.ts` | Composition | The recorder: byte-bounded queue, one consumer, write order, latch-off (see "Recording") |
-| `packages/recording/src/files.ts` | | The recorder's only contact with the disk, as one interface tests can stall, fill or kill |
-| `packages/recording/src/reader.ts` | | `readRecording`, `readManifest`, `readPrunedFrames` and `verifyRecording` |
-| `packages/recording-archive/src/` | | `cria-archive`: the plan of which frames to keep (`plan.ts`, pure), the evidence it reads (`evidence.ts`), the source (errai over ssh or a local folder), pack, check and the six steps (see "Archiving a recording") |
-| `packages/cria-wire/src/values.ts` | View | `Reading`, `Outcome`, `Timestamp`, `Json` as wire schemas |
-| `packages/cria-wire/src/ids.ts` | View | Branded IDs: `InstanceId`, `OperationId`, `ImageId`, `BindingId` (UUIDs), `DeviceId`, `RequestId` |
-| `packages/cria-wire/src/command.ts` | View | The 15 operation kinds as one table: device kind, halt, parameter bounds |
-| `packages/cria-wire/src/device.ts` | View | `Device`, one shape per kind; `Availability`, readings per kind |
-| `packages/cria-wire/src/operation.ts` | View | `OperationRequest`, `Operation`, `Progress`, `Image` |
-| `packages/cria-wire/src/state.ts` | View | `State`, `Health`, `ErrorBody`, `errorCodes`, `protocolVersion` |
-| `packages/cria-wire/src/index.ts` | | The package's exports |
-| `apps/cria/src/capability/fields.ts` | Reading | Property to Reading, decided once: fresh, stale, unavailable |
-| `apps/cria/src/capability/definitions.ts` | Reading | When a device connected and last defined a property, and whether the driver removed it |
-| `apps/cria/src/capability/commands.ts` | Disciplines on INDI | How writeOnce, confirm and stoppable meet INDI states: `sendOnce`, `startMotion`, `switchConfirmed`, `numbersApplied`, `untilSettled` |
-| `apps/cria/src/capability/context.ts` | Capability (shared) | What every capability is built from; acts only on fresh facts |
-| `apps/cria/src/capability/camera.ts` | Capability: camera | writeOnce, confirm, stoppable |
-| `apps/cria/src/capability/mount.ts` | Capability: mount | writeOnce, confirm, stoppable |
-| `apps/cria/src/capability/focuser.ts` | Capability: focuser | writeOnce, stoppable |
-| `apps/cria/src/capability/box.ts` | Capability: box (weather readings and switch channels) | writeOnce, confirm |
-| `apps/cria/src/capability/connection.ts` | Capability: connection | writeOnce, confirm; serial port before connecting; device setup after |
-| `apps/cria/src/capability/setup.ts` | Capability: device setup | writeOnce, confirm; the table of setup steps per device kind (see "Device setup") |
-| `apps/cria/src/operation/workflows.ts` | Workflow bodies | One short body per operation kind over one capability, as a table keyed by kind |
-| `apps/cria/src/operation/ledger.ts` | The ledger | The one owner of operations per rig (see "The ledger"); `onSettled` announces each settled operation once |
-| `apps/cria/src/refusal.ts` | Wire boundary | `Refusal`, a tagged error with a closed `ErrorCode`; the HTTP layer maps it to a status |
-| `apps/cria/src/ids.ts` | Composition | `mint`: new instance, operation and image IDs |
-| `packages/fits/src/fits.ts` | Image boundary (`@cria/fits`) | FITS (INDI BLOB) to ASCOM ImageBytes v1, and `fitsFrame`, a FITS test frame |
-| `apps/cria/src/image/store.ts` | Domain storage | The rolling set: budget, `410 image-gone` after a drop |
-| `apps/cria/src/wire/project.ts` | View | Readings and the ledger's facts to protocol 5 values; availability |
-| `apps/cria/src/wire/http.ts` | Wire boundary | Routes, origin refusal, body decoding, error code to status, image download |
-| `apps/cria/src/wire/sse.ts` | Wire boundary | The event stream (see "Event stream") |
-| `apps/cria/src/device.ts` | Composition | What a configured device is made of: its capability and its connection, per kind |
-| `apps/cria/src/rig.ts` | Composition | Builds the INDI client, devices, the ledger and the image store from config; ends a device's setup session when it disconnects or its driver goes away |
-| `apps/cria/src/recording.ts` | Composition | Opens the recorder from `record`, closes it with the rig's scope; a recorder that cannot open is logged |
-| `apps/cria/src/config.ts` | View, composition | The config schema with defaults, decoded once |
-| `apps/cria/src/service.ts` | Composition | One scope for the whole process, served over HTTP |
-| `apps/cria/src/main.ts` | Composition | Process entry (`cria <config.json>`); SIGTERM closes the scope |
-
-Tests and test tools:
-
-| Path | What it is |
-|---|---|
-| `packages/primitives/src/*.test.ts` | Outcome and the disciplines, on Effect's TestClock |
-| `packages/indi/src/*.test.ts` | XML framing from recorded traffic, with and without the tap; the client against a real indiserver |
-| `packages/recording/src/*.test.ts` | The recorder on a healthy, stalled, full and failing disk; the reader on a torn tail and on damage in the middle |
-| `testing/recorder-crash.test.ts` | `kill -9` of a real process at each step of the recorder's write order |
-| `testing/measure-recording-stall.ts` | Not a test: event-loop delay, other file work and memory with recording off, healthy and on a stalled disk |
-| `packages/cria-wire/src/*.test.ts` | The command table, branded IDs, every wire schema |
-| `apps/cria/src/**/*.test.ts` | Unit tests beside the code: ledger transitions, workflow table, units, FITS, image store, event stream |
-| `packages/fake-indi/src` | `@cria/fake-indi`: a small INDI server written from the protocol, independent of `@cria/indi`'s parser; answers from its own state (`server.ts`), with generic camera and mount definitions (`devices.ts`) |
-| `packages/indi-replay/src` | `indi-replay`: a recording served like indiserver (see "Replay"): `tape.ts` loads it, `replay.ts` is the server, `synthesize.ts` makes a recording |
-| `apps/cria/test/drivers.ts` | The rig's drivers modelled on that server: the EAF, dew heaters, mount motion; `am5` models errai's mount (see "Stopping the mount") |
-| `apps/cria/test/harness.ts` | Starts Cria against an INDI server and drives it over HTTP as Vela does |
-| `apps/cria/test/stopped.test.ts`, `am5-motion.test.ts` | The one rule for "stopped" on bare readings, and on step 16's AM5 fixtures through the real mount code |
-| `apps/cria/test/*.test.ts` | Scenarios: fake-driver failures, mount stops, operation lifecycle, HTTP refusals, protocol 5 end to end, shutdown, real simulators, errai replay |
-| `apps/cria/test/fixtures/errai-2026-10-15.xml` | The rig's recorded INDI definitions |
-| `testing/indiserver.ts` | Runs a real indiserver with simulator drivers on a free port |
-| `testing/cria-client.ts` | A typed protocol 5 client built from `@cria/wire`; decodes every response strictly |
-| `testing/lint.test.ts` | Source rules (see "Effect decisions"); `verify.sh` strict and without pipes |
-| `testing/dist.test.ts` | The committed `dist/` of the shared packages matches a fresh build |
-| `testing/golden/` | The wire golden: `scenarios.ts`, the normalizer and diff in `golden.ts`, the runner `wire.golden.ts`, its `vitest.config.ts`, and the committed `wire.golden.json` |
-| `testing/mutate.mjs` | Breaks one line, runs the given tests, restores the file; exits 0 when the tests went red |
-| `testing/source-hook.mjs` | A Node module hook that lets `node` run `main.ts` from source, for the shutdown test |
-| `verify.sh` | Every check, in order (`pnpm verify`) |
+Every source file starts with a doc comment that names what it is (a primitive,
+a capability, the wire boundary, composition). `rig.ts` is the one place that
+shows what is connected to what. `ts/README.md` has the layout of the packages
+and `docs/testing.md` the tests.
 
 ## The INDI boundary
 
@@ -434,7 +346,7 @@ real drivers differ, the table lists both, and the first one present wins.
 | mount `trackingRate` | `TELESCOPE_TRACK_MODE` | `sidereal`, `lunar`, `solar`; another mode is unavailable |
 | mount site | `GEOGRAPHIC_COORD.LAT/LONG/ELEV` | INDI longitude is 0 to 360 east. Cria reports -180 to 180, east positive. |
 | mount `siderealTimeHours` | none | Computed from the system clock and the site longitude |
-| mount `primaryAxisRates` | `TELESCOPE_SLEW_RATE` | Named rates with degrees per second, parsed from the labels |
+| mount `primaryAxisRates` | `TELESCOPE_SLEW_RATE` | Named rates with degrees per second, parsed from the labels: the AM5 names them `1x` to `10x` but labels them with the true multiples `0.25x` to `1440x` |
 | focuser | `ABS_FOCUS_POSITION`, `FOCUS_MAX`, `FOCUS_TEMPERATURE`, `FOCUS_ABORT_MOTION` | `moving` is the position `Busy`; `maxStep` is the smallest of `FOCUS_MAX`, the position's maximum and the travel window's `max`; `minStep` the larger of the position's minimum and the window's `min` (see "The focuser travel window") |
 | box weather | `WEATHER_PARAMETERS.WEATHER_TEMPERATURE`, `_HUMIDITY`, `_DEWPOINT` | A missing element is `unsupported` |
 | box channels | the configured `property.element` list | For example `POWER_CHANNELS.POWER_CHANNEL_1` (12 V master) |
@@ -476,7 +388,7 @@ INDI conventions Cria depends on:
 ### Stopping the mount
 
 The AM5 acknowledges a stop long before it is stationary. Measured on errai on
-2026-10-15 (see "Checked on errai"): a cancelled slew at about 3°/s went `Idle` at
+2026-10-15: a cancelled slew at about 3°/s went `Idle` at
 once and moved 3.6° more over 2 s, and an 8x rotate (0.2507°/s) overshot by its
 rate times 0.9 s. A goto ends `Ok`, a rate move with tracking on never reports
 `Idle`, and a home reports `Idle` from its first reading and moves for 12 s. So no
@@ -629,7 +541,7 @@ within about two polls, roughly 10 s, of the hardware being present and nothing
 being open on the device. Another client of the API (Vela, a test) can send it
 sooner.
 
-**What it reports.** No wire change. The `device-connect` outcome's values carry
+**What it reports.** The `device-connect` outcome's values carry
 `setup`, one string of what each step did, for example
 `sent GEOGRAPHIC_COORD LAT=33.45 LONG=247.93 ELEV=331; sent TIME_UTC UTC=2026-10-16T00:21:47 OFFSET=0.00`
 or `UPLOAD_MODE already sends frames to Cria`. Until setup has run on a
@@ -641,12 +553,12 @@ Setup stops at that step and does not retry automatically. Commands that can
 move equipment keep their existing uncertain outcome.
 
 **A refused goto says what to do.** A goto rejected before motion starts ends
-`failed: rejected`. Its outcome preserves the driver's message and explains that
-an AM5 can refuse gotos when site and time are not synchronized after power-on.
-It tells the caller to send `device-connect` with `connected: true` to write site
-and time again, then retry the goto. Cria never retries the goto or resends setup
-as part of a refusal. INDI's `Alert` alone does not prove AM5 e7, so the message
-names it as a possible cause even if setup previously confirmed.
+`failed: rejected`. Its message says nothing moved, that an AM5 refuses gotos
+until its site and time are set after power-on (AM5 e7), what setup did on this
+connection, and to send `device-connect` with `connected: true` to send them
+again. Cria never retries the goto or resends setup as part of a refusal.
+INDI's `Alert` alone does not prove e7, so the message gives it even when setup
+confirmed.
 
 ### The focuser travel window
 
@@ -660,7 +572,7 @@ allows 0 to 60000, and the focus tube is already far out at 32749: Chris chose
 **What Cria reports.** `maxStep` is the smallest of `FOCUS_MAX` (when the driver
 defines it), the position's own maximum and `travel.max`; `minStep` is the
 larger of the position's own minimum and `travel.min`. Without a window they are
-the driver's range, and `maxStep` no longer reports a `FOCUS_MAX` above what the
+the driver's range, and `maxStep` never reports a `FOCUS_MAX` above what the
 position accepts. Vela's autofocus builds its search window from these two, so
 they are the usable window.
 
@@ -673,15 +585,14 @@ errai's 38000, and for `minStep` always. A focuser with no window and a
 consumer that targets `maxStep` is refused `failed: invalid`; keep one step of
 margin below `maxStep` when no window is configured. The limits come from the property's definition, so
 an `Alert` on the position (a refused move) does not make them, or `absolute`,
-stale. Before, `absolute` went stale on that `Alert`, and every later move
-failed `unavailable` until another move cleared it.
+stale; otherwise every move after a refused one would fail `unavailable`.
 
 **What Cria refuses**, as `failed: invalid` before sending anything:
 
 - a target at or past the driver's top (the smaller of `FOCUS_MAX` and the
-  position's maximum): `Focuser target approaches the mechanical limit`, as
-  before. Before this change a target between 60000 and 100000 passed this
-  check on errai and the driver refused it (`Alert`, `failed: rejected`);
+  position's maximum): `Focuser target approaches the mechanical limit`. On
+  errai that covers 60000 to 100000, which `FOCUS_MAX` alone would let through
+  to a driver that refuses it;
 - a target outside the travel window, both ends allowed:
   `Focuser target 38001 is outside the travel window 15500..38000`;
 - when the focuser already stands outside the window (moved by hand or by
@@ -745,55 +656,22 @@ closed `errorCodes` list, and each code has exactly one HTTP status:
 | 429 | `too-many-subscribers` |
 | 500 | `internal-error` |
 
-### State
+### State and readings
 
-```ts
-State = {
-  protocolVersion: 5
-  instanceId: string          // a new one on every Cria start: everything in flight before it is unknown
-  sequence: number            // counts snapshots of this rig, from 1; GET /v2/state and the event stream share it
-  generatedAt: number         // epoch ms, when this snapshot was built
-  commandsEnabled: boolean
-  devices: Device[]
-  operations: Operation[]     // see "What the ledger keeps"
-}
-```
-
-### Reading on the wire
-
-Exactly the primitive, with epoch milliseconds:
-
-```ts
-Reading<T> =
-  | { status: 'fresh'; value: T; observedAt: number }
-  | { status: 'stale'; value: T; observedAt: number }
-  | { status: 'unavailable'; reason: 'not-read' | 'unsupported' | 'failed'; message?: string }
-```
-
-Cria decides freshness once, as of `generatedAt`. Vela does not derive it again
-from read times. What Vela still owns is the age of the snapshot itself. A snapshot
-that has stopped arriving says nothing about now, so Vela treats readings as
-interrupted when its event stream is interrupted.
+`@cria/wire` has the shapes. `instanceId` is new on every Cria start, so
+everything in flight before it is unknown. `sequence` counts snapshots from 1
+and `GET /v2/state` and the event stream share it. A Reading on the wire is
+exactly the primitive, with epoch milliseconds. Cria decides `fresh`, `stale`
+and `unavailable` once (see "What fresh means on INDI"); the age of a value is
+`observedAt`, and the client judges it. A snapshot that has stopped arriving
+says nothing about now, so a client treats readings as interrupted when its
+event stream is.
 
 ### Device
 
-One shape per kind, so every reading has a typed value:
-
-```ts
-Device = {
-  id: string; kind: 'camera' | 'mount' | 'focuser' | 'box'
-  name: string                // the INDI device name
-  availability: { ready: true } | { ready: false; reason: AvailabilityReason; message: string }
-  readings: { ... per kind, below }
-  // kind 'box' only (an empty array when none are configured):
-  channels: Array<{ id, name, writable, minimum, maximum, step, on, value }>   // each a Reading
-  // kind 'camera' only:
-  lastCommandedSetpointC: { value: number; commandedAt: number } | null
-}
-
-AvailabilityReason = 'commands-disabled' | 'unavailable' | 'starting'
-                   | 'disconnected' | 'stale' | 'busy'
-```
+One shape per kind, so every reading has a typed value, and readings are named,
+not ASCOM integers. A box carries its configured `channels`, and a camera its
+`lastCommandedSetpointC`.
 
 `availability` says why a device cannot take a command now. The reasons, in order
 of precedence: commands disabled; indiserver or the driver gone;
@@ -807,45 +685,20 @@ the operation as `failed: busy`.
 acknowledged (`Busy`, or `Ok` at the setpoint), with when. `readings.setpointC` is
 always `unavailable: unsupported`.
 
-Readings per kind. Values are named, not ASCOM integers:
-
-| Kind | Readings |
-|---|---|
-| all | `connected` boolean, `name` string |
-| camera | `activity` `'idle' \| 'exposing'`; `temperatureC`, `setpointC` (unsupported), `coolerOn`, `coolerPowerPercent`; `sensorWidthPixels`, `sensorHeightPixels`, `pixelWidthMicrons`, `pixelHeightMicrons`, `width`, `height`; `bayerPattern` `'mono' \| 'rggb' \| 'grbg' \| 'gbrg' \| 'bggr'`; `exposureMinimum`, `exposureMaximum`; `gain`, `gainMinimum`, `gainMaximum`, `offset`, `offsetMinimum`, `offsetMaximum` |
-| mount | `rightAscensionHours`, `declinationDegrees`, `siderealTimeHours`; `slewing`, `tracking`; `trackingRate` `'sidereal' \| 'lunar' \| 'solar'`; `pierSide` `'east' \| 'west' \| 'unknown'`; `coordinateSystem` `'topocentric' \| 'j2000'`; `latitudeDegrees`, `longitudeDegrees` (east positive), `elevationMeters`; `primaryAxisRates` `Array<{ name, degreesPerSecond }>` |
-| focuser | `position`, `moving`, `temperatureC`, `absolute`, `minStep`, `maxStep` (the usable window; both ends allowed except `maxStep` at the driver's top; see "The focuser travel window") |
-| box | `temperatureC`, `humidityPercent`, `dewPointC`, `channelCount`; per channel `id`, `name`, `writable`, `minimum`, `maximum`, `step`, `on`, `value` |
-
 ### Operation
 
-```ts
-Operation =                                  // one union on state; kind and parameters stay flat
-  | { ...Accepted; state: 'waiting' }                                     // a halt kind only
-  | { ...Accepted; state: 'running'; startedAt: number; progress: Progress }
-  | { ...Accepted; state: 'settled'; startedAt: number; settledAt: number; motion?: MotionRecord
-      outcome: Outcome<{ values: Record<string, Json>; image: Image | null }> }
+An operation is one union on `state` (`waiting`, `running`, `settled`), with
+kind and parameters flat. The request is the same flat shape without the
+server's fields: `{ instanceId, requestId, deviceId, kind, parameters }`.
 
-Accepted = {
-  id, instanceId, requestId, deviceId
-  kind: OperationKind; parameters: <the kind's parameters>
-  acceptedAt: number
-}
-Progress = { phase: 'preparing' | 'exposing' | 'readout' | 'retaining'; elapsedSeconds: number | null }
-```
-
-The request is the same flat shape without the server's fields:
-`{ instanceId, requestId, deviceId, kind, parameters }`.
-
-`waiting` is a halt admitted while another operation is open in its failure
-domain. It has no timing, progress or outcome yet. The schema has a `waiting`
+`waiting` is a halt admitted while another operation is open on its device. It has no timing, progress or outcome yet. The schema has a `waiting`
 member only for the halt kinds, so a waiting motion is not a valid Operation, in
 the type or on the wire. `running` starts when the ledger starts its work,
 and `settled` once its Outcome is known. Each state carries only its own
 fields. Vela matches `state`, then `outcome.kind`.
 
-The 15 kinds and their parameters are the table in `packages/cria-wire/src/command.ts`.
-Two of their checks matter to Vela:
+The kinds and their parameters are the table in `packages/cria-wire/src/command.ts`.
+Checks a client should know:
 
 - `focuser-move` takes `position`. Cria refuses a target at or past the driver's top, or outside the configured travel
   window (`minStep` to `maxStep`), as `failed: invalid`, before sending anything
@@ -864,11 +717,10 @@ the request: `FRAME_LIGHT`, `FRAME_FLAT`, `FRAME_DARK` or `FRAME_BIAS`. It write
 only when the element is not already on, and confirms the switch before it sends
 `CCD_EXPOSURE`.
 
-- `light` stays required, as in protocol 5 before this field, and keeps its
-  meaning: `true` is an open shutter (`light` and `flat`), `false` a closed one
+- `light` is required: `true` is an open shutter (`light` and `flat`), `false` a closed one
   (`dark` and `bias`). `frameType` refines it.
 - A request with no `frameType` is `light` when `light` is `true` and `dark` when
-  it is `false`. A client that has never heard of `frameType` sees no change.
+  it is `false`.
 - A `frameType` that disagrees with `light` (`bias` with `light: true`) is
   `400 request-error`, and nothing is sent to the camera. So is any other value:
   Cria has no `dark-flat`, which is a dark at the flats' exposure. A client asks
@@ -876,10 +728,6 @@ only when the element is not already on, and confirms the switch before it sends
 - A camera with no `CCD_FRAME_TYPE`, or one without the element, settles
   `failed: unsupported` before any exposure. The exception is `light` on a camera
   with no `CCD_FRAME_TYPE`, which captures as it always did.
-- Unknown keys are still refused. A Cria from before `frameType` answers a request
-  that carries it with `400 request-error`. So a client sends `frameType` only for
-  `flat` and `bias`, the two types `light` cannot say, and a lights-and-darks
-  client works against either Cria.
 - **A bias frame ignores the requested time.** The INDI driver exposes a bias at
   the camera's minimum whatever it is asked (seen on errai with a ZWO camera,
   2026-10-26: asked for 0.1 s, it exposed 3.2e-5 s and the FITS `EXPTIME` said so).
@@ -898,19 +746,12 @@ only when the element is not already on, and confirms the switch before it sends
 - **What Vela can read.** Nothing on the wire shows the commanded time. The
   operation keeps the request as sent, so its `parameters.exposureSeconds` says
   what Vela asked for (0.1). The returned `Image.exposureSeconds` also echoes the
-  request, for every frame type, including `bias`; this change leaves it so,
-  because the protocol 5 golden pins that value. The commanded time is in the
+  request, for every frame type, including `bias`. The commanded time is in the
   INDI traffic recording (`CCD_EXPOSURE_VALUE` in the `out` message), and for the
   camera's own `EXPTIME` only in the FITS Cria received, which it does not pass
   on: Vela gets the image as `application/imagebytes`. Vela does not read
   `Image.exposureSeconds` today. A client that needs the true bias time has the
   camera minimum from `readings.exposureMinimum`.
-
-`Image` has `id`, `operationId`, `instanceId`, `deviceId`, `cameraName`,
-`width`, `height`,
-`exposureSeconds`, `color`, `capturedAt`, `capturedAtSource`
-(`'camera' | 'server-estimate'`), `retainedAt`, `sha256`, and
-`original: { mediaType: 'application/imagebytes', bytes, url }`.
 
 A settled mount motion whose command was sent carries an optional `motion` record.
 `commanded` names the kind, target or signed RA rate and axis, and `sentAt` in epoch ms.
@@ -920,13 +761,9 @@ position before it. `observed.to` is the final position from the stopped rule. B
 with RA wrapped to [-180, 180). Missing observations are null. This is displacement
 between readings, not a sum of the path or a claim of movement before the first reading.
 `stopped.how` is `arrived`, `halted`, `aborted`, or `uncertain`. `stopped.at` records when
-the step 17 stopped rule fired. An unconfirmed stop has null final position, travel and
+the stopped rule fired (see "Stopping the mount"). An unconfirmed stop has null final position, travel and
 time. Refused commands have no motion record.
 Peak rate is not computed here.
-
-This is additive within protocol 5. Vela's pinned runtime decoder accepts unknown
-operation fields. Its strict golden check requires the updated pin and golden copy.
-Older snapshots without `motion` still decode. Vela and Cria ship together outside a session.
 
 ### Event stream
 
@@ -987,12 +824,6 @@ way, from `ts/packages/fits`, when it needs the conversion):
 "effect": "4.0.3"
 ```
 
-Checked on 2026-10-15 from a scratch package outside the repo (Node 26.10, pnpm
-11.22): both `git+file://` and `github:` forms install from the pinned commit
-with one copy of each package, the consumer decodes a protocol 5 state with plain
-Node, and `tsc` passes with `skipLibCheck: false`. Without GitHub credentials the
-install fails (`ERR_PNPM_GIT_FETCH_FAILED`), because chrhicks/cria is private.
-
 To change a shared package, merge the change in Cria with `dist/` rebuilt
 (`pnpm build`, and `pnpm verify` passes). Then bump the commit in Vela (see the
 migration checklist).
@@ -1052,9 +883,7 @@ whose `automaticWhileOn` names no other channel.
 "Device setup"). errai's is the site already stored in the mount. `motion` tunes
 how a mount stops (see "Stopping the mount"); every key is optional, with the
 AM5's values as defaults: `stationaryDegrees` 0.02, `positionReadMs` 1500,
-`stopLatencyMs` 900 (the coast seed for rates without a profile).
-`maxLeadFraction` is accepted for older configurations but does not apply to
-the two-phase rotate. Cria refuses `site` or `motion` on a device that is not a mount.
+`stopLatencyMs` 900 (the coast seed for rates without a profile). Cria refuses `site` or `motion` on a device that is not a mount.
 
 `record` turns on recording of INDI traffic (see "Recording"): `dir`, `reserveGb`
 and `queueMb`, all three required when it is present.
@@ -1383,50 +1212,6 @@ deadline that names what they waited for, never for a fixed time. A test that
 acts as another INDI client also waits until Cria's own `/v2/state` shows the
 effect, because indiserver writes to each client in turn.
 
-1. **Primitives, on Effect's TestClock.** Outcome precedence; `writeOnce` against
-   every row of its table; the confirm deadline; `stoppable` interrupted
-   mid-motion with a stop that confirms, fails and hangs. No real
-   time passes.
-2. **INDI boundary.** XML framing from recorded traffic split at random byte
-   boundaries; entities; BLOB decode; `delProperty`; one client test against a
-   real indiserver.
-3. **Wire schemas and the ledger.** Every schema on literal inputs; the ledger's
-   transitions on literal states.
-4. **Wire and image boundaries.** The event stream with a fake ledger and faked
-   interval timers (opening snapshot, 250 ms coalescing, the one-second cadence,
-   a stuck subscriber dropped at 30 s, the 16-subscriber cap, a change during a
-   snapshot build sent next); FITS conversion to exact ImageBytes and each
-   refusal; the image store's cleanup, eviction and failed writes.
-5. **Fake INDI server.** For cases simulators cannot produce: a driver that never
-   acknowledges, one that answers `Alert`, a stop that never confirms, a
-   connection dropped mid-exposure, a driver that disappears, a box with switch channels,
-   the PPBA's
-   dew duty under auto dew (`pegasusDew`), and the AM5 (`am5`): gotos refused
-   until the site and time are written, a position published once a second and
-   only when it changes, a stop acknowledged at once while the mount keeps going
-   for 0.9 s and then decelerates, and the sidereal drift with tracking off. The
-   EAF (`addEaf`): `FOCUS_MAX` 100000 against a position range of 0 to 60000,
-   and `Alert` on a target outside that range.
-   The fake answers from its own state, not from Cria's script. Here too: the
-   HTTP refusals the typed client cannot send (origin, route, body), and
-   SIGTERM to the real `main.ts` during a slew, which must abort the mount and
-   wait until it stands still before the process exits.
-6. **Real INDI simulators** (`indiserver` with `indi_simulator_ccd`, `_telescope`,
-   `_focus`, `_weather` on a free port, one per test file). Capture and download;
-   cancel mid-exposure ends `stopped`; focuser moves and a refused target that
-   never reaches the driver; slew, tracking, a cancelled slew; readings stay fresh
-   during an exposure; busy while another client exposes.
-7. **errai, replayed.** The real drivers' recorded definitions against the deploy
-   config.
-   **Recorded and replayed** (`testing/replay.test.ts`). The simulators make a
-   recording of six captures with the mount slewed between them; the real Cria
-   runs against `indi-replay` on it: every capture confirms and its ImageBytes
-   SHA-256 equals the one the recorded `op` line has, the hour angle at each
-   capture is the recording's, an abort sends no late image, one exposure past
-   the end fails cleanly, and every device stays ready for as long as it runs
-   (15 s in the suite; `REPLAY_SECONDS=600` for ten minutes).
-8. **Source rules** (`testing/lint.test.ts`).
-
 `pnpm golden` drives the scenarios in `testing/golden/scenarios.ts` through the
 typed client against Cria on the fake INDI server, normalizes IDs, times and
 durations, and compares the result with `testing/golden/wire.golden.json`. A
@@ -1435,131 +1220,6 @@ change to that file is a change to the wire. `node testing/mutate.mjs <file>
 `pnpm verify` (`verify.sh`) runs build, typecheck, the `dist/` check, the golden
 and the full suite, and passes on a fresh clone. See "Verification" in
 `ts/README.md`.
-
-Vela's own client is not tested against TS Cria yet. The migration checklist
-adds that test.
-
-## Checked on errai (2026-10-15)
-
-errai is the rig PC on Arch: indiserver with `indi_asi_ccd`, `indi_asi_focuser`,
-`indi_lx200am5` and `indi_pegasus_ppba`, libindi 2.2.5. The check was read-only:
-observer's `indi_getprop` dump, a recording of every definition (only
-`getProperties` sent), and Cria running against errai with commands disabled,
-behind a proxy that let only `getProperties` and `pingReply` through. All six
-bindings came up ready with every supported reading current, aged at most 1.1 s.
-The recording is `ts/apps/cria/test/fixtures/errai-2026-10-15.xml` (site latitude
-and longitude zeroed), and `errai.test.ts` replays it to Cria running
-`deploy/rig.errai.json`, with a replay that applies every write: Cria sets up the
-2600 (`UPLOAD_MODE`) and the AM5 (site, then time) and nothing else.
-
-What the real drivers have:
-
-- Device names `ZWO CCD ASI2600MC Pro`, `ZWO CCD ASI220MM Mini`, `ZWO EAF`,
-  `ZWO AM5` and `Pegasus PPBA`.
-- ZWO gain and offset are `CCD_CONTROLS.Gain` and `.Offset`. `CCD_CFA` is RGGB at
-  offset 0,0. Frames are 16-bit FITS. `CCD_COOLER` is write-only, so
-  `indi_getprop` omits it, and Cria reads its value from the definition and
-  updates.
-- The AM5 reports `EQUATORIAL_EOD_COORD` (JNow) and has `ON_COORD_SET`, abort,
-  track state and mode, park, `TELESCOPE_HOME.GO` and `TELESCOPE_MOTION_WE`. Its
-  slew rates are named `1x` to `10x` but labelled with the true sidereal multiples
-  `0.25x` to `1440x`. Cria parses the labels, because the names would be off by up
-  to 144 times.
-- The EAF has absolute position, `FOCUS_MAX`, temperature and abort.
-- PPB Micro channels: 12 V master `POWER_CHANNELS.POWER_CHANNEL_1`; dew on and off
-  `DEW_CHANNELS.DEW_CHANNEL_1` and `_2`; dew duty `DEW_DUTY_CYCLES.DEW_CHANNEL_1`
-  and `_2` (0 to 100 %); auto dew `AUTO_DEW_CONTROL.DEW_CHANNEL_1`. All switches are
-  AnyOfMany.
-
-Measured with commands on the rig, with Chris present, on 2026-10-15:
-
-- **`CCD_FRAME` is in unbinned sensor pixels.** The image is the frame divided by
-  the binning. The 220MM at bin 2 gave a 960x540 image from a 1920x1080 frame,
-  and a 480x270 image from a 960x540 frame.
-- **A binning write recomputes the frame.** On the 2600, bin 2 turned a 6248x4176
-  frame into 6240x4176. Back at bin 1 it still read 6240 until a frame write
-  restored 6248.
-- **The grid is in binned pixels.** The binned width must be a multiple of 8 and
-  the binned height even. Captures showed it on both cameras. On the 220MM at
-  bin 2, binned 480x270 and 472x270 gave images of that size. Binned width 476 (952
-  sensor pixels, a multiple of 8 in sensor pixels) was first reported as
-  `WIDTH=944`, then `CCD_FRAME` showed 952, and a 0.1 s exposure after it was
-  still running after 60 s, until cancelled. Binned height 271 (542 sensor
-  pixels) showed 542 and hung the same way. On the 2600 at bin 2, binned width
-  3116 (6232) was first applied as 6224, so Cria reported `failed: rejected` "the
-  driver applied WIDTH=6224", while the property read 6232 afterwards. 3120 was
-  confirmed. The definition says none of this. `WIDTH` has `step="0"`.
-- **`CCD_FRAME` cannot be trusted to show the frame the camera uses.** After a
-  frame off the grid, the driver publishes the rounded frame, then the one asked
-  for, and keeps using the rounded one. A binned width of 3124 at bin 2 on the
-  2600 was confirmed. The fake reproduces that confirmation through the echo
-  (inferred, not seen on the rig). The binning change had already rounded the
-  frame to 6240, so the rounded report looked unchanged to Cria, and the echo
-  read as the driver's answer. Cria no longer writes binning or the frame, so it
-  does not meet any of this.
-- **Correction.** This section first said the 2600 wants a width that is a
-  multiple of 8 sensor pixels, from `WIDTH=3124` at bin 2 leaving the frame at
-  6240. That frame is 1562 binned pixels, off the binned grid too, so it never
-  told the two rules apart. The sensor-pixel rule let 952 at bin 2 through, and that frame
-  hangs the next exposure. Why that write left the frame at 6240 rather than
-  publishing a rounded 3120 is not known.
-- **The PPBA's auto dew overrides a manual duty.** With
-  `AUTO_DEW_CONTROL.DEW_CHANNEL_1` on, a `DEW_DUTY_CYCLES` write was accepted and
-  set back to 0 within seconds. The driver defines one auto dew element,
-  labelled "Auto Dew Control", against two duty elements, so the deploy config
-  puts both dew duties under it.
-- **The PPBA holds a duty in 255 steps.** 10 % applies as 9.8039 %.
-
-Measured on the mount, with Chris present, on 2026-10-15 (the first physical run
-of this Cria; Readings above every one):
-
-- **A stop is not stationary when the driver says so.** A `mount-slew` from Dec
-  70 to Dec 50 was cancelled 1.2 s in. Cria settled `stopped` at once and
-  `EQUATORIAL_EOD_COORD` went `Idle` at once, but the mount moved about 3.6° more
-  over about 2 s: Dec 61.21 at the abort, `Idle` 0.1 s later, 57.80 at 1 s,
-  57.63 at 2 s. The position is published about once a second. The AM5 has a
-  harmonic drive and slews at up to about 3°/s at its 9x and 6°/s at 10x. Cria
-  now confirms a stop only when the mount stands still (see "Stopping the mount").
-- **A rotate overshoots by its rate times 0.9 s.** `mount-rotate` +1° at 8x
-  (0.2507°/s) travelled 1.23° (RA 24.72° to 25.95°), because the stop went out
-  when the polled position passed the target. -1° came back the same way. Cria
-  now leads the stop by rate × 0.9 s and reports the distance travelled.
-- **The AM5 refuses every goto until its site and time are set.** It answered
-  `:MS#` with `e7#`, which indi_lx200am5 reports as `Slew failed (-1)` and `Alert`
-  on `EQUATORIAL_EOD_COORD`, so Cria saw `failed: rejected` "the driver reported
-  Alert". After the raw `:St`, `:Sg`, `:SG`, `:SC`, `:SL` the goto was accepted.
-  Cria had never written `GEOGRAPHIC_COORD` or `TIME_UTC`; the ZWO ASCOM driver
-  on Windows never showed the problem. Cria now writes both after
-  the mount connects (see "Device setup"). On 2026-11-03, writing both through
-  INDI after a power-on cleared the refusal immediately.
-- **The 2600's `UPLOAD_MODE` was `UPLOAD_LOCAL`.** Cria refused its captures.
-  Device setup now switches it to client.
-
-Gaps that need a decision:
-
-1. **The 2600 saves frames locally.** Resolved: device setup switches a camera
-   on `UPLOAD_LOCAL` to `UPLOAD_CLIENT` after it connects (Chris, 2026-10-15).
-2. **The AM5's clock is not set.** Resolved: device setup writes the site and the
-   system clock's UTC after the mount connects (see "Device setup").
-3. **No pier side.** Both `TELESCOPE_PIER_SIDE` switches are Off at the pole, so
-   Cria reports `unknown`. Check again after slewing.
-4. **EAF travel disagrees with itself.** Resolved: `FOCUS_MAX` is 100000, but
-   `ABS_FOCUS_POSITION` allows at most 60000, and the tube is safe only from
-   15500 to 38000 (Chris, 2026-10-15). Cria reports the smaller limits and
-   refuses moves outside the configured window; `FOCUS_MAX` is left as it is
-   (see "The focuser travel window").
-5. **Cooler power range is 0 to 1** (step 0.2), while the wire calls it a percent.
-   Check the scale while the cooler runs.
-6. **Exposure limits.** The 2600 accepts at most 2000 s and the 220MM at most
-   10 s. The wire allows 3600. Cria refuses longer requests before sending.
-7. **Dew duty step is 10 %.** Cria accepts only multiples of the step. If 10 is
-   only a UI step, the check is too strict for dew. The box itself holds 255
-   steps, and Cria confirms within half a step and reports the value held.
-8. **Not exposed by Cria yet:** the 2600's fan speed and anti-dew heater
-   (`CCD_CONTROLS.FanSpeedAdjust`, `.AntiDewHeater`), the PPB's power sensors and
-   adjustable output, and guide pulses.
-9. **The AM5 has no `TIME_LST` and no at-home indicator.** Cria computes
-   sidereal time from the system clock and the site longitude.
 
 ## Rules and known limits
 
@@ -1580,34 +1240,33 @@ Gaps that need a decision:
 
 ## Open questions
 
-1. **Setpoint readback.** Resolved: `setpointC` stays an unsupported reading, and
-   `lastCommandedSetpointC` reports the last setpoint the driver acknowledged.
-2. **Sidereal time.** Cria always computes it from the system clock (chrony) and the
-   site longitude, and the AM5 driver has no `TIME_LST` (see gap 9). Is a
-   computed value good enough for polar alignment, or must it come from the mount?
-3. **Axis motion rates.** Resolved for safety: Cria accepts only a rate the mount
-   advertises (within 1 %) and reports the rate it used. Open: polar alignment's
-   rotate step might be better as a slew to a computed RA. That needs a look at how
-   Vela uses `mount-rotate`.
-4. **ZWO property names.** Resolved against errai (see "Checked on errai").
-5. Removed: Cria no longer polls drivers.
-6. **Protocol 5.** Resolved: adopted with no compatibility layer (Chris,
-   2026-10-15), with the shared schema in `@cria/wire`.
-7. **Telemetry.** The .NET SQLite telemetry is dropped. Keep it dropped (journald)
-   or bring back a small store?
-8. **Effect version.** Pinned to 4.0.3 exactly, as a peer dependency of the shared
-   packages. npm has 4.0.5.
+1. **Sidereal time.** Cria computes it from the system clock (chrony) and the
+   site longitude; the AM5 driver has no `TIME_LST`. Is a computed value good
+   enough for polar alignment, or must it come from the mount?
+2. **Rotate as a slew.** Polar alignment's rotate step might be better as a slew
+   to a computed RA. That needs a look at how Vela uses `mount-rotate`.
+3. **Pier side.** Both `TELESCOPE_PIER_SIDE` switches are Off at the pole, so
+   Cria reports `unknown`. Check again after slewing.
+4. **Cooler power scale.** The 2600's cooler power runs 0 to 1 (step 0.2), while
+   the wire calls it a percent. Check the scale while the cooler runs.
+5. **Dew duty step.** The PPBA advertises a 10 % step and Cria accepts only
+   multiples of it; the box holds 255 steps. If 10 is only a UI step, the check
+   is too strict.
+6. **Not exposed yet:** the 2600's fan speed and anti-dew heater
+   (`CCD_CONTROLS.FanSpeedAdjust`, `.AntiDewHeater`), the PPBA's power sensors
+   and adjustable output, and guide pulses.
+7. **Telemetry.** journald only. Keep it so, or bring back a small store?
+8. **Effect version.** Pinned to 4.0.3 exactly, as a peer dependency of the
+   shared packages. npm has 4.0.5.
 9. **Private Cria, public Vela.** Vela installs `@cria/wire` from chrhicks/cria,
    which is private, while Vela is public. The options: make the Cria repo (or
-   just these packages) public; give Vela's Docker build an SSH key or token (Vela
-   then builds for no one else); or copy `dist/` into Vela at each bump.
+   just these packages) public; give Vela's Docker build an SSH key or token; or
+   copy `dist/` into Vela at each bump.
 10. **Availability and other clients.** A camera another INDI client is exposing
-    reads `exposing` but stays `availability.ready: true`, so Vela learns it is
-    busy only from the capture's `failed: busy`. Whether `availability` should
-    show it is part of the open decision on availability precedence.
-11. **Availability before the definitions settle.** A property that has not arrived yet reads
-    `unavailable: not-read` for up to 2 s after connecting, and a command that
-    needs it settles `failed: unavailable` before sending anything. Seen in the
-    shutdown test, where Cria runs in its own process. The tests wait for
-    `noneNotRead` as well. Whether `starting` should last until the definitions
-    settle is part of the same open decision on availability.
+    reads `exposing` but stays `availability.ready: true`, so a client learns it
+    is busy only from the capture's `failed: busy`.
+11. **Availability before the definitions settle.** A property that has not
+    arrived yet reads `unavailable: not-read` for up to 2 s after connecting, and
+    a command that needs it settles `failed: unavailable` before sending
+    anything. Device setup waits for them; other commands do not. Whether
+    `starting` should last until the definitions settle is open.

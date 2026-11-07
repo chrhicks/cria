@@ -162,7 +162,7 @@ export interface FakeAm5 {
 
 /**
  * errai's AM5 through indi_lx200am5, as measured on 2026-10-15 (docs/ts/SPEC.md,
- * "Checked on errai"):
+ * "Stopping the mount" and "Device setup"):
  *
  * - a goto is refused until GEOGRAPHIC_COORD and TIME_UTC have both been
  *   written: the mount answers e7, which the driver turns into Alert on the
