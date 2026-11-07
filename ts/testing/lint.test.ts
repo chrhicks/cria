@@ -16,10 +16,6 @@ type Rule = keyof typeof rules
 
 const allowed: Record<string, Partial<Record<Rule, readonly [count: number, why: string]>>> = {
   'packages/primitives/src/outcome.ts': { 'catch-all': [1, 'settle: the one place an ending becomes a value'] },
-  'packages/primitives/src/run.ts': {
-    'catch-all': [1, 'records the outcome from the body exit'],
-    'wall-clock': [2, 'startedAt and settledAt are wire timestamps'],
-  },
   'packages/primitives/src/discipline/stoppable.ts': { 'catch-all': [4, 'classifies start, settle and stop endings'] },
   'packages/primitives/src/discipline/confirm.ts': { 'catch-all': [1, 'a failed read is retried; reads only'] },
   'packages/fake-indi/src/play.ts': { 'node-timer': [1, 'the one real timer a played motion waits on; tests pass their own clock'] },
@@ -76,7 +72,10 @@ const allowed: Record<string, Partial<Record<Rule, readonly [count: number, why:
     'try-catch': [1, 'removes the partial file, then rethrows into Effect.tryPromise'],
     'wall-clock': [1, 'retainedAt is a wire timestamp'],
   },
-  'apps/cria/src/operation/ledger.ts': { 'wall-clock': [4, 'admission and settle use wire epoch timestamps'] },
+  'apps/cria/src/operation/ledger.ts': {
+    'catch-all': [1, 'records the outcome from the body exit'],
+    'wall-clock': [3, 'admission and settle use wire epoch timestamps'],
+  },
   'apps/cria/src/wire/project.ts': { 'wall-clock': [1, 'generatedAt is a wire timestamp'] },
   'apps/cria/src/wire/http.ts': {
     'try-catch': [1, 'a body that is not JSON is refused as request-error'],

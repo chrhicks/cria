@@ -10,7 +10,7 @@ the primitive map and what building it changed are in
 
 | Path | What | Primitive layer |
 | --- | --- | --- |
-| `packages/primitives` | Outcome, Reading, writeOnce, confirm, stoppable, Run | Types and disciplines; depends only on `effect`, built to move to Vela |
+| `packages/primitives` | Outcome, Reading, writeOnce, confirm, stoppable | Types and disciplines; depends only on `effect`, built to move to Vela |
 | `packages/indi` | XML framing, property mirror, `IndiClient` / `IndiDevice` | INDI boundary (no primitive) |
 | `packages/indi-replay` | `indi-replay`: serves a recording over TCP like indiserver, for running the real Cria against a recorded night; `synthesizeTape` | — |
 | `packages/recording` | `@cria/recording`: the recording format, the recorder behind the INDI client's tap, the reader and `verifyRecording` | Recording (off unless `record` is configured) |
@@ -18,7 +18,7 @@ the primitive map and what building it changed are in
 | `packages/recording-archive` | `cria-archive`: copies a finished recording from errai to thuban, keeps the frames Vela saved and the autofocus samples, packs it as tar + zstd, checks the pack replays, then deletes errai's copy with `--apply` (docs/runtime.md, "Archiving recordings to thuban") | — |
 | `packages/cria-wire` | `@cria/wire`: the protocol 5 schemas and the 15-kind command table, shared with Vela | View |
 | `apps/cria/src/capability` | camera, mount, focuser, box, connection | Capabilities |
-| `apps/cria/src/operation` | workflow bodies; the ledger, one owner of operations per rig with one Run per device | Workflows, Run |
+| `apps/cria/src/operation` | workflow bodies; the ledger, the one owner of operations, one at a time per device | Workflows |
 | `packages/fits` | `@cria/fits`: FITS header, FITS → ImageBytes, test frames | Image boundary |
 | `packages/fake-indi` | `@cria/fake-indi`: a small INDI server written from the protocol, independent of `@cria/indi`'s parser; `fixtures/am5/` and `playMotion` replay AM5 motions cut from errai's recordings (docs/testing.md, "AM5 motion fixtures") | — |
 | `apps/cria/src/image` | the rolling image store | Image boundary |

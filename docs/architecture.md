@@ -42,7 +42,7 @@ Each layer imports only from the layers below it in this diagram. The INDI bound
 
 ```
 wire boundary    apps/cria/src/wire          HTTP routes, SSE, projection into protocol 5 (@cria/wire)
-workflows, Run   apps/cria/src/operation     the ledger, one Run per device
+workflows        apps/cria/src/operation     the ledger, one operation at a time per device
 capabilities     apps/cria/src/capability    camera, mount, focuser, box, connection
 disciplines      @cria/primitives            writeOnce, confirm, stoppable
 types            @cria/primitives            Outcome, Reading
@@ -54,7 +54,7 @@ INDI boundary    @cria/indi                  XML framing, the TCP connection, th
 For the details, read these sections of SPEC.md:
 
 - [The layers](ts/SPEC.md#the-layers) and [the module map](ts/SPEC.md#module-map), for what each file is.
-- [Primitives](ts/SPEC.md#primitives), for Outcome, Reading, the disciplines and Run.
+- [Primitives](ts/SPEC.md#primitives), for Outcome, Reading and the disciplines.
 - [The ledger](ts/SPEC.md#the-ledger), for admission, halts and cancel.
 - [The INDI boundary](ts/SPEC.md#the-indi-boundary), for which INDI property backs each reading.
 - [The wire (protocol 5)](ts/SPEC.md#the-wire-protocol-5), for endpoints, errors and shapes.

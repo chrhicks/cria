@@ -1,5 +1,5 @@
-import { Deferred, Effect, PubSub, Ref, Scope, Stream } from 'effect'
-import { makeRun, type Ending, type Outcome, type Report, type RunView } from '@cria/primitives'
+import { Deferred, Effect, Fiber, FiberMap, Option, PubSub, Ref, Scope, Stream } from 'effect'
+import { fromExit, type Ending, type Outcome, type Report } from '@cria/primitives'
 import {
   commands,
   isHalt,
@@ -158,33 +158,25 @@ export function admit(
   return start()
 }
 
-function progress(state: LedgerState, input: { readonly id: OperationId; readonly progress: Progress }): Transition<void> {
+function progress(state: LedgerState, input: { readonly id: OperationId; readonly patch: Partial<Progress> }): Transition<void> {
   const operation = state.operations.get(input.id)
 
   if (operation?.state !== 'running') return [step(undefined), state]
 
-  return [step(undefined), changed(state, { operations: put(state.operations, operation.id, { ...operation, progress: input.progress }) })]
+  return [step(undefined), changed(state, { operations: put(state.operations, operation.id, { ...operation, progress: { ...operation.progress, ...input.patch } }) })]
 }
 
-/** A running operation, ended. `settle` and the announcement of a settle both build it here. */
-function endedOf(
-  operation: Running,
-  input: { readonly outcome: Outcome<OperationResult>; readonly settledAt: number; readonly motion?: MotionRecord | undefined },
-): Ended {
-  const { progress: _, ...started } = operation
-
-  return { ...started, state: 'settled', settledAt: input.settledAt, outcome: input.outcome, ...(input.motion === undefined ? {} : { motion: input.motion }) }
-}
 
 export function settle(
   rules: Rules,
   state: LedgerState,
   input: { readonly id: OperationId; readonly outcome: Outcome<OperationResult>; readonly settledAt: number; readonly now: number; readonly motion?: MotionRecord | undefined },
-): Transition<void> {
+): Transition<Ended | undefined> {
   const operation = state.operations.get(input.id)
 
   if (operation?.state !== 'running') return [step(undefined), state]
-  const ended = endedOf(operation, input)
+  const { progress: _, ...started } = operation
+  const ended: Ended = { ...started, state: 'settled', settledAt: input.settledAt, outcome: input.outcome, ...(input.motion === undefined ? {} : { motion: input.motion }) }
   const next = openOn(state, operation.deviceId).find((open): open is Waiting => open.state === 'waiting')
   const following: Running | undefined = next && { ...next, state: 'running', startedAt: input.now, progress: initialProgress }
   const operations = put(state.operations, ended.id, ended)
@@ -199,7 +191,7 @@ export function settle(
   const resolve: ReadonlyArray<After> = waiters.length > 0 ? [{ kind: 'resolve', waiters, operation: ended }] : []
   const start: ReadonlyArray<After> = following ? [{ kind: 'start', operation: following }] : []
 
-  return [step(undefined, [...resolve, ...start]), settledState]
+  return [step(ended, [...resolve, ...start]), settledState]
 }
 
 export function prune(rules: Rules, state: LedgerState): LedgerState {
@@ -301,20 +293,8 @@ export function makeLedger(options: LedgerOptions): Effect.Effect<Ledger, never,
     const devices = new Map(options.devices.map(device => [device.id, device]))
     const rules: Rules = { instanceId: options.instanceId, commandsEnabled: options.commandsEnabled, history: options.history, devices }
     const state = yield* Ref.make(initialState())
-    const motions = new Map<OperationId, MotionRecord>()
+    const working = yield* FiberMap.make<OperationId>()
     const revisions = yield* Effect.acquireRelease(PubSub.sliding<number>(1), PubSub.shutdown)
-    const runs = new Map(
-      yield* Effect.forEach([...devices.keys()], id =>
-        Effect.map(
-          makeRun<Running, Progress, OperationResult, OperationId>({
-            initial: () => initialProgress,
-            work: (operation, report) =>
-              Effect.suspend(() => known(devices, operation.deviceId).work(operation, report, record => Effect.sync(() => void motions.set(operation.id, record)))),
-          }),
-          run => [id, run] as const,
-        ),
-      ),
-    )
 
     const apply = <A>(transition: (current: LedgerState) => Transition<A>): Effect.Effect<A> =>
       Ref.modify(state, current => {
@@ -328,64 +308,38 @@ export function makeLedger(options: LedgerOptions): Effect.Effect<Ledger, never,
         Effect.map(({ done }) => done.result),
       )
 
-    // Settling is the one transition whose result callers also want announced; the pure `settle` stays as it is.
-    const settleAndAnnounce = (input: {
-      readonly id: OperationId
-      readonly outcome: Outcome<OperationResult>
-      readonly settledAt: number
-      readonly now: number
-      readonly motion?: MotionRecord | undefined
-    }) => {
-      let announced: Settled | undefined
+    const finish = (input: { readonly id: OperationId; readonly outcome: Outcome<OperationResult>; readonly motion?: MotionRecord | undefined }) =>
+      Effect.flatMap(
+        apply(current => settle(rules, current, { ...input, settledAt: Date.now(), now: Date.now() })),
+        ended => Effect.sync(() => ended && options.onSettled?.(ended)),
+      )
 
-      return apply(current => {
-        const transition = settle(rules, current, input)
-        const running = current.operations.get(input.id)
+    const execute = (operation: Running) => {
+      let motion: MotionRecord | undefined
+      const report: Report<Progress> = patch => apply(current => progress(current, { id: operation.id, patch }))
+      const work = Effect.suspend(() => known(devices, operation.deviceId).work(operation, report, record => Effect.sync(() => void (motion = record))))
 
-        // Not read back from the new state: `settle` prunes by age, so an old operation can be gone from it already.
-        announced = running?.state === 'running' ? endedOf(running, input) : undefined
-
-        return transition
-      }).pipe(Effect.andThen(Effect.sync(() => announced && options.onSettled?.(announced))))
+      return Effect.uninterruptible(Effect.flatMap(Effect.exit(work), exit => finish({ id: operation.id, outcome: fromExit(exit), motion })))
     }
+
+    const stop = (operation: Running) =>
+      Effect.gen(function* () {
+        const fiber = yield* FiberMap.get(working, operation.id)
+
+        if (Option.isSome(fiber)) yield* Fiber.interrupt(fiber.value)
+        yield* finish({ id: operation.id, outcome: { kind: 'stopped' } })
+      })
 
     function perform(after: After): Effect.Effect<void> {
       switch (after.kind) {
-        case 'start': {
-          const { operation } = after
-
-          return known(runs, operation.deviceId)
-            .start(operation.id, operation)
-            .pipe(
-              Effect.catchTag('Failed', refused =>
-                settleAndAnnounce({
-                  id: operation.id,
-                  outcome: { kind: 'uncertain', reason: 'unexpected-error', message: `Run refused a start the ledger reserved: ${refused.message}` },
-                  settledAt: Date.now(),
-                  now: Date.now(),
-                }),
-              ),
-            )
-        }
+        case 'start':
+          return Effect.asVoid(FiberMap.run(working, after.operation.id, execute(after.operation)))
         case 'stop':
-          return Effect.asVoid(Effect.forkIn(known(runs, after.operation.deviceId).stop(after.operation.id), scope))
+          return Effect.asVoid(Effect.forkIn(stop(after.operation), scope))
         case 'resolve':
           return Effect.forEach(after.waiters, waiter => Deferred.succeed(waiter, after.operation), { discard: true })
       }
     }
-
-    const follow = (update: RunView<Progress, OperationResult, OperationId>) => {
-      if (update.state === 'idle') return Effect.void
-      if (update.state === 'running') return apply(current => progress(current, { id: update.runId, progress: update.progress }))
-      const now = Date.now()
-      const motion = motions.get(update.runId)
-
-      motions.delete(update.runId)
-
-      return settleAndAnnounce({ id: update.runId, outcome: update.outcome, settledAt: update.settledAt, now, motion })
-    }
-
-    for (const run of runs.values()) yield* Effect.forkIn(Stream.runForEach(run.changes, follow), scope)
 
     const read = <A>(query: (current: LedgerState) => A | Refusal) => Effect.flatMap(Ref.get(state), current => answer(query(current)))
 

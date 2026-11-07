@@ -46,11 +46,11 @@ layers above it in this list.
    disciplines. `observe` returns Readings, and every command returns an Outcome.
    Capabilities never see XML or sockets. They see `IndiDevice` (properties,
    states, `send`) behind the INDI boundary.
-4. **Workflows run by Run** (`apps/cria/src/operation`). Each wire operation kind
+4. **Workflows run by the ledger** (`apps/cria/src/operation`). Each wire operation kind
    (`capture`, `focuser-move`, `mount-slew`, and the others) is a short workflow
-   body over one capability. The ledger (`ledger.ts`, one per rig) admits it, and
-   the device's `Run` executes it with single flight, progress, stop by
-   interruption, and a settled Outcome.
+   body over one capability. The ledger (`ledger.ts`, one per rig) admits it, runs
+   it as one fiber, reports its progress, stops it by interruption, and settles it
+   with an Outcome.
 
 Two boundaries sit around the layers and map to no primitive on purpose:
 
@@ -204,41 +204,21 @@ because the device moved by an unknown amount. The one opt-out is a camera
 exposure (`settleFailure: 'failed'`). With the abort confirmed the camera is idle
 and nothing persists, so an exposure error leaves the camera free.
 
-### Run
-
-```ts
-makeRun<Input, Progress, A, Id>({ initial: (input) => Progress, work: (input, report) => Effect<A, Failed | Stopped | Uncertain> })
-// → { changes, view, start(runId, input), stop(runId), await(runId) }
-```
-
-A Run is an ephemeral, observable, cancellable execution with single flight.
-`start` while a run is active fails `busy`. `initial` computes the progress an
-execution starts with from its input. `view` is the current view. `stop(runId)`
-interrupts that execution and returns `some` of its settled view, so "stopped" is
-reported only after cleanup. It returns `none` when the run ID is not the latest
-execution, and never another execution's view. `await(runId)` waits until that
-execution settles and returns `some` of its settled view without stopping it. It
-returns `none` when the run ID is neither the latest execution nor the one before
-it. Any number of callers may await the same execution. `changes`
-streams every view (`idle`, `running` with progress, `settled` with the outcome),
-each with its run ID. Work runs uninterruptibly except inside `stoppable`'s wait,
-and the outcome comes from the body's own exit. So a cancel during a setting, or
-after a motion finished, reports what really happened (`confirmed`), and `stopped`
-means nothing physical happened or a stop confirmed it.
-
-Cria has one Run per device. Each wire operation is one execution, with the
-operation ID as its run ID. Only the ledger starts a Run, so Run's `busy` refusal
-cannot happen there. If it does, it is a ledger bug, and the operation settles
-`uncertain: unexpected-error`.
-
 ## The ledger
 
 `apps/cria/src/operation/ledger.ts` is the one owner of operations, per rig. It
 holds one immutable state in a `Ref`. Each transition (admit, progress, settle,
 cancel, wait, snapshot, prune) is a pure function that returns the new
-state and the effects to run after it (start a Run, stop a Run, resolve waiters).
+state and the effects to run after it (start an operation, stop one, resolve waiters).
 Each change increments a revision, which the ledger publishes for the event
 stream.
+
+Each operation runs as one fiber, keyed by its ID. The work is uninterruptible
+except inside `stoppable`'s wait, and the outcome comes from the body's own exit.
+So a cancel during a setting, or after a motion finished, reports what really
+happened (`confirmed`), and `stopped` means nothing physical happened or a stop
+confirmed it. Only the ledger starts work, and only once it has admitted the
+operation, so nothing else can find a device busy.
 
 An uncertain ending on any device kind holds nothing and is pruned like any
 settled operation.
@@ -265,14 +245,14 @@ admitted between them.
 
 On an idle domain a halt starts at once. On a busy
 domain it is `waiting`, and if the running operation is not itself a halt, the
-ledger asks its Run to stop (its own `stoppable` halts and confirms). When an
+ledger stops it (its own `stoppable` halts and confirms). When an
 operation settles, the oldest waiting halt starts in the same step.
 
 So a repeated stop waits its turn and runs, sending the abort again, and settles
 `confirmed` like the first. Two stops queued behind one slew both run in turn.
 
 `POST /v2/operations/{id}/cancel` returns the operation as it is now (`202`). For a
-running operation that is not a halt, it also asks the Run to stop; the outcome
+running operation that is not a halt, it also stops it; the outcome
 says what happened. A halt, waiting or running, is returned unchanged and still
 runs. A stop is never cancelled. Cancelling a settled operation returns it
 unchanged.
@@ -295,7 +275,7 @@ operation has no deadline field, and Vela cannot read the configured values.
 | Capture | None. A capture ends on its frame, an Alert, a lost driver or connection, or a cancel. A client that sees the camera has stopped counting cancels it. |
 | Motion (slew, home, focuser move) | `operationTimeoutMs` for the driver to finish the motion, then `failed: unavailable`. |
 | Setting | `acknowledgeMs` for the driver to answer, then up to the confirm deadline (15 s unless the kind sets its own) for the new state; `uncertain` if either passes. |
-| Stop (`mount-stop`, `focuser-halt`) and a Run's stop | `stopWithin`: 20 s for the mount and focuser, 15 s for the camera abort. A stop is confirmed from the position, not from any property's state (see "Stopping the mount"). |
+| Stop (`mount-stop`, `focuser-halt`) and a cancelled operation's stop | `stopWithin`: 20 s for the mount and focuser, 15 s for the camera abort. A stop is confirmed from the position, not from any property's state (see "Stopping the mount"). |
 | `device-connect` | `initializeTimeoutMs` for the driver to acknowledge the connect and again for the device to read connected, then `uncertain`. Device setup follows under its own writes' bounds. |
 
 These bounds are per kind, not one guarantee stated in code: nothing enforces a
@@ -320,7 +300,6 @@ the same tag in their doc comment.
 | `packages/primitives/src/discipline/write-once.ts` | Discipline: writeOnce | Outcome |
 | `packages/primitives/src/discipline/confirm.ts` | Discipline: confirm | `confirm`, `writeConfirmed`; Outcome |
 | `packages/primitives/src/discipline/stoppable.ts` | Discipline: stoppable | writeOnce, Outcome |
-| `packages/primitives/src/run.ts` | Run | Outcome, Effect `Fiber`, `SubscriptionRef` |
 | `packages/primitives/src/index.ts` | | The package's exports |
 | `packages/indi/src/xml.ts` | INDI boundary | XML framing, the INDI message union, request serialization |
 | `packages/indi/src/mirror.ts` | INDI boundary | Every property of every device from def, set and del messages |
@@ -350,7 +329,7 @@ the same tag in their doc comment.
 | `apps/cria/src/capability/connection.ts` | Capability: connection | writeOnce, confirm; serial port before connecting; device setup after |
 | `apps/cria/src/capability/setup.ts` | Capability: device setup | writeOnce, confirm; the table of setup steps per device kind (see "Device setup") |
 | `apps/cria/src/operation/workflows.ts` | Workflow bodies | One short body per operation kind over one capability, as a table keyed by kind |
-| `apps/cria/src/operation/ledger.ts` | Run (with history) | The one owner of operations per rig (see "The ledger"); `onSettled` announces each settled operation once |
+| `apps/cria/src/operation/ledger.ts` | The ledger | The one owner of operations per rig (see "The ledger"); `onSettled` announces each settled operation once |
 | `apps/cria/src/refusal.ts` | Wire boundary | `Refusal`, a tagged error with a closed `ErrorCode`; the HTTP layer maps it to a status |
 | `apps/cria/src/ids.ts` | Composition | `mint`: new instance, operation and image IDs and the request IDs of device setup |
 | `packages/fits/src/fits.ts` | Image boundary (`@cria/fits`) | FITS (INDI BLOB) to ASCOM ImageBytes v1, and `fitsFrame`, a FITS test frame |
@@ -369,7 +348,7 @@ Tests and test tools:
 
 | Path | What it is |
 |---|---|
-| `packages/primitives/src/*.test.ts` | Outcome, disciplines and Run, on Effect's TestClock |
+| `packages/primitives/src/*.test.ts` | Outcome and the disciplines, on Effect's TestClock |
 | `packages/indi/src/*.test.ts` | XML framing from recorded traffic, with and without the tap; the client against a real indiserver |
 | `packages/recording/src/*.test.ts` | The recorder on a healthy, stalled, full and failing disk; the reader on a torn tail and on damage in the middle |
 | `testing/recorder-crash.test.ts` | `kill -9` of a real process at each step of the recorder's write order |
@@ -854,8 +833,8 @@ The request is the same flat shape without the server's fields:
 `waiting` is a halt admitted while another operation is open in its failure
 domain. It has no timing, progress or outcome yet. The schema has a `waiting`
 member only for the halt kinds, so a waiting motion is not a valid Operation, in
-the type or on the wire. `running` starts when the operation is handed to its
-Run, and `settled` once its Outcome is known. Each state carries only its own
+the type or on the wire. `running` starts when the ledger starts its work,
+and `settled` once its Outcome is known. Each state carries only its own
 fields. Vela matches `state`, then `outcome.kind`.
 
 The 15 kinds and their parameters are the table in `packages/cria-wire/src/command.ts`.
@@ -966,8 +945,7 @@ it, so the contract lives with the producer. There is no third repo and no
 package registry.
 
 - `ts/packages/primitives` is `@cria/primitives`: Outcome, Reading
-  (`Reading.required` included), the disciplines, Run (`makeRun`: `changes`,
-  `view`, `start`, `stop`, `await`). No Cria or INDI imports.
+  (`Reading.required` included), the disciplines. No Cria or INDI imports.
 - `ts/packages/cria-wire` is `@cria/wire`: the protocol 5 schemas.
 - `ts/packages/fits` is `@cria/fits`: FITS header, FITS to ImageBytes v1 and
   `fitsFrame`. No dependencies. Vela's packager uses it to compute the same
@@ -1358,7 +1336,7 @@ It holds no `op` lines.
   in the one narrow case AGENTS.md and docs/runtime.md describe.
 - **`indiserver` goes away.** Every device is unavailable, in-flight work is
   uncertain, and the reconnect is paced. No command is resent after reconnecting.
-- **SIGTERM.** Closing the process scope interrupts every Run. Their `stoppable`
+- **SIGTERM.** Closing the process scope interrupts every running operation. Their `stoppable`
   steps abort exposures and stop the mount and focuser before the process exits,
   and a mount's stop waits until it stands still (at most 20 s).
   `deploy/cria.service` allows 180 s (`TimeoutStopSec`), because a
@@ -1394,8 +1372,7 @@ effect, because indiserver writes to each client in turn.
 
 1. **Primitives, on Effect's TestClock.** Outcome precedence; `writeOnce` against
    every row of its table; the confirm deadline; `stoppable` interrupted
-   mid-motion with a stop that confirms, fails and hangs; Run single flight and
-   stop after settle. No real
+   mid-motion with a stop that confirms, fails and hangs. No real
    time passes.
 2. **INDI boundary.** XML framing from recorded traffic split at random byte
    boundaries; entities; BLOB decode; `delProperty`; one client test against a

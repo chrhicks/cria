@@ -1,4 +1,4 @@
-import { Deferred, Effect, Fiber } from 'effect'
+import { Deferred, Effect } from 'effect'
 import { describe, expect, it } from 'vitest'
 import { DeviceId, InstanceId, RequestId } from '@cria/wire'
 import { makeLedger, type LedgerDevice } from './ledger.js'
@@ -41,15 +41,17 @@ describe('onSettled', () => {
 
               return yield* ledger.awaitSettled(operation.id)
             })
-          const slow = yield* Effect.forkChild(submit('slow', 'slow'))
-
-          // The oldest operation in the ledger is the one still running when ten newer ones have settled.
+          yield* ledger.submit({
+            instanceId,
+            requestId: RequestId.make('slow'),
+            deviceId: DeviceId.make('slow'),
+            kind: 'capture',
+            parameters: { exposureSeconds: 1, light: true },
+          })
           yield* Deferred.await(started)
 
           for (let n = 0; n < 10; n += 1) yield* submit('quick', `quick-${n}`)
           yield* Deferred.succeed(release, undefined)
-          yield* Fiber.join(slow)
-          // The announcement follows the waiters being resolved, so it can land just after awaitSettled returns.
           while (announced.length < 11) yield* Effect.sleep('5 millis')
 
           expect([...announced].sort()).toEqual([...Array.from({ length: 10 }, (_, n) => `quick-${n}`), 'slow'].sort())
