@@ -3,7 +3,7 @@ import type { Entry } from './entry.ts'
 import { openPublisher, type BrokerConnection } from './publisher.ts'
 
 const settings = { servers: 'nats://nowhere', user: 'u', pass: 'p', retryDelayMs: 1 }
-const entry: Entry = { v: 1, id: 'x', rig: 'r', kind: 'k', at: 1, source: 's', tags: [], body: {} }
+const entry: Entry = { v: 1, id: 'x', rig: 'r', kind: 'k', at: 1, source: 's', body: {} }
 
 function fakeBroker() {
   const sent: Array<string> = []

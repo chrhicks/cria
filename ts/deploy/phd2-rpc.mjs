@@ -20,7 +20,7 @@ import { fileURLToPath } from 'node:url'
 
 export const settle = { pixels: 1.5, time: 10, timeout: 90 }
 
-export const ditherPixels = 3
+const ditherPixels = 3
 
 const defaults = { host: '127.0.0.1', port: 4400 }
 

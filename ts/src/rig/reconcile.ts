@@ -6,7 +6,7 @@ export type Action =
   | { readonly kind: 'restart-driver'; readonly driver: string; readonly why: string }
   | { readonly kind: 'log'; readonly line: string }
 
-export interface DeviceMemory {
+interface DeviceMemory {
   hardwareStreak: number
   missingStreak: number
   wasConnected: boolean
@@ -14,12 +14,12 @@ export interface DeviceMemory {
   reconnectedAt?: number
 }
 
-export interface DriverMemory {
+interface DriverMemory {
   restarts: number
   lastRestartAt?: number
 }
 
-export interface WriteMemory {
+interface WriteMemory {
   attempts: number
   at: number
 }
@@ -31,7 +31,7 @@ export interface Memory {
   said: Record<string, string>
 }
 
-export interface Observation {
+interface Observation {
   readonly now: number
   readonly snapshot: IndiSnapshot
   readonly hardware: Readonly<Record<string, boolean>>
@@ -82,9 +82,9 @@ export function decide(config: RigConfig, observation: Observation, previous: Me
   }
   const attempt = (key: string) => memory.writes[key]?.attempts ?? 0
 
-  const linkDown = !snapshot.linked || config.devices.every(device => !snapshot.devices.has(device.indiDevice))
+  const linkDown = !snapshot.linked
 
-  if (linkDown) note('indi', 'indiserver unreachable, or no configured device defined; writing and restarting nothing')
+  if (linkDown) note('indi', 'indiserver unreachable; writing and restarting nothing')
   else clearNote('indi')
 
   for (const device of config.devices) {
@@ -140,15 +140,9 @@ export function decide(config: RigConfig, observation: Observation, previous: Me
     }
   }
 
-  for (const device of config.devices) {
-    if (!restartDue.has(device.id) || device.driver !== undefined) continue
-    delete memoryOf(device).reconnectedAt
-    note(`dead:${device.id}`, `rig: ${device.id}: still failing after the reconnect, and the rig file names no driver to restart`)
-  }
-
   const restarting = new Set<string>()
 
-  for (const driver of new Set(config.devices.flatMap(device => (device.driver ? [device.driver] : [])))) {
+  for (const driver of new Set(config.devices.map(device => device.driver))) {
     const group = config.devices.filter(device => device.driver === driver)
     const bookkeeping = (memory.drivers[driver] ??= { restarts: 0 })
 
@@ -205,7 +199,7 @@ export function decide(config: RigConfig, observation: Observation, previous: Me
       clearNote(`hardware:${device.id}`)
       continue
     }
-    if (restarting.has(device.driver ?? '') || reconnecting.has(device.id) || facts.connection === 'changing') continue
+    if (restarting.has(device.driver) || reconnecting.has(device.id) || facts.connection === 'changing') continue
     if (device.connected ? facts.connection === 'connected' : facts.connection === 'disconnected') delete memory.writes[connectionKey]
     if (state.hardwareStreak < config.settlePolls) {
       note(`hardware:${device.id}`, `rig: ${device.id}: ${facts.connection}, hardware not present yet`)

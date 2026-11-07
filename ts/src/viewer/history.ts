@@ -6,7 +6,7 @@ const decodeEntry = Schema.decodeUnknownOption(
 
 const problemEvents = new Set(['phd2.StarLost', 'phd2.Alert', 'phd2.CalibrationFailed'])
 
-export interface Classified {
+interface Classified {
   readonly source: string
   readonly problem: boolean
   readonly command: boolean
@@ -105,14 +105,14 @@ export interface Raw {
   readonly text: string
 }
 
-export interface Delivered extends Raw {
+interface Delivered extends Raw {
   readonly problem: boolean
   readonly command: boolean
   readonly group: string | undefined
   readonly differs: boolean
 }
 
-export interface Group {
+interface Group {
   readonly group: string
   readonly latest: Delivered
   readonly reads: number

@@ -2,7 +2,7 @@ import type { RigConfig, RigDevice } from './config.ts'
 import type { IndiLink } from './indi-link.ts'
 import { decide, emptyMemory, type Action } from './reconcile.ts'
 
-export interface RigDependencies {
+interface RigDependencies {
   readonly config: RigConfig
   readonly now: () => number
   readonly sleep: (ms: number) => Promise<void>

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { classify, makeHistory, parseQuery, type Raw } from './history.ts'
 
 function entry(kind: string, body: unknown) {
-  return JSON.stringify({ v: 1, id: 'x', rig: 'r', kind, at: 1, source: 's', tags: [], body })
+  return JSON.stringify({ v: 1, id: 'x', rig: 'r', kind, at: 1, source: 's', body })
 }
 
 function wire(xml: string) {

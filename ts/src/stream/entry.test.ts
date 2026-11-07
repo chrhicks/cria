@@ -5,7 +5,7 @@ function entries() {
   return makeEntries({ rig: 'test-rig', source: 'test:stream-client', run: 'run1', now: () => 1000 })
 }
 
-const outer = { v: 1, rig: 'test-rig', source: 'test:stream-client', tags: [] }
+const outer = { v: 1, rig: 'test-rig', source: 'test:stream-client' }
 
 describe('wire entries', () => {
   it('keep the raw XML and count each direction of each connection', () => {

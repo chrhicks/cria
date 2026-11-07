@@ -2,14 +2,14 @@ import { Effect, Exit, Scope, Stream } from 'effect'
 import { makeIndiClient, type Property, type PropertyState, type Values } from '../indi/index.ts'
 import type { WantedValue } from './config.ts'
 
-export type ConnectionState = 'connected' | 'disconnected' | 'changing'
+type ConnectionState = 'connected' | 'disconnected' | 'changing'
 
 export interface PropertyFacts {
   readonly state: PropertyState
   readonly values: Readonly<Record<string, WantedValue>>
 }
 
-export interface ErrorRun {
+interface ErrorRun {
   readonly since: number
   readonly last: number
 }

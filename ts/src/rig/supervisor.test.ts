@@ -155,6 +155,28 @@ describe('the rig program against a real indiserver', () => {
     expect(logs.filter(line => line.includes('focuser: writing CONNECTION')).length).toBeGreaterThanOrEqual(2)
     expect(logs.some(line => line.includes('indi_simulator_gps'))).toBe(false)
   })
+
+  it('starts every driver itself, and connects the device, when indiserver was started with none', async () => {
+    const fifo = fifoPath()
+
+    server = await startIndiServer([], { fifo })
+    const config = parseConfig({
+      fifo,
+      indiPort: server.port,
+      settlePolls: 1,
+      stopGapMs: 100,
+      devices: [{ id: 'focuser', indiDevice: 'Focuser Simulator', serial: '/dev/null', driver: 'indi_simulator_focus', connected: true }],
+    })
+
+    link = await openIndiLink({ host: '127.0.0.1', port: server.port, devices: ['Focuser Simulator'], errorGapMs: config.errorGapMs, now: Date.now })
+    const rig = createRig({ config, now: Date.now, sleep: ms => new Promise(resolve => setTimeout(resolve, ms)), hardwarePresent: () => true, writeFifo, indi: link, log: () => {} })
+
+    await until('the simulator to be started and connected', async () => {
+      await rig.tick()
+
+      return (await link!.view()).devices.get('Focuser Simulator')?.connection === 'connected' || undefined
+    })
+  })
 })
 
 describe('the rig program against a fake INDI server', () => {
@@ -215,7 +237,7 @@ describe('the rig program against a fake INDI server', () => {
     fake.define(connection('Fake CCD'))
     fake.define({ device: 'Fake CCD', name: 'UPLOAD_MODE', kind: 'switch', perm: 'rw', rule: 'OneOfMany', state: 'Ok', elements: { UPLOAD_CLIENT: { value: false }, UPLOAD_LOCAL: { value: true }, UPLOAD_BOTH: { value: false } } })
     fake.update('Fake CCD', 'CONNECTION', { values: { CONNECT: false, DISCONNECT: true } })
-    const { tick } = await start([{ id: 'primary', indiDevice: 'Fake CCD', usb: '03c3:260a', connected: true, properties: { UPLOAD_MODE: { UPLOAD_CLIENT: true } } }])
+    const { tick } = await start([{ id: 'primary', indiDevice: 'Fake CCD', usb: '03c3:260a', driver: 'indi_fake_ccd', connected: true, properties: { UPLOAD_MODE: { UPLOAD_CLIENT: true } } }])
 
     await tick(6)
 
@@ -231,7 +253,7 @@ describe('the rig program against a fake INDI server', () => {
     fake.define(connection('ZWO AM5', false))
     fake.define({ device: 'ZWO AM5', name: 'DEVICE_PORT', kind: 'text', perm: 'rw', state: 'Ok', elements: { PORT: { value: '/dev/ttyUSB0' } } })
     const { tick, logs } = await start([
-      { id: 'mount', indiDevice: 'ZWO AM5', serial: '/dev/serial/by-id/am5', connected: true, properties: { GEOGRAPHIC_COORD: site }, onConnect: { TIME_UTC: { UTC: 'now', OFFSET: '0.00' } } },
+      { id: 'mount', indiDevice: 'ZWO AM5', serial: '/dev/serial/by-id/am5', driver: 'indi_lx200am5', connected: true, properties: { GEOGRAPHIC_COORD: site }, onConnect: { TIME_UTC: { UTC: 'now', OFFSET: '0.00' } } },
     ])
 
     await tick(4)

@@ -5,7 +5,7 @@
  */
 import type { ProtocolProblem } from './xml.ts'
 
-export interface ProblemLogOptions {
+interface ProblemLogOptions {
   readonly warn: (line: string) => void
   readonly now: () => number
   readonly windowMs?: number

@@ -1,15 +1,15 @@
 import net from 'node:net'
 
-export type Value = number | boolean | string
+type Value = number | boolean | string
 
-export interface FakeElement {
+interface FakeElement {
   value: Value
   min?: number
   max?: number
   step?: number
 }
 
-export interface FakeVector {
+interface FakeVector {
   readonly device: string
   readonly name: string
   readonly kind: 'number' | 'switch' | 'text'
@@ -19,7 +19,7 @@ export interface FakeVector {
   readonly elements: Record<string, FakeElement>
 }
 
-export type Behaviour = (vector: FakeVector, values: Record<string, string>) => 'default' | 'handled'
+type Behaviour = (vector: FakeVector, values: Record<string, string>) => 'default' | 'handled'
 
 const tags = { number: 'Number', switch: 'Switch', text: 'Text' } as const
 
@@ -50,12 +50,8 @@ export class FakeIndi {
   }
 
   async stop(): Promise<void> {
-    this.dropConnections()
-    await new Promise<void>(resolve => this.server.close(() => resolve()))
-  }
-
-  dropConnections(): void {
     for (const socket of this.sockets) socket.destroy()
+    await new Promise<void>(resolve => this.server.close(() => resolve()))
   }
 
   define(vector: Omit<FakeVector, 'state'> & { state?: FakeVector['state'] }): void {

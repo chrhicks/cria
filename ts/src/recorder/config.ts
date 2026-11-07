@@ -1,7 +1,8 @@
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { Config, Context, Effect, Layer, Schema } from 'effect'
-import { BrokerLogin, defaultWireDevices, fileNamedOnCommandLine } from '../stream/index.ts'
+import { defaultRigFile } from '../rig/file.ts'
+import { BrokerLogin, fileNamedOnCommandLine } from '../stream/index.ts'
 
 const RecorderSettings = Schema.Struct({
   rig: Schema.String.annotate({
@@ -12,9 +13,9 @@ const RecorderSettings = Schema.Struct({
     port: Schema.Number.annotate({ description: 'indiserver port' }),
   }),
   broker: BrokerLogin,
-  wireDevices: Schema.Record(Schema.String, Schema.String).annotate({
-    description: 'INDI device name to the short id used in wire subjects. The ids of the rig file where one fits; the power box is one INDI device on the wire',
-  }).pipe(Schema.withDecodingDefaultKey(Effect.succeed(defaultWireDevices))),
+  rigFile: Schema.String.annotate({
+    description: 'The rig file on this machine. Wire subjects name each INDI device by its id there, so the recorder and the rig program can never disagree about what the devices are called',
+  }).pipe(Schema.withDecodingDefaultKey(Effect.succeed(defaultRigFile))),
   journalExclusions: Schema.Struct({
     identifiers: Schema.Array(Schema.String).annotate({
       description: 'Log sources left off the stream. Chris, 2026-11-04: ssh sessions and Tailscale routes are off',

@@ -8,7 +8,6 @@ export interface Entry {
   readonly kind: string
   readonly at: number
   readonly source: string
-  readonly tags: ReadonlyArray<string>
   readonly body: unknown
 }
 
@@ -46,7 +45,6 @@ export function makeEntries({ rig, source, run, now }: EntryContext) {
     kind,
     at,
     source,
-    tags: [],
     body,
   })
 
