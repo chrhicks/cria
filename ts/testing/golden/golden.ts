@@ -98,6 +98,7 @@ export function normalize(scenario: string, recorded: ReadonlyArray<Recorded>): 
     if (typeof value === 'number' && key === 'elapsedSeconds') return '<elapsed>'
     if (typeof value === 'number' && key === 'sequence') return '<sequence>'
     if (typeof value === 'string' && value.length > 1000) return `<${value.length} characters>`
+    if (typeof value === 'string' && (key === 'sha256' || key === 'etag')) return name(value.replaceAll('"', ''), 'sha256')
     if (typeof value === 'string') return value.replace(uuid, id => name(id, labelOf(key, parent))).replace(utc, '<utc>')
 
     return value

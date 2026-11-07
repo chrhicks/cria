@@ -1100,7 +1100,7 @@
               "url": "/v2/images/<image-1>/original"
             },
             "retainedAt": "<time>",
-            "sha256": "2d3ce919bd8a6cb04ad4d99df58064849ed638fef34abf07fbf2afffb9961e48",
+            "sha256": "<sha256-1>",
             "width": 8
           },
           "values": {}
@@ -1125,8 +1125,8 @@
       "bytes": 5760,
       "contentLength": "5760",
       "contentType": "application/fits",
-      "etag": "\"2d3ce919bd8a6cb04ad4d99df58064849ed638fef34abf07fbf2afffb9961e48\"",
-      "sha256": "2d3ce919bd8a6cb04ad4d99df58064849ed638fef34abf07fbf2afffb9961e48"
+      "etag": "<sha256-1>",
+      "sha256": "<sha256-1>"
     }
   },
   {
@@ -1196,7 +1196,7 @@
               "url": "/v2/images/<image-1>/original"
             },
             "retainedAt": "<time>",
-            "sha256": "3744ccac12a26e4c185e9f131e7d25ae1e9dc85d352a96f4eb818104b8ac6fcb",
+            "sha256": "<sha256-1>",
             "width": 8
           },
           "values": {}
@@ -1280,7 +1280,7 @@
               "url": "/v2/images/<image-2>/original"
             },
             "retainedAt": "<time>",
-            "sha256": "4fdbb4cdd53f3b6df84a1df5779268f5cb512a3f7ca37960d8eabc94759e688e",
+            "sha256": "<sha256-2>",
             "width": 8
           },
           "values": {}
@@ -4533,7 +4533,7 @@
               "url": "/v2/images/<image-1>/original"
             },
             "retainedAt": "<time>",
-            "sha256": "9872508bff93842343022d3a4aa6f16e9a6a5079b438739de245918ee0d9c1d9",
+            "sha256": "<sha256-1>",
             "width": 8
           },
           "values": {}
@@ -4614,7 +4614,7 @@
               "url": "/v2/images/<image-2>/original"
             },
             "retainedAt": "<time>",
-            "sha256": "8bbdb6fa9264389798624a0dfb709b00597d08c061b898e43a1f2bd914b0f86c",
+            "sha256": "<sha256-2>",
             "width": 8
           },
           "values": {}
@@ -4652,8 +4652,8 @@
       "bytes": 5760,
       "contentLength": "5760",
       "contentType": "application/fits",
-      "etag": "\"8bbdb6fa9264389798624a0dfb709b00597d08c061b898e43a1f2bd914b0f86c\"",
-      "sha256": "8bbdb6fa9264389798624a0dfb709b00597d08c061b898e43a1f2bd914b0f86c"
+      "etag": "<sha256-2>",
+      "sha256": "<sha256-2>"
     }
   },
   {
@@ -4967,7 +4967,7 @@
               "url": "/v2/images/<image-1>/original"
             },
             "retainedAt": "<time>",
-            "sha256": "7882f895cba2b00e14fc601a2c7e024bd3737d2aea24b099233fda5d0f0b76cd",
+            "sha256": "<sha256-1>",
             "width": 8
           },
           "values": {}
