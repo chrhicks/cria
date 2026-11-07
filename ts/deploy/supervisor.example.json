@@ -1,5 +1,6 @@
 {
   "criaUrl": "http://127.0.0.1:4319",
+  "connectRequestTimeoutMs": 180000,
   "devices": [
     { "id": "primary", "indiDevice": "ZWO CCD ASI2600MC Pro", "usb": "03c3:260a", "driver": "indi_asi_ccd" },
     { "id": "guide", "indiDevice": "ZWO CCD ASI220MM Mini", "usb": "03c3:2209", "driver": "indi_asi_ccd" },

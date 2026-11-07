@@ -1,20 +1,18 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { FakeIndi, addCamera } from '@cria/fake-indi'
-import { exposeNormally } from './drivers.js'
-import { startCria, type Cria } from './harness.js'
+import { propertyOf, startCria, until, type Cria } from './harness.js'
 
 const camera = 'Fake CCD'
 let fake: FakeIndi
 let cria: Cria
-let instanceId: string
 
 beforeAll(async () => {
   fake = new FakeIndi()
   await fake.start()
   addCamera(fake, camera)
-  fake.behaviour = exposeNormally()
+  fake.update(camera, 'CONNECTION', { values: { CONNECT: false, DISCONNECT: true } })
   cria = await startCria(fake.port, [{ id: 'primary', kind: 'camera', indiDevice: camera }])
-  instanceId = cria.service.rig.instanceId
+  await until('Cria to see the camera', () => propertyOf(cria, camera, 'CONNECTION'))
 })
 
 afterAll(async () => {
@@ -22,56 +20,31 @@ afterAll(async () => {
   await fake.stop()
 })
 
-async function call(path: string, init: RequestInit = {}) {
-  const response = await fetch(cria.base + path, init)
-
-  return { status: response.status, body: (await response.json()) as unknown }
-}
-
-const refusal = (code: string, message: string) => ({ error: { code, message }, instanceId })
-
 describe('health', () => {
-  it('serves /health', async () => {
-    expect(await call('/health')).toEqual({ status: 200, body: { status: 'ok', protocolVersion: 5, instanceId, commandsEnabled: true } })
+  it('names the protocol and the instance, and nothing else', async () => {
+    expect(await cria.get('/health')).toEqual({ status: 200, body: { status: 'ok', protocolVersion: 6, instanceId: cria.service.rig.instanceId } })
   })
 })
 
-describe('refusals before any route', () => {
-  it('refuses a browser origin', async () => {
-    expect(await call('/v2/operations', { headers: { origin: 'http://example.test' } })).toEqual({
-      status: 403,
-      body: refusal('origin-rejected', 'Browser origins are not accepted'),
-    })
-  })
-
-  it('answers 404 not-found for a route that does not exist', async () => {
-    expect(await call('/v2/nothing')).toEqual({ status: 404, body: refusal('not-found', 'No such route') })
-    expect(await call('/v1/state')).toEqual({ status: 404, body: refusal('not-found', 'No such route') })
-    expect(await call('/v2/operations', { method: 'DELETE' })).toEqual({ status: 404, body: refusal('not-found', 'No such route') })
-    expect(await call('/v2/state')).toEqual({ status: 404, body: refusal('not-found', 'No such route') })
-    expect(await call('/v2/events')).toEqual({ status: 404, body: refusal('not-found', 'No such route') })
+describe('routes', () => {
+  it('answers 404 for anything but health and connect', async () => {
+    expect((await cria.get('/v2/operations')).status).toBe(404)
+    expect((await cria.get('/connect')).status).toBe(404)
+    expect((await cria.post('/health', {})).status).toBe(404)
   })
 })
 
-describe('request bodies', () => {
-  it('refuses a body that is not JSON', async () => {
-    expect(await call('/v2/operations', { method: 'POST', body: '{"kind": capture' })).toEqual({
-      status: 400,
-      body: refusal('request-error', 'Body is not JSON'),
-    })
+describe('connect', () => {
+  it('answers 400 for a body that is not a connect request', async () => {
+    for (const body of ['{"deviceId": primary', '{}', { deviceId: 'primary' }, { deviceId: 'primary', connected: 'yes' }, { deviceId: 'primary', connected: true, requestId: 'r' }, { deviceId: 'a b', connected: true }])
+      expect((await cria.post('/connect', body)).status).toBe(400)
   })
 
-  it('refuses a body over 16 KiB, and takes one just under', async () => {
-    const padded = (bytes: number) => JSON.stringify({ note: 'x'.repeat(bytes - '{"note":""}'.length) })
+  it('answers 404 for a device that is not configured', async () => {
+    expect((await cria.post('/connect', { deviceId: 'nothing', connected: true })).status).toBe(404)
+  })
 
-    expect(Buffer.byteLength(padded(16 * 1024))).toBe(16 * 1024)
-    expect(await call('/v2/operations', { method: 'POST', body: padded(16 * 1024 + 1) })).toEqual({
-      status: 413,
-      body: refusal('request-too-large', 'Request body too large'),
-    })
-    expect(await call('/v2/operations', { method: 'POST', body: padded(16 * 1024) })).toMatchObject({
-      status: 400,
-      body: { error: { code: 'request-error' } },
-    })
+  it('answers when the device is connected', async () => {
+    expect(await cria.post('/connect', { deviceId: 'primary', connected: true })).toEqual({ status: 200, body: { outcome: 'confirmed', setup: 'UPLOAD_MODE already set' } })
   })
 })

@@ -1,89 +1,30 @@
-/**
- * Test support: a small typed Cria client built from @cria/wire. Every
- * response is decoded strictly against the protocol 5 schemas, so any test
- * that goes through it also checks the contract. It does what Vela's client
- * does on the wire (health, admit, follow, cancel, download) and
- * nothing more: no retries, no freshness arithmetic.
- */
-import { createHash } from 'node:crypto'
 import { Schema } from 'effect'
-import { readFitsHeader } from '@cria/fits'
-import { ErrorBody, Health, Operation, type OperationRequest } from '@cria/wire'
+import { ConnectResult, Health } from '@cria/wire'
 
 const strict = { onExcessProperty: 'error' } as const
-
-export type Reply<T> = { readonly status: number; readonly ok: true; readonly body: T } | { readonly status: number; readonly ok: false; readonly body: typeof ErrorBody.Type }
 
 export class CriaContractError extends Error {
   override readonly name = 'CriaContractError'
 }
 
-function decode<S extends Schema.Top & { readonly DecodingServices: never }>(schema: S, value: unknown, what: string): S['Type'] {
-  try {
-    return Schema.decodeUnknownSync(schema)(value, strict)
-  } catch (error) {
-    throw new CriaContractError(`${what} broke the protocol 5 contract: ${error instanceof Error ? error.message : String(error)}`)
-  }
-}
-
 export function makeCriaClient(base: string, fetch: typeof globalThis.fetch = globalThis.fetch) {
-  async function request<S extends Schema.Top & { readonly DecodingServices: never }>(
-    method: string,
-    path: string,
-    schema: S,
-    body?: unknown,
-  ): Promise<Reply<S['Type']>> {
-    const response = await fetch(base + path, {
-      method,
-      ...(body === undefined ? {} : { body: JSON.stringify(body), headers: { 'content-type': 'application/json' } }),
-    })
-    const json: unknown = await response.json()
-
-    if (!response.ok) return { status: response.status, ok: false, body: decode(ErrorBody, json, `${method} ${path} error`) }
-
-    return { status: response.status, ok: true, body: decode(schema, json, `${method} ${path}`) }
-  }
-
-  const ok = async <T>(reply: Promise<Reply<T>>): Promise<T> => {
-    const settled = await reply
-
-    if (!settled.ok) throw new Error(`Cria refused: ${settled.status} ${settled.body.error.code}: ${settled.body.error.message}`)
-
-    return settled.body
+  const decode = <S extends Schema.Top & { readonly DecodingServices: never }>(schema: S, value: unknown, what: string): S['Type'] => {
+    try {
+      return Schema.decodeUnknownSync(schema)(value, strict)
+    } catch (error) {
+      throw new CriaContractError(`${what} broke the protocol 6 contract: ${error instanceof Error ? error.message : String(error)}`)
+    }
   }
 
   return {
-    health: () => ok(request('GET', '/health', Health)),
-    submit: (body: OperationRequest) => request('POST', '/v2/operations', Operation, body),
-    operation: (id: string) => request('GET', `/v2/operations/${id}`, Operation),
-    byRequest: (instanceId: string, requestId: string) => request('GET', `/v2/requests/${instanceId}/${encodeURIComponent(requestId)}`, Operation),
-    cancel: (id: string) => request('POST', `/v2/operations/${id}/cancel`, Operation),
-
-    /** Asks for an original by raw id and returns the refusal; the id need not be well formed. */
-    async refusedOriginal(id: string) {
-      const response = await fetch(`${base}/v2/images/${id}/original`)
-
-      return { status: response.status, body: decode(ErrorBody, await response.json(), `GET /v2/images/${id}/original error`) }
+    async health() {
+      return decode(Health, await (await fetch(`${base}/health`)).json(), 'GET /health')
     },
+    async connect(request: { readonly deviceId: string; readonly connected: boolean }) {
+      const response = await fetch(`${base}/connect`, { method: 'POST', body: JSON.stringify(request) })
+      const json: unknown = await response.json()
 
-    /** Downloads a confirmed capture's original and checks it against the image record. */
-    async download(operation: Operation) {
-      if (operation.state !== 'settled' || operation.outcome.kind !== 'confirmed' || !operation.outcome.value.image) throw new Error('No image on this operation')
-      const image = operation.outcome.value.image
-      const response = await fetch(base + image.original.url)
-
-      if (response.status !== 200) return { status: response.status } as const
-      const bytes = Buffer.from(await response.arrayBuffer())
-
-      if (response.headers.get('content-type') !== 'application/fits') throw new CriaContractError('original is not FITS')
-      if (bytes.length !== image.original.bytes || Number(response.headers.get('content-length')) !== bytes.length)
-        throw new CriaContractError('original length differs from its record')
-      if (createHash('sha256').update(bytes).digest('hex') !== image.sha256) throw new CriaContractError('original digest differs')
-      const { cards } = readFitsHeader(bytes)
-
-      if (Number(cards.get('NAXIS1')) !== image.width || Number(cards.get('NAXIS2')) !== image.height) throw new CriaContractError('FITS geometry differs')
-
-      return { status: 200, bytes } as const
+      return response.status === 200 ? { status: 200, body: decode(ConnectResult, json, 'POST /connect') } : { status: response.status, body: json }
     },
   }
 }

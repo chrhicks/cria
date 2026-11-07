@@ -1,14 +1,9 @@
-/**
- * Composition: the service process. Builds the rig in one scope and serves it
- * over HTTP; closing the scope stops the HTTP server and interrupts every
- * Run, whose stoppable disciplines then stop moving equipment.
- */
 import type { AddressInfo } from 'node:net'
 import { Effect, Exit, Scope } from 'effect'
 import type { Config } from './config.js'
 import type { OpenPublisher } from './stream.js'
 import { makeRig, type Rig } from './rig.js'
-import { makeHttpServer } from './wire/http.js'
+import { makeHttpServer } from './http.js'
 
 export interface RunningService {
   readonly rig: Rig

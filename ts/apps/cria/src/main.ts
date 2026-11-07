@@ -1,8 +1,4 @@
 #!/usr/bin/env node
-/**
- * Composition: process entry point. `cria <config.json>`; systemd stops it
- * with SIGTERM.
- */
 import { loadConfig } from './config.js'
 import { startService } from './service.js'
 
