@@ -7,13 +7,14 @@
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import type { Device, Operation, OperationRequest, State } from '@cria/wire'
+import { Effect, Option } from 'effect'
+import type { Operation, OperationRequest } from '@cria/wire'
 import { makeCriaClient, type CriaClient, type Reply } from '../../../testing/cria-client.js'
 import { decodeConfig } from '../src/config.js'
 import { startService, type RunningService } from '../src/service.js'
 import type { OpenPublisher } from '../src/stream.js'
 
-export type { Device, Operation, State }
+export type { Operation }
 
 type Settled = Extract<Operation, { readonly state: 'settled' }>
 
@@ -43,14 +44,12 @@ export interface Cria {
   readonly service: RunningService
   readonly base: string
   readonly client: CriaClient
-  readonly state: () => Promise<State>
-  readonly device: (id: string) => Promise<Device>
   /** Submits an operation the way Vela does, with a fresh request ID unless one is given. */
   readonly submit: (deviceId: string, kind: string, parameters: object, requestId?: string) => Promise<Reply<Operation>>
   readonly cancel: (operationId: string) => Promise<Reply<Operation>>
+  readonly operationState: (operationId: string) => Promise<Operation['state']>
   readonly settled: (operationId: string, timeoutMs?: number) => Promise<Ending>
   readonly run: (deviceId: string, kind: string, parameters: object) => Promise<Ending>
-  readonly waitFor: (predicate: (state: State) => boolean, timeoutMs?: number) => Promise<State>
   readonly stop: () => Promise<void>
 }
 
@@ -89,46 +88,25 @@ export async function startCria(
   const base = `http://127.0.0.1:${service.port}`
   const client = makeCriaClient(base)
 
-  const state = () => client.state()
-
-  const device = async (id: string) => {
-    const found = (await state()).devices.find(candidate => candidate.id === id)
-
-    if (!found) throw new Error(`No device ${id}`)
-
-    return found
-  }
-
-  const waitFor = async (predicate: (state: State) => boolean, timeoutMs = 15_000) => {
-    let last: State | undefined
-
-    try {
-      return await until(
-        'the state to match',
-        async () => {
-          last = await state()
-
-          return predicate(last) && last
-        },
-        timeoutMs,
-      )
-    } catch (error) {
-      throw new Error(`${(error as Error).message}; last state ${JSON.stringify(last?.devices.map(d => [d.id, d.availability]))}`)
-    }
-  }
-
   const submit = async (deviceId: string, kind: string, parameters: object, requestId = crypto.randomUUID()) => {
-    const current = await state()
-    const target = current.devices.find(candidate => candidate.id === deviceId)!
+    const { instanceId } = await client.health()
 
     // Tests send what Vela would; a malformed command is the server's to refuse.
     return client.submit({
-      instanceId: current.instanceId,
+      instanceId,
       requestId,
       deviceId,
       kind,
       parameters,
     } as unknown as OperationRequest)
+  }
+
+  const operationState = async (operationId: string) => {
+    const reply = await client.operation(operationId)
+
+    if (!reply.ok) throw new Error(`No operation ${operationId}: ${reply.body.error.code}`)
+
+    return reply.body.state
   }
 
   const settled = async (operationId: string, timeoutMs = 60_000) => {
@@ -157,13 +135,11 @@ export async function startCria(
     service,
     base,
     client,
-    state,
-    device,
     submit,
     cancel: id => client.cancel(id),
+    operationState,
     settled,
     run,
-    waitFor,
     stop: async () => {
       await service.stop()
       await rm(imageDirectory, { recursive: true, force: true })
@@ -171,23 +147,16 @@ export async function startCria(
   }
 }
 
-export async function connectDevices(cria: Cria, ids: ReadonlyArray<string>): Promise<void> {
-  for (const id of ids) await cria.run(id, 'device-connect', { connected: true })
+export async function connectDevices(cria: Cria, ids: ReadonlyArray<string>): Promise<ReadonlyArray<Ending>> {
+  const endings: Ending[] = []
+
+  for (const id of ids) endings.push(await cria.run(id, 'device-connect', { connected: true }))
+
+  return endings
 }
 
-export const noneNotRead = (state: State) => !JSON.stringify(state.devices).includes('"reason":"not-read"')
-
-export const allReady = (ids: ReadonlyArray<string>) => (state: State) =>
-  ids.every(id => state.devices.find(device => device.id === id)?.availability.ready === true)
-
-/** The value of a fresh or stale reading, or the reason it is unavailable. */
-export function valueOf(device: Device, key: string): unknown {
-  const reading = (device.readings as Record<string, Device['readings']['connected']>)[key]
-
-  if (!reading) return undefined
-
-  return reading.status === 'unavailable' ? reading.reason : reading.value
-}
+export const propertyOf = (cria: Cria, indiDevice: string, name: string) =>
+  Option.getOrUndefined(Effect.runSync(cria.service.rig.client.device(indiDevice).property(name)))
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 

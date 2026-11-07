@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { FakeIndi, type Behaviour, addCamera, addMount } from '@cria/fake-indi'
 import { exposeNormally, moveMount } from './drivers.js'
-import { allReady, connectDevices, startCria, until, type Cria } from './harness.js'
+import { connectDevices, startCria, until, type Cria } from './harness.js'
 
 const mount = 'ZWO AM5'
 const camera = 'Fake CCD'
@@ -37,7 +37,6 @@ describe('one mount', () => {
   beforeEach(async () => {
     cria = await startCria(fake.port, [{ id: 'mount', kind: 'mount', indiDevice: mount, motion: { positionReadMs: 250 } }], { acknowledgeMs: 600, operationHistory: 10 })
     await connectDevices(cria, ['mount'])
-    await cria.waitFor(allReady(['mount']))
   })
 
   afterEach(async () => {
@@ -168,7 +167,6 @@ describe('two devices', () => {
 
     try {
       await connectDevices(cria, ['mount', 'camera'])
-      await cria.waitFor(allReady(['mount', 'camera']))
       const requestId = crypto.randomUUID()
       const replies = await Promise.all([
         cria.submit('mount', 'mount-tracking', { tracking: true }, requestId),
@@ -176,37 +174,12 @@ describe('two devices', () => {
       ])
       const admitted = replies.flatMap(reply => (reply.ok ? [reply.body.id] : []))
       const refused = replies.flatMap(reply => (reply.ok ? [] : [reply.body.error.code]))
-      const found = await cria.client.byRequest((await cria.state()).instanceId, requestId)
+      const found = await cria.client.byRequest((await cria.client.health()).instanceId, requestId)
 
       expect([admitted.length, refused]).toEqual([1, ['request-conflict']])
       expect(found).toMatchObject({ status: 200, body: { id: admitted[0] } })
-      expect((await cria.state()).operations.filter(operation => operation.requestId === requestId)).toHaveLength(1)
     } finally {
       await cria.stop()
-    }
-  })
-})
-
-describe('snapshot sequence', () => {
-  it('counts snapshots per rig: two rigs in one process each start at 1, and GET and SSE never repeat one', async () => {
-    const first = await startCria(fake.port, [{ id: 'mount', kind: 'mount', indiDevice: mount }])
-    const second = await startCria(fake.port, [{ id: 'mount', kind: 'mount', indiDevice: mount }])
-
-    try {
-      const starts = [(await first.client.state()).sequence, (await second.client.state()).sequence]
-      const seen = [starts[0]!]
-
-      for (let round = 0; round < 3; round++) {
-        seen.push((await first.client.firstEvent()).sequence)
-        seen.push((await first.client.state()).sequence)
-      }
-
-      expect(starts).toEqual([1, 1])
-      expect(seen).toEqual([...seen].sort((a, b) => a - b))
-      expect(new Set(seen).size).toBe(seen.length)
-    } finally {
-      await first.stop()
-      await second.stop()
     }
   })
 })

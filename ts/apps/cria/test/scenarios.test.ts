@@ -7,7 +7,6 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import { scenarios, startRig } from './rig-scenarios.js'
-import { allReady } from './harness.js'
 
 let stop: (() => Promise<void>) | undefined
 
@@ -42,7 +41,6 @@ describe('the fake-rig scenarios', () => {
       const rig = await startRig(scenario, { acknowledgeMs: 600 })
 
       stop = rig.stop
-      await rig.cria.waitFor(allReady(scenario.boxDisconnected ? ['primary', 'guide', 'focuser', 'mount'] : ['primary', 'guide', 'focuser', 'mount', 'box']))
       const ending = await scenario.drive(rig)
 
       expect([ending.kind, ending.reason]).toEqual([scenario.outcome.kind, scenario.outcome.reason])

@@ -7,7 +7,7 @@ import type { OperationRequest } from '@cria/wire'
 import { makeCriaClient } from '../../../testing/cria-client.js'
 import { FakeIndi, addMount } from '@cria/fake-indi'
 import { am5, moveMount } from './drivers.js'
-import { allReady, noneNotRead, until } from './harness.js'
+import { until } from './harness.js'
 
 const mount = 'ZWO AM5'
 const root = join(import.meta.dirname, '..', '..', '..')
@@ -56,9 +56,9 @@ async function slewThenTerminate() {
 
   const port = await until('main.ts to print its port', () => /listening on (\d+)/.exec(log)?.[1], 15_000)
   const client = makeCriaClient(`http://127.0.0.1:${port}`)
-  const initial = await client.state()
+  const { instanceId } = await client.health()
   const connecting = await client.submit({
-    instanceId: initial.instanceId,
+    instanceId,
     requestId: crypto.randomUUID(),
     deviceId: 'mount',
     kind: 'device-connect',
@@ -71,16 +71,10 @@ async function slewThenTerminate() {
 
     return reply.ok && reply.body.state === 'settled'
   })
-  const state = await until('the mount to be ready with every reading read', async () => {
-    const current = await client.state()
-
-    return allReady(['mount'])(current) && noneNotRead(current) && current
-  })
-  const target = state.devices[0]!
   const slewing = await client.submit({
-    instanceId: state.instanceId,
+    instanceId,
     requestId: crypto.randomUUID(),
-    deviceId: target.id,
+    deviceId: 'mount',
     kind: 'mount-slew',
     parameters: { rightAscensionDegrees: 120, declinationDegrees: 10, coordinateSystem: 'topocentric' },
   } as unknown as OperationRequest)

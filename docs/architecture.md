@@ -7,10 +7,10 @@ This page explains how the work splits between Vela and Cria. Vela's AGENTS.md i
 Vela's server talks to each rig through one adapter, chosen when the rig is composed:
 
 - **Alpaca.** Vela talks directly to an Alpaca server, for example a Seestar.
-- **Cria.** Vela talks HTTP and SSE to Cria on the rig PC, for example the FRA 400 rig.
+- **Cria.** Vela sends commands over HTTP to Cria on the rig PC, and reads the rig from the rig stream, for example the FRA 400 rig.
 
 ```
-Browser → Vela server ──HTTP/SSE (protocol 5)──▶ Cria ──INDI over TCP 7624──▶ indiserver ──▶ one process per driver ──▶ devices
+Browser → Vela server ──HTTP (protocol 5)──▶ Cria ──INDI over TCP 7624──▶ indiserver ──▶ one process per driver ──▶ devices
 ```
 
 The browser renders what the Vela server projects, including which actions are available. Cria refuses any request that carries an `Origin` header, so a browser cannot call it.
@@ -21,29 +21,29 @@ Moving Cria from .NET on Windows to TypeScript on Linux did not change the split
 
 | Cria owns | Vela owns |
 | --- | --- |
-| Current device state, as readings that are fresh, stale or unavailable | Runs and workflows, in Vela server memory |
+| Accepting a command, running it, confirming it and reporting the outcome | Runs and workflows, in Vela server memory |
 | One bounded operation at a time per device: one exposure, one focuser move, one slew | Decisions: what to do next, retries, when to stop |
 | Request-ID dedupe, cancellation, and holding a mount after an uncertain outcome | Image processing, previews, plate solving, FITS |
 | A rolling set of the newest captured images, until they are dropped | The archive of saved images |
 
 Cria never decides what a run does next. Vela never talks to a driver directly on a Cria rig.
 
-Cria never acts on its own: it does not connect a device or set one up unless a `device-connect` operation asks it to. A connected device that is not set up reads `starting` until then. On the rig the supervisor sends that `device-connect`, within about two polls (roughly 10 s); [docs/runtime.md](runtime.md#the-rig-supervisor) has its rules.
+Cria never acts on its own: it does not connect a device or set one up unless a `device-connect` operation asks it to. A connected device that is not set up is `starting` to Cria until then, and a goto on it refuses with advice. On the rig the supervisor sends that `device-connect`, within about two polls (roughly 10 s); [docs/runtime.md](runtime.md#the-rig-supervisor) has its rules.
 
-Each device takes one command at a time. The Pegasus power box is one device, `box`: its weather readings and its switch channels are together.
+Each device takes one command at a time. The Pegasus power box is one device, `box`, and its switch channels are set through it.
 
 ## What changed on Linux
 
-INDI already runs each driver as its own process, so Cria runs no worker processes of its own. A driver crash shows up as the driver's properties disappearing, and Cria reports the device unavailable. INDI pushes property changes, so readings stay fresh while a camera exposes.
+INDI already runs each driver as its own process, so Cria runs no worker processes of its own. A driver crash shows up as the driver's properties disappearing, and a command on that device refuses or ends `uncertain`. INDI pushes property changes, so the facts a command checks stay current while a camera exposes.
 
-Cria now decides freshness once, as of each snapshot, and Vela reads `fresh`, `stale` or `unavailable` instead of deriving freshness from read times. Vela and Cria import the same `@cria/wire` package, so they agree on the wire by construction.
+Cria offers no picture of the rig of its own. The rig stream (NATS, JetStream `RIG_DEV`) carries the drivers' INDI traffic and Cria's `cria.request`, `cria.settled`, `cria.write` and `cria.frame` entries, and clients read the rig from there. Before sending, a command checks that the facts it needs are fresh, and refuses when they are not. Vela and Cria import the same `@cria/wire` package, so they agree on the wire by construction.
 
 ## The layers of the service
 
 Each layer imports only from the layers below it in this diagram. The INDI boundary and the wire boundary map to no primitive on purpose. The INDI boundary absorbs INDI's irregularities, and the wire boundary holds the HTTP details, so the layers between them see neither.
 
 ```
-wire boundary    apps/cria/src/wire          HTTP routes, SSE, projection into protocol 5 (@cria/wire)
+wire boundary    apps/cria/src/wire          HTTP routes, protocol 5 (@cria/wire)
 workflows        apps/cria/src/operation     the ledger, one operation at a time per device
 capabilities     apps/cria/src/capability    camera, mount, focuser, box, connection
 disciplines      @cria/primitives            writeOnce, confirm, stoppable

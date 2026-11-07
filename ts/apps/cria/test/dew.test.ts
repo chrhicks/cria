@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { FakeIndi, connection } from '@cria/fake-indi'
 import { addDewHeaters, pegasusDew } from './drivers.js'
-import { allReady, connectDevices, noneNotRead, startCria, until, type Cria } from './harness.js'
+import { connectDevices, startCria, type Cria } from './harness.js'
 
 const box = 'Fake PPBA'
 const overrideMs = 500
@@ -27,8 +27,6 @@ beforeEach(async () => {
     },
   ])
   await connectDevices(cria, ['box'])
-  await cria.waitFor(allReady(['box']))
-  await cria.waitFor(noneNotRead)
 })
 
 afterEach(async () => {
@@ -67,10 +65,5 @@ describe('dew duty under auto dew', () => {
     const operation = await cria.run('box', 'switch-set', { channelId: 0, value: 10 })
 
     expect([operation.kind, operation.values]).toEqual(['confirmed', { value: 9.803921568627452 }])
-    await until('the reading to show the held duty', async () => {
-      const device = await cria.device('box')
-
-      return device.kind === 'box' && device.channels[0]!.value.status === 'fresh' && device.channels[0]!.value.value === 9.803921568627452
-    })
   })
 })

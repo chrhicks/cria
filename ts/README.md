@@ -1,8 +1,8 @@
 # Cria on Linux (TypeScript)
 
 Cria rewritten as an INDI client: it connects to `indiserver`, turns INDI
-properties into Readings, runs bounded operations as Runs, and serves Vela over
-wire protocol 5 (`@cria/wire`). The design,
+properties as Readings for the commands that need them, runs bounded operations as Runs, and serves Vela's commands over
+wire protocol 5 (`@cria/wire`). Clients read the rig from the rig stream, not from Cria. The design,
 the primitive map and what building it changed are in
 [docs/ts/SPEC.md](../docs/ts/SPEC.md).
 
@@ -19,7 +19,7 @@ the primitive map and what building it changed are in
 | `packages/fits` | `@cria/fits`: FITS header and test frames | Image boundary |
 | `packages/fake-indi` | `@cria/fake-indi`: a small INDI server written from the protocol, independent of `@cria/indi`'s parser; `fixtures/am5/` and `playMotion` replay AM5 motions cut from errai's recordings (docs/testing.md, "AM5 motion fixtures") | — |
 | `apps/cria/src/image` | the rolling image store | Image boundary |
-| `apps/cria/src/wire` | projection into protocol 5, HTTP, SSE | View and wire boundary |
+| `apps/cria/src/wire` | HTTP routes, protocol 5 | Wire boundary |
 | `apps/cria/src/rig.ts`, `device.ts`, `ids.ts`, `service.ts`, `main.ts`, `config.ts` | composition | — |
 | `apps/cria/src/refusal.ts` | `Refusal`: a closed error code the HTTP layer maps to a status | Wire boundary |
 | `apps/cria/test` | scenario tests; `drivers.ts` models the rig's INDI drivers on `@cria/fake-indi`; `harness.ts` starts Cria and has `connectDevices`, which sends `device-connect` because Cria never connects or sets up a device by itself | — |
@@ -62,11 +62,11 @@ fresh clone. It prints pass or FAIL per stage and exits with the failing stage's
 code. Run it before every commit that touches `ts/`.
 
 The suite asserts literal values. The primitives run on Effect's TestClock, the
-event stream on faked interval timers, and every scenario waits for a state with
+INDI boundary on recorded traffic, and every scenario waits for a state with
 a deadline that names what it waited for. To show a test guards a line:
 
 ```sh
-node testing/mutate.mjs apps/cria/src/wire/sse.ts 'sentRevision = snapshotRevision' 'sentRevision = revision' apps/cria/src/wire/sse.test.ts
+node testing/mutate.mjs apps/cria/src/operation/ledger.ts "if (open.length > 0) return refused(refuse('device-busy'" "if (false) return refused(refuse('device-busy'" apps/cria/src/operation/ledger.test.ts
 ```
 
 It exits 0 when the tests went red (the mutant was killed) and always restores

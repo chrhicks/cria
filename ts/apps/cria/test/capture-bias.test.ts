@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { FakeIndi, addCamera } from '@cria/fake-indi'
 import { fitsFrame } from '@cria/fits'
 import { biasAtMinimum, exposeNormally } from './drivers.js'
-import { allReady, connectDevices, startCria, type Cria } from './harness.js'
+import { connectDevices, startCria, type Cria } from './harness.js'
 
 const camera = 'Fake CCD'
 const minimum = 3.2e-5
@@ -30,7 +30,6 @@ const start = async (overrides: object = {}) => {
   const started = await startCria(fake.port, [{ id: 'primary', kind: 'camera', indiDevice: camera }], { acknowledgeMs: 600, ...overrides })
 
   await connectDevices(started, ['primary'])
-  await started.waitFor(allReady(['primary']))
 
   return started
 }
@@ -79,7 +78,7 @@ describe('a bias capture', () => {
     const submitted = await cria.submit('primary', 'capture', { exposureSeconds: 0.1, light: false, frameType: 'bias' })
 
     await new Promise(resolve => setTimeout(resolve, 500))
-    expect((await cria.state()).operations.find(operation => operation.id === submitted.body.id)?.state).not.toBe('settled')
+    expect(await cria.operationState(submitted.body.id)).not.toBe('settled')
     await cria.cancel(submitted.body.id)
     expect((await cria.settled(submitted.body.id)).kind).toBe('stopped')
   })
@@ -107,7 +106,7 @@ describe('the other frame types', () => {
     const submitted = await cria.submit('primary', 'capture', { exposureSeconds: 0.05, light: false, frameType: 'dark' })
 
     await new Promise(resolve => setTimeout(resolve, 500))
-    expect((await cria.state()).operations.find(operation => operation.id === submitted.body.id)?.state).not.toBe('settled')
+    expect(await cria.operationState(submitted.body.id)).not.toBe('settled')
     await cria.cancel(submitted.body.id)
     expect((await cria.settled(submitted.body.id)).kind).toBe('stopped')
   })

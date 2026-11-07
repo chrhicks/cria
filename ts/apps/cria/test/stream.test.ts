@@ -6,7 +6,7 @@ import type { Entry, Publisher } from '@cria/stream'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import type { OpenPublisher } from '../src/stream.js'
 import { exposeNormally } from './drivers.js'
-import { allReady, connectDevices, startCria, type Cria } from './harness.js'
+import { connectDevices, startCria, type Cria } from './harness.js'
 
 const camera = 'Fake CCD'
 const devices = [{ id: 'primary', kind: 'camera', indiDevice: camera }]
@@ -68,7 +68,6 @@ describe('Cria on the rig stream', () => {
   it('says who it is before anything else', async () => {
     cria = await startCria(fake.port, devices, { streamClientConfig: await settings(broker) }, { stream: fakePublisher })
     await connectDevices(cria, ['primary'])
-    await cria.waitFor(allReady(['primary']))
 
     expect(published[0]?.subject).toBe('rig-dev.client')
     expect(published[0]?.entry.kind).toBe('client.connected')
@@ -79,7 +78,6 @@ describe('Cria on the rig stream', () => {
   it('publishes a request and how it ended, with only the fields worth keeping', async () => {
     cria = await startCria(fake.port, devices, { streamClientConfig: await settings(broker) }, { stream: fakePublisher })
     await connectDevices(cria, ['primary'])
-    await cria.waitFor(allReady(['primary']))
 
     const ending = await cria.run('primary', 'capture', { exposureSeconds: 0.01, light: true })
     const request = body('cria.request').find(entry => entry['kind'] === 'capture')
@@ -92,7 +90,6 @@ describe('Cria on the rig stream', () => {
   it('publishes each write it sends, naming the device and property, and nothing it only reads', async () => {
     cria = await startCria(fake.port, devices, { streamClientConfig: await settings(broker) }, { stream: fakePublisher })
     await connectDevices(cria, ['primary'])
-    await cria.waitFor(allReady(['primary']))
     await cria.run('primary', 'capture', { exposureSeconds: 0.01, light: true })
 
     const writes = body('cria.write')
@@ -109,7 +106,6 @@ describe('Cria on the rig stream', () => {
 
     cria = await startCria(fake.port, devices, { streamClientConfig: await settings(named) }, { stream: fakePublisher })
     await connectDevices(cria, ['primary'])
-    await cria.waitFor(allReady(['primary']))
     await cria.run('primary', 'capture', { exposureSeconds: 0.01, light: true })
 
     expect(body('cria.write').find(write => write['property'] === 'CCD_EXPOSURE')).toMatchObject({ device: 'primary' })
@@ -118,7 +114,6 @@ describe('Cria on the rig stream', () => {
   it('publishes each frame it keeps with the camera\'s whole header and its checksum', async () => {
     cria = await startCria(fake.port, devices, { streamClientConfig: await settings(broker) }, { stream: fakePublisher })
     await connectDevices(cria, ['primary'])
-    await cria.waitFor(allReady(['primary']))
 
     const ending = await cria.run('primary', 'capture', { exposureSeconds: 0.01, light: true })
     const [frame] = body('cria.frame')
@@ -138,7 +133,6 @@ describe('Cria on the rig stream', () => {
     fake.behaviour = (_fake, vector) => (vector.name === 'CCD_EXPOSURE' ? 'handled' : 'default')
     cria = await startCria(fake.port, devices, { streamClientConfig: await settings(broker), acknowledgeMs: 500 }, { stream: fakePublisher })
     await connectDevices(cria, ['primary'])
-    await cria.waitFor(allReady(['primary']))
     await cria.run('primary', 'capture', { exposureSeconds: 0.01, light: true })
 
     expect(body('cria.frame')).toEqual([])
@@ -147,7 +141,6 @@ describe('Cria on the rig stream', () => {
   it('publishes a refusal with its reason', async () => {
     cria = await startCria(fake.port, devices, { streamClientConfig: await settings(broker) }, { stream: fakePublisher })
     await connectDevices(cria, ['primary'])
-    const state = await cria.waitFor(allReady(['primary']))
     const response = await fetch(`${cria.base}/v2/operations`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
@@ -169,7 +162,6 @@ describe('Cria on the rig stream', () => {
 
     cria = await startCria(fake.port, devices, { streamClientConfig: await settings(missing) }, { stream: fakePublisher })
     await connectDevices(cria, ['primary'])
-    await cria.waitFor(allReady(['primary']))
 
     expect([logins, published]).toEqual([[], []])
   })
@@ -177,7 +169,6 @@ describe('Cria on the rig stream', () => {
   it('runs without publishing, and without showing the file, when its settings cannot be read', async () => {
     cria = await startCria(fake.port, devices, { streamClientConfig: await settings('{"broker":{"pass":"secret"') }, { stream: fakePublisher })
     await connectDevices(cria, ['primary'])
-    await cria.waitFor(allReady(['primary']))
 
     expect(published).toEqual([])
     expect((await cria.run('primary', 'capture', { exposureSeconds: 0.01, light: true })).kind).toBe('confirmed')
@@ -186,7 +177,6 @@ describe('Cria on the rig stream', () => {
   it('does not publish when no stream is configured', async () => {
     cria = await startCria(fake.port, devices, {}, { stream: fakePublisher })
     await connectDevices(cria, ['primary'])
-    await cria.waitFor(allReady(['primary']))
 
     expect(published).toEqual([])
   })

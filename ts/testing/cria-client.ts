@@ -2,13 +2,13 @@
  * Test support: a small typed Cria client built from @cria/wire. Every
  * response is decoded strictly against the protocol 5 schemas, so any test
  * that goes through it also checks the contract. It does what Vela's client
- * does on the wire (state, events, admit, follow, cancel, download) and
+ * does on the wire (health, admit, follow, cancel, download) and
  * nothing more: no retries, no freshness arithmetic.
  */
 import { createHash } from 'node:crypto'
 import { Schema } from 'effect'
 import { readFitsHeader } from '@cria/fits'
-import { ErrorBody, Health, Operation, State, type OperationRequest } from '@cria/wire'
+import { ErrorBody, Health, Operation, type OperationRequest } from '@cria/wire'
 
 const strict = { onExcessProperty: 'error' } as const
 
@@ -54,32 +54,10 @@ export function makeCriaClient(base: string, fetch: typeof globalThis.fetch = gl
 
   return {
     health: () => ok(request('GET', '/health', Health)),
-    state: () => ok(request('GET', '/v2/state', State)),
     submit: (body: OperationRequest) => request('POST', '/v2/operations', Operation, body),
     operation: (id: string) => request('GET', `/v2/operations/${id}`, Operation),
     byRequest: (instanceId: string, requestId: string) => request('GET', `/v2/requests/${instanceId}/${encodeURIComponent(requestId)}`, Operation),
     cancel: (id: string) => request('POST', `/v2/operations/${id}/cancel`, Operation),
-
-    /** The first SSE `state` event, decoded. */
-    async firstEvent(): Promise<State> {
-      const response = await fetch(`${base}/v2/events`, { headers: { accept: 'text/event-stream' } })
-      const reader = response.body!.getReader()
-      let text = ''
-
-      try {
-        while (true) {
-          const { value, done } = await reader.read()
-
-          if (done) throw new Error('event stream ended')
-          text += new TextDecoder().decode(value)
-          const event = /event: state\ndata: (.*)\n\n/.exec(text)
-
-          if (event) return decode(State, JSON.parse(event[1]!), 'SSE state')
-        }
-      } finally {
-        await reader.cancel()
-      }
-    },
 
     /** Asks for an original by raw id and returns the refusal; the id need not be well formed. */
     async refusedOriginal(id: string) {

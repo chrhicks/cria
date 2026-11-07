@@ -1,7 +1,7 @@
 import type { Operation, OperationRequest } from '@cria/wire'
 import { FakeIndi, type Behaviour, addCamera, addMount, connection } from '@cria/fake-indi'
 import { am5, exposeNormally, moveMount } from '../../apps/cria/test/drivers.js'
-import { allReady, connectDevices, startCria, valueOf, type Cria, type DeviceSpec } from '../../apps/cria/test/harness.js'
+import { connectDevices, propertyOf, startCria, type Cria, type DeviceSpec } from '../../apps/cria/test/harness.js'
 import { makeCriaClient, type CriaClient, type Reply } from '../cria-client.js'
 import { failedStep, recordingFetch, type Recorded } from './golden.js'
 
@@ -44,7 +44,6 @@ export interface Golden {
   readonly submit: (deviceId: string, kind: string, parameters: object, identity?: Identity) => Promise<Reply<Operation>>
   readonly recordSettled: (operationId: string) => Promise<Operation>
   readonly until: (what: string, holds: () => Promise<boolean>, timeoutMs?: number) => Promise<void>
-  readonly recordFirstEvent: () => Promise<void>
 }
 
 export interface Scenario {
@@ -85,11 +84,8 @@ export async function runScenario(scenario: Scenario): Promise<Recorded[]> {
     wire: client,
     behave: (device, behaviour) => behaviours.set(device, behaviour),
     async submit(deviceId, kind, parameters, identity = {}) {
-      const state = await cria.state()
-      const target = state.devices.find(device => device.id === deviceId)
-
       return client.submit({
-        instanceId: identity.instanceId ?? state.instanceId,
+        instanceId: identity.instanceId ?? cria.service.rig.instanceId,
         requestId: identity.requestId ?? crypto.randomUUID(),
         deviceId,
         kind,
@@ -99,11 +95,6 @@ export async function runScenario(scenario: Scenario): Promise<Recorded[]> {
     async recordSettled(operationId) {
       const { operation } = await cria.settled(operationId)
 
-      await until(`${operation.deviceId} at rest after ${operation.kind}`, async () => {
-        const availability = (await cria.device(operation.deviceId)).availability
-
-        return availability.ready || availability.reason !== 'busy'
-      })
       const reply = await client.operation(operationId)
 
       if (!reply.ok) throw new Error(`${scenario.name}: ${operationId} vanished: ${reply.body.error.code}`)
@@ -111,22 +102,15 @@ export async function runScenario(scenario: Scenario): Promise<Recorded[]> {
       return reply.body
     },
     until,
-    async recordFirstEvent() {
-      const state = await client.firstEvent()
-
-      recorded.at(-1)!.body = state
-    },
   }
 
   try {
-    if (scenario.connect === false) await cria.waitFor(state => state.devices.every(device => device.readings.connected.status === 'fresh'))
-    else {
+    await until('Cria to see every device', async () => scenario.devices.every(kind => propertyOf(cria, specs[kind].indiDevice, 'CONNECTION') !== undefined))
+    if (scenario.connect !== false)
       await connectDevices(
         cria,
         scenario.devices.filter(kind => kind === 'camera' || kind === 'mount').map(kind => specs[kind].id),
       )
-      await cria.waitFor(state => state.devices.every(device => device.availability.ready))
-    }
     await scenario.run(g)
   } catch (error) {
     recorded.push({ request: failedStep, status: 0, body: error instanceof Error ? error.message : String(error) })
@@ -181,12 +165,6 @@ function define(fake: FakeIndi, kind: Kind, behaviours: Map<string, Behaviour>) 
         elements: { WEATHER_TEMPERATURE: { value: 11.5, min: -50, max: 70 }, WEATHER_HUMIDITY: { value: 80, max: 100 }, WEATHER_DEWPOINT: { value: 8.1, min: -50, max: 70 } },
       })
   }
-}
-
-const temperatureProperty = 'FOCUS_TEMPERATURE'
-
-function focuserTemperature(celsius: number) {
-  return { device: focuser, name: temperatureProperty, kind: 'number', perm: 'ro', state: 'Ok', elements: { TEMPERATURE: { value: celsius, min: -50, max: 70 } } } as const
 }
 
 function moveFocuser(finishAfterMs: number | 'never'): Behaviour {
@@ -246,11 +224,12 @@ function turnAxis(): Behaviour {
 
 async function untilUnderWay(g: Golden, operation: Operation) {
   await g.until(`${operation.kind} under way`, async () => {
-    const device = await g.cria.device(operation.deviceId)
+    const device = Object.values(specs).find(spec => spec.id === operation.deviceId)!
     const current = await g.cria.client.operation(operation.id)
-    const moving = valueOf(device, device.kind === 'camera' ? 'activity' : device.kind === 'mount' ? 'slewing' : 'moving')
+    const property = device.kind === 'camera' ? 'CCD_EXPOSURE' : device.kind === 'mount' ? 'EQUATORIAL_EOD_COORD' : 'ABS_FOCUS_POSITION'
+    const moving = propertyOf(g.cria, device.indiDevice, property)?.state === 'Busy'
 
-    return current.ok && current.body.state === 'running' && (moving === true || moving === 'exposing') && (device.kind !== 'camera' || current.body.progress.phase !== 'preparing')
+    return current.ok && current.body.state === 'running' && moving && (device.kind !== 'camera' || current.body.progress.phase !== 'preparing')
   })
 
   return operation
@@ -277,20 +256,6 @@ export const scenarios: ReadonlyArray<Scenario> = [
     },
   },
   {
-    name: 'state at rest, every device kind',
-    devices: ['camera', 'mount', 'focuser', 'box'],
-    run: async g => {
-      await g.wire.state()
-    },
-  },
-  {
-    name: 'first SSE state event',
-    devices: ['camera', 'mount', 'focuser', 'box'],
-    run: async g => {
-      await g.recordFirstEvent()
-    },
-  },
-  {
     name: 'capture, then download the original',
     devices: ['camera'],
     run: async g => {
@@ -312,7 +277,6 @@ export const scenarios: ReadonlyArray<Scenario> = [
     devices: ['camera'],
     run: async g => {
       await runAndSettle(g, 'camera', 'cooling', { setpointC: -10 })
-      await g.wire.state()
     },
   },
   {
@@ -477,9 +441,9 @@ export const scenarios: ReadonlyArray<Scenario> = [
     run: async g => {
       g.fake.update(box, 'AUTO_DEW_CONTROL', { state: 'Ok', values: { DEW_CHANNEL_1: true } })
       await g.until('Cria to see auto dew on', async () => {
-        const power = await g.cria.device('box')
+        const element = propertyOf(g.cria, box, 'AUTO_DEW_CONTROL')?.elements.get('DEW_CHANNEL_1')
 
-        return power.kind === 'box' && power.channels[2]!.on.status === 'fresh' && power.channels[2]!.on.value
+        return element?.kind === 'switch' && element.on
       })
       await runAndSettle(g, 'box', 'switch-set', { channelId: 1, value: 40 })
     },
@@ -527,7 +491,6 @@ export const scenarios: ReadonlyArray<Scenario> = [
     connect: false,
     config: { commandsEnabled: false },
     run: async g => {
-      await g.wire.state()
       await g.submit('camera', 'capture', { exposureSeconds: 1, light: true })
     },
   },
@@ -562,11 +525,9 @@ export const scenarios: ReadonlyArray<Scenario> = [
     name: 'refused: unknown operation and request',
     devices: ['camera'],
     run: async g => {
-      const state = await g.cria.state()
-
       await g.wire.operation(crypto.randomUUID())
       await g.wire.cancel(crypto.randomUUID())
-      await g.wire.byRequest(state.instanceId, 'never-sent')
+      await g.wire.byRequest(g.cria.service.rig.instanceId, 'never-sent')
     },
   },
   {
@@ -619,42 +580,10 @@ export const scenarios: ReadonlyArray<Scenario> = [
       g.behave(camera, (fake, vector, values) => (vector.name === 'CCD_EXPOSURE' ? 'handled' : normal(fake, vector, values)))
       const lost = await runAndSettle(g, 'camera', 'capture', { exposureSeconds: 1, light: true })
 
-      await g.wire.state()
       g.fake.update(camera, 'CCD_EXPOSURE', { state: 'Idle' })
       g.behave(camera, normal)
-      await g.cria.waitFor(allReady(['camera']))
       await runAndSettle(g, 'camera', 'capture', { exposureSeconds: 0.05, light: true })
       await g.wire.operation(lost.id)
-    },
-  },
-  {
-    name: 'skipped bad update: the focuser temperature reads unavailable until a good definition comes back',
-    devices: ['camera', 'focuser'],
-    fake: fake => fake.define(focuserTemperature(12.5)),
-    run: async g => {
-      const temperatureIs = (status: string) => async () => {
-        const state = await g.cria.state()
-        const readings = state.devices.find(device => device.id === 'focuser')!.readings
-
-        return readings.temperatureC?.status === status
-      }
-      const asked = () => g.fake.received.filter(xml => xml.startsWith('<getProperties') && xml.includes(`name="${temperatureProperty}"`)).length
-
-      await g.wire.state()
-      // The fake stops answering for a moment, so Cria's request for the property stays unanswered while the state is recorded.
-      g.fake.answering = false
-      g.fake.raw(
-        `<setNumberVector device="${focuser}" name="${temperatureProperty}" state="Ok"><oneNumber name="TEMPERATURE">12abc</oneNumber></setNumberVector>\n`,
-        focuser,
-        temperatureProperty,
-      )
-      await g.until('the focuser temperature to read unavailable', temperatureIs('unavailable'))
-      await g.until('Cria to ask the driver for the property', async () => asked() === 1)
-      await g.wire.state()
-      g.fake.answering = true
-      g.fake.define(focuserTemperature(13.5))
-      await g.until('the focuser temperature to read again', temperatureIs('fresh'))
-      await g.wire.state()
     },
   },
 ]

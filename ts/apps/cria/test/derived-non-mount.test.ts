@@ -6,10 +6,11 @@
  * recorded; docs/testing.md, "Cases from recorded failures", says which is which. Each
  * case asserts what Vela is told (kind, reason) and that the next command is admitted.
  */
+import { Effect, Option } from 'effect'
 import { afterEach, describe, expect, it } from 'vitest'
 import { FakeIndi, connection } from '@cria/fake-indi'
 import { addDewHeaters, addEaf, appliesNothing } from './drivers.js'
-import { allReady, connectDevices, noneNotRead, startCria, type Cria } from './harness.js'
+import { connectDevices, startCria, until, type Cria } from './harness.js'
 
 const eaf = 'ZWO EAF'
 let fake: FakeIndi
@@ -26,8 +27,6 @@ async function startFocuser(options: Parameters<typeof addEaf>[2], wrap: (inner:
   fake.behaviour = wrap(addEaf(fake, eaf, options))
   cria = await startCria(fake.port, [{ id: 'focuser', kind: 'focuser', indiDevice: eaf }], { acknowledgeMs: 600 })
   await connectDevices(cria, ['focuser'])
-  await cria.waitFor(allReady(['focuser']))
-  await cria.waitFor(noneNotRead)
 }
 
 const move = (position: number) => cria.run('focuser', 'focuser-move', { position})
@@ -73,7 +72,6 @@ describe('a power box that acknowledges a switch write and does not apply it (de
     fake.behaviour = appliesNothing('POWER_CHANNELS')
     cria = await startCria(fake.port, [{ id: 'box', kind: 'box', indiDevice: box, channels: [{ name: '12V', property: 'POWER_CHANNELS', element: 'POWER_CHANNEL_1' }] }], { acknowledgeMs: 600 })
     await connectDevices(cria, ['box'])
-    await cria.waitFor(allReady(['box']))
 
     const first = await cria.run('box', 'switch-set', { channelId: 0, value: 0 })
 
@@ -93,7 +91,7 @@ describe('a power box that never answers a connect (derived)', () => {
     fake.define({ device: box, name: 'WEATHER_PARAMETERS', kind: 'number', perm: 'ro', state: 'Ok', elements: { WEATHER_TEMPERATURE: { value: 11.5, min: -50, max: 70 } } })
     fake.behaviour = (_fake, vector) => (vector.name === 'CONNECTION' ? 'handled' : 'default')
     cria = await startCria(fake.port, [{ id: 'box', kind: 'box', indiDevice: box }], { acknowledgeMs: 600, connectTimeoutMs: 1500 })
-    await cria.waitFor(state => state.devices[0]!.readings.connected!.status === 'fresh')
+    await until('Cria to see the device', () => Option.getOrUndefined(Effect.runSync(cria.service.rig.client.device(box).property('CONNECTION'))))
 
     const first = await cria.run('box', 'device-connect', { connected: true })
 

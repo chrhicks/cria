@@ -6,7 +6,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { FakeIndi, addCamera } from '@cria/fake-indi'
 import { exposeNormally, guideLoop } from './drivers.js'
-import { allReady, connectDevices, noneNotRead, startCria, until, type Cria } from './harness.js'
+import { connectDevices, startCria, until, type Cria } from './harness.js'
 
 const primary = 'ZWO CCD ASI2600MC Pro'
 const guide = 'ZWO CCD ASI220MM Mini'
@@ -28,8 +28,6 @@ beforeEach(async () => {
     { acknowledgeMs: 600 },
   )
   await connectDevices(cria, ['primary', 'guide'])
-  await cria.waitFor(allReady(['primary', 'guide']))
-  await cria.waitFor(noneNotRead)
 })
 
 afterEach(async () => {
@@ -49,16 +47,8 @@ describe('another client looping exposures on the guide camera', () => {
     expect(operation).toMatchObject({ kind: 'confirmed' })
     await until('two more guide frames to arrive', () => loop.frames() >= 4, 10_000)
 
-    const state = await cria.state()
-
-    expect(state.devices.map(device => [device.id, device.availability.ready])).toEqual([
-      ['primary', true],
-      ['guide', true],
-    ])
     // Cria wrote one exposure, on the camera it was asked to use, and none on the guide camera.
     expect([wrote(primary), wrote(guide)]).toEqual([1, 0])
-    // Only the frame Cria asked for is an image; none of the loop's frames became one.
-    expect(state.operations.filter(candidate => candidate.kind === 'capture' && candidate.state === 'settled').length).toBe(1)
     loop.stop()
   }, 30_000)
 })

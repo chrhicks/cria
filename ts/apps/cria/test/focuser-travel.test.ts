@@ -2,13 +2,14 @@
  * The focuser travel window against errai's EAF on the fake INDI server: the
  * driver's FOCUS_MAX (100000) disagrees with the position's own maximum
  * (60000), and the tube's safe travel (15500 to 38000, chosen by Chris on
- * 2026-10-15) is narrower than both. Cria reports the usable window and
+ * 2026-10-15) is narrower than both. Cria
  * refuses a target outside it before sending anything.
  */
+import { Effect, Option } from 'effect'
 import { afterEach, describe, expect, it } from 'vitest'
 import { FakeIndi } from '@cria/fake-indi'
 import { addEaf } from './drivers.js'
-import { allReady, connectDevices, noneNotRead, startCria, until, valueOf, type Cria } from './harness.js'
+import { connectDevices, startCria, until, type Cria } from './harness.js'
 
 const eaf = 'ZWO EAF'
 const travel = { min: 15500, max: 38000 }
@@ -26,25 +27,12 @@ async function start(options: { position?: number; travel?: { min: number; max: 
   fake.behaviour = addEaf(fake, eaf, { position: options.position })
   cria = await startCria(fake.port, [{ id: 'focuser', kind: 'focuser', indiDevice: eaf, ...(options.travel && { travel: options.travel }) }])
   await connectDevices(cria, ['focuser'])
-  await cria.waitFor(allReady(['focuser']))
-  await cria.waitFor(noneNotRead)
 }
 
 const moves = () => fake.received.filter(xml => xml.startsWith('<new') && xml.includes('name="ABS_FOCUS_POSITION"'))
 const move = (position: number) => cria.run('focuser', 'focuser-move', { position})
-const window = async () => {
-  const focuser = await cria.device('focuser')
-
-  return [valueOf(focuser, 'minStep'), valueOf(focuser, 'maxStep')]
-}
 
 describe('an EAF whose FOCUS_MAX is past its position range, no travel configured', () => {
-  it("reports the position's own range, not FOCUS_MAX", async () => {
-    await start()
-
-    expect(await window()).toEqual([0, 60000])
-  })
-
   it('refuses a target past the position range before sending, instead of letting the driver refuse it', async () => {
     await start()
 
@@ -58,7 +46,9 @@ describe('an EAF whose FOCUS_MAX is past its position range, no travel configure
     await start()
     // A one-step change marks the Alert update, so the test can see Cria has it.
     fake.update(eaf, 'ABS_FOCUS_POSITION', { state: 'Alert', values: { FOCUS_ABSOLUTE_POSITION: 32750 } })
-    await until('the Alert update to reach Cria', async () => valueOf(await cria.device('focuser'), 'position') === 32750)
+    await until('the Alert update to reach Cria', () =>
+      Option.match(Effect.runSync(cria.service.rig.client.device(eaf).property('ABS_FOCUS_POSITION')), { onNone: () => false, onSome: property => property.state === 'Alert' }),
+    )
 
     const after = await move(20000)
 
@@ -67,12 +57,6 @@ describe('an EAF whose FOCUS_MAX is past its position range, no travel configure
 })
 
 describe('an EAF with a travel window', () => {
-  it('reports the window as minStep and maxStep', async () => {
-    await start({ travel })
-
-    expect(await window()).toEqual([15500, 38000])
-  })
-
   it('refuses a target past either end before sending, naming the window and the target', async () => {
     await start({ travel })
 
