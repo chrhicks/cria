@@ -309,6 +309,46 @@ describe('the rig program against a fake INDI server', () => {
   })
 })
 
+describe('the rig program when a send fails', () => {
+  it('sends the time again on a later poll, then leaves it alone', async () => {
+    const config = parseConfig({
+      fifo: '/x',
+      devices: [{ id: 'mount', indiDevice: 'ZWO AM5', serial: '/dev/serial/by-id/am5', driver: 'indi_lx200am5', connected: true, onConnect: { TIME_UTC: { UTC: 'now', OFFSET: '0.00' } } }],
+    })
+    const property = (name: string, elements: ReadonlyArray<[string, object]>) => ({ name, state: 'Ok', elements: new Map(elements) }) as unknown as Property
+    const facts = indiFacts([
+      property('CONNECTION', [['CONNECT', { kind: 'switch', on: true }]]),
+      property('DEVICE_PORT', [['PORT', { kind: 'text', value: '/dev/serial/by-id/am5' }]]),
+      property('TIME_UTC', [['UTC', { kind: 'text', value: '2000-01-01T00:00:00' }]]),
+    ])!
+    const sent: string[] = []
+    let failures = 1
+    let at = 0
+    const rig = createRig({
+      config,
+      now: () => at,
+      sleep: async () => {},
+      hardwarePresent: () => true,
+      writeFifo: async () => {},
+      indi: {
+        view: async () => ({ linked: true, devices: new Map([['ZWO AM5', facts]]) }),
+        write: async (_device, name) => {
+          sent.push(name)
+          if (failures-- > 0) throw new Error('socket closed')
+        },
+      },
+      log: () => {},
+    })
+
+    for (let poll = 0; poll < 12; poll += 1) {
+      await rig.tick()
+      at += 5_000
+    }
+
+    expect(sent).toEqual(['TIME_UTC', 'TIME_UTC'])
+  })
+})
+
 describe('the FIFO', () => {
   const fifoPath = () => {
     const directory = mkdtempSync(join(tmpdir(), 'fifo-'))

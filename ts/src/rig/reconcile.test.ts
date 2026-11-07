@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { parseConfig, type RigConfig, type WantedValue } from './config.ts'
 import type { DeviceFacts } from './indi-link.ts'
-import { decide, emptyMemory, holds, type Action, type Memory } from './reconcile.ts'
+import { decide, emptyMemory, holds, markUnsent, type Action, type Memory } from './reconcile.ts'
 
 const site = { LAT: 33.45, LONG: 247.93, ELEV: 331 }
 
@@ -29,6 +29,7 @@ interface Sim {
   connection: 'connected' | 'disconnected' | 'changing'
   properties: Values
   busy: string[]
+  alert?: string[]
   brokenSince?: number
 }
 
@@ -41,7 +42,7 @@ const holdingProperties = (id: string): Values => {
 const factsOf = (sim: Sim, now: number): DeviceFacts => {
   const properties = new Map([
     ['CONNECTION', { state: sim.connection === 'changing' ? 'Busy' : 'Ok', values: { CONNECT: sim.connection === 'connected', DISCONNECT: sim.connection === 'disconnected' } }],
-    ...Object.entries(sim.properties).map(([name, values]) => [name, { state: sim.busy.includes(name) ? 'Busy' : 'Ok', values }] as const),
+    ...Object.entries(sim.properties).map(([name, values]) => [name, { state: sim.busy.includes(name) ? 'Busy' : sim.alert?.includes(name) ? 'Alert' : 'Ok', values }] as const),
     ...sim.busy.filter(name => !(name in sim.properties)).map(name => [name, { state: 'Busy', values: {} }] as const),
   ])
   const erroring = sim.brokenSince !== undefined && sim.connection === 'connected'
@@ -63,6 +64,7 @@ class Bench {
   present = new Set<string>(devices.map(device => device.id))
   actions: Array<{ at: number; action: Action }> = []
   reconnectFixes = false
+  unsendable = new Set<string>()
 
   constructor(overrides: Record<string, unknown> = {}, list: ReadonlyArray<object> = devices) {
     this.config = makeConfig(overrides, list)
@@ -103,7 +105,8 @@ class Bench {
         sim.connection = 'CONNECT' in action.values ? 'connected' : 'disconnected'
         if (sim.connection === 'connected') sim.properties = { ...this.definedOnConnect(action.device), ...sim.properties }
         if (this.reconnectFixes) delete sim.brokenSince
-      } else sim.properties[action.property] = { ...sim.properties[action.property], ...action.values }
+      } else if (this.unsendable.has(action.property)) markUnsent(this.memory, action)
+      else sim.properties[action.property] = { ...sim.properties[action.property], ...action.values }
     }
     if (action.kind === 'restart-driver') {
       for (const device of this.config.devices.filter(candidate => candidate.driver === action.driver)) {
@@ -350,6 +353,34 @@ describe('the properties a device should have', () => {
     bench.sim('mount').connection = 'connected'
     bench.poll(3)
 
+    expect(bench.writes('TIME_UTC')).toHaveLength(2)
+  })
+
+  it('writes the time again, on the backoff, after a send that failed, and stops once one is sent', () => {
+    const bench = new Bench()
+
+    bench.sim('mount').properties.TIME_UTC = { UTC: '2000-01-01T00:00:00', OFFSET: '0.00' }
+    bench.unsendable.add('TIME_UTC')
+    bench.poll(12)
+    const failed = bench.writes('TIME_UTC').map(write => write.at)
+
+    expect(failed).toEqual([1_005_000, 1_015_000, 1_045_000])
+
+    bench.unsendable.clear()
+    bench.poll(20)
+    expect(bench.writes('TIME_UTC')).toHaveLength(4)
+  })
+
+  it('writes the time again, on the backoff, while the driver answers Alert, and stops when it answers Ok', () => {
+    const bench = new Bench()
+
+    bench.sim('mount').properties.TIME_UTC = { UTC: '2000-01-01T00:00:00', OFFSET: '0.00' }
+    bench.sim('mount').alert = ['TIME_UTC']
+    bench.poll(8)
+    expect(bench.writes('TIME_UTC').map(write => write.at)).toEqual([1_005_000, 1_015_000])
+
+    bench.sim('mount').alert = []
+    bench.poll(20)
     expect(bench.writes('TIME_UTC')).toHaveLength(2)
   })
 

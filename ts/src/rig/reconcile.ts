@@ -2,7 +2,7 @@ import { nowToken, type RigConfig, type RigDevice, type WantedValue } from './co
 import type { DeviceFacts, IndiSnapshot, PropertyFacts } from './indi-link.ts'
 
 export type Action =
-  | { readonly kind: 'write'; readonly device: string; readonly indiDevice: string; readonly property: string; readonly values: Readonly<Record<string, WantedValue>>; readonly why: string }
+  | { readonly kind: 'write'; readonly device: string; readonly indiDevice: string; readonly property: string; readonly values: Readonly<Record<string, WantedValue>>; readonly why: string; readonly onConnect?: true }
   | { readonly kind: 'restart-driver'; readonly driver: string; readonly why: string }
   | { readonly kind: 'log'; readonly line: string }
 
@@ -23,6 +23,7 @@ interface DriverMemory {
 interface WriteMemory {
   attempts: number
   at: number
+  unsent?: true
 }
 
 export interface Memory {
@@ -36,6 +37,14 @@ interface Observation {
   readonly now: number
   readonly snapshot: IndiSnapshot
   readonly hardware: Readonly<Record<string, boolean>>
+}
+
+const onConnectKey = (device: string, property: string) => `${device}/onConnect/${property}`
+
+export function markUnsent(memory: Memory, action: Extract<Action, { kind: 'write' }>) {
+  const written = memory.writes[onConnectKey(action.device, action.property)]
+
+  if (action.onConnect && written) written.unsent = true
 }
 
 export const emptyMemory = (config: RigConfig): Memory => ({
@@ -95,8 +104,10 @@ export function decide(config: RigConfig, observation: Observation, previous: Me
 
     state.hardwareStreak = observation.hardware[device.id] ? state.hardwareStreak + 1 : 0
     state.missingStreak = !linkDown && !facts ? state.missingStreak + 1 : 0
-    if (connectedNow && !state.wasConnected) state.pendingOnConnect = Object.keys(device.onConnect)
-    if (!connectedNow) state.pendingOnConnect = []
+    if ((connectedNow && !state.wasConnected) || !connectedNow) {
+      for (const property of Object.keys(device.onConnect)) delete memory.writes[onConnectKey(device.id, property)]
+      state.pendingOnConnect = connectedNow ? Object.keys(device.onConnect) : []
+    }
     state.wasConnected = connectedNow
     if (!linkDown) state.busy = [...new Set([...(facts?.busy ?? []), ...state.busy.filter(name => !facts?.properties.has(name))])]
   }
@@ -251,10 +262,22 @@ export function decide(config: RigConfig, observation: Observation, previous: Me
 
     writeDifferences()
     state.pendingOnConnect = state.pendingOnConnect.filter(property => {
-      if (!facts.properties.has(property)) return true
-      actions.push({ kind: 'write', device: device.id, indiDevice: device.indiDevice, property, values: resolve(device.onConnect[property]!, now), why: 'once per connection' })
+      const found = facts.properties.get(property)
+      const key = onConnectKey(device.id, property)
+      const written = memory.writes[key]
 
-      return false
+      if (!found) return true
+      if (written && !written.unsent && found.state !== 'Alert') {
+        if (found.state === 'Busy') return true
+        delete memory.writes[key]
+
+        return false
+      }
+      if (!writable(key)) return true
+      wrote(key)
+      actions.push({ kind: 'write', device: device.id, indiDevice: device.indiDevice, property, values: resolve(device.onConnect[property]!, now), why: `once per connection (attempt ${attempt(key)})`, onConnect: true })
+
+      return true
     })
   }
 
