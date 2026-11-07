@@ -38,8 +38,6 @@ const MountMotion = Schema.Struct({
   positionReadMs: Schema.optionalKey(Milliseconds(250, 10_000)),
   /** Coast seed in milliseconds for rates without a measured profile. */
   stopLatencyMs: Schema.optionalKey(Milliseconds(0, 10_000)),
-  /** Accepted for older configurations. Two-phase rotates do not use this value. */
-  maxLeadFraction: Schema.optionalKey(Between(0, 1)),
 })
 
 export type MountMotionSettings = Required<typeof MountMotion.Type>
@@ -115,7 +113,6 @@ export const mountMotionDefaults: MountMotionSettings = {
   stationaryDegrees: 0.02,
   positionReadMs: 1500,
   stopLatencyMs: 900,
-  maxLeadFraction: 0.5,
 }
 
 export function decodeConfig(input: unknown): Config {

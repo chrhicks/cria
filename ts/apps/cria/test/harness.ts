@@ -24,7 +24,7 @@ export interface DeviceSpec {
   readonly indiDevice: string
   readonly channels?: ReadonlyArray<{ name: string; property: string; element: string; automaticWhileOn?: string }>
   readonly site?: { readonly latitudeDegrees: number; readonly longitudeDegrees: number; readonly elevationMeters: number }
-  readonly motion?: { readonly stationaryDegrees?: number; readonly positionReadMs?: number; readonly stopLatencyMs?: number; readonly maxLeadFraction?: number }
+  readonly motion?: { readonly stationaryDegrees?: number; readonly positionReadMs?: number; readonly stopLatencyMs?: number }
   readonly travel?: { readonly min: number; readonly max: number }
 }
 
