@@ -1,20 +1,18 @@
-import { readFileSync } from 'node:fs'
-import { homedir } from 'node:os'
-import { join } from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
-import { parseConfig, type RigConfig } from '../rig/config.ts'
+import type { RigConfig } from '../rig/config.ts'
 import { writeFifo } from '../rig/fifo.ts'
+import { defaultRigFile, readRigFile } from '../rig/file.ts'
 import { hardwarePresent } from '../rig/hardware.ts'
 import { openIndiLink } from '../rig/indi-link.ts'
 import { createRig } from '../rig/supervisor.ts'
 
 const errorText = (error: unknown) => (error instanceof Error ? error.message : String(error))
 
-const path = process.argv[2] ?? join(homedir(), '.config/cria/rig.json')
+const path = process.argv[2] ?? defaultRigFile
 let config: RigConfig
 
 try {
-  config = parseConfig(JSON.parse(readFileSync(path, 'utf8')), { runtimeDir: process.env.XDG_RUNTIME_DIR })
+  config = readRigFile(path)
 } catch (error) {
   console.error(`rig: ${path}: ${errorText(error)}`)
   process.exit(2)

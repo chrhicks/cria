@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { defaultWireDevices, wireDevice, wireSubject } from './subjects.ts'
+import { parseConfig } from '../rig/config.ts'
+import { wireIdsOf } from '../rig/file.ts'
+import { wireSubject } from './subjects.ts'
 
 const devices = { 'ZWO AM5': 'mount', 'Pegasus PPBA': 'box' }
 
@@ -24,8 +26,17 @@ describe('wire subjects', () => {
   })
 })
 
-describe('the rig\'s device names', () => {
-  it('give one id to the power box, which is one INDI device', () => {
-    expect(wireDevice(defaultWireDevices, '<newSwitchVector device="Pegasus PPBA" name="X">')).toBe('box')
+describe('the rig file\'s device names', () => {
+  it('give each INDI device the id the rig file gives it', () => {
+    const config = parseConfig({
+      fifo: '/run/test/indi.fifo',
+      devices: [
+        { id: 'mount', indiDevice: 'ZWO AM5', serial: '/dev/x', driver: 'indi_lx200am5', connected: true },
+        { id: 'box', indiDevice: 'Pegasus PPBA', serial: '/dev/y', driver: 'indi_pegasus_ppba', connected: true },
+      ],
+    })
+
+    expect(wireSubject(wireIdsOf(config), 'out', '<newSwitchVector device="Pegasus PPBA" name="X">')).toBe('rig-dev.wire.box.out')
+    expect(wireSubject(wireIdsOf(config), 'in', '<setNumberVector device="ZWO AM5" name="X">')).toBe('rig-dev.wire.mount.in')
   })
 })

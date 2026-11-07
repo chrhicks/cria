@@ -1,6 +1,7 @@
 import { spawnSync } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
 import { hostname } from 'node:os'
+import { readRigFile, wireIdsOf } from '../rig/file.ts'
 import { makeIndiClient, type TrafficTap } from '../indi/index.ts'
 import { brokerSettings, makeEntries, openPublisher, refreshSubject, wireSubject } from '../stream/index.ts'
 import { Effect } from 'effect'
@@ -12,6 +13,7 @@ import { followPhd2 } from './phd2.ts'
 export async function runRecorder(): Promise<void> {
   const config = await Effect.runPromise(Effect.provide(Effect.service(RecorderConfig), RecorderConfig.layer))
 
+  const wireDevices = wireIdsOf(readRigFile(config.rigFile))
   const run = randomUUID()
 
   const entries = makeEntries({
@@ -37,7 +39,7 @@ export async function runRecorder(): Promise<void> {
           connection,
           version,
           sources: ['wire', 'system', 'phd2'],
-          wireDevices: config.wireDevices,
+          wireDevices: wireDevices,
         }),
       ),
   })
@@ -46,7 +48,7 @@ export async function runRecorder(): Promise<void> {
 
   const tap: TrafficTap = {
     message: ({ conn, dir, xml }) => {
-      for (const line of debugLines.pass(xml)) broker.publish(wireSubject(config.wireDevices, dir, line), entries.wire(conn, dir, line))
+      for (const line of debugLines.pass(xml)) broker.publish(wireSubject(wireDevices, dir, line), entries.wire(conn, dir, line))
     },
     connection: connection => {
       debugLines.forget()
