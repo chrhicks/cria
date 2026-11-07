@@ -60,8 +60,6 @@ describe('float-ranged command parameters', () => {
       instanceId: '00000000-0000-4000-8000-000000000001',
       requestId: 'r-1',
       deviceId: '00000000-0000-4000-8000-000000000002',
-      bindingId: '00000000-0000-4000-8000-000000000003',
-      expectedName: 'mount',
       kind: 'mount-axis',
       parameters: { rateDegreesPerSecond, durationSeconds: 1 },
     })
@@ -78,14 +76,12 @@ describe('requestIdentity', () => {
       instanceId: '00000000-0000-4000-8000-000000000001',
       requestId: 'r-1',
       deviceId: '00000000-0000-4000-8000-000000000002',
-      bindingId: '00000000-0000-4000-8000-000000000003',
-      expectedName: 'mount',
     }
     const decode = (value: unknown) => Result.isSuccess(Schema.decodeUnknownResult(request)(value))
 
-    expect(Object.keys(requestIdentity).sort()).toEqual(['bindingId', 'deviceId', 'expectedName', 'instanceId', 'requestId'])
+    expect(Object.keys(requestIdentity).sort()).toEqual(['deviceId', 'instanceId', 'requestId'])
     expect(decode(identity)).toBe(true)
-    expect(Object.keys(identity).map(key => decode({ ...identity, [key]: undefined }))).toEqual([false, false, false, false, false])
+    expect(Object.keys(identity).map(key => decode({ ...identity, [key]: undefined }))).toEqual([false, false, false])
     expect(Result.isSuccess(Schema.decodeUnknownResult(OperationRequest)({ ...identity, kind: 'mount-park', parameters: {} }))).toBe(true)
   })
 })

@@ -11,8 +11,6 @@ const identity = {
   instanceId,
   requestId,
   deviceId: 'camera',
-  bindingId: '9b7c3d2e-1f0a-4c5b-8d6e-5a4f3e2d1c0b',
-  expectedName: 'Fake CCD',
 }
 
 const accepted = { id: operationId, ...identity, failureDomain: 'camera', acceptedAt: 1_793_361_600_000 }
@@ -26,7 +24,6 @@ export const imageOf = (bytes: Uint8Array, id = imageId) => ({
   instanceId,
   deviceId: 'camera',
   cameraName: 'Fake CCD',
-  bindingId: identity.bindingId,
   width: 8,
   height: 6,
   binX: 1,
@@ -72,8 +69,6 @@ export const mountId = {
   instanceId,
   requestId: 'rotate-1',
   deviceId: 'mount',
-  bindingId: '4c2f8a10-6d3e-4b7a-9f15-8e0d1c2b3a49',
-  expectedName: 'Fake Mount',
 }
 
 export const rotation = { rateDegreesPerSecond: 0.25, distanceDegrees: 10 }
@@ -100,7 +95,6 @@ const fresh = (value: unknown) => ({ status: 'fresh', value, observedAt: 1_793_3
 export const switchDevice = {
   id: 'power',
   name: 'Fake Switch',
-  bindingId: '7a1e5d30-2b4c-4f69-8a0d-3c9b1e5f7a21',
   failureDomain: 'power',
   availability: { ready: true },
   kind: 'switch',

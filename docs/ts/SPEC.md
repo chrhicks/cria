@@ -240,9 +240,8 @@ state and the effects to run after it (start a Run, stop a Run, resolve waiters)
 Each change increments a revision, which the ledger publishes for the event
 stream.
 
-Per failure domain the ledger keeps one fact, the current `bindingId`, which
-never changes while Cria runs. An uncertain ending on any device kind holds
-nothing and is pruned like any settled operation.
+An uncertain ending on any device kind holds nothing and is pruned like any
+settled operation.
 
 ### Admission
 
@@ -253,12 +252,10 @@ nothing and is pruned like any settled operation.
    `410 result-expired`.
 2. `instanceId` is not this Cria's: `409 instance-changed`.
 3. An unknown device: `400 request-error`.
-4. `bindingId` is not the domain's current one, or `expectedName` is not the
-   device's INDI name: `409 binding-changed`.
-5. A kind for another device kind: `400 request-error`.
-6. Commands disabled in the config: `403 commands-disabled`.
-7. A halt (`mount-stop`, `focuser-halt`) is admitted now (see below).
-8. An open operation in the domain: `409 device-busy`.
+4. A kind for another device kind: `400 request-error`.
+5. Commands disabled in the config: `403 commands-disabled`.
+6. A halt (`mount-stop`, `focuser-halt`) is admitted now (see below).
+7. An open operation in the domain: `409 device-busy`.
 
 Otherwise the operation starts at once, as `running`. A motion or setting is
 never queued. Admission and the start happen in one step, so nothing else is
@@ -356,7 +353,7 @@ the same tag in their doc comment.
 | `apps/cria/src/operation/workflows.ts` | Workflow bodies | One short body per operation kind over one capability, as a table keyed by kind |
 | `apps/cria/src/operation/ledger.ts` | Run (with history) | The one owner of operations per rig (see "The ledger"); `onSettled` announces each settled operation once |
 | `apps/cria/src/refusal.ts` | Wire boundary | `Refusal`, a tagged error with a closed `ErrorCode`; the HTTP layer maps it to a status |
-| `apps/cria/src/ids.ts` | Composition | `mint`: new instance, operation, image and binding IDs, and start-up request IDs |
+| `apps/cria/src/ids.ts` | Composition | `mint`: new instance, operation and image IDs, and start-up request IDs |
 | `packages/fits/src/fits.ts` | Image boundary (`@cria/fits`) | FITS (INDI BLOB) to ASCOM ImageBytes v1, and `fitsFrame`, a FITS test frame |
 | `apps/cria/src/image/store.ts` | Domain storage | The rolling set: budget, `410 image-gone` after a drop |
 | `apps/cria/src/wire/project.ts` | View | Readings and the ledger's facts to protocol 5 values; availability |
@@ -940,7 +937,7 @@ closed `errorCodes` list, and each code has exactly one HTTP status:
 | 401 | `unauthorized` |
 | 403 | `origin-rejected`, `commands-disabled` |
 | 404 | `not-found` |
-| 409 | `request-conflict`, `instance-changed`, `binding-changed`, `device-busy` |
+| 409 | `request-conflict`, `instance-changed`, `device-busy` |
 | 410 | `result-expired`, `image-gone` |
 | 413 | `request-too-large` |
 | 429 | `too-many-subscribers` |
@@ -983,8 +980,7 @@ One shape per kind, so every reading has a typed value:
 ```ts
 Device = {
   id: string; kind: 'camera' | 'mount' | 'focuser' | 'weather' | 'switch'
-  name: string                // the INDI device name; operation requests send it as expectedName
-  bindingId: string           // one per failure domain; never changes while Cria runs
+  name: string                // the INDI device name
   failureDomain: string
   availability: { ready: true } | { ready: false; reason: AvailabilityReason; message: string }
   readings: { ... per kind, below }
@@ -1031,7 +1027,7 @@ Operation =                                  // one union on state; kind and par
       outcome: Outcome<{ values: Record<string, Json>; image: Image | null }> }
 
 Accepted = {
-  id, instanceId, requestId, deviceId, bindingId, expectedName, failureDomain
+  id, instanceId, requestId, deviceId, failureDomain
   kind: OperationKind; parameters: <the kind's parameters>
   acceptedAt: number
 }
@@ -1039,7 +1035,7 @@ Progress = { phase: 'preparing' | 'exposing' | 'readout' | 'retaining'; elapsedS
 ```
 
 The request is the same flat shape without the server's fields:
-`{ instanceId, requestId, deviceId, bindingId, expectedName, kind, parameters }`.
+`{ instanceId, requestId, deviceId, kind, parameters }`.
 
 `waiting` is a halt admitted while another operation is open in its failure
 domain. It has no timing, progress or outcome yet. The schema has a `waiting`
@@ -1115,7 +1111,7 @@ only when the element is not already on, and confirms the switch before it sends
   camera minimum from `readings.exposureMinimum`.
 
 `Image` has `id`, `operationId`, `instanceId`, `deviceId`, `cameraName`,
-`bindingId`, `width`, `height`, `binX`, `binY`, `startX`, `startY`,
+`width`, `height`, `binX`, `binY`, `startX`, `startY`,
 `exposureSeconds`, `color`, `capturedAt`, `capturedAtSource`
 (`'camera' | 'server-estimate'`), `retainedAt`, `sha256`, and
 `original: { mediaType: 'application/imagebytes', bytes, url }`.
@@ -1173,7 +1169,7 @@ Protocol 4 is the .NET Cria's wire (`contract/openapi.json`).
 | `error.code` an open string | A closed list, one status per code |
 | `GET /v2/images/{id}/original` with a malformed ID: `410 image-gone` | `404 not-found` |
 | A second stop behind a running operation settled `failed: busy`, unsent | Waits its turn and runs |
-| A `bindingId` per device | One per failure domain |
+| A `bindingId` per device | None |
 | `sequence` one counter for the process | Per rig |
 | SSE `: heartbeat` comment after about 4 s without a write | None; a snapshot at least once a second |
 | `POST /v2/devices/{id}/refresh`, `/v2/schema`, `/v2/service`, `/v2/service/stop`, `/v2/telemetry/*` | Removed |
@@ -1574,8 +1570,7 @@ It holds no `op` lines.
 
 ## Restarts and crashes
 
-- **Cria restarts.** It gets a new `instanceId`, an empty ledger (operations, request IDs,
-  and bindings), and an empty image
+- **Cria restarts.** It gets a new `instanceId`, an empty ledger (operations and request IDs), and an empty image
   folder. INDI drivers keep running and keep their state, so a camera that was
   exposing reads `exposing` and a capture settles `failed: busy`.
 - **A driver crashes.** `indiserver` deletes its properties. Cria marks the device

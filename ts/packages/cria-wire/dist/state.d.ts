@@ -13,7 +13,6 @@ export declare const State: Schema.Struct<{
     readonly devices: Schema.$Array<Schema.Union<readonly [Schema.Struct<{
         readonly id: Schema.brand<Schema.String, "DeviceId">;
         readonly name: Schema.String;
-        readonly bindingId: Schema.brand<Schema.String, "BindingId">;
         readonly failureDomain: Schema.brand<Schema.String, "FailureDomain">;
         readonly availability: Schema.Union<readonly [Schema.Struct<{
             readonly ready: Schema.Literal<true>;
@@ -435,7 +434,6 @@ export declare const State: Schema.Struct<{
     }>, Schema.Struct<{
         readonly id: Schema.brand<Schema.String, "DeviceId">;
         readonly name: Schema.String;
-        readonly bindingId: Schema.brand<Schema.String, "BindingId">;
         readonly failureDomain: Schema.brand<Schema.String, "FailureDomain">;
         readonly availability: Schema.Union<readonly [Schema.Struct<{
             readonly ready: Schema.Literal<true>;
@@ -755,7 +753,6 @@ export declare const State: Schema.Struct<{
     }>, Schema.Struct<{
         readonly id: Schema.brand<Schema.String, "DeviceId">;
         readonly name: Schema.String;
-        readonly bindingId: Schema.brand<Schema.String, "BindingId">;
         readonly failureDomain: Schema.brand<Schema.String, "FailureDomain">;
         readonly availability: Schema.Union<readonly [Schema.Struct<{
             readonly ready: Schema.Literal<true>;
@@ -874,7 +871,6 @@ export declare const State: Schema.Struct<{
     }>, Schema.Struct<{
         readonly id: Schema.brand<Schema.String, "DeviceId">;
         readonly name: Schema.String;
-        readonly bindingId: Schema.brand<Schema.String, "BindingId">;
         readonly failureDomain: Schema.brand<Schema.String, "FailureDomain">;
         readonly availability: Schema.Union<readonly [Schema.Struct<{
             readonly ready: Schema.Literal<true>;
@@ -1032,7 +1028,6 @@ export declare const State: Schema.Struct<{
     }>, Schema.Struct<{
         readonly id: Schema.brand<Schema.String, "DeviceId">;
         readonly name: Schema.String;
-        readonly bindingId: Schema.brand<Schema.String, "BindingId">;
         readonly failureDomain: Schema.brand<Schema.String, "FailureDomain">;
         readonly availability: Schema.Union<readonly [Schema.Struct<{
             readonly ready: Schema.Literal<true>;
@@ -1196,8 +1191,6 @@ export declare const State: Schema.Struct<{
         instanceId: Schema.brand<Schema.String, "InstanceId">;
         requestId: Schema.brand<Schema.String, "RequestId">;
         deviceId: Schema.brand<Schema.String, "DeviceId">;
-        bindingId: Schema.brand<Schema.String, "BindingId">;
-        expectedName: Schema.String;
         id: Schema.brand<Schema.String, "OperationId">;
         failureDomain: Schema.brand<Schema.String, "FailureDomain">;
         acceptedAt: Schema.Number;
@@ -1208,8 +1201,6 @@ export declare const State: Schema.Struct<{
         instanceId: Schema.brand<Schema.String, "InstanceId">;
         requestId: Schema.brand<Schema.String, "RequestId">;
         deviceId: Schema.brand<Schema.String, "DeviceId">;
-        bindingId: Schema.brand<Schema.String, "BindingId">;
-        expectedName: Schema.String;
         id: Schema.brand<Schema.String, "OperationId">;
         failureDomain: Schema.brand<Schema.String, "FailureDomain">;
         acceptedAt: Schema.Number;
@@ -1229,8 +1220,6 @@ export declare const State: Schema.Struct<{
         instanceId: Schema.brand<Schema.String, "InstanceId">;
         requestId: Schema.brand<Schema.String, "RequestId">;
         deviceId: Schema.brand<Schema.String, "DeviceId">;
-        bindingId: Schema.brand<Schema.String, "BindingId">;
-        expectedName: Schema.String;
         id: Schema.brand<Schema.String, "OperationId">;
         failureDomain: Schema.brand<Schema.String, "FailureDomain">;
         acceptedAt: Schema.Number;
@@ -1251,8 +1240,6 @@ export declare const State: Schema.Struct<{
         instanceId: Schema.brand<Schema.String, "InstanceId">;
         requestId: Schema.brand<Schema.String, "RequestId">;
         deviceId: Schema.brand<Schema.String, "DeviceId">;
-        bindingId: Schema.brand<Schema.String, "BindingId">;
-        expectedName: Schema.String;
         id: Schema.brand<Schema.String, "OperationId">;
         failureDomain: Schema.brand<Schema.String, "FailureDomain">;
         acceptedAt: Schema.Number;
@@ -1271,8 +1258,6 @@ export declare const State: Schema.Struct<{
         instanceId: Schema.brand<Schema.String, "InstanceId">;
         requestId: Schema.brand<Schema.String, "RequestId">;
         deviceId: Schema.brand<Schema.String, "DeviceId">;
-        bindingId: Schema.brand<Schema.String, "BindingId">;
-        expectedName: Schema.String;
         id: Schema.brand<Schema.String, "OperationId">;
         failureDomain: Schema.brand<Schema.String, "FailureDomain">;
         acceptedAt: Schema.Number;
@@ -1290,8 +1275,6 @@ export declare const State: Schema.Struct<{
         instanceId: Schema.brand<Schema.String, "InstanceId">;
         requestId: Schema.brand<Schema.String, "RequestId">;
         deviceId: Schema.brand<Schema.String, "DeviceId">;
-        bindingId: Schema.brand<Schema.String, "BindingId">;
-        expectedName: Schema.String;
         id: Schema.brand<Schema.String, "OperationId">;
         failureDomain: Schema.brand<Schema.String, "FailureDomain">;
         acceptedAt: Schema.Number;
@@ -1307,8 +1290,6 @@ export declare const State: Schema.Struct<{
         instanceId: Schema.brand<Schema.String, "InstanceId">;
         requestId: Schema.brand<Schema.String, "RequestId">;
         deviceId: Schema.brand<Schema.String, "DeviceId">;
-        bindingId: Schema.brand<Schema.String, "BindingId">;
-        expectedName: Schema.String;
         id: Schema.brand<Schema.String, "OperationId">;
         failureDomain: Schema.brand<Schema.String, "FailureDomain">;
         acceptedAt: Schema.Number;
@@ -1328,8 +1309,6 @@ export declare const State: Schema.Struct<{
         instanceId: Schema.brand<Schema.String, "InstanceId">;
         requestId: Schema.brand<Schema.String, "RequestId">;
         deviceId: Schema.brand<Schema.String, "DeviceId">;
-        bindingId: Schema.brand<Schema.String, "BindingId">;
-        expectedName: Schema.String;
         id: Schema.brand<Schema.String, "OperationId">;
         failureDomain: Schema.brand<Schema.String, "FailureDomain">;
         acceptedAt: Schema.Number;
@@ -1348,8 +1327,6 @@ export declare const State: Schema.Struct<{
         instanceId: Schema.brand<Schema.String, "InstanceId">;
         requestId: Schema.brand<Schema.String, "RequestId">;
         deviceId: Schema.brand<Schema.String, "DeviceId">;
-        bindingId: Schema.brand<Schema.String, "BindingId">;
-        expectedName: Schema.String;
         id: Schema.brand<Schema.String, "OperationId">;
         failureDomain: Schema.brand<Schema.String, "FailureDomain">;
         acceptedAt: Schema.Number;
@@ -1365,8 +1342,6 @@ export declare const State: Schema.Struct<{
         instanceId: Schema.brand<Schema.String, "InstanceId">;
         requestId: Schema.brand<Schema.String, "RequestId">;
         deviceId: Schema.brand<Schema.String, "DeviceId">;
-        bindingId: Schema.brand<Schema.String, "BindingId">;
-        expectedName: Schema.String;
         id: Schema.brand<Schema.String, "OperationId">;
         failureDomain: Schema.brand<Schema.String, "FailureDomain">;
         acceptedAt: Schema.Number;
@@ -1382,8 +1357,6 @@ export declare const State: Schema.Struct<{
         instanceId: Schema.brand<Schema.String, "InstanceId">;
         requestId: Schema.brand<Schema.String, "RequestId">;
         deviceId: Schema.brand<Schema.String, "DeviceId">;
-        bindingId: Schema.brand<Schema.String, "BindingId">;
-        expectedName: Schema.String;
         id: Schema.brand<Schema.String, "OperationId">;
         failureDomain: Schema.brand<Schema.String, "FailureDomain">;
         acceptedAt: Schema.Number;
@@ -1402,8 +1375,6 @@ export declare const State: Schema.Struct<{
         instanceId: Schema.brand<Schema.String, "InstanceId">;
         requestId: Schema.brand<Schema.String, "RequestId">;
         deviceId: Schema.brand<Schema.String, "DeviceId">;
-        bindingId: Schema.brand<Schema.String, "BindingId">;
-        expectedName: Schema.String;
         id: Schema.brand<Schema.String, "OperationId">;
         failureDomain: Schema.brand<Schema.String, "FailureDomain">;
         acceptedAt: Schema.Number;
@@ -1423,8 +1394,6 @@ export declare const State: Schema.Struct<{
         instanceId: Schema.brand<Schema.String, "InstanceId">;
         requestId: Schema.brand<Schema.String, "RequestId">;
         deviceId: Schema.brand<Schema.String, "DeviceId">;
-        bindingId: Schema.brand<Schema.String, "BindingId">;
-        expectedName: Schema.String;
         id: Schema.brand<Schema.String, "OperationId">;
         failureDomain: Schema.brand<Schema.String, "FailureDomain">;
         acceptedAt: Schema.Number;
@@ -1440,8 +1409,6 @@ export declare const State: Schema.Struct<{
         instanceId: Schema.brand<Schema.String, "InstanceId">;
         requestId: Schema.brand<Schema.String, "RequestId">;
         deviceId: Schema.brand<Schema.String, "DeviceId">;
-        bindingId: Schema.brand<Schema.String, "BindingId">;
-        expectedName: Schema.String;
         id: Schema.brand<Schema.String, "OperationId">;
         failureDomain: Schema.brand<Schema.String, "FailureDomain">;
         acceptedAt: Schema.Number;
@@ -1459,8 +1426,6 @@ export declare const State: Schema.Struct<{
         instanceId: Schema.brand<Schema.String, "InstanceId">;
         requestId: Schema.brand<Schema.String, "RequestId">;
         deviceId: Schema.brand<Schema.String, "DeviceId">;
-        bindingId: Schema.brand<Schema.String, "BindingId">;
-        expectedName: Schema.String;
         id: Schema.brand<Schema.String, "OperationId">;
         failureDomain: Schema.brand<Schema.String, "FailureDomain">;
         acceptedAt: Schema.Number;
@@ -1476,8 +1441,6 @@ export declare const State: Schema.Struct<{
         instanceId: Schema.brand<Schema.String, "InstanceId">;
         requestId: Schema.brand<Schema.String, "RequestId">;
         deviceId: Schema.brand<Schema.String, "DeviceId">;
-        bindingId: Schema.brand<Schema.String, "BindingId">;
-        expectedName: Schema.String;
         id: Schema.brand<Schema.String, "OperationId">;
         failureDomain: Schema.brand<Schema.String, "FailureDomain">;
         acceptedAt: Schema.Number;
@@ -1496,8 +1459,6 @@ export declare const State: Schema.Struct<{
         instanceId: Schema.brand<Schema.String, "InstanceId">;
         requestId: Schema.brand<Schema.String, "RequestId">;
         deviceId: Schema.brand<Schema.String, "DeviceId">;
-        bindingId: Schema.brand<Schema.String, "BindingId">;
-        expectedName: Schema.String;
         id: Schema.brand<Schema.String, "OperationId">;
         failureDomain: Schema.brand<Schema.String, "FailureDomain">;
         acceptedAt: Schema.Number;
@@ -1522,8 +1483,6 @@ export declare const State: Schema.Struct<{
         instanceId: Schema.brand<Schema.String, "InstanceId">;
         requestId: Schema.brand<Schema.String, "RequestId">;
         deviceId: Schema.brand<Schema.String, "DeviceId">;
-        bindingId: Schema.brand<Schema.String, "BindingId">;
-        expectedName: Schema.String;
         id: Schema.brand<Schema.String, "OperationId">;
         failureDomain: Schema.brand<Schema.String, "FailureDomain">;
         acceptedAt: Schema.Number;
@@ -1540,7 +1499,6 @@ export declare const State: Schema.Struct<{
                     readonly instanceId: Schema.brand<Schema.String, "InstanceId">;
                     readonly deviceId: Schema.brand<Schema.String, "DeviceId">;
                     readonly cameraName: Schema.String;
-                    readonly bindingId: Schema.brand<Schema.String, "BindingId">;
                     readonly width: Schema.Number;
                     readonly height: Schema.Number;
                     readonly binX: Schema.Number;
@@ -1625,8 +1583,6 @@ export declare const State: Schema.Struct<{
         instanceId: Schema.brand<Schema.String, "InstanceId">;
         requestId: Schema.brand<Schema.String, "RequestId">;
         deviceId: Schema.brand<Schema.String, "DeviceId">;
-        bindingId: Schema.brand<Schema.String, "BindingId">;
-        expectedName: Schema.String;
         id: Schema.brand<Schema.String, "OperationId">;
         failureDomain: Schema.brand<Schema.String, "FailureDomain">;
         acceptedAt: Schema.Number;
@@ -1643,7 +1599,6 @@ export declare const State: Schema.Struct<{
                     readonly instanceId: Schema.brand<Schema.String, "InstanceId">;
                     readonly deviceId: Schema.brand<Schema.String, "DeviceId">;
                     readonly cameraName: Schema.String;
-                    readonly bindingId: Schema.brand<Schema.String, "BindingId">;
                     readonly width: Schema.Number;
                     readonly height: Schema.Number;
                     readonly binX: Schema.Number;
@@ -1726,8 +1681,6 @@ export declare const State: Schema.Struct<{
         instanceId: Schema.brand<Schema.String, "InstanceId">;
         requestId: Schema.brand<Schema.String, "RequestId">;
         deviceId: Schema.brand<Schema.String, "DeviceId">;
-        bindingId: Schema.brand<Schema.String, "BindingId">;
-        expectedName: Schema.String;
         id: Schema.brand<Schema.String, "OperationId">;
         failureDomain: Schema.brand<Schema.String, "FailureDomain">;
         acceptedAt: Schema.Number;
@@ -1744,7 +1697,6 @@ export declare const State: Schema.Struct<{
                     readonly instanceId: Schema.brand<Schema.String, "InstanceId">;
                     readonly deviceId: Schema.brand<Schema.String, "DeviceId">;
                     readonly cameraName: Schema.String;
-                    readonly bindingId: Schema.brand<Schema.String, "BindingId">;
                     readonly width: Schema.Number;
                     readonly height: Schema.Number;
                     readonly binX: Schema.Number;
@@ -1826,8 +1778,6 @@ export declare const State: Schema.Struct<{
         instanceId: Schema.brand<Schema.String, "InstanceId">;
         requestId: Schema.brand<Schema.String, "RequestId">;
         deviceId: Schema.brand<Schema.String, "DeviceId">;
-        bindingId: Schema.brand<Schema.String, "BindingId">;
-        expectedName: Schema.String;
         id: Schema.brand<Schema.String, "OperationId">;
         failureDomain: Schema.brand<Schema.String, "FailureDomain">;
         acceptedAt: Schema.Number;
@@ -1844,7 +1794,6 @@ export declare const State: Schema.Struct<{
                     readonly instanceId: Schema.brand<Schema.String, "InstanceId">;
                     readonly deviceId: Schema.brand<Schema.String, "DeviceId">;
                     readonly cameraName: Schema.String;
-                    readonly bindingId: Schema.brand<Schema.String, "BindingId">;
                     readonly width: Schema.Number;
                     readonly height: Schema.Number;
                     readonly binX: Schema.Number;
@@ -1924,8 +1873,6 @@ export declare const State: Schema.Struct<{
         instanceId: Schema.brand<Schema.String, "InstanceId">;
         requestId: Schema.brand<Schema.String, "RequestId">;
         deviceId: Schema.brand<Schema.String, "DeviceId">;
-        bindingId: Schema.brand<Schema.String, "BindingId">;
-        expectedName: Schema.String;
         id: Schema.brand<Schema.String, "OperationId">;
         failureDomain: Schema.brand<Schema.String, "FailureDomain">;
         acceptedAt: Schema.Number;
@@ -1942,7 +1889,6 @@ export declare const State: Schema.Struct<{
                     readonly instanceId: Schema.brand<Schema.String, "InstanceId">;
                     readonly deviceId: Schema.brand<Schema.String, "DeviceId">;
                     readonly cameraName: Schema.String;
-                    readonly bindingId: Schema.brand<Schema.String, "BindingId">;
                     readonly width: Schema.Number;
                     readonly height: Schema.Number;
                     readonly binX: Schema.Number;
@@ -2026,8 +1972,6 @@ export declare const State: Schema.Struct<{
         instanceId: Schema.brand<Schema.String, "InstanceId">;
         requestId: Schema.brand<Schema.String, "RequestId">;
         deviceId: Schema.brand<Schema.String, "DeviceId">;
-        bindingId: Schema.brand<Schema.String, "BindingId">;
-        expectedName: Schema.String;
         id: Schema.brand<Schema.String, "OperationId">;
         failureDomain: Schema.brand<Schema.String, "FailureDomain">;
         acceptedAt: Schema.Number;
@@ -2044,7 +1988,6 @@ export declare const State: Schema.Struct<{
                     readonly instanceId: Schema.brand<Schema.String, "InstanceId">;
                     readonly deviceId: Schema.brand<Schema.String, "DeviceId">;
                     readonly cameraName: Schema.String;
-                    readonly bindingId: Schema.brand<Schema.String, "BindingId">;
                     readonly width: Schema.Number;
                     readonly height: Schema.Number;
                     readonly binX: Schema.Number;
@@ -2127,8 +2070,6 @@ export declare const State: Schema.Struct<{
         instanceId: Schema.brand<Schema.String, "InstanceId">;
         requestId: Schema.brand<Schema.String, "RequestId">;
         deviceId: Schema.brand<Schema.String, "DeviceId">;
-        bindingId: Schema.brand<Schema.String, "BindingId">;
-        expectedName: Schema.String;
         id: Schema.brand<Schema.String, "OperationId">;
         failureDomain: Schema.brand<Schema.String, "FailureDomain">;
         acceptedAt: Schema.Number;
@@ -2145,7 +2086,6 @@ export declare const State: Schema.Struct<{
                     readonly instanceId: Schema.brand<Schema.String, "InstanceId">;
                     readonly deviceId: Schema.brand<Schema.String, "DeviceId">;
                     readonly cameraName: Schema.String;
-                    readonly bindingId: Schema.brand<Schema.String, "BindingId">;
                     readonly width: Schema.Number;
                     readonly height: Schema.Number;
                     readonly binX: Schema.Number;
@@ -2225,8 +2165,6 @@ export declare const State: Schema.Struct<{
         instanceId: Schema.brand<Schema.String, "InstanceId">;
         requestId: Schema.brand<Schema.String, "RequestId">;
         deviceId: Schema.brand<Schema.String, "DeviceId">;
-        bindingId: Schema.brand<Schema.String, "BindingId">;
-        expectedName: Schema.String;
         id: Schema.brand<Schema.String, "OperationId">;
         failureDomain: Schema.brand<Schema.String, "FailureDomain">;
         acceptedAt: Schema.Number;
@@ -2243,7 +2181,6 @@ export declare const State: Schema.Struct<{
                     readonly instanceId: Schema.brand<Schema.String, "InstanceId">;
                     readonly deviceId: Schema.brand<Schema.String, "DeviceId">;
                     readonly cameraName: Schema.String;
-                    readonly bindingId: Schema.brand<Schema.String, "BindingId">;
                     readonly width: Schema.Number;
                     readonly height: Schema.Number;
                     readonly binX: Schema.Number;
@@ -2323,8 +2260,6 @@ export declare const State: Schema.Struct<{
         instanceId: Schema.brand<Schema.String, "InstanceId">;
         requestId: Schema.brand<Schema.String, "RequestId">;
         deviceId: Schema.brand<Schema.String, "DeviceId">;
-        bindingId: Schema.brand<Schema.String, "BindingId">;
-        expectedName: Schema.String;
         id: Schema.brand<Schema.String, "OperationId">;
         failureDomain: Schema.brand<Schema.String, "FailureDomain">;
         acceptedAt: Schema.Number;
@@ -2341,7 +2276,6 @@ export declare const State: Schema.Struct<{
                     readonly instanceId: Schema.brand<Schema.String, "InstanceId">;
                     readonly deviceId: Schema.brand<Schema.String, "DeviceId">;
                     readonly cameraName: Schema.String;
-                    readonly bindingId: Schema.brand<Schema.String, "BindingId">;
                     readonly width: Schema.Number;
                     readonly height: Schema.Number;
                     readonly binX: Schema.Number;
@@ -2424,8 +2358,6 @@ export declare const State: Schema.Struct<{
         instanceId: Schema.brand<Schema.String, "InstanceId">;
         requestId: Schema.brand<Schema.String, "RequestId">;
         deviceId: Schema.brand<Schema.String, "DeviceId">;
-        bindingId: Schema.brand<Schema.String, "BindingId">;
-        expectedName: Schema.String;
         id: Schema.brand<Schema.String, "OperationId">;
         failureDomain: Schema.brand<Schema.String, "FailureDomain">;
         acceptedAt: Schema.Number;
@@ -2442,7 +2374,6 @@ export declare const State: Schema.Struct<{
                     readonly instanceId: Schema.brand<Schema.String, "InstanceId">;
                     readonly deviceId: Schema.brand<Schema.String, "DeviceId">;
                     readonly cameraName: Schema.String;
-                    readonly bindingId: Schema.brand<Schema.String, "BindingId">;
                     readonly width: Schema.Number;
                     readonly height: Schema.Number;
                     readonly binX: Schema.Number;
@@ -2526,8 +2457,6 @@ export declare const State: Schema.Struct<{
         instanceId: Schema.brand<Schema.String, "InstanceId">;
         requestId: Schema.brand<Schema.String, "RequestId">;
         deviceId: Schema.brand<Schema.String, "DeviceId">;
-        bindingId: Schema.brand<Schema.String, "BindingId">;
-        expectedName: Schema.String;
         id: Schema.brand<Schema.String, "OperationId">;
         failureDomain: Schema.brand<Schema.String, "FailureDomain">;
         acceptedAt: Schema.Number;
@@ -2544,7 +2473,6 @@ export declare const State: Schema.Struct<{
                     readonly instanceId: Schema.brand<Schema.String, "InstanceId">;
                     readonly deviceId: Schema.brand<Schema.String, "DeviceId">;
                     readonly cameraName: Schema.String;
-                    readonly bindingId: Schema.brand<Schema.String, "BindingId">;
                     readonly width: Schema.Number;
                     readonly height: Schema.Number;
                     readonly binX: Schema.Number;
@@ -2624,8 +2552,6 @@ export declare const State: Schema.Struct<{
         instanceId: Schema.brand<Schema.String, "InstanceId">;
         requestId: Schema.brand<Schema.String, "RequestId">;
         deviceId: Schema.brand<Schema.String, "DeviceId">;
-        bindingId: Schema.brand<Schema.String, "BindingId">;
-        expectedName: Schema.String;
         id: Schema.brand<Schema.String, "OperationId">;
         failureDomain: Schema.brand<Schema.String, "FailureDomain">;
         acceptedAt: Schema.Number;
@@ -2642,7 +2568,6 @@ export declare const State: Schema.Struct<{
                     readonly instanceId: Schema.brand<Schema.String, "InstanceId">;
                     readonly deviceId: Schema.brand<Schema.String, "DeviceId">;
                     readonly cameraName: Schema.String;
-                    readonly bindingId: Schema.brand<Schema.String, "BindingId">;
                     readonly width: Schema.Number;
                     readonly height: Schema.Number;
                     readonly binX: Schema.Number;
@@ -2724,8 +2649,6 @@ export declare const State: Schema.Struct<{
         instanceId: Schema.brand<Schema.String, "InstanceId">;
         requestId: Schema.brand<Schema.String, "RequestId">;
         deviceId: Schema.brand<Schema.String, "DeviceId">;
-        bindingId: Schema.brand<Schema.String, "BindingId">;
-        expectedName: Schema.String;
         id: Schema.brand<Schema.String, "OperationId">;
         failureDomain: Schema.brand<Schema.String, "FailureDomain">;
         acceptedAt: Schema.Number;
@@ -2742,7 +2665,6 @@ export declare const State: Schema.Struct<{
                     readonly instanceId: Schema.brand<Schema.String, "InstanceId">;
                     readonly deviceId: Schema.brand<Schema.String, "DeviceId">;
                     readonly cameraName: Schema.String;
-                    readonly bindingId: Schema.brand<Schema.String, "BindingId">;
                     readonly width: Schema.Number;
                     readonly height: Schema.Number;
                     readonly binX: Schema.Number;
@@ -2822,8 +2744,6 @@ export declare const State: Schema.Struct<{
         instanceId: Schema.brand<Schema.String, "InstanceId">;
         requestId: Schema.brand<Schema.String, "RequestId">;
         deviceId: Schema.brand<Schema.String, "DeviceId">;
-        bindingId: Schema.brand<Schema.String, "BindingId">;
-        expectedName: Schema.String;
         id: Schema.brand<Schema.String, "OperationId">;
         failureDomain: Schema.brand<Schema.String, "FailureDomain">;
         acceptedAt: Schema.Number;
@@ -2840,7 +2760,6 @@ export declare const State: Schema.Struct<{
                     readonly instanceId: Schema.brand<Schema.String, "InstanceId">;
                     readonly deviceId: Schema.brand<Schema.String, "DeviceId">;
                     readonly cameraName: Schema.String;
-                    readonly bindingId: Schema.brand<Schema.String, "BindingId">;
                     readonly width: Schema.Number;
                     readonly height: Schema.Number;
                     readonly binX: Schema.Number;
@@ -2923,8 +2842,6 @@ export declare const State: Schema.Struct<{
         instanceId: Schema.brand<Schema.String, "InstanceId">;
         requestId: Schema.brand<Schema.String, "RequestId">;
         deviceId: Schema.brand<Schema.String, "DeviceId">;
-        bindingId: Schema.brand<Schema.String, "BindingId">;
-        expectedName: Schema.String;
         id: Schema.brand<Schema.String, "OperationId">;
         failureDomain: Schema.brand<Schema.String, "FailureDomain">;
         acceptedAt: Schema.Number;
@@ -2941,7 +2858,6 @@ export declare const State: Schema.Struct<{
                     readonly instanceId: Schema.brand<Schema.String, "InstanceId">;
                     readonly deviceId: Schema.brand<Schema.String, "DeviceId">;
                     readonly cameraName: Schema.String;
-                    readonly bindingId: Schema.brand<Schema.String, "BindingId">;
                     readonly width: Schema.Number;
                     readonly height: Schema.Number;
                     readonly binX: Schema.Number;
@@ -3022,11 +2938,11 @@ export declare const Health: Schema.Struct<{
     readonly status: Schema.Literal<"ok">;
     readonly protocolVersion: Schema.Literal<5>;
 }>;
-export declare const errorCodes: readonly ['request-error', 'unauthorized', 'origin-rejected', 'commands-disabled', 'not-found', 'request-conflict', 'instance-changed', 'binding-changed', 'device-busy', 'result-expired', 'image-gone', 'request-too-large', 'too-many-subscribers', 'internal-error'];
+export declare const errorCodes: readonly ['request-error', 'unauthorized', 'origin-rejected', 'commands-disabled', 'not-found', 'request-conflict', 'instance-changed', 'device-busy', 'result-expired', 'image-gone', 'request-too-large', 'too-many-subscribers', 'internal-error'];
 export type ErrorCode = (typeof errorCodes)[number];
 export declare const ErrorBody: Schema.Struct<{
     readonly error: Schema.Struct<{
-        readonly code: Schema.Literals<readonly ["request-error", "unauthorized", "origin-rejected", "commands-disabled", "not-found", "request-conflict", "instance-changed", "binding-changed", "device-busy", "result-expired", "image-gone", "request-too-large", "too-many-subscribers", "internal-error"]>;
+        readonly code: Schema.Literals<readonly ["request-error", "unauthorized", "origin-rejected", "commands-disabled", "not-found", "request-conflict", "instance-changed", "device-busy", "result-expired", "image-gone", "request-too-large", "too-many-subscribers", "internal-error"]>;
         readonly message: Schema.String;
     }>;
     readonly instanceId: Schema.NullOr<Schema.brand<Schema.String, "InstanceId">>;

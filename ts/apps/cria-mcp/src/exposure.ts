@@ -41,7 +41,7 @@ export const exposedKinds = Object.keys(commands) as ReadonlyArray<ExposedKind>
 export const routes = {
   state: {
     description:
-      "Cria's current state: its instanceId, every device with its id, bindingId, name, availability and readings, the holds, the operations in flight and whether commands are enabled. Read it before any command and copy the identity fields from it.",
+      "Cria's current state: its instanceId, every device with its id, name, availability and readings, the operations in flight and whether commands are enabled. Read it before any command and copy the identity fields from it.",
   },
   operation: {
     description: 'One operation by id: waiting, running with its progress, or settled with its outcome (confirmed, failed, stopped or uncertain) exactly as Cria reports it.',

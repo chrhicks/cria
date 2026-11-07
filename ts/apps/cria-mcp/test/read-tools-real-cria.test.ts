@@ -46,8 +46,6 @@ const rig = Effect.gen(function* () {
         instanceId: ready.instanceId,
         requestId,
         deviceId: camera.id,
-        bindingId: camera.bindingId,
-        expectedName: camera.name,
         kind: 'capture',
         parameters: { exposureSeconds, light: true },
       } as unknown as OperationRequest)

@@ -133,8 +133,6 @@ export async function startCria(
       instanceId: current.instanceId,
       requestId,
       deviceId,
-      bindingId: target.bindingId,
-      expectedName: target.name,
       kind,
       parameters,
     } as unknown as OperationRequest)

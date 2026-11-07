@@ -12,8 +12,6 @@ const operation = {
   instanceId: id,
   requestId: 'r1',
   deviceId: 'focuser',
-  bindingId: id,
-  expectedName: 'ZWO EAF',
   failureDomain: 'zwo-eaf',
   kind: 'focuser-move',
   parameters: { position: 100, minPosition: 1, maxPosition: 200 },
@@ -64,8 +62,6 @@ describe('protocol 5 contract', () => {
       instanceId: id,
       requestId: 'r2',
       deviceId: 'mount',
-      bindingId: id,
-      expectedName: 'Mount',
       kind: 'mount-slew',
       parameters: { rightAscensionDegrees: 10, declinationDegrees: 20, coordinateSystem },
     })
@@ -96,7 +92,6 @@ describe('protocol 5 contract', () => {
       id: 'focuser',
       kind: 'focuser',
       name: 'ZWO EAF',
-      bindingId: id,
       failureDomain: 'zwo-eaf',
       availability: { ready: false, reason: 'busy', message: 'waiting for a reading after the last operation' },
       readings: {

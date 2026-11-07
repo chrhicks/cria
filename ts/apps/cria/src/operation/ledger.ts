@@ -3,7 +3,6 @@ import { makeRun, type Ending, type Outcome, type Report, type RunView } from '@
 import {
   commands,
   isHalt,
-  type BindingId,
   type Command,
   type DeviceId,
   type DeviceKind,
@@ -30,14 +29,11 @@ export type Submission = Command & {
   readonly instanceId: InstanceId
   readonly requestId: RequestId
   readonly deviceId: DeviceId
-  readonly bindingId: BindingId
-  readonly expectedName: string
 }
 
 export interface Placement {
   readonly id: DeviceId
   readonly kind: DeviceKind
-  readonly name: string
   readonly failureDomain: FailureDomain
 }
 
@@ -48,14 +44,9 @@ export interface Rules {
   readonly devices: ReadonlyMap<DeviceId, Placement>
 }
 
-interface Domain {
-  readonly binding: BindingId
-}
-
 export interface LedgerState {
   readonly operations: ReadonlyMap<OperationId, Stored>
   readonly requests: ReadonlyMap<RequestId, { readonly fingerprint: string; readonly operation: OperationId }>
-  readonly domains: ReadonlyMap<FailureDomain, Domain>
   readonly waiters: ReadonlyMap<OperationId, ReadonlyArray<Deferred.Deferred<Settled>>>
   readonly revision: number
   readonly sequence: number
@@ -73,16 +64,11 @@ export interface Step<A> {
 
 export type Transition<A> = readonly [Step<A>, LedgerState]
 
-export interface DomainFacts {
-  readonly binding: BindingId
-  readonly busy: boolean
-}
-
 export interface LedgerSnapshot {
   readonly sequence: number
   readonly revision: number
   readonly operations: ReadonlyArray<Operation>
-  readonly facts: (failureDomain: FailureDomain) => DomainFacts
+  readonly busy: (failureDomain: FailureDomain) => boolean
 }
 
 const initialProgress: Progress = { phase: 'preparing', elapsedSeconds: null }
@@ -90,11 +76,10 @@ const initialProgress: Progress = { phase: 'preparing', elapsedSeconds: null }
 const settledKept = 16
 const settledShown = 20
 
-export function initialState(bindings: Iterable<readonly [FailureDomain, BindingId]>): LedgerState {
+export function initialState(): LedgerState {
   return {
     operations: new Map(),
     requests: new Map(),
-    domains: new Map([...bindings].map(([domain, binding]) => [domain, { binding }])),
     waiters: new Map(),
     revision: 0,
     sequence: 0,
@@ -116,12 +101,6 @@ function known<K, V>(map: ReadonlyMap<K, V>, key: K): V {
 const openIn = (state: LedgerState, failureDomain: FailureDomain): ReadonlyArray<Open> =>
   [...state.operations.values()].filter((operation): operation is Open => operation.failureDomain === failureDomain && operation.state !== 'settled')
 
-/** Only a mount holds: its position is a step count Cria cannot read back. Any other device is simply commanded again. */
-function factsOf(rules: Rules, state: LedgerState, failureDomain: FailureDomain): DomainFacts {
-  const { binding } = known(state.domains, failureDomain)
-
-  return { binding, busy: openIn(state, failureDomain).length > 0 }
-}
 
 function missing(state: LedgerState, id: OperationId): Refusal {
   const expired = [...state.requests.values()].some(marker => marker.operation === id)
@@ -148,11 +127,8 @@ export function admit(
 
   if (submission.instanceId !== rules.instanceId) return refused(refuse('instance-changed', 'Cria restarted: this request was for an earlier instance'))
   const device = rules.devices.get(submission.deviceId)
-  const domain = device && state.domains.get(device.failureDomain)
 
-  if (!device || !domain) return refused(refuse('request-error', `Unknown device ${submission.deviceId}`))
-  if (domain.binding !== submission.bindingId) return refused(refuse('binding-changed', 'The device binding changed; read the state again'))
-  if (device.name !== submission.expectedName) return refused(refuse('binding-changed', `This device is ${device.name}`))
+  if (!device) return refused(refuse('request-error', `Unknown device ${submission.deviceId}`))
   const runsOn = commands[submission.kind].device
 
   if (runsOn !== 'any' && runsOn !== device.kind) return refused(refuse('request-error', `A ${device.kind} cannot run ${submission.kind}`))
@@ -266,7 +242,7 @@ export function snapshot(rules: Rules, state: LedgerState): Transition<LedgerSna
       sequence: next.sequence,
       revision: state.revision,
       operations: all.filter(operation => !hidden.has(operation)),
-      facts: failureDomain => factsOf(rules, state, failureDomain),
+      busy: failureDomain => openIn(state, failureDomain).length > 0,
     }),
     next,
   ]
@@ -282,12 +258,6 @@ function byRequest(rules: Rules, state: LedgerState, instanceId: InstanceId, req
   const marker = instanceId === rules.instanceId ? state.requests.get(requestId) : undefined
 
   return marker ? find(state, marker.operation) : refuse('not-found', 'No such request')
-}
-
-function deviceFacts(rules: Rules, state: LedgerState, deviceId: DeviceId): DomainFacts | Refusal {
-  const device = rules.devices.get(deviceId)
-
-  return device ? factsOf(rules, state, device.failureDomain) : refuse('not-found', `No device ${deviceId}`)
 }
 
 function fingerprintOf(submission: Submission): string {
@@ -310,7 +280,6 @@ export interface Ledger {
   readonly operation: (id: OperationId) => Effect.Effect<Operation, Refusal>
   readonly request: (instanceId: InstanceId, requestId: RequestId) => Effect.Effect<Operation, Refusal>
   readonly awaitSettled: (id: OperationId) => Effect.Effect<Settled, Refusal>
-  readonly facts: (deviceId: DeviceId) => Effect.Effect<DomainFacts, Refusal>
   readonly snapshot: Effect.Effect<LedgerSnapshot>
   readonly revisions: Stream.Stream<number>
 }
@@ -335,7 +304,7 @@ export function makeLedger(options: LedgerOptions): Effect.Effect<Ledger, never,
     const devices = new Map(options.devices.map(device => [device.id, device]))
     const rules: Rules = { instanceId: options.instanceId, commandsEnabled: options.commandsEnabled, history: options.history, devices }
     const domainIds = [...new Set(options.devices.map(device => device.failureDomain))]
-    const state = yield* Ref.make(initialState(domainIds.map(id => [id, mint.bindingId()])))
+    const state = yield* Ref.make(initialState())
     const motions = new Map<OperationId, MotionRecord>()
     const revisions = yield* Effect.acquireRelease(PubSub.sliding<number>(1), PubSub.shutdown)
     const runs = new Map(
@@ -442,7 +411,6 @@ export function makeLedger(options: LedgerOptions): Effect.Effect<Ledger, never,
 
           return yield* Deferred.await(waiter)
         }),
-      facts: deviceId => read(current => deviceFacts(rules, current, deviceId)),
       snapshot: apply(current => snapshot(rules, current)),
       revisions: Stream.fromPubSub(revisions),
     }

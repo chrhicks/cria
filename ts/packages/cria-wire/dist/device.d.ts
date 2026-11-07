@@ -1127,7 +1127,6 @@ export declare const SwitchChannel: Schema.Struct<{
 declare const identity: {
     id: Schema.brand<Schema.String, "DeviceId">;
     name: Schema.String;
-    bindingId: Schema.brand<Schema.String, "BindingId">;
     failureDomain: Schema.brand<Schema.String, "FailureDomain">;
     availability: Schema.Union<readonly [Schema.Struct<{
         readonly ready: Schema.Literal<true>;
@@ -1140,7 +1139,6 @@ declare const identity: {
 export declare const Device: Schema.Union<readonly [Schema.Struct<{
     readonly id: Schema.brand<Schema.String, "DeviceId">;
     readonly name: Schema.String;
-    readonly bindingId: Schema.brand<Schema.String, "BindingId">;
     readonly failureDomain: Schema.brand<Schema.String, "FailureDomain">;
     readonly availability: Schema.Union<readonly [Schema.Struct<{
         readonly ready: Schema.Literal<true>;
@@ -1563,7 +1561,6 @@ export declare const Device: Schema.Union<readonly [Schema.Struct<{
 }>, Schema.Struct<{
     readonly id: Schema.brand<Schema.String, "DeviceId">;
     readonly name: Schema.String;
-    readonly bindingId: Schema.brand<Schema.String, "BindingId">;
     readonly failureDomain: Schema.brand<Schema.String, "FailureDomain">;
     readonly availability: Schema.Union<readonly [Schema.Struct<{
         readonly ready: Schema.Literal<true>;
@@ -1883,7 +1880,6 @@ export declare const Device: Schema.Union<readonly [Schema.Struct<{
 }>, Schema.Struct<{
     readonly id: Schema.brand<Schema.String, "DeviceId">;
     readonly name: Schema.String;
-    readonly bindingId: Schema.brand<Schema.String, "BindingId">;
     readonly failureDomain: Schema.brand<Schema.String, "FailureDomain">;
     readonly availability: Schema.Union<readonly [Schema.Struct<{
         readonly ready: Schema.Literal<true>;
@@ -2002,7 +1998,6 @@ export declare const Device: Schema.Union<readonly [Schema.Struct<{
 }>, Schema.Struct<{
     readonly id: Schema.brand<Schema.String, "DeviceId">;
     readonly name: Schema.String;
-    readonly bindingId: Schema.brand<Schema.String, "BindingId">;
     readonly failureDomain: Schema.brand<Schema.String, "FailureDomain">;
     readonly availability: Schema.Union<readonly [Schema.Struct<{
         readonly ready: Schema.Literal<true>;
@@ -2160,7 +2155,6 @@ export declare const Device: Schema.Union<readonly [Schema.Struct<{
 }>, Schema.Struct<{
     readonly id: Schema.brand<Schema.String, "DeviceId">;
     readonly name: Schema.String;
-    readonly bindingId: Schema.brand<Schema.String, "BindingId">;
     readonly failureDomain: Schema.brand<Schema.String, "FailureDomain">;
     readonly availability: Schema.Union<readonly [Schema.Struct<{
         readonly ready: Schema.Literal<true>;

@@ -50,8 +50,6 @@ describe('protocol 5', () => {
       instanceId: state.instanceId,
       requestId: crypto.randomUUID(),
       deviceId: device.id,
-      bindingId: device.bindingId,
-      expectedName: device.name,
       kind: 'capture',
       parameters: { exposureSeconds: 0.1, light: true },
     })
@@ -75,8 +73,6 @@ describe('protocol 5', () => {
       instanceId: state.instanceId,
       requestId: crypto.randomUUID(),
       deviceId: device.id,
-      bindingId: device.bindingId,
-      expectedName: device.name,
       kind: 'cooling',
       parameters: { setpointC: -10 },
     })

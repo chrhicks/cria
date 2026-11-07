@@ -53,7 +53,6 @@ const utc = /\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d/g
 const times = new Set(['acceptedAt', 'startedAt', 'settledAt', 'observedAt', 'generatedAt', 'since', 'commandedAt', 'sentAt', 'capturedAt', 'retainedAt', 'at'])
 const labels: Record<string, string> = {
   instanceId: 'instance',
-  bindingId: 'binding',
   requestId: 'request',
   operationId: 'operation',
   url: 'image',

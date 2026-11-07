@@ -69,8 +69,6 @@ async function slewThenTerminate() {
     instanceId: state.instanceId,
     requestId: crypto.randomUUID(),
     deviceId: target.id,
-    bindingId: target.bindingId,
-    expectedName: target.name,
     kind: 'mount-slew',
     parameters: { rightAscensionDegrees: 120, declinationDegrees: 10, coordinateSystem: 'topocentric' },
   } as unknown as OperationRequest)

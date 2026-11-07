@@ -61,14 +61,14 @@ describe('tools/list', () => {
       expect(parameters('mount-slew').rightAscensionDegrees).toMatchObject({ minimum: 0, maximum: 359.999999999 })
       expect(parameters('cooling').setpointC).toMatchObject({ minimum: -100, maximum: 100 })
       expect(parameters('focuser-move').position).toMatchObject({ type: 'integer', allOf: [{ minimum: 1, maximum: 2_147_483_646 }] })
-      expect(tools['mount-rotate']!.inputSchema.required).toEqual(['instanceId', 'requestId', 'deviceId', 'bindingId', 'expectedName', 'parameters'])
+      expect(tools['mount-rotate']!.inputSchema.required).toEqual(['instanceId', 'requestId', 'deviceId', 'parameters'])
     }),
   )
 
-  it.live('takes no parameters key for a kind with no parameters, and the five identity fields for every kind', () =>
+  it.live('takes no parameters key for a kind with no parameters, and the three identity fields for every kind', () =>
     Effect.gen(function* () {
       const tools = yield* listed
-      const identity = ['instanceId', 'requestId', 'deviceId', 'bindingId', 'expectedName']
+      const identity = ['instanceId', 'requestId', 'deviceId']
 
       for (const kind of exposedKinds) {
         const empty = Object.keys(wire[kind].parameters.fields).length === 0

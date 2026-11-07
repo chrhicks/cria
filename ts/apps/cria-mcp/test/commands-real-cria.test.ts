@@ -71,11 +71,7 @@ const rigWith = (options: { readonly ignoreTracking?: boolean; readonly commands
     const state = answered('state').pipe(Effect.map(body => Schema.decodeUnknownSync(State)(body, strict)))
     const withIdentity = (deviceId: string, requestId: string) =>
       state.pipe(
-        Effect.map(current => {
-          const device = current.devices.find(candidate => candidate.id === deviceId)!
-
-          return { instanceId: current.instanceId, requestId, deviceId, bindingId: device.bindingId, expectedName: device.name }
-        }),
+        Effect.map(current => ({ instanceId: current.instanceId, requestId, deviceId })),
       )
     const settled = (operationId: string) =>
       Effect.gen(function* () {

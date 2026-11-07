@@ -15,7 +15,7 @@
 export interface Capture {
   readonly operationId: string
   readonly imageId: string
-  /** The camera's INDI device name (the operation's `expectedName`). */
+  /** The camera's INDI device name (the image's `cameraName`). */
   readonly device: string
   readonly startedAt: number
   readonly settledAt: number

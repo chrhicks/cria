@@ -43,7 +43,6 @@ const statusOf: { readonly [C in ErrorCode]: number } = {
   'not-found': 404,
   'request-conflict': 409,
   'instance-changed': 409,
-  'binding-changed': 409,
   'device-busy': 409,
   'result-expired': 410,
   'image-gone': 410,

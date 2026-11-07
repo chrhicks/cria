@@ -235,7 +235,7 @@ Two settings decide whether Cria can change the rig:
 A restart is a new Cria with nothing carried over:
 
 - It has a new `instanceId`. Anything in flight before the restart is unknown.
-- The operation table is empty. No request IDs or bindings carry over.
+- The operation table is empty. No request IDs carry over.
 - The image folder is emptied.
 
 The INDI drivers keep running and keep their state. A camera that was exposing still reads `exposing`, and a new capture on it settles `failed: busy`.

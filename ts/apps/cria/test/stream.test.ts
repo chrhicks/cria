@@ -78,10 +78,7 @@ describe('Cria on the rig stream', () => {
     const settled = body('cria.settled').find(entry => entry['kind'] === 'capture')
 
     expect(request).toMatchObject({ deviceId: 'primary', kind: 'capture', parameters: { exposureSeconds: 0.01, light: true }, result: 'accepted', operationId: ending.id })
-    expect(request).not.toHaveProperty('bindingId')
-    expect(request).not.toHaveProperty('expectedName')
     expect(settled).toMatchObject({ id: ending.id, deviceId: 'primary', outcome: { kind: 'confirmed' } })
-    expect(settled).not.toHaveProperty('bindingId')
   })
 
   it('publishes each write it sends, naming the device and property, and nothing it only reads', async () => {
@@ -138,15 +135,14 @@ describe('Cria on the rig stream', () => {
   it('publishes a refusal with its reason', async () => {
     cria = await startCria(fake.port, devices, { streamClientConfig: await settings(broker) }, { stream: fakePublisher })
     const state = await cria.waitFor(allReady(['primary']))
-    const device = state.devices[0]!
     const response = await fetch(`${cria.base}/v2/operations`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ instanceId: state.instanceId, requestId: crypto.randomUUID(), deviceId: 'primary', bindingId: crypto.randomUUID(), expectedName: device.name, kind: 'capture', parameters: { exposureSeconds: 0.01, light: true } }),
+      body: JSON.stringify({ instanceId: crypto.randomUUID(), requestId: crypto.randomUUID(), deviceId: 'primary', kind: 'capture', parameters: { exposureSeconds: 0.01, light: true } }),
     })
 
     expect(response.ok).toBe(false)
-    expect(body('cria.request').at(-1)).toMatchObject({ deviceId: 'primary', result: 'refused', code: 'binding-changed' })
+    expect(body('cria.request').at(-1)).toMatchObject({ deviceId: 'primary', result: 'refused', code: 'instance-changed' })
   })
 
   it('runs without publishing, and without showing the file, when its settings cannot be read', async () => {

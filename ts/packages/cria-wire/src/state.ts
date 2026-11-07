@@ -4,7 +4,7 @@
  */
 import { Schema } from 'effect'
 import { Device } from './device.js'
-import { BindingId, InstanceId } from './ids.js'
+import { InstanceId } from './ids.js'
 import { Operation } from './operation.js'
 import { Timestamp } from './values.js'
 
@@ -32,7 +32,6 @@ export const errorCodes = [
   'not-found',
   'request-conflict',
   'instance-changed',
-  'binding-changed',
   'device-busy',
   'result-expired',
   'image-gone',

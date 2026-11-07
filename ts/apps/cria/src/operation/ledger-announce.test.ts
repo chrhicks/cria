@@ -8,7 +8,7 @@ const instanceId = InstanceId.make(uuid(1))
 const confirmed = { values: {}, image: null }
 
 function device(id: string, work: LedgerDevice['work']): LedgerDevice {
-  return { id: DeviceId.make(id), kind: 'camera', name: id, failureDomain: FailureDomain.make(id), work }
+  return { id: DeviceId.make(id), kind: 'camera', failureDomain: FailureDomain.make(id), work }
 }
 
 describe('onSettled', () => {
@@ -31,13 +31,10 @@ describe('onSettled', () => {
           })
           const submit = (deviceId: string, name: string) =>
             Effect.gen(function* () {
-              const { binding } = yield* ledger.facts(DeviceId.make(deviceId))
               const operation = yield* ledger.submit({
                 instanceId,
                 requestId: RequestId.make(name),
                 deviceId: DeviceId.make(deviceId),
-                bindingId: binding,
-                expectedName: deviceId,
                 kind: 'capture',
                 parameters: { exposureSeconds: 1, light: true },
               })
