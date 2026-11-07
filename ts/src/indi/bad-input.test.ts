@@ -26,7 +26,6 @@ describe('what the framer and parser do with unexpected input', () => {
     ['an element with no device attribute', '<defTextVector name="N" state="Idle" perm="ro"><defText name="T">v</defText></defTextVector>', /missing device/],
     ['an empty device', '<defTextVector device="" name="N" state="Idle" perm="ro"/>', /empty device/],
     ['an empty name', '<defSwitchVector device="D" name="" state="Idle" perm="rw" rule="OneOfMany"/>', /empty name/],
-    ['an empty element name', '<defTextVector device="D" name="N" state="Idle" perm="ro"><defText name="">v</defText></defTextVector>', /empty name/],
     ['a delProperty with no device', '<delProperty name="N"/>', /missing device/],
     ['an unknown element type', '<bogus device="D" name="N"/>', /Unknown INDI element <bogus>/],
     ['an unknown vector type', '<defFooVector device="D" name="N"/>', /Unknown INDI element <defFooVector>/],
@@ -48,6 +47,23 @@ describe('what the framer and parser do with unexpected input', () => {
     expect(elements[0]!.problem).toMatchObject({ scope: 'element', reason: expect.stringMatching(reason) })
     expect(elements[0]!.xml).toBe(wire)
     expect(elements[1]!.message).toMatchObject({ type: 'def', vector: { device: 'Test Focuser' } })
+  })
+
+  it('keeps a property whose definition has one element with an empty name, and says it left that element out', () => {
+    const wire = '<defSwitchVector device="ZWO AM5" name="ALTITUDE_LIMIT_CONTROL" label="Altitude Limit Control" group="Altitude Limits" state="Ok" perm="rw" rule="OneOfMany" timeout="60" timestamp="2030-01-01T00:00:00"><defSwitch name="ENABLE" label="Enable">On</defSwitch><defSwitch name="" label="">Off</defSwitch><defSwitch name="DISABLE" label="Disable">Off</defSwitch></defSwitchVector>'
+    const { elements, stopped } = frame(wire)
+
+    expect(stopped).toBeUndefined()
+    expect(elements[0]!.message).toMatchObject({ type: 'def', vector: { device: 'ZWO AM5', name: 'ALTITUDE_LIMIT_CONTROL', elements: [{ name: 'ENABLE', on: true }, { name: 'DISABLE', on: false }] } })
+    expect(elements[0]!.problem).toMatchObject({ scope: 'element', reason: expect.stringMatching(/empty name/), tag: 'defSwitchVector', device: 'ZWO AM5', name: 'ALTITUDE_LIMIT_CONTROL' })
+    expect(elements[0]!.xml).toBe(wire)
+  })
+
+  it('keeps an update that has one element with an empty name', () => {
+    const { elements } = frame('<setSwitchVector device="D" name="N" state="Ok"><oneSwitch name="">On</oneSwitch><oneSwitch name="A">On</oneSwitch></setSwitchVector>')
+
+    expect(elements[0]!.message).toMatchObject({ type: 'set', vector: { name: 'N', elements: [{ name: 'A', on: true }] } })
+    expect(elements[0]!.problem).toMatchObject({ scope: 'element', reason: expect.stringMatching(/empty name/) })
   })
 
   it('does not call a <message> a problem, and does not mind a rule it does not know', () => {
@@ -307,8 +323,23 @@ describe('the client when indiserver sends something unexpected', () => {
       expect(property('B')).toBeDefined()
       expect(tapped.filter(message => message.dir === 'in').map(message => message.xml)).toEqual(wire)
       expect(warnings).toHaveLength(1)
-      expect(warnings[0]).toContain('INDI protocol error #1: skipped the element: INDI element has an empty name')
+      expect(warnings[0]).toContain('INDI protocol error #1: skipped the element: INDI element has an empty device')
       expect(warnings[0]).toContain('<defNumberVector> no device or name')
+    })
+  })
+
+  it('keeps the property when one of its elements has an empty name, and logs it once', async () => {
+    await session(async ({ warnings, deleted, property, socket }) => {
+      const first = await socket(1)
+      const bad = '<defNumberVector device="Test Focuser" name="POSITION" state="Idle" perm="rw"><defNumber name="STEPS" min="0" max="100" step="1">5</defNumber><defNumber name="" min="0" max="1" step="1">0</defNumber></defNumberVector>'
+
+      first.write(bad + bad)
+      await until(() => property('POSITION') !== undefined)
+
+      expect([...(property('POSITION') as { elements: Map<string, unknown> }).elements.keys()]).toEqual(['STEPS'])
+      expect(deleted).toEqual([])
+      expect(warnings).toHaveLength(1)
+      expect(warnings[0]).toContain('left one element out and kept the property: INDI element has an empty name')
     })
   })
 

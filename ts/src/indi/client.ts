@@ -164,8 +164,10 @@ export function makeIndiClient(options: IndiClientOptions): Effect.Effect<IndiCl
 
           for (const { message, problem, xml } of elements) {
             tap?.message({ conn: connectionNumber, dir: 'in', xml })
-            if (message) receive(message, current)
-            else if (problem && problem.scope === 'element') skip(problem, current)
+            if (message) {
+              if (problem) problems.report(problem, 'left one element out and kept the property')
+              receive(message, current)
+            } else if (problem && problem.scope === 'element') skip(problem, current)
           }
 
           if (stopped) {
