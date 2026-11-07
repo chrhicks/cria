@@ -55,8 +55,8 @@ Every Cria session on errai records its INDI traffic (`~/cria-recordings`). The 
 | Another client (PHD2) looping 2 s exposures on the guide camera: frames Cria did not ask for | recorded, ZWO ASI220MM Mini, 2026-10-27 (1,027 frames) | `guideLoop` | `recorded-guide-loop.test.ts`: Cria's own frame is the only image. The other client's own write (an inbound `newNumberVector`) is not reproduced; Cria ignores it |
 | A focuser move that ends Ok short of the target | **derived** (63 recorded moves all arrived) | `addEaf({ stopsShortBy })` | `derived-non-mount.test.ts`: uncertain `not-confirmed`, next move admitted |
 | A focuser that never answers a move | **derived** | a behaviour that ignores `ABS_FOCUS_POSITION` | `derived-non-mount.test.ts`: uncertain `no-acknowledgement`, abort sent, next move admitted |
-| A switch write acknowledged Ok and not applied | **derived** (the recorded relative is `pegasusDew`) | `appliesNothing` | `derived-non-mount.test.ts`: uncertain `not-confirmed`, next write admitted |
-| A weather device that never answers a connect (weather's only command) | **derived** | a behaviour that ignores `CONNECTION` | `derived-non-mount.test.ts`: uncertain `no-acknowledgement`, next command admitted |
+| A box switch write acknowledged Ok and not applied | **derived** (the recorded relative is `pegasusDew`) | `appliesNothing` | `derived-non-mount.test.ts`: uncertain `not-confirmed`, next write admitted |
+| A box that never answers a connect | **derived** | a behaviour that ignores `CONNECTION` | `derived-non-mount.test.ts`: uncertain `no-acknowledgement`, next command admitted |
 
 What the recordings do not hold, so no recorded case exists: a camera exposure with no answer, an Alert on an exposure, a camera abort that left the exposure Busy, a connection drop, a driver crash, a focuser that stopped short, a readback that never matched on a camera, focuser, relay or dew write. Of 1,462 exposures, 63 focuser moves and 22 camera aborts, every one was answered within 1.1 s and arrived.
 
@@ -99,13 +99,13 @@ pnpm fake-rig serve focuser-short --host 0.0.0.0 --port 4320   # reachable from 
 | `focuser-short` | derived | move the focuser to 31000 | `uncertain` (stopped at 31150, short of 31000): the warning; the next move is accepted |
 | `focuser-silent` | derived | move the focuser to 31000 | `uncertain` (no acknowledgement): the warning; the next move is accepted |
 | `switch-ignored` | derived | switch channel 0 (12 V ports) off | after 15 s `uncertain` (driver still shows the old value): the warning; the next write is accepted |
-| `weather-silent` | derived | connect the weather device | after 8 s `uncertain` (no acknowledgement): the warning |
+| `box-silent` | derived | connect the box | after 8 s `uncertain` (no acknowledgement): the warning |
 | `guide-loop` | recorded | capture on the primary camera while watching the guide camera | the guide camera gets a frame every 2.75 s unasked; the capture confirms; no warning |
 | `mount-home-stop` | recorded | send the mount Home, stop it a second later | `stopped` once the mount is still |
 | `mount-power-cut` | recorded | rotate the mount; power is cut a second after it starts | `uncertain` (stop not confirmed) after repeated stops; the next command is accepted |
 | `mount-pole-rotate` | recorded | rotate the mount (it starts at Home) | `failed` (rejected: the driver answered Idle and did not start) at once |
 
-A camera, focuser, weather or switch device ends `uncertain` and the next command is accepted. The first five scenarios are the ones that show the non-mount warning, and all five are derived, because the recordings hold no real failure of those devices (see "Cases from recorded failures").
+A camera, focuser or box ends `uncertain` and the next command is accepted. The first five scenarios are the ones that show the non-mount warning, and all five are derived, because the recordings hold no real failure of those devices (see "Cases from recorded failures").
 
 ## Check the wire with the golden
 

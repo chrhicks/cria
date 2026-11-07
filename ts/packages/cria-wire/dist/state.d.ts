@@ -13,7 +13,6 @@ export declare const State: Schema.Struct<{
     readonly devices: Schema.$Array<Schema.Union<readonly [Schema.Struct<{
         readonly id: Schema.brand<Schema.String, "DeviceId">;
         readonly name: Schema.String;
-        readonly failureDomain: Schema.brand<Schema.String, "FailureDomain">;
         readonly availability: Schema.Union<readonly [Schema.Struct<{
             readonly ready: Schema.Literal<true>;
         }>, Schema.Struct<{
@@ -356,7 +355,6 @@ export declare const State: Schema.Struct<{
     }>, Schema.Struct<{
         readonly id: Schema.brand<Schema.String, "DeviceId">;
         readonly name: Schema.String;
-        readonly failureDomain: Schema.brand<Schema.String, "FailureDomain">;
         readonly availability: Schema.Union<readonly [Schema.Struct<{
             readonly ready: Schema.Literal<true>;
         }>, Schema.Struct<{
@@ -610,7 +608,6 @@ export declare const State: Schema.Struct<{
     }>, Schema.Struct<{
         readonly id: Schema.brand<Schema.String, "DeviceId">;
         readonly name: Schema.String;
-        readonly failureDomain: Schema.brand<Schema.String, "FailureDomain">;
         readonly availability: Schema.Union<readonly [Schema.Struct<{
             readonly ready: Schema.Literal<true>;
         }>, Schema.Struct<{
@@ -728,7 +725,6 @@ export declare const State: Schema.Struct<{
     }>, Schema.Struct<{
         readonly id: Schema.brand<Schema.String, "DeviceId">;
         readonly name: Schema.String;
-        readonly failureDomain: Schema.brand<Schema.String, "FailureDomain">;
         readonly availability: Schema.Union<readonly [Schema.Struct<{
             readonly ready: Schema.Literal<true>;
         }>, Schema.Struct<{
@@ -736,7 +732,7 @@ export declare const State: Schema.Struct<{
             readonly reason: Schema.Literals<readonly ["commands-disabled", "unavailable", "starting", "disconnected", "stale", "busy"]>;
             readonly message: Schema.String;
         }>]>;
-        readonly kind: Schema.Literal<"weather">;
+        readonly kind: Schema.Literal<"box">;
         readonly readings: Schema.Struct<{
             readonly connected: Schema.Union<readonly [Schema.Struct<{
                 readonly status: Schema.Literal<"fresh">;
@@ -797,46 +793,6 @@ export declare const State: Schema.Struct<{
             }>, Schema.Struct<{
                 readonly status: Schema.Literal<"stale">;
                 readonly value: Schema.Number;
-                readonly observedAt: Schema.Number;
-            }>, Schema.Struct<{
-                readonly status: Schema.Literal<"unavailable">;
-                readonly reason: Schema.Literals<readonly ["not-read", "unsupported", "failed"]>;
-                readonly message: Schema.optionalKey<Schema.String>;
-            }>]>;
-        }>;
-    }>, Schema.Struct<{
-        readonly id: Schema.brand<Schema.String, "DeviceId">;
-        readonly name: Schema.String;
-        readonly failureDomain: Schema.brand<Schema.String, "FailureDomain">;
-        readonly availability: Schema.Union<readonly [Schema.Struct<{
-            readonly ready: Schema.Literal<true>;
-        }>, Schema.Struct<{
-            readonly ready: Schema.Literal<false>;
-            readonly reason: Schema.Literals<readonly ["commands-disabled", "unavailable", "starting", "disconnected", "stale", "busy"]>;
-            readonly message: Schema.String;
-        }>]>;
-        readonly kind: Schema.Literal<"switch">;
-        readonly readings: Schema.Struct<{
-            readonly connected: Schema.Union<readonly [Schema.Struct<{
-                readonly status: Schema.Literal<"fresh">;
-                readonly value: Schema.Boolean;
-                readonly observedAt: Schema.Number;
-            }>, Schema.Struct<{
-                readonly status: Schema.Literal<"stale">;
-                readonly value: Schema.Boolean;
-                readonly observedAt: Schema.Number;
-            }>, Schema.Struct<{
-                readonly status: Schema.Literal<"unavailable">;
-                readonly reason: Schema.Literals<readonly ["not-read", "unsupported", "failed"]>;
-                readonly message: Schema.optionalKey<Schema.String>;
-            }>]>;
-            readonly name: Schema.Union<readonly [Schema.Struct<{
-                readonly status: Schema.Literal<"fresh">;
-                readonly value: Schema.String;
-                readonly observedAt: Schema.Number;
-            }>, Schema.Struct<{
-                readonly status: Schema.Literal<"stale">;
-                readonly value: Schema.String;
                 readonly observedAt: Schema.Number;
             }>, Schema.Struct<{
                 readonly status: Schema.Literal<"unavailable">;
@@ -971,7 +927,6 @@ export declare const State: Schema.Struct<{
         requestId: Schema.brand<Schema.String, "RequestId">;
         deviceId: Schema.brand<Schema.String, "DeviceId">;
         id: Schema.brand<Schema.String, "OperationId">;
-        failureDomain: Schema.brand<Schema.String, "FailureDomain">;
         acceptedAt: Schema.Number;
         state: Schema.Literal<"waiting">;
     }> | Schema.Struct<{
@@ -981,7 +936,6 @@ export declare const State: Schema.Struct<{
         requestId: Schema.brand<Schema.String, "RequestId">;
         deviceId: Schema.brand<Schema.String, "DeviceId">;
         id: Schema.brand<Schema.String, "OperationId">;
-        failureDomain: Schema.brand<Schema.String, "FailureDomain">;
         acceptedAt: Schema.Number;
         state: Schema.Literal<"waiting">;
     }> | Schema.Struct<{
@@ -994,7 +948,6 @@ export declare const State: Schema.Struct<{
         requestId: Schema.brand<Schema.String, "RequestId">;
         deviceId: Schema.brand<Schema.String, "DeviceId">;
         id: Schema.brand<Schema.String, "OperationId">;
-        failureDomain: Schema.brand<Schema.String, "FailureDomain">;
         acceptedAt: Schema.Number;
         state: Schema.Literal<"running">;
         startedAt: Schema.Number;
@@ -1014,7 +967,6 @@ export declare const State: Schema.Struct<{
         requestId: Schema.brand<Schema.String, "RequestId">;
         deviceId: Schema.brand<Schema.String, "DeviceId">;
         id: Schema.brand<Schema.String, "OperationId">;
-        failureDomain: Schema.brand<Schema.String, "FailureDomain">;
         acceptedAt: Schema.Number;
         state: Schema.Literal<"running">;
         startedAt: Schema.Number;
@@ -1032,7 +984,6 @@ export declare const State: Schema.Struct<{
         requestId: Schema.brand<Schema.String, "RequestId">;
         deviceId: Schema.brand<Schema.String, "DeviceId">;
         id: Schema.brand<Schema.String, "OperationId">;
-        failureDomain: Schema.brand<Schema.String, "FailureDomain">;
         acceptedAt: Schema.Number;
         state: Schema.Literal<"running">;
         startedAt: Schema.Number;
@@ -1049,7 +1000,6 @@ export declare const State: Schema.Struct<{
         requestId: Schema.brand<Schema.String, "RequestId">;
         deviceId: Schema.brand<Schema.String, "DeviceId">;
         id: Schema.brand<Schema.String, "OperationId">;
-        failureDomain: Schema.brand<Schema.String, "FailureDomain">;
         acceptedAt: Schema.Number;
         state: Schema.Literal<"running">;
         startedAt: Schema.Number;
@@ -1064,7 +1014,6 @@ export declare const State: Schema.Struct<{
         requestId: Schema.brand<Schema.String, "RequestId">;
         deviceId: Schema.brand<Schema.String, "DeviceId">;
         id: Schema.brand<Schema.String, "OperationId">;
-        failureDomain: Schema.brand<Schema.String, "FailureDomain">;
         acceptedAt: Schema.Number;
         state: Schema.Literal<"running">;
         startedAt: Schema.Number;
@@ -1081,7 +1030,6 @@ export declare const State: Schema.Struct<{
         requestId: Schema.brand<Schema.String, "RequestId">;
         deviceId: Schema.brand<Schema.String, "DeviceId">;
         id: Schema.brand<Schema.String, "OperationId">;
-        failureDomain: Schema.brand<Schema.String, "FailureDomain">;
         acceptedAt: Schema.Number;
         state: Schema.Literal<"running">;
         startedAt: Schema.Number;
@@ -1099,7 +1047,6 @@ export declare const State: Schema.Struct<{
         requestId: Schema.brand<Schema.String, "RequestId">;
         deviceId: Schema.brand<Schema.String, "DeviceId">;
         id: Schema.brand<Schema.String, "OperationId">;
-        failureDomain: Schema.brand<Schema.String, "FailureDomain">;
         acceptedAt: Schema.Number;
         state: Schema.Literal<"running">;
         startedAt: Schema.Number;
@@ -1114,7 +1061,6 @@ export declare const State: Schema.Struct<{
         requestId: Schema.brand<Schema.String, "RequestId">;
         deviceId: Schema.brand<Schema.String, "DeviceId">;
         id: Schema.brand<Schema.String, "OperationId">;
-        failureDomain: Schema.brand<Schema.String, "FailureDomain">;
         acceptedAt: Schema.Number;
         state: Schema.Literal<"running">;
         startedAt: Schema.Number;
@@ -1132,7 +1078,6 @@ export declare const State: Schema.Struct<{
         requestId: Schema.brand<Schema.String, "RequestId">;
         deviceId: Schema.brand<Schema.String, "DeviceId">;
         id: Schema.brand<Schema.String, "OperationId">;
-        failureDomain: Schema.brand<Schema.String, "FailureDomain">;
         acceptedAt: Schema.Number;
         state: Schema.Literal<"running">;
         startedAt: Schema.Number;
@@ -1151,7 +1096,6 @@ export declare const State: Schema.Struct<{
         requestId: Schema.brand<Schema.String, "RequestId">;
         deviceId: Schema.brand<Schema.String, "DeviceId">;
         id: Schema.brand<Schema.String, "OperationId">;
-        failureDomain: Schema.brand<Schema.String, "FailureDomain">;
         acceptedAt: Schema.Number;
         state: Schema.Literal<"running">;
         startedAt: Schema.Number;
@@ -1166,7 +1110,6 @@ export declare const State: Schema.Struct<{
         requestId: Schema.brand<Schema.String, "RequestId">;
         deviceId: Schema.brand<Schema.String, "DeviceId">;
         id: Schema.brand<Schema.String, "OperationId">;
-        failureDomain: Schema.brand<Schema.String, "FailureDomain">;
         acceptedAt: Schema.Number;
         state: Schema.Literal<"running">;
         startedAt: Schema.Number;
@@ -1183,7 +1126,6 @@ export declare const State: Schema.Struct<{
         requestId: Schema.brand<Schema.String, "RequestId">;
         deviceId: Schema.brand<Schema.String, "DeviceId">;
         id: Schema.brand<Schema.String, "OperationId">;
-        failureDomain: Schema.brand<Schema.String, "FailureDomain">;
         acceptedAt: Schema.Number;
         state: Schema.Literal<"running">;
         startedAt: Schema.Number;
@@ -1201,7 +1143,6 @@ export declare const State: Schema.Struct<{
         requestId: Schema.brand<Schema.String, "RequestId">;
         deviceId: Schema.brand<Schema.String, "DeviceId">;
         id: Schema.brand<Schema.String, "OperationId">;
-        failureDomain: Schema.brand<Schema.String, "FailureDomain">;
         acceptedAt: Schema.Number;
         state: Schema.Literal<"running">;
         startedAt: Schema.Number;
@@ -1219,7 +1160,6 @@ export declare const State: Schema.Struct<{
         requestId: Schema.brand<Schema.String, "RequestId">;
         deviceId: Schema.brand<Schema.String, "DeviceId">;
         id: Schema.brand<Schema.String, "OperationId">;
-        failureDomain: Schema.brand<Schema.String, "FailureDomain">;
         acceptedAt: Schema.Number;
         state: Schema.Literal<"settled">;
         startedAt: Schema.Number;
@@ -1315,7 +1255,6 @@ export declare const State: Schema.Struct<{
         requestId: Schema.brand<Schema.String, "RequestId">;
         deviceId: Schema.brand<Schema.String, "DeviceId">;
         id: Schema.brand<Schema.String, "OperationId">;
-        failureDomain: Schema.brand<Schema.String, "FailureDomain">;
         acceptedAt: Schema.Number;
         state: Schema.Literal<"settled">;
         startedAt: Schema.Number;
@@ -1409,7 +1348,6 @@ export declare const State: Schema.Struct<{
         requestId: Schema.brand<Schema.String, "RequestId">;
         deviceId: Schema.brand<Schema.String, "DeviceId">;
         id: Schema.brand<Schema.String, "OperationId">;
-        failureDomain: Schema.brand<Schema.String, "FailureDomain">;
         acceptedAt: Schema.Number;
         state: Schema.Literal<"settled">;
         startedAt: Schema.Number;
@@ -1502,7 +1440,6 @@ export declare const State: Schema.Struct<{
         requestId: Schema.brand<Schema.String, "RequestId">;
         deviceId: Schema.brand<Schema.String, "DeviceId">;
         id: Schema.brand<Schema.String, "OperationId">;
-        failureDomain: Schema.brand<Schema.String, "FailureDomain">;
         acceptedAt: Schema.Number;
         state: Schema.Literal<"settled">;
         startedAt: Schema.Number;
@@ -1593,7 +1530,6 @@ export declare const State: Schema.Struct<{
         requestId: Schema.brand<Schema.String, "RequestId">;
         deviceId: Schema.brand<Schema.String, "DeviceId">;
         id: Schema.brand<Schema.String, "OperationId">;
-        failureDomain: Schema.brand<Schema.String, "FailureDomain">;
         acceptedAt: Schema.Number;
         state: Schema.Literal<"settled">;
         startedAt: Schema.Number;
@@ -1686,7 +1622,6 @@ export declare const State: Schema.Struct<{
         requestId: Schema.brand<Schema.String, "RequestId">;
         deviceId: Schema.brand<Schema.String, "DeviceId">;
         id: Schema.brand<Schema.String, "OperationId">;
-        failureDomain: Schema.brand<Schema.String, "FailureDomain">;
         acceptedAt: Schema.Number;
         state: Schema.Literal<"settled">;
         startedAt: Schema.Number;
@@ -1780,7 +1715,6 @@ export declare const State: Schema.Struct<{
         requestId: Schema.brand<Schema.String, "RequestId">;
         deviceId: Schema.brand<Schema.String, "DeviceId">;
         id: Schema.brand<Schema.String, "OperationId">;
-        failureDomain: Schema.brand<Schema.String, "FailureDomain">;
         acceptedAt: Schema.Number;
         state: Schema.Literal<"settled">;
         startedAt: Schema.Number;
@@ -1871,7 +1805,6 @@ export declare const State: Schema.Struct<{
         requestId: Schema.brand<Schema.String, "RequestId">;
         deviceId: Schema.brand<Schema.String, "DeviceId">;
         id: Schema.brand<Schema.String, "OperationId">;
-        failureDomain: Schema.brand<Schema.String, "FailureDomain">;
         acceptedAt: Schema.Number;
         state: Schema.Literal<"settled">;
         startedAt: Schema.Number;
@@ -1965,7 +1898,6 @@ export declare const State: Schema.Struct<{
         requestId: Schema.brand<Schema.String, "RequestId">;
         deviceId: Schema.brand<Schema.String, "DeviceId">;
         id: Schema.brand<Schema.String, "OperationId">;
-        failureDomain: Schema.brand<Schema.String, "FailureDomain">;
         acceptedAt: Schema.Number;
         state: Schema.Literal<"settled">;
         startedAt: Schema.Number;
@@ -2060,7 +1992,6 @@ export declare const State: Schema.Struct<{
         requestId: Schema.brand<Schema.String, "RequestId">;
         deviceId: Schema.brand<Schema.String, "DeviceId">;
         id: Schema.brand<Schema.String, "OperationId">;
-        failureDomain: Schema.brand<Schema.String, "FailureDomain">;
         acceptedAt: Schema.Number;
         state: Schema.Literal<"settled">;
         startedAt: Schema.Number;
@@ -2151,7 +2082,6 @@ export declare const State: Schema.Struct<{
         requestId: Schema.brand<Schema.String, "RequestId">;
         deviceId: Schema.brand<Schema.String, "DeviceId">;
         id: Schema.brand<Schema.String, "OperationId">;
-        failureDomain: Schema.brand<Schema.String, "FailureDomain">;
         acceptedAt: Schema.Number;
         state: Schema.Literal<"settled">;
         startedAt: Schema.Number;
@@ -2244,7 +2174,6 @@ export declare const State: Schema.Struct<{
         requestId: Schema.brand<Schema.String, "RequestId">;
         deviceId: Schema.brand<Schema.String, "DeviceId">;
         id: Schema.brand<Schema.String, "OperationId">;
-        failureDomain: Schema.brand<Schema.String, "FailureDomain">;
         acceptedAt: Schema.Number;
         state: Schema.Literal<"settled">;
         startedAt: Schema.Number;
@@ -2338,7 +2267,6 @@ export declare const State: Schema.Struct<{
         requestId: Schema.brand<Schema.String, "RequestId">;
         deviceId: Schema.brand<Schema.String, "DeviceId">;
         id: Schema.brand<Schema.String, "OperationId">;
-        failureDomain: Schema.brand<Schema.String, "FailureDomain">;
         acceptedAt: Schema.Number;
         state: Schema.Literal<"settled">;
         startedAt: Schema.Number;

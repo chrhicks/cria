@@ -3,10 +3,10 @@
  * Values are named (`'east'`, `'sidereal'`), not ASCOM integers.
  */
 import { Schema } from 'effect'
-import { DeviceId, FailureDomain, OperationId } from './ids.js'
+import { DeviceId, OperationId } from './ids.js'
 import { Reading, Timestamp } from './values.js'
 
-export const deviceKinds = ['camera', 'mount', 'focuser', 'weather', 'switch'] as const
+export const deviceKinds = ['camera', 'mount', 'focuser', 'box'] as const
 
 export type DeviceKind = (typeof deviceKinds)[number]
 
@@ -91,14 +91,13 @@ export const FocuserReadings = Schema.Struct({
   maxStep: number,
 })
 
-export const WeatherReadings = Schema.Struct({
+export const BoxReadings = Schema.Struct({
   ...common,
   temperatureC: number,
   humidityPercent: number,
   dewPointC: number,
+  channelCount: number,
 })
-
-export const SwitchReadings = Schema.Struct({ ...common, channelCount: number })
 
 export const SwitchChannel = Schema.Struct({
   id: number,
@@ -114,9 +113,7 @@ export const SwitchChannel = Schema.Struct({
 const identity = {
   id: DeviceId,
   name: Schema.String,
-  failureDomain: FailureDomain,
   availability: Availability,
-  /** The latest settled operation in the domain that every fresh reading here postdates. */
 }
 
 export const Device = Schema.Union([
@@ -129,8 +126,7 @@ export const Device = Schema.Union([
   }),
   Schema.Struct({ ...identity, kind: Schema.Literal('mount'), readings: MountReadings }),
   Schema.Struct({ ...identity, kind: Schema.Literal('focuser'), readings: FocuserReadings }),
-  Schema.Struct({ ...identity, kind: Schema.Literal('weather'), readings: WeatherReadings }),
-  Schema.Struct({ ...identity, kind: Schema.Literal('switch'), readings: SwitchReadings, channels: Schema.Array(SwitchChannel) }),
+  Schema.Struct({ ...identity, kind: Schema.Literal('box'), readings: BoxReadings, channels: Schema.Array(SwitchChannel) }),
 ])
 
 export type Device = typeof Device.Type

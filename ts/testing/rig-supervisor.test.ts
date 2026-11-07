@@ -14,7 +14,7 @@ const devices = [
   { id: 'guide', usb: '03c3:2209', driver: 'indi_asi_ccd' },
   { id: 'focuser', usb: '03c3:1f10', driver: 'indi_asi_focuser' },
   { id: 'mount', serial: '/dev/serial/by-id/mount' },
-  { id: 'weather', serial: '/dev/serial/by-id/weather' },
+  { id: 'box', serial: '/dev/serial/by-id/box' },
 ]
 
 type Reason = 'unavailable' | 'disconnected' | 'starting' | 'busy' | undefined
@@ -24,15 +24,14 @@ interface FakeDevice {
   readings?: Record<string, unknown>
 }
 
-const names: Record<string, string> = { primary: 'ZWO CCD 2600', guide: 'ZWO CCD 220', focuser: 'ZWO EAF', mount: 'ZWO AM5', weather: 'Pegasus PPBA', switch: 'Pegasus PPBA' }
-const domains: Record<string, string> = { switch: 'Pegasus_PPBA', weather: 'Pegasus_PPBA' }
+const names: Record<string, string> = { primary: 'ZWO CCD 2600', guide: 'ZWO CCD 220', focuser: 'ZWO EAF', mount: 'ZWO AM5', box: 'Pegasus PPBA' }
 
 /** A fake Cria: serves a mutable /v2/state over real HTTP and records every POST. */
 class FakeCria {
   commandsEnabled = true
   reachable = true
   devices: Record<string, FakeDevice> = {}
-  operations: Array<{ deviceId: string; failureDomain: string; state: 'running' | 'settled'; kind: string }> = []
+  operations: Array<{ deviceId: string; state: 'running' | 'settled'; kind: string }> = []
   posts: Array<Record<string, unknown>> = []
   answer: { status: number; body: unknown } = { status: 202, body: {} }
   server: Server = createServer((request, response) => void this.handle(request, response))
@@ -65,7 +64,6 @@ class FakeCria {
         id,
         kind: 'camera',
         name: names[id],
-        failureDomain: domains[id] ?? id,
         availability: device.reason ? { ready: false, reason: device.reason, message: device.reason } : { ready: true },
         readings: device.readings ?? {},
       })),
@@ -225,15 +223,15 @@ describe('rule a: a missing device whose hardware is present gets its driver res
     const { cria, present, fifo, poll, build } = current
 
     for (const device of Object.values(cria.devices)) device.reason = 'unavailable'
-    for (const id of ['primary', 'guide', 'focuser', 'mount', 'weather']) present.add(id)
+    for (const id of ['primary', 'guide', 'focuser', 'mount', 'box']) present.add(id)
     await poll(build(), 6)
 
     expect(fifo).toEqual([])
   })
 
   it.each([
-    ['an operation open on the same driver’s other device', (c: FakeCria) => c.operations.push({ deviceId: 'guide', failureDomain: 'guide', state: 'running', kind: 'capture' })],
-    ['an operation open on the missing device’s own domain', (c: FakeCria) => c.operations.push({ deviceId: 'primary', failureDomain: 'primary', state: 'running', kind: 'device-connect' })],
+    ['an operation open on the same driver’s other device', (c: FakeCria) => c.operations.push({ deviceId: 'guide', state: 'running', kind: 'capture' })],
+    ['an operation open on the missing device itself', (c: FakeCria) => c.operations.push({ deviceId: 'primary', state: 'running', kind: 'device-connect' })],
     ['the same driver’s other camera exposing', (c: FakeCria) => void (c.devices.guide!.readings = { activity: { status: 'fresh', value: 'exposing' } })],
   ])('does not restart a driver with %s, and does once that clears', async (_name, block) => {
     const { cria, present, fifo, poll, build } = current
@@ -257,7 +255,7 @@ describe('rule a: a missing device whose hardware is present gets its driver res
 
     cria.devices.primary!.reason = 'unavailable'
     present.add('primary')
-    cria.operations.push({ deviceId: 'primary', failureDomain: 'primary', state: 'settled', kind: 'capture' }, { deviceId: 'focuser', failureDomain: 'focuser', state: 'running', kind: 'focuser-move' })
+    cria.operations.push({ deviceId: 'primary', state: 'settled', kind: 'capture' }, { deviceId: 'focuser', state: 'running', kind: 'focuser-move' })
     await poll(build(), 2)
 
     expect(fifo.map(entry => entry.line)).toEqual(['stop indi_asi_ccd', 'start indi_asi_ccd'])
@@ -401,7 +399,7 @@ describe('rule b: a defined, disconnected device whose hardware is present gets 
     await poll(supervisor, 2)
     expect(cria.posts).toHaveLength(1)
 
-    cria.operations.push({ deviceId: 'mount', failureDomain: 'mount', state: 'running', kind: 'device-connect' })
+    cria.operations.push({ deviceId: 'mount', state: 'running', kind: 'device-connect' })
     await poll(supervisor, 30)
     expect(cria.posts).toHaveLength(1)
 
@@ -414,22 +412,6 @@ describe('rule b: a defined, disconnected device whose hardware is present gets 
     // attempts reset when it connected, so the wait is the 10 s step again, not 30 s
     await poll(supervisor, 2)
     expect(cria.posts).toHaveLength(3)
-  })
-
-  it('does nothing while another operation is open on the same INDI device (the Pegasus switch and weather share one)', async () => {
-    const { cria, present, poll, build } = current
-
-    cria.devices.weather!.reason = 'disconnected'
-    present.add('weather')
-    cria.operations.push({ deviceId: 'switch', failureDomain: 'Pegasus_PPBA', state: 'running', kind: 'switch-set' })
-    const supervisor = build()
-
-    await poll(supervisor, 5)
-    expect(cria.posts).toEqual([])
-
-    cria.operations.length = 0
-    await poll(supervisor, 1)
-    expect(cria.posts.map(post => post.deviceId)).toEqual(['weather'])
   })
 
   it('does nothing while commands are disabled', async () => {
@@ -517,7 +499,7 @@ describe('guards', () => {
 
     cria.devices.primary!.reason = 'unavailable'
     present.add('primary')
-    cria.operations.push({ deviceId: 'guide', failureDomain: 'guide', state: 'running', kind: 'capture' })
+    cria.operations.push({ deviceId: 'guide', state: 'running', kind: 'capture' })
     await poll(build(), 20)
 
     expect(logs.filter(line => line.includes('not restarting'))).toHaveLength(1)

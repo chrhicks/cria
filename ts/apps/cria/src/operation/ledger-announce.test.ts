@@ -1,6 +1,6 @@
 import { Deferred, Effect, Fiber } from 'effect'
 import { describe, expect, it } from 'vitest'
-import { DeviceId, FailureDomain, InstanceId, RequestId } from '@cria/wire'
+import { DeviceId, InstanceId, RequestId } from '@cria/wire'
 import { makeLedger, type LedgerDevice } from './ledger.js'
 
 const uuid = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`
@@ -8,7 +8,7 @@ const instanceId = InstanceId.make(uuid(1))
 const confirmed = { values: {}, image: null }
 
 function device(id: string, work: LedgerDevice['work']): LedgerDevice {
-  return { id: DeviceId.make(id), kind: 'camera', failureDomain: FailureDomain.make(id), work }
+  return { id: DeviceId.make(id), kind: 'camera', work }
 }
 
 describe('onSettled', () => {

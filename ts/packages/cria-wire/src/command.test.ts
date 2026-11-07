@@ -11,7 +11,7 @@ describe('command table', () => {
   it('names the device kind that runs each command', () => {
     expectTypeOf<DeviceFor<'capture'>>().toEqualTypeOf<'camera'>()
     expectTypeOf<DeviceFor<'device-connect'>>().toEqualTypeOf<'any'>()
-    expect([commands.capture.device, commands['switch-set'].device, commands['device-connect'].device]).toEqual(['camera', 'switch', 'any'])
+    expect([commands.capture.device, commands['switch-set'].device, commands['device-connect'].device]).toEqual(['camera', 'box', 'any'])
   })
 
   it('keys each row schema by its own kind', () => {
@@ -25,9 +25,9 @@ describe('command table', () => {
       readonly declinationDegrees: number
       readonly coordinateSystem: 'topocentric' | 'j2000'
     }>()
-    expectTypeOf<DeviceBody<'switch'>>().toEqualTypeOf<{
-      readonly kind: 'switch'
-      readonly readings: ReadingsOf<'switch'>
+    expectTypeOf<DeviceBody<'box'>>().toEqualTypeOf<{
+      readonly kind: 'box'
+      readonly readings: ReadingsOf<'box'>
       readonly channels: ReadonlyArray<typeof SwitchChannel.Type>
     }>()
   })

@@ -28,7 +28,7 @@ What changes for the rig:
   whole exposure" problem (Vela PR #110) does not exist here.
 
 Some things do not change. Vela owns runs, decisions, processing and archives. Cria owns
-current device state and one bounded operation at a time per failure domain. Runs
+current device state and one bounded operation at a time per device. Runs
 are ephemeral. Images are a rolling set. An uncertain outcome on any device, the mount included, settles `uncertain` and holds nothing: the next command is accepted. Cria never resends a command blindly.
 
 ## The layers
@@ -42,14 +42,14 @@ layers above it in this list.
    They encode "no blind replay" and
    "honest state" once, so capabilities do not each derive them again.
 3. **Capabilities** (`apps/cria/src/capability`). Camera, mount, focuser,
-   weather, power (switch) and connection. Each is an INDI device seen through the
+   box (the Pegasus power box) and connection. Each is an INDI device seen through the
    disciplines. `observe` returns Readings, and every command returns an Outcome.
    Capabilities never see XML or sockets. They see `IndiDevice` (properties,
    states, `send`) behind the INDI boundary.
 4. **Workflows run by Run** (`apps/cria/src/operation`). Each wire operation kind
    (`capture`, `focuser-move`, `mount-slew`, and the others) is a short workflow
    body over one capability. The ledger (`ledger.ts`, one per rig) admits it, and
-   the failure domain's `Run` executes it with single flight, progress, stop by
+   the device's `Run` executes it with single flight, progress, stop by
    interruption, and a settled Outcome.
 
 Two boundaries sit around the layers and map to no primitive on purpose:
@@ -226,7 +226,7 @@ and the outcome comes from the body's own exit. So a cancel during a setting, or
 after a motion finished, reports what really happened (`confirmed`), and `stopped`
 means nothing physical happened or a stop confirmed it.
 
-Cria has one Run per failure domain. Each wire operation is one execution, with the
+Cria has one Run per device. Each wire operation is one execution, with the
 operation ID as its run ID. Only the ledger starts a Run, so Run's `busy` refusal
 cannot happen there. If it does, it is a ledger bug, and the operation settles
 `uncertain: unexpected-error`.
@@ -333,7 +333,7 @@ the same tag in their doc comment.
 | `packages/recording/src/reader.ts` | | `readRecording`, `readManifest`, `readPrunedFrames` and `verifyRecording` |
 | `packages/recording-archive/src/` | | `cria-archive`: the plan of which frames to keep (`plan.ts`, pure), the evidence it reads (`evidence.ts`), the source (errai over ssh or a local folder), pack, check and the six steps (see "Archiving a recording") |
 | `packages/cria-wire/src/values.ts` | View | `Reading`, `Outcome`, `Timestamp`, `Json` as wire schemas |
-| `packages/cria-wire/src/ids.ts` | View | Branded IDs: `InstanceId`, `OperationId`, `ImageId`, `BindingId` (UUIDs), `DeviceId`, `FailureDomain`, `RequestId` |
+| `packages/cria-wire/src/ids.ts` | View | Branded IDs: `InstanceId`, `OperationId`, `ImageId`, `BindingId` (UUIDs), `DeviceId`, `RequestId` |
 | `packages/cria-wire/src/command.ts` | View | The 15 operation kinds as one table: device kind, halt, parameter bounds |
 | `packages/cria-wire/src/device.ts` | View | `Device`, one shape per kind; `Availability`, readings per kind |
 | `packages/cria-wire/src/operation.ts` | View | `OperationRequest`, `Operation`, `Progress`, `Image` |
@@ -346,8 +346,7 @@ the same tag in their doc comment.
 | `apps/cria/src/capability/camera.ts` | Capability: camera | writeOnce, confirm, stoppable |
 | `apps/cria/src/capability/mount.ts` | Capability: mount | writeOnce, confirm, stoppable |
 | `apps/cria/src/capability/focuser.ts` | Capability: focuser | writeOnce, stoppable |
-| `apps/cria/src/capability/weather.ts` | Capability: weather | Readings only |
-| `apps/cria/src/capability/power.ts` | Capability: power (switch) | writeOnce, confirm |
+| `apps/cria/src/capability/box.ts` | Capability: box (weather readings and switch channels) | writeOnce, confirm |
 | `apps/cria/src/capability/connection.ts` | Capability: connection | writeOnce, confirm; serial port before connecting; device setup after |
 | `apps/cria/src/capability/setup.ts` | Capability: device setup | writeOnce, confirm; the table of setup steps per device kind (see "Device setup") |
 | `apps/cria/src/operation/workflows.ts` | Workflow bodies | One short body per operation kind over one capability, as a table keyed by kind |
@@ -362,7 +361,7 @@ the same tag in their doc comment.
 | `apps/cria/src/device.ts` | Composition | What a configured device is made of: its capability and its connection, per kind |
 | `apps/cria/src/rig.ts` | Composition | Builds the INDI client, devices, the ledger and the image store from config; device setup on each connection |
 | `apps/cria/src/recording.ts` | Composition | Opens the recorder from `record`, closes it with the rig's scope; a recorder that cannot open is logged |
-| `apps/cria/src/config.ts` | View, composition | The config schema with defaults, decoded once; failure domain from the INDI device name |
+| `apps/cria/src/config.ts` | View, composition | The config schema with defaults, decoded once |
 | `apps/cria/src/service.ts` | Composition | One scope for the whole process, served over HTTP |
 | `apps/cria/src/main.ts` | Composition | Process entry (`cria <config.json>`); SIGTERM closes the scope |
 
@@ -458,8 +457,8 @@ real drivers differ, the table lists both, and the first one present wins.
 | mount `siderealTimeHours` | none | Computed from the system clock and the site longitude |
 | mount `primaryAxisRates` | `TELESCOPE_SLEW_RATE` | Named rates with degrees per second, parsed from the labels |
 | focuser | `ABS_FOCUS_POSITION`, `FOCUS_MAX`, `FOCUS_TEMPERATURE`, `FOCUS_ABORT_MOTION` | `moving` is the position `Busy`; `maxStep` is the smallest of `FOCUS_MAX`, the position's maximum and the travel window's `max`; `minStep` the larger of the position's minimum and the window's `min` (see "The focuser travel window") |
-| weather | `WEATHER_PARAMETERS.WEATHER_TEMPERATURE`, `_HUMIDITY`, `_DEWPOINT`, and the rest | A missing element is `unsupported` |
-| switch channels | the configured `property.element` list | For example `POWER_CHANNELS.POWER_CHANNEL_1` (12 V master) |
+| box weather | `WEATHER_PARAMETERS.WEATHER_TEMPERATURE`, `_HUMIDITY`, `_DEWPOINT` | A missing element is `unsupported` |
+| box channels | the configured `property.element` list | For example `POWER_CHANNELS.POWER_CHANNEL_1` (12 V master) |
 
 Commands use the same properties: exposure `CCD_EXPOSURE`, abort
 `CCD_ABORT_EXPOSURE`, cooler `CCD_COOLER` and `CCD_TEMPERATURE`, slew
@@ -796,12 +795,11 @@ One shape per kind, so every reading has a typed value:
 
 ```ts
 Device = {
-  id: string; kind: 'camera' | 'mount' | 'focuser' | 'weather' | 'switch'
+  id: string; kind: 'camera' | 'mount' | 'focuser' | 'box'
   name: string                // the INDI device name
-  failureDomain: string
   availability: { ready: true } | { ready: false; reason: AvailabilityReason; message: string }
   readings: { ... per kind, below }
-  // kind 'switch' only:
+  // kind 'box' only (an empty array when none are configured):
   channels: Array<{ id, name, writable, minimum, maximum, step, on, value }>   // each a Reading
   // kind 'camera' only:
   lastCommandedSetpointC: { value: number; commandedAt: number } | null
@@ -814,8 +812,8 @@ AvailabilityReason = 'commands-disabled' | 'unavailable' | 'starting'
 `availability` says why a device cannot take a command now. The reasons, in order
 of precedence: commands disabled; indiserver or the driver gone;
 device disconnected; connection or name not fresh; device setup not run yet on
-this connection (`starting`, see "Device setup"); a Cria operation open in the
-failure domain. Work started by another INDI client does not make a device unavailable.
+this connection (`starting`, see "Device setup"); a Cria operation open on
+the device. Work started by another INDI client does not make a device unavailable.
 It shows in the readings (a camera's `activity` is `exposing`), and Cria refuses
 the operation as `failed: busy`.
 
@@ -831,8 +829,7 @@ Readings per kind. Values are named, not ASCOM integers:
 | camera | `activity` `'idle' \| 'exposing'`; `temperatureC`, `setpointC` (unsupported), `coolerOn`, `coolerPowerPercent`; `sensorWidthPixels`, `sensorHeightPixels`, `pixelWidthMicrons`, `pixelHeightMicrons`, `width`, `height`; `bayerPattern` `'mono' \| 'rggb' \| 'grbg' \| 'gbrg' \| 'bggr'`; `canAbortExposure`, `canSetTemperature`, `canGetCoolerPower`; `exposureMinimum`, `exposureMaximum`; `gain`, `gainMinimum`, `gainMaximum`, `offset`, `offsetMinimum`, `offsetMaximum` |
 | mount | `rightAscensionHours`, `declinationDegrees`, `siderealTimeHours`; `slewing`, `tracking`; `trackingRate` `'sidereal' \| 'lunar' \| 'solar'`; `pierSide` `'east' \| 'west' \| 'unknown'`; `coordinateSystem` `'topocentric' \| 'j2000'`; `latitudeDegrees`, `longitudeDegrees` (east positive), `elevationMeters`; `canSlew`, `canSetTracking`, `canFindHome`, `canMovePrimaryAxis`; `primaryAxisRates` `Array<{ name, degreesPerSecond }>` |
 | focuser | `position`, `moving`, `temperatureC`, `absolute`, `minStep`, `maxStep` (the usable window; both ends allowed except `maxStep` at the driver's top; see "The focuser travel window") |
-| weather | `temperatureC`, `humidityPercent`, `dewPointC` |
-| switch | `channelCount`; per channel `id`, `name`, `writable`, `minimum`, `maximum`, `step`, `on`, `value` |
+| box | `temperatureC`, `humidityPercent`, `dewPointC`, `channelCount`; per channel `id`, `name`, `writable`, `minimum`, `maximum`, `step`, `on`, `value` |
 
 ### Operation
 
@@ -844,7 +841,7 @@ Operation =                                  // one union on state; kind and par
       outcome: Outcome<{ values: Record<string, Json>; image: Image | null }> }
 
 Accepted = {
-  id, instanceId, requestId, deviceId, failureDomain
+  id, instanceId, requestId, deviceId
   kind: OperationKind; parameters: <the kind's parameters>
   acceptedAt: number
 }
@@ -1036,7 +1033,7 @@ stop the process. `ts/deploy/rig.errai.json` is the rig's config:
     { "id": "mount", "kind": "mount", "indiDevice": "ZWO AM5",
       "port": "/dev/serial/by-id/usb-ZWO_Systems_ZWO_Device_123456-if00",
       "site": { "latitudeDegrees": 33.45, "longitudeDegrees": -112.07, "elevationMeters": 331 } },
-    { "id": "switch", "kind": "switch", "indiDevice": "Pegasus PPBA",
+    { "id": "box", "kind": "box", "indiDevice": "Pegasus PPBA",
       "channels": [
         { "name": "12V ports", "property": "POWER_CHANNELS", "element": "POWER_CHANNEL_1" },
         { "name": "Dew A duty (%)", "property": "DEW_DUTY_CYCLES", "element": "DEW_CHANNEL_1",
@@ -1047,18 +1044,17 @@ stop the process. `ts/deploy/rig.errai.json` is the rig's config:
 }
 ```
 
-The example shows three of the rig's six devices. Every key but `imageDirectory`
+The example shows three of the rig's five devices. Every key but `imageDirectory`
 and `devices` has a default (the values above). `acknowledgeMs` is how long a
 driver has to acknowledge a command. `operationTimeoutMs` is the overrun allowance
 for a motion.
 `initializeTimeoutMs` is how long a cold device may take to connect through `device-connect`.
-Each device's failure domain is its INDI device, so the Pegasus weather and
-switch share one. A device connects only when `device-connect` asks it to (the
+A device connects only when `device-connect` asks it to (the
 rig supervisor does that on the rig), with the serial `port` written first. A
 failure leaves the device disconnected and says so. Cria never changes power or
 connects equipment implicitly.
 
-A switch
+A box
 channel's `automaticWhileOn` names another channel of the same device under
 which the driver sets this one by itself. Cria refuses a config
 whose `automaticWhileOn` names no other channel.
@@ -1275,7 +1271,7 @@ not mid-night), listens on the loopback interface and prints
 **One camera's frames are the clock.** Replay serves the frames of one camera
 (`CCD1`; by default the one with most frames, else `--camera`) in recorded
 order. Reserving frame *k* brings every property to what the drivers had said
-by the time frame *k* arrived: mount, weather, power and the camera's other
+by the time frame *k* arrived: mount, the power box and the camera's other
 properties jump together. Between frames nothing moves. What is not astronomy
 (how long an exposure takes, how long a fault lasts, timeouts) is
 real time, not scaled.
@@ -1413,7 +1409,7 @@ effect, because indiserver writes to each client in turn.
    refusal; the image store's cleanup, eviction and failed writes.
 5. **Fake INDI server.** For cases simulators cannot produce: a driver that never
    acknowledges, one that answers `Alert`, a stop that never confirms, a
-   connection dropped mid-exposure, a driver that disappears, a switch device,
+   connection dropped mid-exposure, a driver that disappears, a box with switch channels,
    the PPBA's
    dew duty under auto dew (`pegasusDew`), and the AM5 (`am5`): gotos refused
    until the site and time are written, a position published once a second and

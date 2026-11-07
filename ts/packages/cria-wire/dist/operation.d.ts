@@ -178,7 +178,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
     requestId: Schema.brand<Schema.String, "RequestId">;
     deviceId: Schema.brand<Schema.String, "DeviceId">;
     id: Schema.brand<Schema.String, "OperationId">;
-    failureDomain: Schema.brand<Schema.String, "FailureDomain">;
     acceptedAt: Schema.Number;
     state: Schema.Literal<"waiting">;
 }> | Schema.Struct<{
@@ -188,7 +187,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
     requestId: Schema.brand<Schema.String, "RequestId">;
     deviceId: Schema.brand<Schema.String, "DeviceId">;
     id: Schema.brand<Schema.String, "OperationId">;
-    failureDomain: Schema.brand<Schema.String, "FailureDomain">;
     acceptedAt: Schema.Number;
     state: Schema.Literal<"waiting">;
 }> | Schema.Struct<{
@@ -201,7 +199,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
     requestId: Schema.brand<Schema.String, "RequestId">;
     deviceId: Schema.brand<Schema.String, "DeviceId">;
     id: Schema.brand<Schema.String, "OperationId">;
-    failureDomain: Schema.brand<Schema.String, "FailureDomain">;
     acceptedAt: Schema.Number;
     state: Schema.Literal<"running">;
     startedAt: Schema.Number;
@@ -221,7 +218,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
     requestId: Schema.brand<Schema.String, "RequestId">;
     deviceId: Schema.brand<Schema.String, "DeviceId">;
     id: Schema.brand<Schema.String, "OperationId">;
-    failureDomain: Schema.brand<Schema.String, "FailureDomain">;
     acceptedAt: Schema.Number;
     state: Schema.Literal<"running">;
     startedAt: Schema.Number;
@@ -239,7 +235,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
     requestId: Schema.brand<Schema.String, "RequestId">;
     deviceId: Schema.brand<Schema.String, "DeviceId">;
     id: Schema.brand<Schema.String, "OperationId">;
-    failureDomain: Schema.brand<Schema.String, "FailureDomain">;
     acceptedAt: Schema.Number;
     state: Schema.Literal<"running">;
     startedAt: Schema.Number;
@@ -256,7 +251,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
     requestId: Schema.brand<Schema.String, "RequestId">;
     deviceId: Schema.brand<Schema.String, "DeviceId">;
     id: Schema.brand<Schema.String, "OperationId">;
-    failureDomain: Schema.brand<Schema.String, "FailureDomain">;
     acceptedAt: Schema.Number;
     state: Schema.Literal<"running">;
     startedAt: Schema.Number;
@@ -271,7 +265,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
     requestId: Schema.brand<Schema.String, "RequestId">;
     deviceId: Schema.brand<Schema.String, "DeviceId">;
     id: Schema.brand<Schema.String, "OperationId">;
-    failureDomain: Schema.brand<Schema.String, "FailureDomain">;
     acceptedAt: Schema.Number;
     state: Schema.Literal<"running">;
     startedAt: Schema.Number;
@@ -288,7 +281,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
     requestId: Schema.brand<Schema.String, "RequestId">;
     deviceId: Schema.brand<Schema.String, "DeviceId">;
     id: Schema.brand<Schema.String, "OperationId">;
-    failureDomain: Schema.brand<Schema.String, "FailureDomain">;
     acceptedAt: Schema.Number;
     state: Schema.Literal<"running">;
     startedAt: Schema.Number;
@@ -306,7 +298,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
     requestId: Schema.brand<Schema.String, "RequestId">;
     deviceId: Schema.brand<Schema.String, "DeviceId">;
     id: Schema.brand<Schema.String, "OperationId">;
-    failureDomain: Schema.brand<Schema.String, "FailureDomain">;
     acceptedAt: Schema.Number;
     state: Schema.Literal<"running">;
     startedAt: Schema.Number;
@@ -321,7 +312,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
     requestId: Schema.brand<Schema.String, "RequestId">;
     deviceId: Schema.brand<Schema.String, "DeviceId">;
     id: Schema.brand<Schema.String, "OperationId">;
-    failureDomain: Schema.brand<Schema.String, "FailureDomain">;
     acceptedAt: Schema.Number;
     state: Schema.Literal<"running">;
     startedAt: Schema.Number;
@@ -339,7 +329,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
     requestId: Schema.brand<Schema.String, "RequestId">;
     deviceId: Schema.brand<Schema.String, "DeviceId">;
     id: Schema.brand<Schema.String, "OperationId">;
-    failureDomain: Schema.brand<Schema.String, "FailureDomain">;
     acceptedAt: Schema.Number;
     state: Schema.Literal<"running">;
     startedAt: Schema.Number;
@@ -358,7 +347,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
     requestId: Schema.brand<Schema.String, "RequestId">;
     deviceId: Schema.brand<Schema.String, "DeviceId">;
     id: Schema.brand<Schema.String, "OperationId">;
-    failureDomain: Schema.brand<Schema.String, "FailureDomain">;
     acceptedAt: Schema.Number;
     state: Schema.Literal<"running">;
     startedAt: Schema.Number;
@@ -373,7 +361,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
     requestId: Schema.brand<Schema.String, "RequestId">;
     deviceId: Schema.brand<Schema.String, "DeviceId">;
     id: Schema.brand<Schema.String, "OperationId">;
-    failureDomain: Schema.brand<Schema.String, "FailureDomain">;
     acceptedAt: Schema.Number;
     state: Schema.Literal<"running">;
     startedAt: Schema.Number;
@@ -390,7 +377,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
     requestId: Schema.brand<Schema.String, "RequestId">;
     deviceId: Schema.brand<Schema.String, "DeviceId">;
     id: Schema.brand<Schema.String, "OperationId">;
-    failureDomain: Schema.brand<Schema.String, "FailureDomain">;
     acceptedAt: Schema.Number;
     state: Schema.Literal<"running">;
     startedAt: Schema.Number;
@@ -408,7 +394,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
     requestId: Schema.brand<Schema.String, "RequestId">;
     deviceId: Schema.brand<Schema.String, "DeviceId">;
     id: Schema.brand<Schema.String, "OperationId">;
-    failureDomain: Schema.brand<Schema.String, "FailureDomain">;
     acceptedAt: Schema.Number;
     state: Schema.Literal<"running">;
     startedAt: Schema.Number;
@@ -426,7 +411,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
     requestId: Schema.brand<Schema.String, "RequestId">;
     deviceId: Schema.brand<Schema.String, "DeviceId">;
     id: Schema.brand<Schema.String, "OperationId">;
-    failureDomain: Schema.brand<Schema.String, "FailureDomain">;
     acceptedAt: Schema.Number;
     state: Schema.Literal<"settled">;
     startedAt: Schema.Number;
@@ -523,7 +507,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
     requestId: Schema.brand<Schema.String, "RequestId">;
     deviceId: Schema.brand<Schema.String, "DeviceId">;
     id: Schema.brand<Schema.String, "OperationId">;
-    failureDomain: Schema.brand<Schema.String, "FailureDomain">;
     acceptedAt: Schema.Number;
     state: Schema.Literal<"settled">;
     startedAt: Schema.Number;
@@ -618,7 +601,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
     requestId: Schema.brand<Schema.String, "RequestId">;
     deviceId: Schema.brand<Schema.String, "DeviceId">;
     id: Schema.brand<Schema.String, "OperationId">;
-    failureDomain: Schema.brand<Schema.String, "FailureDomain">;
     acceptedAt: Schema.Number;
     state: Schema.Literal<"settled">;
     startedAt: Schema.Number;
@@ -712,7 +694,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
     requestId: Schema.brand<Schema.String, "RequestId">;
     deviceId: Schema.brand<Schema.String, "DeviceId">;
     id: Schema.brand<Schema.String, "OperationId">;
-    failureDomain: Schema.brand<Schema.String, "FailureDomain">;
     acceptedAt: Schema.Number;
     state: Schema.Literal<"settled">;
     startedAt: Schema.Number;
@@ -804,7 +785,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
     requestId: Schema.brand<Schema.String, "RequestId">;
     deviceId: Schema.brand<Schema.String, "DeviceId">;
     id: Schema.brand<Schema.String, "OperationId">;
-    failureDomain: Schema.brand<Schema.String, "FailureDomain">;
     acceptedAt: Schema.Number;
     state: Schema.Literal<"settled">;
     startedAt: Schema.Number;
@@ -898,7 +878,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
     requestId: Schema.brand<Schema.String, "RequestId">;
     deviceId: Schema.brand<Schema.String, "DeviceId">;
     id: Schema.brand<Schema.String, "OperationId">;
-    failureDomain: Schema.brand<Schema.String, "FailureDomain">;
     acceptedAt: Schema.Number;
     state: Schema.Literal<"settled">;
     startedAt: Schema.Number;
@@ -993,7 +972,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
     requestId: Schema.brand<Schema.String, "RequestId">;
     deviceId: Schema.brand<Schema.String, "DeviceId">;
     id: Schema.brand<Schema.String, "OperationId">;
-    failureDomain: Schema.brand<Schema.String, "FailureDomain">;
     acceptedAt: Schema.Number;
     state: Schema.Literal<"settled">;
     startedAt: Schema.Number;
@@ -1085,7 +1063,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
     requestId: Schema.brand<Schema.String, "RequestId">;
     deviceId: Schema.brand<Schema.String, "DeviceId">;
     id: Schema.brand<Schema.String, "OperationId">;
-    failureDomain: Schema.brand<Schema.String, "FailureDomain">;
     acceptedAt: Schema.Number;
     state: Schema.Literal<"settled">;
     startedAt: Schema.Number;
@@ -1180,7 +1157,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
     requestId: Schema.brand<Schema.String, "RequestId">;
     deviceId: Schema.brand<Schema.String, "DeviceId">;
     id: Schema.brand<Schema.String, "OperationId">;
-    failureDomain: Schema.brand<Schema.String, "FailureDomain">;
     acceptedAt: Schema.Number;
     state: Schema.Literal<"settled">;
     startedAt: Schema.Number;
@@ -1276,7 +1252,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
     requestId: Schema.brand<Schema.String, "RequestId">;
     deviceId: Schema.brand<Schema.String, "DeviceId">;
     id: Schema.brand<Schema.String, "OperationId">;
-    failureDomain: Schema.brand<Schema.String, "FailureDomain">;
     acceptedAt: Schema.Number;
     state: Schema.Literal<"settled">;
     startedAt: Schema.Number;
@@ -1368,7 +1343,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
     requestId: Schema.brand<Schema.String, "RequestId">;
     deviceId: Schema.brand<Schema.String, "DeviceId">;
     id: Schema.brand<Schema.String, "OperationId">;
-    failureDomain: Schema.brand<Schema.String, "FailureDomain">;
     acceptedAt: Schema.Number;
     state: Schema.Literal<"settled">;
     startedAt: Schema.Number;
@@ -1462,7 +1436,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
     requestId: Schema.brand<Schema.String, "RequestId">;
     deviceId: Schema.brand<Schema.String, "DeviceId">;
     id: Schema.brand<Schema.String, "OperationId">;
-    failureDomain: Schema.brand<Schema.String, "FailureDomain">;
     acceptedAt: Schema.Number;
     state: Schema.Literal<"settled">;
     startedAt: Schema.Number;
@@ -1557,7 +1530,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
     requestId: Schema.brand<Schema.String, "RequestId">;
     deviceId: Schema.brand<Schema.String, "DeviceId">;
     id: Schema.brand<Schema.String, "OperationId">;
-    failureDomain: Schema.brand<Schema.String, "FailureDomain">;
     acceptedAt: Schema.Number;
     state: Schema.Literal<"settled">;
     startedAt: Schema.Number;

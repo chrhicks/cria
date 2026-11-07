@@ -23,7 +23,7 @@ describe('the fake-rig scenarios', () => {
       ['focuser-short', 'derived'],
       ['focuser-silent', 'derived'],
       ['switch-ignored', 'derived'],
-      ['weather-silent', 'derived'],
+      ['box-silent', 'derived'],
       ['guide-loop', 'recorded'],
       ['mount-home-stop', 'recorded'],
       ['mount-power-cut', 'recorded'],
@@ -42,7 +42,7 @@ describe('the fake-rig scenarios', () => {
       const rig = await startRig(scenario, { acknowledgeMs: 600 })
 
       stop = rig.stop
-      await rig.cria.waitFor(allReady(scenario.boxDisconnected ? ['primary', 'guide', 'focuser', 'mount'] : ['primary', 'guide', 'focuser', 'mount', 'weather', 'switch']))
+      await rig.cria.waitFor(allReady(scenario.boxDisconnected ? ['primary', 'guide', 'focuser', 'mount'] : ['primary', 'guide', 'focuser', 'mount', 'box']))
       const ending = await scenario.drive(rig)
 
       expect([ending.kind, ending.reason]).toEqual([scenario.outcome.kind, scenario.outcome.reason])

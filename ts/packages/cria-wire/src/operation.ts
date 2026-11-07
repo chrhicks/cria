@@ -6,7 +6,7 @@
  */
 import { Schema } from 'effect'
 import { CommandSchema, HaltCommandSchema } from './command.js'
-import { DeviceId, FailureDomain, ImageId, InstanceId, OperationId, RequestId } from './ids.js'
+import { DeviceId, ImageId, InstanceId, OperationId, RequestId } from './ids.js'
 import { MotionRecord } from './motion.js'
 import { Json, Outcome, Timestamp } from './values.js'
 
@@ -65,7 +65,7 @@ export const Progress = Schema.Struct({
 
 export type Progress = typeof Progress.Type
 
-const accepted = { id: OperationId, ...requestIdentity, failureDomain: FailureDomain, acceptedAt: Timestamp }
+const accepted = { id: OperationId, ...requestIdentity, acceptedAt: Timestamp }
 
 const settled = {
   ...accepted,

@@ -99,7 +99,7 @@ export const commands = table({
   },
   'mount-home': { device: 'mount', halt: false, parameters: empty },
   'mount-stop': { device: 'mount', halt: true, parameters: empty },
-  'switch-set': { device: 'switch', halt: false, parameters: Schema.Struct({ channelId: integer(0, 63), value: between(-1e12, 1e12) }) },
+  'switch-set': { device: 'box', halt: false, parameters: Schema.Struct({ channelId: integer(0, 63), value: between(-1e12, 1e12) }) },
   'device-connect': { device: 'any', halt: false, parameters: Schema.Struct({ connected: Schema.Boolean }) },
 })
 

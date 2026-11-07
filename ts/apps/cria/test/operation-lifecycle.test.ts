@@ -156,8 +156,8 @@ describe('one mount', () => {
   })
 })
 
-describe('two failure domains', () => {
-  it('one request ID sent to two domains at once admits exactly one operation', async () => {
+describe('two devices', () => {
+  it('one request ID sent to two devices at once admits exactly one operation', async () => {
     addCamera(fake, camera)
     fake.behaviour = (fake, vector, values) => (vector.device === camera ? exposeNormally()(fake, vector, values) : moveMount()(fake, vector, values))
     const cria = await startCria(fake.port, [

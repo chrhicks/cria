@@ -4,7 +4,7 @@
 import { Effect, Schedule, Scope, Stream } from 'effect'
 import { makeIndiClient, type DeviceEvent, type IndiClient, type IndiDevice, type TrafficTap } from '@cria/indi'
 import type { Recorder } from '@cria/recording'
-import type { FailureDomain, InstanceId } from '@cria/wire'
+import type { InstanceId } from '@cria/wire'
 import type { CapabilityContext } from './capability/context.js'
 import { switchElement, takeSnapshot } from './capability/fields.js'
 import { trackDefinitions } from './capability/definitions.js'
@@ -20,7 +20,6 @@ import { makeCriaStream, type OpenPublisher } from './stream.js'
 
 export interface RigDevice extends Equipment {
   readonly config: DeviceConfig
-  readonly failureDomain: FailureDomain
   readonly indi: IndiDevice
   readonly setup: DeviceSetup
 }
@@ -70,7 +69,6 @@ export function makeRig(config: Config, options: { readonly recording?: Recordin
 
       devices.push({
         config: deviceConfig,
-        failureDomain: deviceConfig.failureDomain,
         indi,
         setup,
         ...equipment,
@@ -89,7 +87,6 @@ export function makeRig(config: Config, options: { readonly recording?: Recordin
       devices: devices.map(device => ({
         id: device.config.id,
         kind: device.config.kind,
-        failureDomain: device.failureDomain,
         work: workflowFor(device, workflows),
       })),
     })

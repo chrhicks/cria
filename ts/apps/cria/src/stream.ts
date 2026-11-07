@@ -85,7 +85,7 @@ export function makeCriaStream(
           publisher.publish('rig-dev.cria.write', entries.cria('write', { device: wireDevice(wireDevices, xml), property: firstTagName.exec(xml)?.[1] ?? '', conn, xml }))
         },
       },
-      settled: ({ failureDomain: _domain, ...operation }) =>
+      settled: operation =>
         publisher.publish('rig-dev.cria.settled', entries.cria('settled', operation)),
     }
   })

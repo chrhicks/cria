@@ -53,7 +53,6 @@ export function projectDevice(rig: Rig, device: RigDevice, busy: boolean) {
     return {
       id: device.config.id,
       name: device.config.indiDevice,
-      failureDomain: device.failureDomain,
       availability,
       ...body,
     } satisfies Device
@@ -63,7 +62,7 @@ export function projectDevice(rig: Rig, device: RigDevice, busy: boolean) {
 export function projectState(rig: Rig, snapshot: LedgerSnapshot) {
   return Effect.gen(function* () {
     const generatedAt = Date.now()
-    const devices = yield* Effect.forEach(rig.devices, device => projectDevice(rig, device, snapshot.busy(device.failureDomain)))
+    const devices = yield* Effect.forEach(rig.devices, device => projectDevice(rig, device, snapshot.busy(device.config.id)))
 
     const state: State = {
       protocolVersion,

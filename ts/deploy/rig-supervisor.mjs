@@ -318,9 +318,8 @@ export function createSupervisor(dependencies) {
       }
 
       const ids = new Set(served.map(device => device.id))
-      const domains = new Set(served.map(device => device.failureDomain))
       const blockers = [
-        ...state.operations.filter(operation => isOpen(operation) && (ids.has(operation.deviceId) || domains.has(operation.failureDomain))).map(operation => `${operation.kind} open on ${operation.deviceId}`),
+        ...state.operations.filter(operation => isOpen(operation) && ids.has(operation.deviceId)).map(operation => `${operation.kind} open on ${operation.deviceId}`),
         ...activeOn(served),
       ]
 
@@ -354,7 +353,7 @@ export function createSupervisor(dependencies) {
       }
       if (configured.driver && restarting.has(configured.driver)) continue
 
-      const open = state.operations.some(operation => isOpen(operation) && (operation.deviceId === current.id || operation.failureDomain === current.failureDomain))
+      const open = state.operations.some(operation => isOpen(operation) && operation.deviceId === current.id)
 
       if (entry.quiet) {
         const cleared = (entry.quiet === 'commands-disabled' && state.commandsEnabled) || (entry.quiet === 'device-busy' && !open)

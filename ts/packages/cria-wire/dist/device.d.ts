@@ -3,7 +3,7 @@
  * Values are named (`'east'`, `'sidereal'`), not ASCOM integers.
  */
 import { Schema } from 'effect';
-export declare const deviceKinds: readonly ['camera', 'mount', 'focuser', 'weather', 'switch'];
+export declare const deviceKinds: readonly ['camera', 'mount', 'focuser', 'box'];
 export type DeviceKind = (typeof deviceKinds)[number];
 export declare const coordinateFrames: readonly ['topocentric', 'j2000'];
 export declare const availabilityReasons: readonly ['commands-disabled', 'unavailable', 'starting', 'disconnected', 'stale', 'busy'];
@@ -689,7 +689,7 @@ export declare const FocuserReadings: Schema.Struct<{
         readonly message: Schema.optionalKey<Schema.String>;
     }>]>;
 }>;
-export declare const WeatherReadings: Schema.Struct<{
+export declare const BoxReadings: Schema.Struct<{
     readonly connected: Schema.Union<readonly [Schema.Struct<{
         readonly status: Schema.Literal<"fresh">;
         readonly value: Schema.Boolean;
@@ -749,34 +749,6 @@ export declare const WeatherReadings: Schema.Struct<{
     }>, Schema.Struct<{
         readonly status: Schema.Literal<"stale">;
         readonly value: Schema.Number;
-        readonly observedAt: Schema.Number;
-    }>, Schema.Struct<{
-        readonly status: Schema.Literal<"unavailable">;
-        readonly reason: Schema.Literals<readonly ["not-read", "unsupported", "failed"]>;
-        readonly message: Schema.optionalKey<Schema.String>;
-    }>]>;
-}>;
-export declare const SwitchReadings: Schema.Struct<{
-    readonly connected: Schema.Union<readonly [Schema.Struct<{
-        readonly status: Schema.Literal<"fresh">;
-        readonly value: Schema.Boolean;
-        readonly observedAt: Schema.Number;
-    }>, Schema.Struct<{
-        readonly status: Schema.Literal<"stale">;
-        readonly value: Schema.Boolean;
-        readonly observedAt: Schema.Number;
-    }>, Schema.Struct<{
-        readonly status: Schema.Literal<"unavailable">;
-        readonly reason: Schema.Literals<readonly ["not-read", "unsupported", "failed"]>;
-        readonly message: Schema.optionalKey<Schema.String>;
-    }>]>;
-    readonly name: Schema.Union<readonly [Schema.Struct<{
-        readonly status: Schema.Literal<"fresh">;
-        readonly value: Schema.String;
-        readonly observedAt: Schema.Number;
-    }>, Schema.Struct<{
-        readonly status: Schema.Literal<"stale">;
-        readonly value: Schema.String;
         readonly observedAt: Schema.Number;
     }>, Schema.Struct<{
         readonly status: Schema.Literal<"unavailable">;
@@ -906,7 +878,6 @@ export declare const SwitchChannel: Schema.Struct<{
 declare const identity: {
     id: Schema.brand<Schema.String, "DeviceId">;
     name: Schema.String;
-    failureDomain: Schema.brand<Schema.String, "FailureDomain">;
     availability: Schema.Union<readonly [Schema.Struct<{
         readonly ready: Schema.Literal<true>;
     }>, Schema.Struct<{
@@ -918,7 +889,6 @@ declare const identity: {
 export declare const Device: Schema.Union<readonly [Schema.Struct<{
     readonly id: Schema.brand<Schema.String, "DeviceId">;
     readonly name: Schema.String;
-    readonly failureDomain: Schema.brand<Schema.String, "FailureDomain">;
     readonly availability: Schema.Union<readonly [Schema.Struct<{
         readonly ready: Schema.Literal<true>;
     }>, Schema.Struct<{
@@ -1262,7 +1232,6 @@ export declare const Device: Schema.Union<readonly [Schema.Struct<{
 }>, Schema.Struct<{
     readonly id: Schema.brand<Schema.String, "DeviceId">;
     readonly name: Schema.String;
-    readonly failureDomain: Schema.brand<Schema.String, "FailureDomain">;
     readonly availability: Schema.Union<readonly [Schema.Struct<{
         readonly ready: Schema.Literal<true>;
     }>, Schema.Struct<{
@@ -1516,7 +1485,6 @@ export declare const Device: Schema.Union<readonly [Schema.Struct<{
 }>, Schema.Struct<{
     readonly id: Schema.brand<Schema.String, "DeviceId">;
     readonly name: Schema.String;
-    readonly failureDomain: Schema.brand<Schema.String, "FailureDomain">;
     readonly availability: Schema.Union<readonly [Schema.Struct<{
         readonly ready: Schema.Literal<true>;
     }>, Schema.Struct<{
@@ -1634,7 +1602,6 @@ export declare const Device: Schema.Union<readonly [Schema.Struct<{
 }>, Schema.Struct<{
     readonly id: Schema.brand<Schema.String, "DeviceId">;
     readonly name: Schema.String;
-    readonly failureDomain: Schema.brand<Schema.String, "FailureDomain">;
     readonly availability: Schema.Union<readonly [Schema.Struct<{
         readonly ready: Schema.Literal<true>;
     }>, Schema.Struct<{
@@ -1642,7 +1609,7 @@ export declare const Device: Schema.Union<readonly [Schema.Struct<{
         readonly reason: Schema.Literals<readonly ["commands-disabled", "unavailable", "starting", "disconnected", "stale", "busy"]>;
         readonly message: Schema.String;
     }>]>;
-    readonly kind: Schema.Literal<"weather">;
+    readonly kind: Schema.Literal<"box">;
     readonly readings: Schema.Struct<{
         readonly connected: Schema.Union<readonly [Schema.Struct<{
             readonly status: Schema.Literal<"fresh">;
@@ -1703,46 +1670,6 @@ export declare const Device: Schema.Union<readonly [Schema.Struct<{
         }>, Schema.Struct<{
             readonly status: Schema.Literal<"stale">;
             readonly value: Schema.Number;
-            readonly observedAt: Schema.Number;
-        }>, Schema.Struct<{
-            readonly status: Schema.Literal<"unavailable">;
-            readonly reason: Schema.Literals<readonly ["not-read", "unsupported", "failed"]>;
-            readonly message: Schema.optionalKey<Schema.String>;
-        }>]>;
-    }>;
-}>, Schema.Struct<{
-    readonly id: Schema.brand<Schema.String, "DeviceId">;
-    readonly name: Schema.String;
-    readonly failureDomain: Schema.brand<Schema.String, "FailureDomain">;
-    readonly availability: Schema.Union<readonly [Schema.Struct<{
-        readonly ready: Schema.Literal<true>;
-    }>, Schema.Struct<{
-        readonly ready: Schema.Literal<false>;
-        readonly reason: Schema.Literals<readonly ["commands-disabled", "unavailable", "starting", "disconnected", "stale", "busy"]>;
-        readonly message: Schema.String;
-    }>]>;
-    readonly kind: Schema.Literal<"switch">;
-    readonly readings: Schema.Struct<{
-        readonly connected: Schema.Union<readonly [Schema.Struct<{
-            readonly status: Schema.Literal<"fresh">;
-            readonly value: Schema.Boolean;
-            readonly observedAt: Schema.Number;
-        }>, Schema.Struct<{
-            readonly status: Schema.Literal<"stale">;
-            readonly value: Schema.Boolean;
-            readonly observedAt: Schema.Number;
-        }>, Schema.Struct<{
-            readonly status: Schema.Literal<"unavailable">;
-            readonly reason: Schema.Literals<readonly ["not-read", "unsupported", "failed"]>;
-            readonly message: Schema.optionalKey<Schema.String>;
-        }>]>;
-        readonly name: Schema.Union<readonly [Schema.Struct<{
-            readonly status: Schema.Literal<"fresh">;
-            readonly value: Schema.String;
-            readonly observedAt: Schema.Number;
-        }>, Schema.Struct<{
-            readonly status: Schema.Literal<"stale">;
-            readonly value: Schema.String;
             readonly observedAt: Schema.Number;
         }>, Schema.Struct<{
             readonly status: Schema.Literal<"unavailable">;
