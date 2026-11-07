@@ -13,7 +13,7 @@
 // again blindly. Exit 0 worked, 1 bad arguments, 2 PHD2 said no, timed out or
 // could not be reached.
 //
-// The wire format is in docs/runtime.md ("PHD2 on errai"): requests are one JSON
+// The wire format is in docs/phd2.md: requests are one JSON
 // object per line, replies and events are JSON lines ending in CRLF. Node built-ins only.
 import { connect } from 'node:net'
 import { fileURLToPath } from 'node:url'

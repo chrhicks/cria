@@ -1,0 +1,13 @@
+[Unit]
+Description=Rig stream client: INDI wire and the journal to the dev stream; keeps retrying until indiserver and the broker answer
+After=indiserver.service
+Wants=indiserver.service
+StartLimitIntervalSec=0
+
+[Service]
+ExecStart=/usr/bin/node %h/dev/personal/cria-ts/ts/src/bin/recorder.ts %h/.config/rig-stream/client.json
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=default.target

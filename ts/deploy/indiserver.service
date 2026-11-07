@@ -1,5 +1,5 @@
 # One indiserver for every rig driver, started at login (linger) and restarted if
-# it dies. User unit: install to ~/.config/systemd/user/ (docs/runtime.md).
+# it dies. User unit: install to ~/.config/systemd/user/ (README.md).
 #
 # -r 0: indiserver never restarts a crashed driver by itself. The rig supervisor
 #       does that, and only when nothing is running on the device.
@@ -12,7 +12,7 @@
 # indiserver and every driver, waits in ExecStartPost until the drivers are up
 # (indi-ready.sh), and only then starts Cria and the supervisor again. Reason: on
 # 2026-11-03 three drivers went stale one by one, and restarting them separately
-# left Cria with stale copies (docs/runtime.md, "Restart").
+# left Cria with stale copies (README.md, "Restart").
 [Unit]
 StartLimitIntervalSec=0
 Description=INDI server for the rig drivers
