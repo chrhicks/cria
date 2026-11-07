@@ -573,7 +573,7 @@
           "parameters": {
             "connected": true
           },
-          "requestId": "startup-<request-1>",
+          "requestId": "setup-<request-1>",
           "settledAt": "<time>",
           "startedAt": "<time>",
           "state": "settled"
@@ -1147,7 +1147,7 @@
           "parameters": {
             "connected": true
           },
-          "requestId": "startup-<request-1>",
+          "requestId": "setup-<request-1>",
           "settledAt": "<time>",
           "startedAt": "<time>",
           "state": "settled"
@@ -2903,7 +2903,7 @@
       "parameters": {
         "connected": true
       },
-      "requestId": "startup-<request-1>",
+      "requestId": "setup-<request-1>",
       "settledAt": "<time>",
       "startedAt": "<time>",
       "state": "settled"
