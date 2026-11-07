@@ -20,7 +20,7 @@ const numberKeys = ['indiPort', 'pollMs', 'settlePolls', 'stopGapMs', 'minRestar
 
 export type WantedValue = number | boolean | string
 
-export type WantedProperties = Readonly<Record<string, Readonly<Record<string, WantedValue>>>>
+type WantedProperties = Readonly<Record<string, Readonly<Record<string, WantedValue>>>>
 
 export interface RigDevice {
   readonly id: string

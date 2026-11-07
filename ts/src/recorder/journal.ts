@@ -16,7 +16,7 @@ const JournalEntry = Schema.fromJsonString(
 
 const decodeEntry = Schema.decodeUnknownOption(JournalEntry)
 
-export interface JournalExclusions {
+interface JournalExclusions {
   readonly identifiers: ReadonlyArray<string>
   readonly unitPrefixes: ReadonlyArray<string>
 }

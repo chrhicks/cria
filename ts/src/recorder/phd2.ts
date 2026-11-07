@@ -6,7 +6,7 @@ export type Phd2Status =
   | { readonly status: 'closed' }
   | { readonly status: 'failed'; readonly error: string }
 
-export interface Phd2Settings {
+interface Phd2Settings {
   readonly host: string
   readonly port: number
   readonly reconnectSeconds: number

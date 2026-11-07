@@ -6,7 +6,7 @@ export type Action =
   | { readonly kind: 'restart-driver'; readonly driver: string; readonly why: string }
   | { readonly kind: 'log'; readonly line: string }
 
-export interface DeviceMemory {
+interface DeviceMemory {
   hardwareStreak: number
   missingStreak: number
   wasConnected: boolean
@@ -14,12 +14,12 @@ export interface DeviceMemory {
   reconnectedAt?: number
 }
 
-export interface DriverMemory {
+interface DriverMemory {
   restarts: number
   lastRestartAt?: number
 }
 
-export interface WriteMemory {
+interface WriteMemory {
   attempts: number
   at: number
 }
@@ -31,7 +31,7 @@ export interface Memory {
   said: Record<string, string>
 }
 
-export interface Observation {
+interface Observation {
   readonly now: number
   readonly snapshot: IndiSnapshot
   readonly hardware: Readonly<Record<string, boolean>>

@@ -11,7 +11,7 @@ export interface RunningIndiServer {
   readonly stop: () => Promise<void>
 }
 
-export async function freePort(): Promise<number> {
+async function freePort(): Promise<number> {
   return new Promise((resolve, reject) => {
     const server = net.createServer()
 

@@ -255,13 +255,11 @@ function describe(entry, subject) {
 }
 
 function tokenMatches(token, view) {
-  const field = /^(who|what|prop|state|kind|id|src|tag):(.+)$/.exec(token)
+  const field = /^(who|what|prop|state|kind|id|src):(.+)$/.exec(token)
 
   if (!field) return view.haystack.includes(token)
 
   const [, key, wanted] = field
-
-  if (key === 'tag') return view.entry.tags.some(tag => tag.toLowerCase().includes(wanted))
 
   const value = { who: view.who, what: view.what, prop: view.what, state: view.state, kind: view.entry.kind, id: view.entry.id, src: view.label }[key]
 
@@ -430,7 +428,6 @@ function moreOf(view, subject) {
     ['at', `${stamp.format(when)}.${String(when.getMilliseconds()).padStart(3, '0')} ET`],
     ['source', outer.source],
     ['rig', outer.rig],
-    ['tags', outer.tags.length > 0 ? outer.tags.join(', ') : 'none'],
     ['seq', view.seq],
   ]) facts.append(element('dt', '', name), element('dd', '', String(value)))
 

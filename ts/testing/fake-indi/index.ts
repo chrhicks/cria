@@ -1,1 +1,1 @@
-export { FakeIndi, connection, type Behaviour, type FakeElement, type FakeVector, type Value } from './server.ts'
+export { FakeIndi, connection } from './server.ts'

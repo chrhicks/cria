@@ -13,10 +13,10 @@ import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-export const profileName = 'Cria guide'
+const profileName = 'Cria guide'
 
 /** Written when the file has no ConfigVersion; without it PHD2 opens its modal first-run wizard. */
-export const configVersion = '2001'
+const configVersion = '2001'
 
 export const equipment = {
   indiHost: 'localhost',
@@ -87,7 +87,7 @@ function profileEntries(profileId) {
  */
 
 /** @param {string} text @returns {Ini} */
-export function parseIni(text) {
+function parseIni(text) {
   /** @type {Ini} */
   const ini = new Map([['', []]])
   let current = ''
@@ -120,7 +120,7 @@ function ensureGroup(ini, group) {
 }
 
 /** @param {Ini} ini @returns {string} */
-export function renderIni(ini) {
+function renderIni(ini) {
   const blocks = []
   for (const [group, lines] of ini) {
     const body = lines.map(line => ('raw' in line ? line.raw : `${line.key}=${line.value}`))
