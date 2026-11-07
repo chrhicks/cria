@@ -61,7 +61,7 @@ describe('a camera', () => {
     fake = new FakeIndi()
     await fake.start()
     fake.define(connection(camera))
-    await start([{ id: 'primary', kind: 'camera', indiDevice: camera }])
+    await start([{ id: 'primary', kind: 'camera', indiDevice: camera }], { definitionWaitMs: 100 })
 
     expect(await cria.connect('primary')).toEqual({ outcome: 'confirmed', setup: 'UPLOAD_MODE skipped: not defined' })
   })
@@ -82,6 +82,21 @@ describe('a mount', () => {
     expect(result.setup).toMatch(/^sent GEOGRAPHIC_COORD LAT=33.45 LONG=247.93\d* ELEV=331; sent TIME_UTC UTC=\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d OFFSET=0.00$/)
     expect(fake.received.filter(xml => /name="(GEOGRAPHIC_COORD|TIME_UTC)"/.test(xml)).map(xml => (xml.includes('GEOGRAPHIC_COORD') ? 'site' : 'time'))).toEqual(['site', 'time'])
     expect(Math.abs(Date.parse(`${String(fake.vector(mount, 'TIME_UTC').elements.UTC!.value)}Z`) - Date.now())).toBeLessThan(15_000)
+  })
+
+  it('waits for the site and time its driver defines only after connecting', async () => {
+    fake = new FakeIndi()
+    await fake.start()
+    fake.define(connection(mount, false))
+    await start([{ id: 'mount', kind: 'mount', indiDevice: mount, site }])
+
+    const result = cria.connect('mount')
+
+    await until('the mount to connect', () => fake.vector(mount, 'CONNECTION').elements.CONNECT!.value === true || undefined)
+    fake.define({ device: mount, name: 'GEOGRAPHIC_COORD', kind: 'number', perm: 'rw', state: 'Idle', elements: { LAT: { value: 0, min: -90, max: 90 }, LONG: { value: 0, max: 360 }, ELEV: { value: 0, min: -200, max: 10000 } } })
+    fake.define({ device: mount, name: 'TIME_UTC', kind: 'text', perm: 'rw', state: 'Ok', elements: { UTC: { value: '2000-01-01T00:56:31' }, OFFSET: { value: '0.00' } } })
+
+    expect((await result).setup).toMatch(/^sent GEOGRAPHIC_COORD .*; sent TIME_UTC /)
   })
 
   it('sets the time only when no site is configured', async () => {

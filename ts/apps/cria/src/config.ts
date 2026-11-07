@@ -29,6 +29,9 @@ export const ConfigSchema = Schema.Struct({
   confirmMs: Milliseconds(1000, 120_000).annotate({
     description: 'How long a driver has, after a setup write, to show the value applied.',
   }),
+  definitionWaitMs: Milliseconds(0, 60_000).annotate({
+    description: 'How long setup waits for a property the driver has not defined yet. INDI drivers define their device properties only after CONNECTION goes Ok, so right after a connect they arrive a moment later.',
+  }),
   connectTimeoutMs: Milliseconds(1000, 300_000).annotate({ description: 'How long a cold device may take to connect (Pegasus took 40-82 s on Windows).' }),
   streamClientConfig: Schema.optionalKey(Schema.String.annotate({ description: 'The rig stream client settings file. Absent, Cria does not publish.' })),
   devices: Schema.Array(Device).pipe(Schema.check(Schema.isBetweenLength(1, 16))),
@@ -43,6 +46,7 @@ export const defaults = {
   listen: { host: '127.0.0.1', port: 4319 },
   indi: { host: '127.0.0.1', port: 7624 },
   confirmMs: 15_000,
+  definitionWaitMs: 5_000,
   connectTimeoutMs: 120_000,
 }
 

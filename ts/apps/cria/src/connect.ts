@@ -14,6 +14,8 @@ interface Step {
 
 const sentPrecision = 1e-6
 
+type Settings = Pick<Config, 'confirmMs' | 'connectTimeoutMs' | 'definitionWaitMs'>
+
 const switchOn = (element: string) => (property: Property) => {
   const found = property.elements.get(element)
 
@@ -93,17 +95,38 @@ function stepsFor(device: DeviceConfig, now: number): ReadonlyArray<Step> {
 
 const describeValues = (values: Values) => Object.entries(values).map(([element, value]) => `${element}=${typeof value === 'boolean' ? (value ? 'On' : 'Off') : value}`).join(' ')
 
-function setUp(indi: IndiDevice, device: DeviceConfig, confirmMs: number): Effect.Effect<string, Ended> {
+function definedWithin(indi: IndiDevice, name: string, withinMs: number): Effect.Effect<Option.Option<Property>> {
+  return Effect.scoped(
+    Effect.gen(function* () {
+      const subscription = yield* indi.subscribe
+      const known = yield* indi.property(name)
+
+      if (Option.isSome(known)) return known
+
+      const defined = Effect.gen(function* () {
+        while (true) {
+          const event = yield* subscription.next
+
+          if (event.type === 'property' && event.origin === 'def' && event.property.name === name) return event.property
+        }
+      })
+
+      return yield* Effect.timeoutOption(defined, withinMs)
+    }),
+  )
+}
+
+function setUp(indi: IndiDevice, device: DeviceConfig, settings: Settings): Effect.Effect<string, Ended> {
   return Effect.gen(function* () {
     const notes: string[] = []
 
     for (const step of stepsFor(device, yield* Clock.currentTimeMillis)) {
-      const defined = yield* indi.property(step.property)
+      const defined = yield* definedWithin(indi, step.property, settings.definitionWaitMs)
 
       if (Option.isNone(defined)) notes.push(`${step.property} skipped: not defined`)
       else if (step.alreadyHolds?.(defined.value)) notes.push(`${step.property} already set`)
       else {
-        yield* change(indi, step.property, step.values, step.holds, confirmMs).pipe(
+        yield* change(indi, step.property, step.values, step.holds, settings.confirmMs).pipe(
           Effect.mapError(error => new Ended({ outcome: error.outcome, message: `setup: ${error.message}` })),
         )
         notes.push(`sent ${step.property} ${describeValues(step.values)}`)
@@ -114,7 +137,7 @@ function setUp(indi: IndiDevice, device: DeviceConfig, confirmMs: number): Effec
   })
 }
 
-function connection(indi: IndiDevice, device: DeviceConfig, connected: boolean, settings: Pick<Config, 'confirmMs' | 'connectTimeoutMs'>): Effect.Effect<void, Ended> {
+function connection(indi: IndiDevice, device: DeviceConfig, connected: boolean, settings: Settings): Effect.Effect<void, Ended> {
   return Effect.gen(function* () {
     const current = yield* indi.property('CONNECTION')
 
@@ -134,10 +157,10 @@ function connection(indi: IndiDevice, device: DeviceConfig, connected: boolean, 
   })
 }
 
-export function connectDevice(indi: IndiDevice, device: DeviceConfig, connected: boolean, settings: Pick<Config, 'confirmMs' | 'connectTimeoutMs'>): Effect.Effect<ConnectResult> {
+export function connectDevice(indi: IndiDevice, device: DeviceConfig, connected: boolean, settings: Settings): Effect.Effect<ConnectResult> {
   return Effect.gen(function* () {
     yield* connection(indi, device, connected, settings)
 
-    return connected ? { outcome: 'confirmed', setup: yield* setUp(indi, device, settings.confirmMs) } satisfies ConnectResult : { outcome: 'confirmed' } satisfies ConnectResult
+    return connected ? { outcome: 'confirmed', setup: yield* setUp(indi, device, settings) } satisfies ConnectResult : { outcome: 'confirmed' } satisfies ConnectResult
   }).pipe(Effect.match({ onFailure: ended => ({ outcome: ended.outcome, message: ended.message }) satisfies ConnectResult, onSuccess: result => result }))
 }

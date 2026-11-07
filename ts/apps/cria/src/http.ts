@@ -43,6 +43,6 @@ export function makeHttpServer(rig: Rig): Server {
 
       response.writeHead(reply.status, { 'content-type': 'application/json', 'content-length': String(Buffer.byteLength(body)) })
       response.end(body)
-    })
+    }, () => response.destroy())
   })
 }
