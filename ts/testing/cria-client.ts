@@ -7,6 +7,7 @@
  */
 import { createHash } from 'node:crypto'
 import { Schema } from 'effect'
+import { readFitsHeader } from '@cria/fits'
 import { ErrorBody, Health, Operation, State, type OperationRequest } from '@cria/wire'
 
 const strict = { onExcessProperty: 'error' } as const
@@ -96,11 +97,13 @@ export function makeCriaClient(base: string, fetch: typeof globalThis.fetch = gl
       if (response.status !== 200) return { status: response.status } as const
       const bytes = Buffer.from(await response.arrayBuffer())
 
-      if (response.headers.get('content-type') !== 'application/imagebytes') throw new CriaContractError('original is not ImageBytes')
+      if (response.headers.get('content-type') !== 'application/fits') throw new CriaContractError('original is not FITS')
       if (bytes.length !== image.original.bytes || Number(response.headers.get('content-length')) !== bytes.length)
         throw new CriaContractError('original length differs from its record')
       if (createHash('sha256').update(bytes).digest('hex') !== image.sha256) throw new CriaContractError('original digest differs')
-      if (bytes.readInt32LE(32) !== image.width || bytes.readInt32LE(36) !== image.height) throw new CriaContractError('ImageBytes geometry differs')
+      const { cards } = readFitsHeader(bytes)
+
+      if (Number(cards.get('NAXIS1')) !== image.width || Number(cards.get('NAXIS2')) !== image.height) throw new CriaContractError('FITS geometry differs')
 
       return { status: 200, bytes } as const
     },

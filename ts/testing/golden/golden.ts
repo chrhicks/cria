@@ -32,7 +32,7 @@ export function recordingFetch(into: Recorded[]): typeof globalThis.fetch {
 
     into.push(entry)
     if (type === 'application/json') entry.body = await response.clone().json()
-    if (type === 'application/imagebytes') {
+    if (type === 'application/fits') {
       const bytes = Buffer.from(await response.clone().arrayBuffer())
 
       entry.body = {
@@ -98,6 +98,7 @@ export function normalize(scenario: string, recorded: ReadonlyArray<Recorded>): 
     if (typeof value === 'number' && key === 'elapsedSeconds') return '<elapsed>'
     if (typeof value === 'number' && key === 'sequence') return '<sequence>'
     if (typeof value === 'string' && value.length > 1000) return `<${value.length} characters>`
+    if (typeof value === 'string' && (key === 'sha256' || key === 'etag')) return name(value.replaceAll('"', ''), 'sha256')
     if (typeof value === 'string') return value.replace(uuid, id => name(id, labelOf(key, parent))).replace(utc, '<utc>')
 
     return value

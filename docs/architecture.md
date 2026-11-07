@@ -51,7 +51,7 @@ types            @cria/primitives            Outcome, Reading
 INDI boundary    @cria/indi                  XML framing, the TCP connection, the property mirror
 ```
 
-`apps/cria/src/rig.ts` builds all of it from the configuration, with dependencies passed as plain arguments. The image store (`apps/cria/src/image`) converts FITS to ImageBytes and keeps the rolling set.
+`apps/cria/src/rig.ts` builds all of it from the configuration, with dependencies passed as plain arguments. The image store (`apps/cria/src/image`) keeps the camera's FITS in a rolling set.
 
 For the details, read these sections of SPEC.md:
 

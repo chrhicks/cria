@@ -1095,12 +1095,12 @@
             "instanceId": "<instance-1>",
             "operationId": "<operation-1>",
             "original": {
-              "bytes": 140,
-              "mediaType": "application/imagebytes",
+              "bytes": 5760,
+              "mediaType": "application/fits",
               "url": "/v2/images/<image-1>/original"
             },
             "retainedAt": "<time>",
-            "sha256": "146f86c57bfa413cc92866d35a539fffafee4212e14f8892afa27133b469255d",
+            "sha256": "<sha256-1>",
             "width": 8
           },
           "values": {}
@@ -1122,11 +1122,11 @@
     "request": "GET /v2/images/<image-1>/original",
     "status": 200,
     "body": {
-      "bytes": 140,
-      "contentLength": "140",
-      "contentType": "application/imagebytes",
-      "etag": "\"146f86c57bfa413cc92866d35a539fffafee4212e14f8892afa27133b469255d\"",
-      "sha256": "146f86c57bfa413cc92866d35a539fffafee4212e14f8892afa27133b469255d"
+      "bytes": 5760,
+      "contentLength": "5760",
+      "contentType": "application/fits",
+      "etag": "<sha256-1>",
+      "sha256": "<sha256-1>"
     }
   },
   {
@@ -1191,12 +1191,12 @@
             "instanceId": "<instance-1>",
             "operationId": "<operation-1>",
             "original": {
-              "bytes": 140,
-              "mediaType": "application/imagebytes",
+              "bytes": 5760,
+              "mediaType": "application/fits",
               "url": "/v2/images/<image-1>/original"
             },
             "retainedAt": "<time>",
-            "sha256": "146f86c57bfa413cc92866d35a539fffafee4212e14f8892afa27133b469255d",
+            "sha256": "<sha256-1>",
             "width": 8
           },
           "values": {}
@@ -1275,12 +1275,12 @@
             "instanceId": "<instance-1>",
             "operationId": "<operation-2>",
             "original": {
-              "bytes": 140,
-              "mediaType": "application/imagebytes",
+              "bytes": 5760,
+              "mediaType": "application/fits",
               "url": "/v2/images/<image-2>/original"
             },
             "retainedAt": "<time>",
-            "sha256": "146f86c57bfa413cc92866d35a539fffafee4212e14f8892afa27133b469255d",
+            "sha256": "<sha256-2>",
             "width": 8
           },
           "values": {}
@@ -4528,12 +4528,12 @@
             "instanceId": "<instance-1>",
             "operationId": "<operation-1>",
             "original": {
-              "bytes": 140,
-              "mediaType": "application/imagebytes",
+              "bytes": 5760,
+              "mediaType": "application/fits",
               "url": "/v2/images/<image-1>/original"
             },
             "retainedAt": "<time>",
-            "sha256": "146f86c57bfa413cc92866d35a539fffafee4212e14f8892afa27133b469255d",
+            "sha256": "<sha256-1>",
             "width": 8
           },
           "values": {}
@@ -4609,12 +4609,12 @@
             "instanceId": "<instance-1>",
             "operationId": "<operation-2>",
             "original": {
-              "bytes": 140,
-              "mediaType": "application/imagebytes",
+              "bytes": 5760,
+              "mediaType": "application/fits",
               "url": "/v2/images/<image-2>/original"
             },
             "retainedAt": "<time>",
-            "sha256": "146f86c57bfa413cc92866d35a539fffafee4212e14f8892afa27133b469255d",
+            "sha256": "<sha256-2>",
             "width": 8
           },
           "values": {}
@@ -4649,11 +4649,11 @@
     "request": "GET /v2/images/<image-2>/original",
     "status": 200,
     "body": {
-      "bytes": 140,
-      "contentLength": "140",
-      "contentType": "application/imagebytes",
-      "etag": "\"146f86c57bfa413cc92866d35a539fffafee4212e14f8892afa27133b469255d\"",
-      "sha256": "146f86c57bfa413cc92866d35a539fffafee4212e14f8892afa27133b469255d"
+      "bytes": 5760,
+      "contentLength": "5760",
+      "contentType": "application/fits",
+      "etag": "<sha256-2>",
+      "sha256": "<sha256-2>"
     }
   },
   {
@@ -4962,12 +4962,12 @@
             "instanceId": "<instance-1>",
             "operationId": "<operation-3>",
             "original": {
-              "bytes": 140,
-              "mediaType": "application/imagebytes",
+              "bytes": 5760,
+              "mediaType": "application/fits",
               "url": "/v2/images/<image-1>/original"
             },
             "retainedAt": "<time>",
-            "sha256": "146f86c57bfa413cc92866d35a539fffafee4212e14f8892afa27133b469255d",
+            "sha256": "<sha256-1>",
             "width": 8
           },
           "values": {}

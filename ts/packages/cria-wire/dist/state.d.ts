@@ -1092,7 +1092,7 @@ export declare const State: Schema.Struct<{
                     readonly retainedAt: Schema.Number;
                     readonly sha256: Schema.String;
                     readonly original: Schema.Struct<{
-                        readonly mediaType: Schema.Literal<"application/imagebytes">;
+                        readonly mediaType: Schema.Literal<"application/fits">;
                         readonly bytes: Schema.Number;
                         readonly url: Schema.String;
                     }>;
@@ -1230,7 +1230,7 @@ export declare const State: Schema.Struct<{
                     readonly retainedAt: Schema.Number;
                     readonly sha256: Schema.String;
                     readonly original: Schema.Struct<{
-                        readonly mediaType: Schema.Literal<"application/imagebytes">;
+                        readonly mediaType: Schema.Literal<"application/fits">;
                         readonly bytes: Schema.Number;
                         readonly url: Schema.String;
                     }>;
@@ -1366,7 +1366,7 @@ export declare const State: Schema.Struct<{
                     readonly retainedAt: Schema.Number;
                     readonly sha256: Schema.String;
                     readonly original: Schema.Struct<{
-                        readonly mediaType: Schema.Literal<"application/imagebytes">;
+                        readonly mediaType: Schema.Literal<"application/fits">;
                         readonly bytes: Schema.Number;
                         readonly url: Schema.String;
                     }>;
@@ -1501,7 +1501,7 @@ export declare const State: Schema.Struct<{
                     readonly retainedAt: Schema.Number;
                     readonly sha256: Schema.String;
                     readonly original: Schema.Struct<{
-                        readonly mediaType: Schema.Literal<"application/imagebytes">;
+                        readonly mediaType: Schema.Literal<"application/fits">;
                         readonly bytes: Schema.Number;
                         readonly url: Schema.String;
                     }>;
@@ -1634,7 +1634,7 @@ export declare const State: Schema.Struct<{
                     readonly retainedAt: Schema.Number;
                     readonly sha256: Schema.String;
                     readonly original: Schema.Struct<{
-                        readonly mediaType: Schema.Literal<"application/imagebytes">;
+                        readonly mediaType: Schema.Literal<"application/fits">;
                         readonly bytes: Schema.Number;
                         readonly url: Schema.String;
                     }>;
@@ -1769,7 +1769,7 @@ export declare const State: Schema.Struct<{
                     readonly retainedAt: Schema.Number;
                     readonly sha256: Schema.String;
                     readonly original: Schema.Struct<{
-                        readonly mediaType: Schema.Literal<"application/imagebytes">;
+                        readonly mediaType: Schema.Literal<"application/fits">;
                         readonly bytes: Schema.Number;
                         readonly url: Schema.String;
                     }>;
@@ -1905,7 +1905,7 @@ export declare const State: Schema.Struct<{
                     readonly retainedAt: Schema.Number;
                     readonly sha256: Schema.String;
                     readonly original: Schema.Struct<{
-                        readonly mediaType: Schema.Literal<"application/imagebytes">;
+                        readonly mediaType: Schema.Literal<"application/fits">;
                         readonly bytes: Schema.Number;
                         readonly url: Schema.String;
                     }>;
@@ -2038,7 +2038,7 @@ export declare const State: Schema.Struct<{
                     readonly retainedAt: Schema.Number;
                     readonly sha256: Schema.String;
                     readonly original: Schema.Struct<{
-                        readonly mediaType: Schema.Literal<"application/imagebytes">;
+                        readonly mediaType: Schema.Literal<"application/fits">;
                         readonly bytes: Schema.Number;
                         readonly url: Schema.String;
                     }>;
@@ -2174,7 +2174,7 @@ export declare const State: Schema.Struct<{
                     readonly retainedAt: Schema.Number;
                     readonly sha256: Schema.String;
                     readonly original: Schema.Struct<{
-                        readonly mediaType: Schema.Literal<"application/imagebytes">;
+                        readonly mediaType: Schema.Literal<"application/fits">;
                         readonly bytes: Schema.Number;
                         readonly url: Schema.String;
                     }>;
@@ -2311,7 +2311,7 @@ export declare const State: Schema.Struct<{
                     readonly retainedAt: Schema.Number;
                     readonly sha256: Schema.String;
                     readonly original: Schema.Struct<{
-                        readonly mediaType: Schema.Literal<"application/imagebytes">;
+                        readonly mediaType: Schema.Literal<"application/fits">;
                         readonly bytes: Schema.Number;
                         readonly url: Schema.String;
                     }>;
@@ -2444,7 +2444,7 @@ export declare const State: Schema.Struct<{
                     readonly retainedAt: Schema.Number;
                     readonly sha256: Schema.String;
                     readonly original: Schema.Struct<{
-                        readonly mediaType: Schema.Literal<"application/imagebytes">;
+                        readonly mediaType: Schema.Literal<"application/fits">;
                         readonly bytes: Schema.Number;
                         readonly url: Schema.String;
                     }>;
@@ -2579,7 +2579,7 @@ export declare const State: Schema.Struct<{
                     readonly retainedAt: Schema.Number;
                     readonly sha256: Schema.String;
                     readonly original: Schema.Struct<{
-                        readonly mediaType: Schema.Literal<"application/imagebytes">;
+                        readonly mediaType: Schema.Literal<"application/fits">;
                         readonly bytes: Schema.Number;
                         readonly url: Schema.String;
                     }>;
@@ -2715,7 +2715,7 @@ export declare const State: Schema.Struct<{
                     readonly retainedAt: Schema.Number;
                     readonly sha256: Schema.String;
                     readonly original: Schema.Struct<{
-                        readonly mediaType: Schema.Literal<"application/imagebytes">;
+                        readonly mediaType: Schema.Literal<"application/fits">;
                         readonly bytes: Schema.Number;
                         readonly url: Schema.String;
                     }>;

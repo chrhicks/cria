@@ -89,7 +89,7 @@ describe('protocol 5', () => {
   })
 
   it('answers 410 image-gone for an image the store has dropped to stay in its budget', async () => {
-    const small = await startCria(fake.port, [{ id: 'primary', kind: 'camera', indiDevice: camera }], { acknowledgeMs: 600, imageBudgetBytes: 200 })
+    const small = await startCria(fake.port, [{ id: 'primary', kind: 'camera', indiDevice: camera }], { acknowledgeMs: 600, imageBudgetBytes: 8000 })
 
     try {
       await connectDevices(small, ['primary'])
@@ -99,7 +99,7 @@ describe('protocol 5', () => {
       const second = await small.run('primary', 'capture', { exposureSeconds: 0.05, light: true })
       const id = (url: string) => /\/v2\/images\/([^/]+)\/original/.exec(url)![1]!
 
-      expect([first.image!.original.bytes, second.image!.original.bytes]).toEqual([140, 140])
+      expect([first.image!.original.bytes, second.image!.original.bytes]).toEqual([5760, 5760])
       expect(await small.client.refusedOriginal(id(first.image!.original.url))).toMatchObject({
         status: 410,
         body: { error: { code: 'image-gone', message: 'This image is no longer kept' } },

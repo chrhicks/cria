@@ -7,6 +7,7 @@ import { readdirSync, readlinkSync } from 'node:fs'
 import http from 'node:http'
 import net from 'node:net'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { readFitsHeader } from '@cria/fits'
 import { startIndiServer, type RunningIndiServer } from '../../../testing/indiserver.js'
 import { allReady, connectDevices, startCria, until, type Cria, type State } from './harness.js'
 
@@ -71,7 +72,7 @@ async function listen(device: string, property: string) {
 }
 
 describe('camera', () => {
-  it('captures a frame whose original downloads as ImageBytes with the advertised size and digest', async () => {
+  it('captures a frame whose original downloads as the camera FITS with the advertised size and digest', async () => {
     const camera = await cria.device('primary')
     const operation = await cria.run('primary', 'capture', { exposureSeconds: 0.5, light: true })
 
@@ -86,10 +87,12 @@ describe('camera', () => {
     const bytes = Buffer.from(await response.arrayBuffer())
     const digest = (await import('node:crypto')).createHash('sha256').update(bytes).digest('hex')
 
-    expect(response.headers.get('content-type')).toBe('application/imagebytes')
+    expect(response.headers.get('content-type')).toBe('application/fits')
     expect(Number(response.headers.get('content-length'))).toBe(operation.image!.original.bytes)
     expect(digest).toBe(operation.image!.sha256)
-    expect([bytes.readInt32LE(32), bytes.readInt32LE(36)]).toEqual([operation.image!.width, operation.image!.height])
+    const { cards } = readFitsHeader(bytes)
+
+    expect([Number(cards.get('NAXIS1')), Number(cards.get('NAXIS2'))]).toEqual([operation.image!.width, operation.image!.height])
   })
 
   it('answers 404 not-found for a malformed image id', async () => {
@@ -110,7 +113,7 @@ describe('camera', () => {
     const openOnImage = () =>
       readdirSync('/proc/self/fd').filter(fd => {
         try {
-          return readlinkSync(`/proc/self/fd/${fd}`).endsWith('.imagebytes')
+          return readlinkSync(`/proc/self/fd/${fd}`).endsWith('.fits')
         } catch {
           return false
         }

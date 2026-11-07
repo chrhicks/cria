@@ -25,7 +25,7 @@ export const Image = Schema.Struct({
     retainedAt: Timestamp,
     sha256: Schema.String.pipe(Schema.check(Schema.isPattern(/^[a-f0-9]{64}$/))),
     original: Schema.Struct({
-        mediaType: Schema.Literal('application/imagebytes'),
+        mediaType: Schema.Literal('application/fits'),
         bytes: Schema.Number,
         url: Schema.String,
     }),

@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "description": "FITS from INDI cameras: the header, conversion to ASCOM ImageBytes v1 and test frames",
+  "description": "FITS from INDI cameras: the header and test frames",
   "exports": {
     ".": {
       "@cria/source": "./src/index.ts",
