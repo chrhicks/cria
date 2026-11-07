@@ -1,6 +1,5 @@
-/** Run (+ history), Quarantine: the one owner of operations, per rig (docs/ts/SPEC.md, "New primitive: Quarantine"). */
 import { Deferred, Effect, PubSub, Ref, Scope, Stream } from 'effect'
-import { makeRun, quarantineOf, type Ending, type ExternalRecovery, type Outcome, type QuarantineState, type Report, type RunView } from '@cria/primitives'
+import { makeRun, type Ending, type Outcome, type Report, type RunView } from '@cria/primitives'
 import {
   commands,
   isHalt,
@@ -20,15 +19,12 @@ import {
 import { mint } from '../ids.js'
 import { Refusal, refuse } from '../refusal.js'
 
-type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never
-
-export type Stored = DistributiveOmit<Operation, 'recovery'>
+export type Stored = Operation
 export type Running = Extract<Stored, { readonly state: 'running' }>
 type Waiting = Extract<Stored, { readonly state: 'waiting' }>
 type Ended = Extract<Stored, { readonly state: 'settled' }>
 type Open = Running | Waiting
 type Settled = Extract<Operation, { readonly state: 'settled' }>
-type Recovery = NonNullable<Settled['recovery']>
 
 export type Submission = Command & {
   readonly instanceId: InstanceId
@@ -60,7 +56,6 @@ export interface LedgerState {
   readonly operations: ReadonlyMap<OperationId, Stored>
   readonly requests: ReadonlyMap<RequestId, { readonly fingerprint: string; readonly operation: OperationId }>
   readonly domains: ReadonlyMap<FailureDomain, Domain>
-  readonly recoveredBindings: ReadonlyMap<BindingId, Recovery>
   readonly waiters: ReadonlyMap<OperationId, ReadonlyArray<Deferred.Deferred<Settled>>>
   readonly revision: number
   readonly sequence: number
@@ -80,7 +75,6 @@ export type Transition<A> = readonly [Step<A>, LedgerState]
 
 export interface DomainFacts {
   readonly binding: BindingId
-  readonly quarantine: QuarantineState
   readonly busy: boolean
 }
 
@@ -101,7 +95,6 @@ export function initialState(bindings: Iterable<readonly [FailureDomain, Binding
     operations: new Map(),
     requests: new Map(),
     domains: new Map([...bindings].map(([domain, binding]) => [domain, { binding }])),
-    recoveredBindings: new Map(),
     waiters: new Map(),
     revision: 0,
     sequence: 0,
@@ -124,34 +117,11 @@ const openIn = (state: LedgerState, failureDomain: FailureDomain): ReadonlyArray
   [...state.operations.values()].filter((operation): operation is Open => operation.failureDomain === failureDomain && operation.state !== 'settled')
 
 /** Only a mount holds: its position is a step count Cria cannot read back. Any other device is simply commanded again. */
-const holdsDevice = (rules: Rules, operation: Stored) => rules.devices.get(operation.deviceId)?.kind === 'mount'
-
-function quarantineIn(rules: Rules, state: LedgerState, failureDomain: FailureDomain): QuarantineState {
-  const { binding } = known(state.domains, failureDomain)
-
-  return quarantineOf(
-    [...state.operations.values()].filter((operation): operation is Ended => operation.state === 'settled' && operation.bindingId === binding && holdsDevice(rules, operation)),
-  )
-}
-
-const blocks = (rules: Rules, state: LedgerState, operation: Stored) =>
-  operation.state === 'settled' &&
-  operation.outcome.kind === 'uncertain' &&
-  holdsDevice(rules, operation) &&
-  operation.bindingId === known(state.domains, operation.failureDomain).binding
-
 function factsOf(rules: Rules, state: LedgerState, failureDomain: FailureDomain): DomainFacts {
   const { binding } = known(state.domains, failureDomain)
 
-  return { binding, quarantine: quarantineIn(rules, state, failureDomain), busy: openIn(state, failureDomain).length > 0, }
+  return { binding, busy: openIn(state, failureDomain).length > 0 }
 }
-
-const settledView = (state: LedgerState, operation: Ended): Settled => ({
-  ...operation,
-  recovery: operation.outcome.kind === 'uncertain' ? (state.recoveredBindings.get(operation.bindingId) ?? null) : null,
-})
-
-const view = (state: LedgerState, operation: Stored): Operation => (operation.state === 'settled' ? settledView(state, operation) : operation)
 
 function missing(state: LedgerState, id: OperationId): Refusal {
   const expired = [...state.requests.values()].some(marker => marker.operation === id)
@@ -173,7 +143,7 @@ export function admit(
     if (marker.fingerprint !== fingerprint) return refused(refuse('request-conflict', 'This request ID was used with different content'))
     const existing = state.operations.get(marker.operation)
 
-    return existing ? [step(view(state, existing)), state] : refused(refuse('result-expired', 'The operation for this request is no longer kept'))
+    return existing ? [step(existing), state] : refused(refuse('result-expired', 'The operation for this request is no longer kept'))
   }
 
   if (submission.instanceId !== rules.instanceId) return refused(refuse('instance-changed', 'Cria restarted: this request was for an earlier instance'))
@@ -210,9 +180,6 @@ export function admit(
     return record({ ...accepted, state: 'waiting' }, running && !isHalt(running) ? [{ kind: 'stop', operation: running }] : [])
   }
 
-  const quarantine = quarantineIn(rules, state, device.failureDomain)
-
-  if (quarantine.held) return refused(refuse('device-blocked', `Blocked until recovered: ${quarantine.reason}`))
   if (open.length > 0) return refused(refuse('device-busy', 'The device is running another operation'))
 
   return start()
@@ -256,14 +223,14 @@ export function settle(
     }),
   )
   const waiters = state.waiters.get(ended.id) ?? []
-  const resolve: ReadonlyArray<After> = waiters.length > 0 ? [{ kind: 'resolve', waiters, operation: settledView(settledState, ended) }] : []
+  const resolve: ReadonlyArray<After> = waiters.length > 0 ? [{ kind: 'resolve', waiters, operation: ended }] : []
   const start: ReadonlyArray<After> = following ? [{ kind: 'start', operation: following }] : []
 
   return [step(undefined, [...resolve, ...start]), settledState]
 }
 
 export function prune(rules: Rules, state: LedgerState): LedgerState {
-  const finished = [...state.operations.values()].filter(operation => operation.state === 'settled' && !blocks(rules, state, operation))
+  const finished = [...state.operations.values()].filter(operation => operation.state === 'settled')
   const excess = finished.length - rules.history
 
   if (excess <= 0) return state
@@ -277,58 +244,28 @@ export function cancel(state: LedgerState, id: OperationId): Transition<Operatio
 
   if (!operation) return [step(missing(state, id)), state]
 
-  return [step(view(state, operation), operation.state === 'running' && !isHalt(operation) ? [{ kind: 'stop', operation }] : []), state]
+  return [step(operation, operation.state === 'running' && !isHalt(operation) ? [{ kind: 'stop', operation }] : []), state]
 }
 
 export function wait(state: LedgerState, input: { readonly id: OperationId; readonly waiter: Deferred.Deferred<Settled> }): Transition<void | Refusal> {
   const operation = state.operations.get(input.id)
 
   if (!operation) return [step(missing(state, input.id)), state]
-  if (operation.state === 'settled') return [step(undefined, [{ kind: 'resolve', waiters: [input.waiter], operation: settledView(state, operation) }]), state]
+  if (operation.state === 'settled') return [step(undefined, [{ kind: 'resolve', waiters: [input.waiter], operation }]), state]
 
   return [step(undefined), { ...state, waiters: put(state.waiters, input.id, [...(state.waiters.get(input.id) ?? []), input.waiter]) }]
 }
 
-export function recover(
-  rules: Rules,
-  state: LedgerState,
-  input: {
-    readonly deviceId: DeviceId
-    readonly instanceId: InstanceId
-    readonly bindingId: BindingId
-    readonly recovery: ExternalRecovery
-    readonly at: number
-    readonly next: BindingId
-  },
-): Transition<DomainFacts | Refusal> {
-  const refused = (refusal: Refusal): Transition<Refusal> => [step(refusal), state]
-  const device = rules.devices.get(input.deviceId)
-  const domain = device && state.domains.get(device.failureDomain)
-
-  if (!device || !domain) return refused(refuse('not-found', `No device ${input.deviceId}`))
-  if (input.instanceId !== rules.instanceId) return refused(refuse('instance-changed', 'Cria restarted'))
-  if (input.bindingId !== domain.binding) return refused(refuse('binding-changed', 'The device binding changed'))
-  if (openIn(state, device.failureDomain).length > 0)
-    return refused(refuse('device-busy', 'An operation is still open on this device; recover it once that settles'))
-
-  const recovered = changed(state, {
-    domains: put(state.domains, device.failureDomain, { ...domain, binding: input.next }),
-    recoveredBindings: put(state.recoveredBindings, domain.binding, { at: input.at, note: input.recovery.note }),
-  })
-
-  return [step(factsOf(rules, recovered, device.failureDomain)), recovered]
-}
-
 export function snapshot(rules: Rules, state: LedgerState): Transition<LedgerSnapshot> {
   const all = [...state.operations.values()]
-  const hidden = new Set(all.filter(operation => operation.state === 'settled' && !blocks(rules, state, operation)).slice(0, -settledShown))
+  const hidden = new Set<Operation>(all.filter(operation => operation.state === 'settled').slice(0, -settledShown))
   const next = { ...state, sequence: state.sequence + 1 }
 
   return [
     step({
       sequence: next.sequence,
       revision: state.revision,
-      operations: all.filter(operation => !hidden.has(operation)).map(operation => view(state, operation)),
+      operations: all.filter(operation => !hidden.has(operation)),
       facts: failureDomain => factsOf(rules, state, failureDomain),
     }),
     next,
@@ -338,7 +275,7 @@ export function snapshot(rules: Rules, state: LedgerState): Transition<LedgerSna
 function find(state: LedgerState, id: OperationId): Operation | Refusal {
   const operation = state.operations.get(id)
 
-  return operation ? view(state, operation) : missing(state, id)
+  return operation ? operation : missing(state, id)
 }
 
 function byRequest(rules: Rules, state: LedgerState, instanceId: InstanceId, requestId: RequestId): Operation | Refusal {
@@ -367,19 +304,12 @@ export interface LedgerDevice extends Placement {
   readonly work: (operation: Running, report: Report<Progress>, note: (record: MotionRecord) => Effect.Effect<void>) => Effect.Effect<OperationResult, Ending>
 }
 
-export interface RecoverRequest {
-  readonly instanceId: InstanceId
-  readonly bindingId: BindingId
-  readonly recovery: ExternalRecovery
-}
-
 export interface Ledger {
   readonly submit: (submission: Submission) => Effect.Effect<Operation, Refusal>
   readonly cancel: (id: OperationId) => Effect.Effect<Operation, Refusal>
   readonly operation: (id: OperationId) => Effect.Effect<Operation, Refusal>
   readonly request: (instanceId: InstanceId, requestId: RequestId) => Effect.Effect<Operation, Refusal>
   readonly awaitSettled: (id: OperationId) => Effect.Effect<Settled, Refusal>
-  readonly recover: (deviceId: DeviceId, request: RecoverRequest) => Effect.Effect<DomainFacts, Refusal>
   readonly facts: (deviceId: DeviceId) => Effect.Effect<DomainFacts, Refusal>
   readonly snapshot: Effect.Effect<LedgerSnapshot>
   readonly revisions: Stream.Stream<number>
@@ -448,7 +378,7 @@ export function makeLedger(options: LedgerOptions): Effect.Effect<Ledger, never,
         const running = current.operations.get(input.id)
 
         // Not read back from the new state: `settle` prunes by age, so an old operation can be gone from it already.
-        announced = running?.state === 'running' ? settledView(transition[1], endedOf(running, input)) : undefined
+        announced = running?.state === 'running' ? endedOf(running, input) : undefined
 
         return transition
       }).pipe(Effect.andThen(Effect.sync(() => announced && options.onSettled?.(announced))))
@@ -511,12 +441,6 @@ export function makeLedger(options: LedgerOptions): Effect.Effect<Ledger, never,
           yield* answer(yield* apply(current => wait(current, { id, waiter })))
 
           return yield* Deferred.await(waiter)
-        }),
-      recover: (deviceId, request) =>
-        Effect.gen(function* () {
-          const input = { deviceId, ...request, at: Date.now(), next: mint.bindingId() }
-
-          return yield* answer(yield* apply(current => recover(rules, current, input)))
         }),
       facts: deviceId => read(current => deviceFacts(rules, current, deviceId)),
       snapshot: apply(current => snapshot(rules, current)),

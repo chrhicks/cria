@@ -12,7 +12,7 @@
 # indiserver and every driver, waits in ExecStartPost until the drivers are up
 # (indi-ready.sh), and only then starts Cria and the supervisor again. Reason: on
 # 2026-11-03 three drivers went stale one by one, and restarting them separately
-# left Cria with stale copies and a held mount (docs/runtime.md, "Restart").
+# left Cria with stale copies (docs/runtime.md, "Restart").
 [Unit]
 StartLimitIntervalSec=0
 Description=INDI server for the rig drivers

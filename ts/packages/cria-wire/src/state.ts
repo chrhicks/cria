@@ -33,7 +33,6 @@ export const errorCodes = [
   'request-conflict',
   'instance-changed',
   'binding-changed',
-  'device-blocked',
   'device-busy',
   'result-expired',
   'image-gone',
@@ -51,11 +50,3 @@ export const ErrorBody = Schema.Struct({
 
 export type ErrorBody = typeof ErrorBody.Type
 
-export const RecoveryRequest = Schema.Struct({
-  instanceId: InstanceId,
-  bindingId: BindingId,
-  externalRecoveryConfirmed: Schema.Literal(true),
-  note: Schema.String.pipe(Schema.check(Schema.isBetweenLength(1, 1024))),
-})
-
-export type RecoveryRequest = typeof RecoveryRequest.Type

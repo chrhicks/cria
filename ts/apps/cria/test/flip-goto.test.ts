@@ -73,7 +73,6 @@ it.each([false, true])('replays the recorded normal flip without a representatio
   const { result, sent, device } = await replay({ motion: normalFlip, envelope: wideEnvelope, tracking })
   expect(result.kind, result.message ?? '').toBe('confirmed')
   expect(result.operation.motion?.stopped.how).toBe('arrived')
-  expect(result.quarantined).toBe(false)
   expect(sent.some(xml => xml.includes('EQUATORIAL_EOD_COORD'))).toBe(true)
   expect(sent.some(xml => xml.includes('TELESCOPE_ABORT_MOTION'))).toBe(false)
 }, 15_000)

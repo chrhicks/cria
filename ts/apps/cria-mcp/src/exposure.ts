@@ -56,10 +56,6 @@ export const routes = {
     description:
       'The operation a requestId created, for when the answer to a command was lost. Refused as not-found means Cria never admitted that request. Do not send the command again before this answers.',
   },
-  recover: {
-    description:
-      'Clear the hold Cria keeps on a mount after an uncertain outcome. Only a mount is held: a camera, focuser, weather or switch device that ends uncertain stays usable. Only after a person has checked the equipment: externalRecoveryConfirmed must be true and note must say who checked and what they saw. Returns the device as Cria reports it; Cria may refuse it.',
-  },
   image: {
     description:
       "Downloads a captured frame to a file on this host and returns the Image, the file's absolute path, its sha256 and its size. Pass the image from a confirmed capture outcome unchanged. The file is Cria's raw imagebytes, checked against the image's sha256, and is deleted after seven days.",

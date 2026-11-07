@@ -21,7 +21,7 @@ const text = (message: unknown) => JSON.stringify(message)
 describe('the fixtures', () => {
   it('are shapes the wire accepts', () => {
     expect(() => decodesAsWire(rotating)).not.toThrow()
-    expect(() => [switchDevice(true), switchDevice(false)].forEach(decodesAsDevice)).not.toThrow()
+    expect(() => decodesAsDevice(switchDevice)).not.toThrow()
   })
 })
 
@@ -191,10 +191,8 @@ describe('a check of the wire, which JSON Schema cannot show', () => {
   )
 })
 
-describe('cancel and recover against a fake Cria', () => {
+describe('cancel against a fake Cria', () => {
   const cancelPath = `/v2/operations/${operationId}/cancel`
-  const recoverBody = { instanceId, bindingId: switchDevice(true).bindingId, externalRecoveryConfirmed: true, note: 'checked the switch by hand' }
-  const recoverInput = { deviceId: 'power', ...recoverBody }
 
   it.live('cancel answers with the operation, after one POST with no body', () =>
     Effect.gen(function* () {
@@ -217,44 +215,6 @@ describe('cancel and recover against a fake Cria', () => {
       yield* settle
       expect(posts(refused.cria)).toHaveLength(1)
       expect(posts(silent.cria)).toHaveLength(1)
-    }),
-  )
-
-  it.live('recover answers with the device, after one POST of exactly what the agent gave', () =>
-    Effect.gen(function* () {
-      const { cria, mcp } = yield* against((_, response) => json(response, 200, switchDevice(false)))
-      const result = yield* callTool(mcp.url, 'recover', recoverInput)
-
-      expect(result.structuredContent).toEqual({ kind: 'answered', body: switchDevice(false) })
-      expect(cria.requests.map(request => `${request.method} ${request.url}`)).toEqual(['POST /v2/devices/power/recover'])
-      expect(JSON.parse(cria.requests[0]!.body)).toEqual(recoverBody)
-    }),
-  )
-
-  it.live("recover passes Cria's refusal through unchanged, and a dropped connection is lost with one POST", () =>
-    Effect.gen(function* () {
-      const body = refusal('device-busy', 'An operation is still running')
-      const refused = yield* against((_, response) => json(response, 409, body))
-      const dropped = yield* against((request, _response) => void request.socket.destroy())
-
-      expect((yield* callTool(refused.mcp.url, 'recover', recoverInput)).structuredContent).toEqual({ kind: 'refused', status: 409, body })
-      expect((yield* callTool(dropped.mcp.url, 'recover', recoverInput)).structuredContent).toMatchObject({ kind: 'lost', why: 'transport' })
-      yield* settle
-      expect(posts(refused.cria)).toHaveLength(1)
-      expect(posts(dropped.cria)).toHaveLength(1)
-    }),
-  )
-
-  it.live('recover refuses a note that is empty, and a confirmation that is not true, as input errors', () =>
-    Effect.gen(function* () {
-      const { cria, mcp } = yield* against((_, response) => json(response, 200, switchDevice(false)))
-
-      for (const input of [{ ...recoverInput, note: '' }, { ...recoverInput, externalRecoveryConfirmed: false }, { deviceId: 'power', instanceId }]) {
-        const message = yield* callToolRaw(mcp.url, 'recover', input)
-
-        expect(message?.error ?? message?.result?.isError, text(input)).toBeTruthy()
-      }
-      expect(cria.requests).toEqual([])
     }),
   )
 })

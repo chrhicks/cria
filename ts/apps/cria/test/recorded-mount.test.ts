@@ -39,10 +39,8 @@ const sent = (property: string) =>
     .filter(xml => xml.startsWith('<new') && xml.includes(`name="${property}"`))
     .map(xml => [...xml.matchAll(/<one\w+ name="(\w+)">\s*([^<]*?)\s*</g)].map(([, element, value]) => `${element}=${value}`).join(' '))
 
-const held = async () => (await cria.device('mount')).quarantine.held
-
 describe('a home stopped on the AM5 (errai, 2026-10-26 23:33 and 2026-10-27 01:28)', () => {
-  it('leaves TELESCOPE_HOME Busy after an acknowledged abort; the mount coasts, then Cria confirms the stop from still coordinates and holds nothing', async () => {
+  it('leaves TELESCOPE_HOME Busy after an acknowledged abort; the mount coasts, then Cria confirms the stop from still coordinates', async () => {
     await start({ publishEveryMs: 100 }, 40)
     const home = await cria.submit('mount', 'mount-home', {})
 
@@ -57,7 +55,7 @@ describe('a home stopped on the AM5 (errai, 2026-10-26 23:33 and 2026-10-27 01:2
     const ending = await cria.settled(home.body.id, 40_000)
 
     expect(sent('TELESCOPE_ABORT_MOTION')).toEqual(['ABORT=On'])
-    expect([ending.kind, ending.quarantined]).toEqual(['stopped', false])
+    expect(ending.kind).toBe('stopped')
     // The driver never set TELESCOPE_HOME back, and Cria did not wait for that: it waited for the mount to stand still.
     expect(fake.vector(mount, 'TELESCOPE_HOME').state).toBe('Busy')
     expect(fake.vector(mount, 'EQUATORIAL_EOD_COORD').state).toBe('Idle')
@@ -70,14 +68,14 @@ describe('a home stopped on the AM5 (errai, 2026-10-26 23:33 and 2026-10-27 01:2
     await start({ publishEveryMs: 100, slewDegreesPerSecond: 40 }, 40)
     const ending = await cria.run('mount', 'mount-home', {})
 
-    expect([ending.kind, ending.quarantined]).toEqual(['confirmed', false])
+    expect(ending.kind).toBe('confirmed')
     expect(fake.vector(mount, 'TELESCOPE_HOME').state).toBe('Ok')
     expect(model.position().dec).toBe(90)
   }, 45_000)
 })
 
 describe('an axis motion when the mount loses power (errai, 2026-10-29 evening)', () => {
-  it('answers the stop with Alert and "Error stopping W/E motion.": the stop is not confirmed, the motion is not resent, and the mount is held', async () => {
+  it('answers the stop with Alert and "Error stopping W/E motion.": the stop is not confirmed, the motion is not resent, and the next command is admitted', async () => {
     await start({ publishEveryMs: 100 })
     const rotating = await cria.submit('mount', 'mount-rotate', { rateDegreesPerSecond: 720 * sidereal, distanceDegrees: 10 })
 
@@ -85,25 +83,24 @@ describe('an axis motion when the mount loses power (errai, 2026-10-29 evening)'
     model.cutPower()
     const ending = await cria.settled(rotating.body.id, 60_000)
 
-    expect([ending.kind, ending.reason, ending.quarantined]).toEqual(['uncertain', 'stop-not-confirmed', true])
-    expect(await held()).toBe(true)
+    expect([ending.kind, ending.reason]).toEqual(['uncertain', 'stop-not-confirmed'])
     // One start, however long it took; the stop was written again and again (recorded: five over 17 s).
     expect(sent('TELESCOPE_MOTION_WE').filter(line => line.includes('=On'))).toEqual(['MOTION_EAST=On'])
     expect(sent('TELESCOPE_MOTION_WE').filter(line => !line.includes('=On')).length).toBeGreaterThan(1)
 
     const next = await cria.submit('mount', 'mount-tracking', { tracking: true })
 
-    expect(next.status).toBe(409)
+    expect(next.status).toBe(202)
   }, 70_000)
 })
 
 describe('an axis motion at Home, answered Idle (errai, 2026-10-30 evening)', () => {
-  it('is a refusal, not silence: the rotate fails rejected, nothing is stopped or held', async () => {
+  it('is a refusal, not silence: the rotate fails rejected, nothing is stopped', async () => {
     await start({ rotateIdleAtPole: true }, 90)
     const started = Date.now()
     const ending = await cria.run('mount', 'mount-rotate', { rateDegreesPerSecond: 720 * sidereal, distanceDegrees: 20 })
 
-    expect([ending.kind, ending.reason, ending.quarantined]).toEqual(['failed', 'rejected', false])
+    expect([ending.kind, ending.reason]).toEqual(['failed', 'rejected'])
     expect(ending.message).toContain('the driver answered Idle and did not start MOTION_EAST (it stayed Off)')
     // The driver answered in 41 ms and Cria did not wait for the 600 ms acknowledgement deadline.
     expect(Date.now() - started).toBeLessThan(500)
@@ -111,7 +108,6 @@ describe('an axis motion at Home, answered Idle (errai, 2026-10-30 evening)', ()
     expect(sent('TELESCOPE_MOTION_WE')).toEqual(['MOTION_EAST=On'])
     expect(fake.vector(mount, 'TELESCOPE_MOTION_WE').state).toBe('Idle')
     expect(model.moving()).toBe(false)
-    expect(await held()).toBe(false)
     expect((await cria.run('mount', 'mount-tracking', { tracking: true })).kind).toBe('confirmed')
   }, 45_000)
 
@@ -119,13 +115,13 @@ describe('an axis motion at Home, answered Idle (errai, 2026-10-30 evening)', ()
     await start({ rotateIdleAtPole: true }, 80)
     const ending = await cria.run('mount', 'mount-rotate', { rateDegreesPerSecond: 60 * sidereal, distanceDegrees: 1 })
 
-    expect([ending.kind, ending.quarantined]).toEqual(['confirmed', false])
+    expect(ending.kind).toBe('confirmed')
     expect(sent('TELESCOPE_MOTION_WE').filter(line => line.includes('=On'))).toEqual(['MOTION_EAST=On'])
   }, 45_000)
 })
 
 describe('an AM5 site left Alert after a rejected rewrite', () => {
-  it('fails setup without a hold across restarts when the matching site rewrite stays Alert', async () => {
+  it('fails setup across restarts when the matching site rewrite stays Alert', async () => {
     fake = new FakeIndi()
     await fake.start()
     addMount(fake, mount)
@@ -151,8 +147,7 @@ describe('an AM5 site left Alert after a rejected rewrite', () => {
       expect(startup).toMatchObject({ state: 'settled', outcome: { kind: 'failed', message: expect.stringContaining('setup: GEOGRAPHIC_COORD') } })
       expect(sent('GEOGRAPHIC_COORD')).toHaveLength(restart + 1)
       expect(fake.vector(mount, 'GEOGRAPHIC_COORD').state).toBe('Alert')
-      expect(await held()).toBe(false)
-      await cria.stop()
+        await cria.stop()
     }
     expect(sent('TIME_UTC')).toHaveLength(0)
   })

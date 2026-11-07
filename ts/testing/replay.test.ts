@@ -200,15 +200,14 @@ describe('the real Cria on the replay', () => {
     expect(next.image!.sha256).toBe(recordedDigests[1])
   })
 
-  it('fails one exposure past the end cleanly: Alert "end of recording", no quarantine, still usable', async () => {
+  it('fails one exposure past the end cleanly: Alert "end of recording", still usable', async () => {
     const { cria } = await run()
 
     for (let capture = 0; capture < captures; capture++) expect((await cria.run('primary', 'capture', { exposureSeconds, light: true })).kind).toBe('confirmed')
 
     const past = await cria.run('primary', 'capture', { exposureSeconds, light: true })
 
-    expect([past.kind, past.reason, past.message, past.quarantined]).toEqual(['failed', 'rejected', 'end of recording', false])
-    expect((await cria.device('primary')).quarantine.held).toBe(false)
+    expect([past.kind, past.reason, past.message]).toEqual(['failed', 'rejected', 'end of recording'])
     await cria.waitFor(allReady(['primary']))
   })
 

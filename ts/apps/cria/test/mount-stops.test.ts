@@ -41,17 +41,15 @@ describe('mount-stop (R1-#3)', () => {
     expect(fake.vector(mount, 'EQUATORIAL_EOD_COORD').state).not.toBe('Busy')
   })
 
-  it('still runs while the mount is quarantined, and leaves the quarantine held', async () => {
+  it('still runs after an uncertain ending', async () => {
     fake.behaviour = (fake, vector, values) => (vector.name === 'TELESCOPE_TRACK_STATE' ? 'handled' : moveMount()(fake, vector, values))
     expect((await cria.run('mount', 'mount-tracking', { tracking: true })).kind).toBe('uncertain')
-    expect((await cria.device('mount')).quarantine.held).toBe(true)
 
     const stop = await cria.submit('mount', 'mount-stop', {})
 
     expect(stop.status).toBe(202)
     expect((await cria.settled(stop.body.id)).kind).toBe('confirmed')
     expect(aborts()).toBe(1)
-    expect((await cria.device('mount')).quarantine.held).toBe(true)
   })
 })
 
@@ -60,7 +58,7 @@ describe('a slew the mount never acknowledges (R1-#4)', () => {
     fake.behaviour = (fake, vector, values) => (vector.name === 'EQUATORIAL_EOD_COORD' ? 'handled' : moveMount()(fake, vector, values))
     const operation = await cria.run('mount', 'mount-slew', slew)
 
-    expect(operation).toMatchObject({ kind: 'uncertain', quarantined: true })
+    expect(operation).toMatchObject({ kind: 'uncertain' })
     expect(operation.message).toMatch(/no answer/)
     expect(aborts()).toBe(1)
   })
@@ -77,7 +75,7 @@ describe('a motion that started but did not complete as asked (R1-#5)', () => {
     }
     const operation = await cria.run('mount', 'mount-slew', slew)
 
-    expect(operation).toMatchObject({ kind: 'uncertain', quarantined: true })
+    expect(operation).toMatchObject({ kind: 'uncertain' })
     expect(operation.message).toMatch(/slew aborted by mount/)
   })
 
@@ -91,7 +89,7 @@ describe('a motion that started but did not complete as asked (R1-#5)', () => {
     }
     const operation = await cria.run('mount', 'mount-slew', slew)
 
-    expect(operation).toMatchObject({ kind: 'uncertain', quarantined: true })
+    expect(operation).toMatchObject({ kind: 'uncertain' })
     expect(operation.message).toMatch(/outside the target tolerance/)
   })
 })
@@ -111,7 +109,7 @@ describe('stopping a park or home (R1-#6)', () => {
       const operation = await cria.settled(parking.body.id, 40_000)
 
       expect(fake.vector(mount, 'TELESCOPE_PARK').state).toBe('Busy')
-      expect(operation).toMatchObject({ kind: 'uncertain', reason: 'stop-not-confirmed', quarantined: true })
+      expect(operation).toMatchObject({ kind: 'uncertain', reason: 'stop-not-confirmed' })
     } finally {
       clearInterval(drift)
     }
@@ -126,7 +124,7 @@ describe('stopping a park or home (R1-#6)', () => {
     const operation = await cria.settled(parking.body.id, 40_000)
 
     expect(fake.vector(mount, 'TELESCOPE_PARK').state).toBe('Busy')
-    expect(operation).toMatchObject({ kind: 'stopped', quarantined: false })
+    expect(operation).toMatchObject({ kind: 'stopped' })
   }, 45_000)
 
   it('a cancelled park the mount does abort ends cancelled', async () => {
@@ -146,14 +144,14 @@ describe('axis motion rates (R1-#12)', () => {
   it('refuses a rate the mount does not advertise, before moving', async () => {
     const operation = await cria.run('mount', 'mount-axis', { rateDegreesPerSecond: 0.05, durationSeconds: 0.5 })
 
-    expect(operation).toMatchObject({ kind: 'failed', state: 'settled', quarantined: false })
+    expect(operation).toMatchObject({ kind: 'failed', state: 'settled' })
     expect(motions()).toBe(0)
   })
 
   it('refuses a rotate whose rate and distance point opposite ways, before moving', async () => {
     const operation = await cria.run('mount', 'mount-rotate', { rateDegreesPerSecond: 8 * sidereal, distanceDegrees: -1 })
 
-    expect(operation).toMatchObject({ kind: 'failed', state: 'settled', quarantined: false })
+    expect(operation).toMatchObject({ kind: 'failed', state: 'settled' })
     expect(motions()).toBe(0)
   })
 

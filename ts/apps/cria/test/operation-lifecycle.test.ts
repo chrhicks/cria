@@ -109,24 +109,6 @@ describe('one mount', () => {
     expect(fake.received.filter(xml => xml.includes('name="TELESCOPE_TRACK_STATE"'))).toEqual([])
   })
 
-  it('refuses a recovery while a stop runs (device-busy), and accepts it once the stop settled', async () => {
-    fake.behaviour = abortWithoutStopping
-    fake.update(mount, 'EQUATORIAL_EOD_COORD', { state: 'Busy' })
-    const stop = await cria.submit('mount', 'mount-stop', {})
-
-    await until('the stop sending its abort', () => aborts() === 1)
-    const current = await cria.state()
-    const recovery = { instanceId: current.instanceId, bindingId: current.devices[0]!.bindingId, externalRecoveryConfirmed: true, note: 'checked' }
-    const refused = await cria.client.recover('mount', recovery)
-
-    expect(await state(stop.body.id)).toBe('running')
-    expect(refused).toMatchObject({ status: 409, body: { error: { code: 'device-busy' } } })
-
-    release()
-    expect((await cria.settled(stop.body.id)).kind).toBe('confirmed')
-    expect((await cria.client.recover('mount', recovery)).status).toBe(200)
-  })
-
   it('a late cancel of a settled operation returns it unchanged and does not touch the one running now', async () => {
     const tracked = await cria.run('mount', 'mount-tracking', { tracking: true })
     const moving = await slewUnderWay()
@@ -160,9 +142,7 @@ describe('one mount', () => {
     expect((await cria.settled(admitted!)).kind).toBe('confirmed')
   })
 
-  it('retention keeps every request ID and an unrecovered uncertain operation', async () => {
-    fake.behaviour = (fake, vector, values) => (vector.name === 'TELESCOPE_TRACK_STATE' ? 'handled' : moveMount()(fake, vector, values))
-    const lost = await cria.run('mount', 'mount-tracking', { tracking: true })
+  it('retention keeps every request ID', async () => {
     const requestId = crypto.randomUUID()
     const first = await cria.submit('mount', 'mount-stop', {}, requestId)
 
@@ -170,54 +150,9 @@ describe('one mount', () => {
     for (let stop = 0; stop < 10; stop++) await cria.run('mount', 'mount-stop', {})
     const sent = aborts()
 
-    expect(lost).toMatchObject({ kind: 'uncertain', quarantined: true })
-    expect((await cria.client.operation(lost.id)).body).toMatchObject({ state: 'settled', outcome: { kind: 'uncertain' } })
-    expect((await cria.state()).operations.map(operation => operation.id)).toContain(lost.id)
     expect((await cria.client.operation(first.body.id)).body).toMatchObject({ error: { code: 'result-expired' } })
     expect(await cria.submit('mount', 'mount-stop', {}, requestId)).toMatchObject({ status: 410, body: { error: { code: 'result-expired' } } })
     expect(aborts()).toBe(sent)
-  })
-
-  it('an uncertain ending holds the mount through a confirmed stop until a person recovers it, once per binding', async () => {
-    const silent: Behaviour = (fake, vector, values) => (vector.name === 'TELESCOPE_TRACK_STATE' ? 'handled' : moveMount()(fake, vector, values))
-
-    fake.behaviour = silent
-    const lost = await cria.run('mount', 'mount-tracking', { tracking: true })
-    const stop = await cria.run('mount', 'mount-stop', {})
-    const held = await cria.device('mount')
-    const refused = await cria.submit('mount', 'mount-tracking', { tracking: false })
-    const instanceId = (await cria.state()).instanceId
-    const recovered = await cria.client.recover('mount', { instanceId, bindingId: held.bindingId, externalRecoveryConfirmed: true, note: 'first check' })
-    const stale = await cria.client.recover('mount', { instanceId, bindingId: held.bindingId, externalRecoveryConfirmed: true, note: 'again' })
-
-    expect([lost.kind, stop.kind, held.quarantine.held]).toEqual(['uncertain', 'confirmed', true])
-    expect(refused).toMatchObject({ status: 409, body: { error: { code: 'device-blocked' } } })
-    expect(recovered).toMatchObject({ status: 200, body: { quarantine: { held: false } } })
-    expect(stale).toMatchObject({ status: 409, body: { error: { code: 'binding-changed' } } })
-
-    await cria.waitFor(allReady(['mount']))
-    const again = await cria.run('mount', 'mount-tracking', { tracking: true })
-    const first = await cria.client.operation(lost.id)
-    const second = await cria.client.operation(again.id)
-
-    expect(again).toMatchObject({ kind: 'uncertain', quarantined: true })
-    expect(first.body).toMatchObject({ recovery: { note: 'first check' } })
-    expect(second.body).toMatchObject({ recovery: null })
-  })
-
-  it('a recovery on a domain that is not held is accepted, mints a new binding, and refuses a request still carrying the old one', async () => {
-    const before = await cria.state()
-    const idle = before.devices.find(device => device.id === 'mount')!
-    const old = { instanceId: before.instanceId, requestId: crypto.randomUUID(), deviceId: 'mount', bindingId: idle.bindingId, expectedName: idle.name, kind: 'mount-tracking', parameters: { tracking: true } }
-    const recovered = await cria.client.recover('mount', { instanceId: before.instanceId, bindingId: idle.bindingId, externalRecoveryConfirmed: true, note: 'nothing was wrong' })
-    const late = await cria.client.submit(old as unknown as Parameters<typeof cria.client.submit>[0])
-    const lookup = await cria.client.byRequest(before.instanceId, old.requestId)
-
-    expect(idle.quarantine.held).toBe(false)
-    expect(recovered).toMatchObject({ status: 200, body: { quarantine: { held: false } } })
-    expect(recovered.ok && recovered.body.bindingId).not.toBe(idle.bindingId)
-    expect(late).toMatchObject({ status: 409, body: { error: { code: 'binding-changed' } } })
-    expect(lookup).toMatchObject({ status: 404, body: { error: { code: 'not-found' } } })
   })
 })
 

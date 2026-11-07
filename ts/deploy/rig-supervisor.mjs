@@ -6,10 +6,10 @@
 // the mini PC can boot before the rest of the rig is powered:
 //
 //   a. A device is missing from INDI (availability `unavailable`), its hardware
-//      is present, and nothing is open or held on any device that driver
+//      is present, and nothing is open on any device that driver
 //      serves: restart only that driver through indiserver's FIFO.
 //   b. A device is defined but disconnected (availability `disconnected`), its
-//      hardware is present, commands are enabled, and nothing is open or held
+//      hardware is present, commands are enabled, and nothing is open
 //      on it: send one device-connect through Cria's HTTP API. Cria writes the
 //      serial port first and runs device setup itself.
 //
@@ -228,7 +228,7 @@ export function createSupervisor(dependencies) {
       const body = await response.json().catch(() => undefined)
       const code = body?.error?.code ?? `HTTP ${response.status}`
 
-      if (code === 'device-blocked' || code === 'commands-disabled' || code === 'device-busy') {
+      if (code === 'commands-disabled' || code === 'device-busy') {
         entry.quiet = code
         log(`rig-supervisor: ${device.id}: device-connect refused ${code}; waiting until that clears`)
       } else {
@@ -325,7 +325,6 @@ export function createSupervisor(dependencies) {
       const domains = new Set(served.map(device => device.failureDomain))
       const blockers = [
         ...state.operations.filter(operation => isOpen(operation) && (ids.has(operation.deviceId) || domains.has(operation.failureDomain))).map(operation => `${operation.kind} open on ${operation.deviceId}`),
-        ...served.filter(device => device.quarantine?.held).map(device => `${device.id} is held`),
         ...activeOn(served),
       ]
 
@@ -360,10 +359,9 @@ export function createSupervisor(dependencies) {
       if (configured.driver && restarting.has(configured.driver)) continue
 
       const open = state.operations.some(operation => isOpen(operation) && (operation.deviceId === current.id || operation.failureDomain === current.failureDomain))
-      const held = current.quarantine?.held === true
 
       if (entry.quiet) {
-        const cleared = (entry.quiet === 'device-blocked' && !held) || (entry.quiet === 'commands-disabled' && state.commandsEnabled) || (entry.quiet === 'device-busy' && !open)
+        const cleared = (entry.quiet === 'commands-disabled' && state.commandsEnabled) || (entry.quiet === 'device-busy' && !open)
 
         if (!cleared) continue
         entry.quiet = undefined
@@ -372,8 +370,8 @@ export function createSupervisor(dependencies) {
         note(`connect:${configured.id}`, `${configured.id}: disconnected, hardware not present yet`)
         continue
       }
-      if (open || held) {
-        note(`connect:${configured.id}`, `${configured.id}: disconnected, but ${held ? 'it is held' : 'an operation is open'}; not connecting`)
+      if (open) {
+        note(`connect:${configured.id}`, `${configured.id}: disconnected, but an operation is open; not connecting`)
         continue
       }
       if (entry.lastAttemptAt !== undefined && now() - entry.lastAttemptAt < connectWait(entry)) continue

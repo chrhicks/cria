@@ -1,7 +1,7 @@
 import { Deferred } from 'effect'
 import { BindingId, DeviceId, FailureDomain, InstanceId, OperationId, RequestId, type Command, type Operation } from '@cria/wire'
 import { describe, expect, it } from 'vitest'
-import { admit, cancel, initialState, prune, recover, settle, snapshot, wait, type LedgerState, type Rules, type Submission, type Transition } from './ledger.js'
+import { admit, cancel, initialState, prune, settle, snapshot, wait, type LedgerState, type Rules, type Submission, type Transition } from './ledger.js'
 
 const uuid = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`
 const instanceId = InstanceId.make(uuid(1))
@@ -163,7 +163,7 @@ describe('settling', () => {
     const waiting = stateOf(wait(stateOf(admitted(empty, 1, tracking)), { id: id(1), waiter }))
     const [step, next] = ended(waiting, 1, confirmed)
 
-    expect(step.after).toEqual([{ kind: 'resolve', waiters: [waiter], operation: { ...next.operations.get(id(1)), recovery: null } }])
+    expect(step.after).toEqual([{ kind: 'resolve', waiters: [waiter], operation: next.operations.get(id(1)) }])
     expect(next.waiters.size).toBe(0)
   })
 })
@@ -182,38 +182,20 @@ describe('cancel', () => {
   it('returns a settled operation unchanged, and refuses an unknown one', () => {
     const settled = stateOf(ended(queued, 1, { kind: 'stopped' }))
 
-    expect(cancel(settled, id(1))).toEqual([{ result: { ...settled.operations.get(id(1)), recovery: null }, after: [] }, settled])
+    expect(cancel(settled, id(1))).toEqual([{ result: settled.operations.get(id(1)), after: [] }, settled])
     expect(resultOf(cancel(settled, id(9)))).toMatchObject({ code: 'not-found' })
   })
 })
 
-describe('quarantine and recovery', () => {
-  const recovery = (state: LedgerState, bindingId = mountBinding) =>
-    recover(rules, state, {
-      deviceId: mount.id,
-      instanceId,
-      bindingId,
-      recovery: { confirmed: true, note: 'Chris checked' },
-      at: 70,
-      next: BindingId.make(uuid(4)),
-    })
-  const held = stateOf(ended(stateOf(admitted(empty, 1, tracking)), 1, lost))
-
-  it('holds after an uncertain ending, through a confirmed stop, and refuses motions but runs halts', () => {
-    const stopped = stateOf(ended(stateOf(admitted(held, 2, stop)), 2, confirmed))
-
-    expect(resultOf(admitted(stopped, 3, tracking))).toMatchObject({ code: 'device-blocked', message: 'Blocked until recovered: no answer' })
-    expect(resultOf(snapshot(rules, stopped)).facts(mount.failureDomain).quarantine).toEqual({ held: true, reason: 'no answer', since: 51 })
-  })
-
+describe('an uncertain ending', () => {
   it.each([
+    ['mount', mount, tracking],
     ['camera', camera, { kind: 'capture', parameters: { exposureSeconds: 1, light: true } }],
     ['focuser', focuser, { kind: 'focuser-move', parameters: { position: 1000 } }],
     ['switch', relay, { kind: 'switch-set', parameters: { channelId: 0, value: 1 } }],
-  ] as const)('does not hold a %s after an uncertain ending: the next command is admitted', (_name, device, command) => {
+  ] as const)('holds nothing on a %s: the next command is admitted', (_name, device, command) => {
     const after = stateOf(ended(stateOf(admitted(empty, 1, command as Command, device)), 1, lost))
 
-    expect(resultOf(snapshot(rules, after)).facts(device.failureDomain).quarantine).toEqual({ held: false })
     expect(resultOf(admitted(after, 2, command as Command, device))).toMatchObject({ state: 'running' })
     expect(resultOf(cancel(after, id(1)))).toMatchObject({ state: 'settled', outcome: lost })
   })
@@ -223,23 +205,10 @@ describe('quarantine and recovery', () => {
 
     expect(resultOf(admitted(after, 2, tracking))).toMatchObject({ state: 'running' })
   })
-
-  it('refuses a recovery while a stop is open, and a stale binding', () => {
-    expect(resultOf(recovery(stateOf(admitted(held, 2, stop))))).toMatchObject({ code: 'device-busy' })
-    expect(resultOf(recovery(held, cameraBinding))).toMatchObject({ code: 'binding-changed' })
-  })
-
-  it('rotates the binding, releases the hold, and records the recovery on the operation it ended', () => {
-    const [step, next] = recovery(held)
-
-    expect(step.result).toEqual({ binding: uuid(4), quarantine: { held: false }, busy: false })
-    expect(resultOf(cancel(next, id(1)))).toMatchObject({ outcome: lost, recovery: { at: 70, note: 'Chris checked' } })
-    expect(resultOf(admitted(next, 2, tracking))).toMatchObject({ code: 'binding-changed' })
-  })
 })
 
 describe('retention', () => {
-  it('prunes a non-mount uncertain ending like any other, but keeps the mount one', () => {
+  it('prunes an uncertain ending like any other', () => {
     const cameraOps = [1, 2, 3, 4, 5].reduce(
       (state, n) => stateOf(ended(stateOf(admitted(state, n, { kind: 'capture', parameters: { exposureSeconds: 1, light: true } }, camera)), n, n === 1 ? lost : confirmed)),
       empty,
@@ -248,14 +217,13 @@ describe('retention', () => {
     expect(states(cameraOps).map(([operation]) => operation)).toEqual([id(3), id(4), id(5)])
   })
 
-  it('drops the oldest settled operations beyond history, never a quarantining one, and keeps every request ID', () => {
+  it('drops the oldest settled operations beyond history, and keeps every request ID', () => {
     const steps = [2, 3, 4, 5].reduce(
       (state, n) => stateOf(ended(stateOf(admitted(state, n, stop)), n, confirmed)),
       stateOf(ended(stateOf(admitted(empty, 1, tracking)), 1, lost)),
     )
 
     expect(states(steps)).toEqual([
-      [id(1), 'settled'],
       [id(3), 'settled'],
       [id(4), 'settled'],
       [id(5), 'settled'],

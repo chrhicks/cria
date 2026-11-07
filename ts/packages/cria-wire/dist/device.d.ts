@@ -6,20 +6,13 @@ import { Schema } from 'effect';
 export declare const deviceKinds: readonly ['camera', 'mount', 'focuser', 'weather', 'switch'];
 export type DeviceKind = (typeof deviceKinds)[number];
 export declare const coordinateFrames: readonly ['topocentric', 'j2000'];
-export declare const availabilityReasons: readonly ['commands-disabled', 'blocked', 'unavailable', 'starting', 'disconnected', 'stale', 'busy'];
+export declare const availabilityReasons: readonly ['commands-disabled', 'unavailable', 'starting', 'disconnected', 'stale', 'busy'];
 export declare const Availability: Schema.Union<readonly [Schema.Struct<{
     readonly ready: Schema.Literal<true>;
 }>, Schema.Struct<{
     readonly ready: Schema.Literal<false>;
-    readonly reason: Schema.Literals<readonly ["commands-disabled", "blocked", "unavailable", "starting", "disconnected", "stale", "busy"]>;
+    readonly reason: Schema.Literals<readonly ["commands-disabled", "unavailable", "starting", "disconnected", "stale", "busy"]>;
     readonly message: Schema.String;
-}>]>;
-export declare const Quarantine: Schema.Union<readonly [Schema.Struct<{
-    readonly held: Schema.Literal<false>;
-}>, Schema.Struct<{
-    readonly held: Schema.Literal<true>;
-    readonly reason: Schema.String;
-    readonly since: Schema.Number;
 }>]>;
 export declare const CameraReadings: Schema.Struct<{
     readonly connected: Schema.Union<readonly [Schema.Struct<{
@@ -1140,15 +1133,8 @@ declare const identity: {
         readonly ready: Schema.Literal<true>;
     }>, Schema.Struct<{
         readonly ready: Schema.Literal<false>;
-        readonly reason: Schema.Literals<readonly ["commands-disabled", "blocked", "unavailable", "starting", "disconnected", "stale", "busy"]>;
+        readonly reason: Schema.Literals<readonly ["commands-disabled", "unavailable", "starting", "disconnected", "stale", "busy"]>;
         readonly message: Schema.String;
-    }>]>;
-    quarantine: Schema.Union<readonly [Schema.Struct<{
-        readonly held: Schema.Literal<false>;
-    }>, Schema.Struct<{
-        readonly held: Schema.Literal<true>;
-        readonly reason: Schema.String;
-        readonly since: Schema.Number;
     }>]>;
 };
 export declare const Device: Schema.Union<readonly [Schema.Struct<{
@@ -1160,15 +1146,8 @@ export declare const Device: Schema.Union<readonly [Schema.Struct<{
         readonly ready: Schema.Literal<true>;
     }>, Schema.Struct<{
         readonly ready: Schema.Literal<false>;
-        readonly reason: Schema.Literals<readonly ["commands-disabled", "blocked", "unavailable", "starting", "disconnected", "stale", "busy"]>;
+        readonly reason: Schema.Literals<readonly ["commands-disabled", "unavailable", "starting", "disconnected", "stale", "busy"]>;
         readonly message: Schema.String;
-    }>]>;
-    readonly quarantine: Schema.Union<readonly [Schema.Struct<{
-        readonly held: Schema.Literal<false>;
-    }>, Schema.Struct<{
-        readonly held: Schema.Literal<true>;
-        readonly reason: Schema.String;
-        readonly since: Schema.Number;
     }>]>;
     readonly kind: Schema.Literal<"camera">;
     readonly readings: Schema.Struct<{
@@ -1590,15 +1569,8 @@ export declare const Device: Schema.Union<readonly [Schema.Struct<{
         readonly ready: Schema.Literal<true>;
     }>, Schema.Struct<{
         readonly ready: Schema.Literal<false>;
-        readonly reason: Schema.Literals<readonly ["commands-disabled", "blocked", "unavailable", "starting", "disconnected", "stale", "busy"]>;
+        readonly reason: Schema.Literals<readonly ["commands-disabled", "unavailable", "starting", "disconnected", "stale", "busy"]>;
         readonly message: Schema.String;
-    }>]>;
-    readonly quarantine: Schema.Union<readonly [Schema.Struct<{
-        readonly held: Schema.Literal<false>;
-    }>, Schema.Struct<{
-        readonly held: Schema.Literal<true>;
-        readonly reason: Schema.String;
-        readonly since: Schema.Number;
     }>]>;
     readonly kind: Schema.Literal<"mount">;
     readonly readings: Schema.Struct<{
@@ -1917,15 +1889,8 @@ export declare const Device: Schema.Union<readonly [Schema.Struct<{
         readonly ready: Schema.Literal<true>;
     }>, Schema.Struct<{
         readonly ready: Schema.Literal<false>;
-        readonly reason: Schema.Literals<readonly ["commands-disabled", "blocked", "unavailable", "starting", "disconnected", "stale", "busy"]>;
+        readonly reason: Schema.Literals<readonly ["commands-disabled", "unavailable", "starting", "disconnected", "stale", "busy"]>;
         readonly message: Schema.String;
-    }>]>;
-    readonly quarantine: Schema.Union<readonly [Schema.Struct<{
-        readonly held: Schema.Literal<false>;
-    }>, Schema.Struct<{
-        readonly held: Schema.Literal<true>;
-        readonly reason: Schema.String;
-        readonly since: Schema.Number;
     }>]>;
     readonly kind: Schema.Literal<"focuser">;
     readonly readings: Schema.Struct<{
@@ -2043,15 +2008,8 @@ export declare const Device: Schema.Union<readonly [Schema.Struct<{
         readonly ready: Schema.Literal<true>;
     }>, Schema.Struct<{
         readonly ready: Schema.Literal<false>;
-        readonly reason: Schema.Literals<readonly ["commands-disabled", "blocked", "unavailable", "starting", "disconnected", "stale", "busy"]>;
+        readonly reason: Schema.Literals<readonly ["commands-disabled", "unavailable", "starting", "disconnected", "stale", "busy"]>;
         readonly message: Schema.String;
-    }>]>;
-    readonly quarantine: Schema.Union<readonly [Schema.Struct<{
-        readonly held: Schema.Literal<false>;
-    }>, Schema.Struct<{
-        readonly held: Schema.Literal<true>;
-        readonly reason: Schema.String;
-        readonly since: Schema.Number;
     }>]>;
     readonly kind: Schema.Literal<"weather">;
     readonly readings: Schema.Struct<{
@@ -2208,15 +2166,8 @@ export declare const Device: Schema.Union<readonly [Schema.Struct<{
         readonly ready: Schema.Literal<true>;
     }>, Schema.Struct<{
         readonly ready: Schema.Literal<false>;
-        readonly reason: Schema.Literals<readonly ["commands-disabled", "blocked", "unavailable", "starting", "disconnected", "stale", "busy"]>;
+        readonly reason: Schema.Literals<readonly ["commands-disabled", "unavailable", "starting", "disconnected", "stale", "busy"]>;
         readonly message: Schema.String;
-    }>]>;
-    readonly quarantine: Schema.Union<readonly [Schema.Struct<{
-        readonly held: Schema.Literal<false>;
-    }>, Schema.Struct<{
-        readonly held: Schema.Literal<true>;
-        readonly reason: Schema.String;
-        readonly since: Schema.Number;
     }>]>;
     readonly kind: Schema.Literal<"switch">;
     readonly readings: Schema.Struct<{

@@ -14,7 +14,6 @@ export const coordinateFrames = ['topocentric', 'j2000'] as const
 
 export const availabilityReasons = [
   'commands-disabled',
-  'blocked',
   'unavailable',
   'starting',
   'disconnected',
@@ -25,11 +24,6 @@ export const availabilityReasons = [
 export const Availability = Schema.Union([
   Schema.Struct({ ready: Schema.Literal(true) }),
   Schema.Struct({ ready: Schema.Literal(false), reason: Schema.Literals(availabilityReasons), message: Schema.String }),
-])
-
-export const Quarantine = Schema.Union([
-  Schema.Struct({ held: Schema.Literal(false) }),
-  Schema.Struct({ held: Schema.Literal(true), reason: Schema.String, since: Timestamp }),
 ])
 
 const number = Reading(Schema.Number)
@@ -140,7 +134,6 @@ const identity = {
   bindingId: BindingId,
   failureDomain: FailureDomain,
   availability: Availability,
-  quarantine: Quarantine,
   /** The latest settled operation in the domain that every fresh reading here postdates. */
 }
 

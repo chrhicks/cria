@@ -46,7 +46,7 @@ describe('a goto on an AM5 that needs its site and time', () => {
     await start({}, {})
     const operation = await cria.run('mount', 'mount-slew', { rightAscensionDegrees: 31, declinationDegrees: 45, coordinateSystem: 'topocentric' })
 
-    expect([operation.kind, operation.reason, operation.quarantined]).toEqual(['failed', 'rejected', false])
+    expect([operation.kind, operation.reason]).toEqual(['failed', 'rejected'])
     expect(operation.message).toBe(
       'The mount refused the goto (Alert on EQUATORIAL_EOD_COORD). An AM5 refuses every goto until its site and time are set after it powers on. ' +
         `Setup since it connected: GEOGRAPHIC_COORD not sent: no site is configured for this mount; sent TIME_UTC ${sent('TIME_UTC')[0]}. Nothing moved. An AM5 can refuse a goto when its site and time are not synced after power-on (AM5 e7). Send device-connect with connected: true to re-send site and time, then try the goto again. If no site is configured, configure it first.`,
@@ -101,7 +101,7 @@ describe('stopping a mount that coasts after the driver says it stopped', () => 
     await cria.cancel(slewing.body.id)
     const operation = await cria.settled(slewing.body.id, 40_000)
 
-    expect([operation.kind, operation.reason, operation.quarantined, model.moving()]).toEqual(['uncertain', 'stop-not-confirmed', true, true])
+    expect([operation.kind, operation.reason, model.moving()]).toEqual(['uncertain', 'stop-not-confirmed', true])
   }, 45_000)
 })
 

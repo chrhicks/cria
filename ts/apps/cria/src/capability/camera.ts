@@ -193,7 +193,7 @@ export function makeCamera(context: CapabilityContext, frameGrid: FrameGrid = {}
           stop: abort,
           stopWithin: 15_000,
           // An exposure error with the abort confirmed leaves an idle camera and no frame:
-          // nothing moved, nothing persists, so it is a plain failure, not a quarantine.
+          // nothing moved, nothing persists, so it is a plain failure.
           settleFailure: 'failed',
         })
 
@@ -445,7 +445,7 @@ function setControl(
  * arrives after our CCD_EXPOSURE went Busy and its FITS header matches the
  * request: EXPTIME, size, and a DATE-OBS no earlier than our dispatch. Other
  * frames are skipped; if only those arrive, at the deadline the capture fails
- * when CCD_EXPOSURE reads not Busy (nothing is in flight, so no quarantine), and
+ * when CCD_EXPOSURE reads not Busy (nothing is in flight), and
  * is uncertain when it is Busy or can't be read. Alert on CCD_EXPOSURE after our
  * start fails the exposure; losing the driver or the connection makes it uncertain.
  */

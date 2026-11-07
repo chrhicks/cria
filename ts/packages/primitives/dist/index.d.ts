@@ -5,6 +5,5 @@ export type { Reading as ReadingOf, UnavailableReason } from './reading.js';
 export { writeOnce, type Answer, type WriteOnce } from './discipline/write-once.js';
 export { confirm, writeConfirmed, type Confirm } from './discipline/confirm.js';
 export { stoppable, type Stoppable } from './discipline/stoppable.js';
-export { quarantineOf, type ExternalRecovery, type QuarantineState } from './quarantine.js';
 export { makeRun, type Report, type Run, type RunDefinition, type RunView, type SettledView } from './run.js';
 //# sourceMappingURL=index.d.ts.map

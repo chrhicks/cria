@@ -9,7 +9,7 @@
  */
 import { Cause, Effect, Exit } from 'effect';
 /** Known not to have taken effect. */
-export declare const failedReasons: readonly ['busy', 'blocked', 'disconnected', 'unsupported', 'rejected', 'invalid', 'unavailable'];
+export declare const failedReasons: readonly ['busy', 'disconnected', 'unsupported', 'rejected', 'invalid', 'unavailable'];
 export type FailedReason = (typeof failedReasons)[number];
 /** May have taken effect. Stop, tell a person, never resend. */
 export declare const uncertainReasons: readonly ['no-acknowledgement', 'not-confirmed', 'stop-not-confirmed', 'connection-lost', 'driver-lost', 'unexpected-error'];

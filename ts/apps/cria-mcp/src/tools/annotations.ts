@@ -17,7 +17,7 @@ export const read = <N extends string, C extends ToolConfig, R>(tool: Tool.Tool<
 
 /**
  * A call that can change the rig. `destructive` is whether the Executor app holds the call for approval, and a stop must never wait for one:
- * the wire's halt kinds and `cancel` only stop motion, so they are not destructive; every other command and `recover` are.
+ * the wire's halt kinds and `cancel` only stop motion, so they are not destructive; every other command is.
  * No call is idempotent, because sending it again can act again.
  */
 export const change = <N extends string, C extends ToolConfig, R>(tool: Tool.Tool<N, C, R>, destructive: boolean) =>

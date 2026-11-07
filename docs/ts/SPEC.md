@@ -2,8 +2,7 @@
 
 The contract and design of the TypeScript Cria under `ts/`, as it is on `main`
 in chrhicks/cria. Where the code and this file
-disagree, this file is the intent and the code has the bug. To move Vela onto
-this wire, follow [the Vela migration checklist](vela-migration.md).
+disagree, this file is the intent and the code has the bug.
 
 ## What this is
 
@@ -30,8 +29,7 @@ What changes for the rig:
 
 Some things do not change. Vela owns runs, decisions, processing and archives. Cria owns
 current device state and one bounded operation at a time per failure domain. Runs
-are ephemeral. Images are a rolling set. An uncertain outcome on the mount blocks it
-until a person recovers it; any other device settles `uncertain` and is commanded again. Cria never resends a command blindly.
+are ephemeral. Images are a rolling set. An uncertain outcome on any device, the mount included, settles `uncertain` and holds nothing: the next command is accepted. Cria never resends a command blindly.
 
 ## The layers
 
@@ -41,7 +39,7 @@ layers above it in this list.
 1. **Types** (`@cria/primitives`). `Outcome` and `Reading`. The wire schemas in
    `@cria/wire` are Views: one Effect Schema gives the type and the validator.
 2. **Disciplines** (`@cria/primitives`). `writeOnce`, `confirm`, `stoppable`,
-   and the `quarantineOf` fold. They encode "no blind replay" and
+   They encode "no blind replay" and
    "honest state" once, so capabilities do not each derive them again.
 3. **Capabilities** (`apps/cria/src/capability`). Camera, mount, focuser,
    weather, power (switch) and connection. Each is an INDI device seen through the
@@ -103,7 +101,7 @@ type Outcome<A> =
   | { kind: 'stopped' }                                            // cancellation confirmed
   | { kind: 'uncertain'; reason: UncertainReason; message: string } // may have taken effect
 
-type FailedReason = 'busy' | 'blocked' | 'disconnected' | 'unsupported' | 'rejected' | 'invalid' | 'unavailable'
+type FailedReason = 'busy' | 'disconnected' | 'unsupported' | 'rejected' | 'invalid' | 'unavailable'
 type UncertainReason = 'no-acknowledgement' | 'not-confirmed' | 'stop-not-confirmed' | 'connection-lost' | 'driver-lost' | 'unexpected-error'
 ```
 
@@ -164,7 +162,7 @@ classifies the driver's first answer, as this table shows.
 | The socket write fails, or the connection drops after sending | `uncertain: connection-lost` | The bytes may have reached the driver. |
 | The driver answers `Alert` without having gone `Busy` | `failed: rejected` | INDI drivers refuse a bad request by setting `Alert` at once. An `Alert` already present before the send is not a rejection. |
 | The driver answers `Ok`, `Idle` or `Busy` | acknowledged; `confirm` or `stoppable` continues | The driver accepted the command. Acknowledged is not confirmed. |
-| An axis motion (`TELESCOPE_MOTION_WE`) start gets an `Idle` or `Ok` update, received after the send, that shows the requested switch still Off | `failed: rejected`, "the driver answered Idle and did not start MOTION_EAST (it stayed Off)"; nothing is stopped and nothing is held | The driver answered, and what it answered is that it did not start (errai's AM5 at Home answered in 41 ms, 2026-10-30; nothing moved). An update received before the send never counts, and a routine update that echoes the requested switch On is ignored like any routine update. Only axis motion starts, where a driver always answers Busy. |
+| An axis motion (`TELESCOPE_MOTION_WE`) start gets an `Idle` or `Ok` update, received after the send, that shows the requested switch still Off | `failed: rejected`, "the driver answered Idle and did not start MOTION_EAST (it stayed Off)"; nothing is stopped | The driver answered, and what it answered is that it did not start (errai's AM5 at Home answered in 41 ms, 2026-10-30; nothing moved). An update received before the send never counts, and a routine update that echoes the requested switch On is ignored like any routine update. Only axis motion starts, where a driver always answers Busy. |
 | A motion (slew, focuser move, exposure, park) gets a routine `Ok` update | ignored; keep waiting | Drivers send polled properties again several times a second. Only `Busy`, `Alert` or an update at the target answers a motion. |
 | A number setting settles at a different value than asked (a ZWO width rounded to a multiple of 8) | `failed: rejected`, with the value the driver chose | The device state is known, so this is not uncertainty. A value within half the element's step of the request is the request applied (the PPBA holds 10 % duty as 9.8039 %); the switch channel reports the value the driver holds. |
 | No answer before the acknowledgement deadline | `uncertain: no-acknowledgement` | It may be running. Cria never resends it. |
@@ -204,7 +202,7 @@ acknowledged, an ending that is not confirmed (Alert part-way, a deadline, a sta
 reading during a rotate, settling outside the target tolerance) is `uncertain`,
 because the device moved by an unknown amount. The one opt-out is a camera
 exposure (`settleFailure: 'failed'`). With the abort confirmed the camera is idle
-and nothing persists, so an exposure error does not quarantine the camera.
+and nothing persists, so an exposure error leaves the camera free.
 
 ### Run
 
@@ -233,48 +231,18 @@ operation ID as its run ID. Only the ledger starts a Run, so Run's `busy` refusa
 cannot happen there. If it does, it is a ledger bug, and the operation settles
 `uncertain: unexpected-error`.
 
-### Quarantine
-
-```ts
-quarantineOf(sinceRecovery: Iterable<{ outcome; settledAt }>) → { held: false } | { held: true; reason; since }
-type ExternalRecovery = { confirmed: true; note: string }   // a person checked the equipment
-```
-
-`quarantineOf` turns "an uncertain outcome" into "this device takes no more
-commands until a person says it is safe". The ledger applies it to the `mount`
-device kind only: the AM5 has no encoders, so its position is a step count Cria
-cannot read back. For a camera, focuser, weather or switch device Cria can read
-the state again, so an uncertain ending settles `uncertain` on the wire with its
-reason and message but holds nothing (`quarantine` is always `{ held: false }`).
-Cria still never resends a command. It is a fold over the endings since the
-last recovery. The domain is held from the first uncertain ending, with its
-message and time. No later ending releases it, a confirmed stop included. Only a
-recovery starts a new list, and recovering takes an `ExternalRecovery` value, so
-no code path clears it by accident.
-
-The rule exists in at least three places today: Cria .NET's owner quarantine
-(`Device.cs`), Vela's Cria client (a blocked failure domain), and Vela's mount
-control refusing while an operation is unsettled (`mount-control.ts`). Here it is
-one pure function of the endings, so the held state, the operation that caused
-it, and its recovery come from one record and cannot disagree.
-
 ## The ledger
 
 `apps/cria/src/operation/ledger.ts` is the one owner of operations, per rig. It
 holds one immutable state in a `Ref`. Each transition (admit, progress, settle,
-cancel, wait, recover, snapshot, prune) is a pure function that returns the new
+cancel, wait, snapshot, prune) is a pure function that returns the new
 state and the effects to run after it (start a Run, stop a Run, resolve waiters).
 Each change increments a revision, which the ledger publishes for the event
 stream.
 
-Per failure domain the ledger keeps one fact, the current `bindingId`. The
-domain is held while an operation on a `mount` device that ended under the current
-binding was uncertain (the kind comes from the ledger's device record). That
-operation is never pruned until a recovery. An uncertain ending on any other kind
-holds nothing and is pruned like any settled operation. A recovery records
-`{ at, note }` under the binding it ends and mints a new binding, shared by every
-device in the domain. An operation's `recovery` is the record for the binding it
-ended under, so only an uncertain operation has one.
+Per failure domain the ledger keeps one fact, the current `bindingId`, which
+never changes while Cria runs. An uncertain ending on any device kind holds
+nothing and is pruned like any settled operation.
 
 ### Admission
 
@@ -290,8 +258,7 @@ ended under, so only an uncertain operation has one.
 5. A kind for another device kind: `400 request-error`.
 6. Commands disabled in the config: `403 commands-disabled`.
 7. A halt (`mount-stop`, `focuser-halt`) is admitted now (see below).
-8. A held domain (a mount only): `409 device-blocked`.
-9. An open operation in the domain: `409 device-busy`.
+8. An open operation in the domain: `409 device-busy`.
 
 Otherwise the operation starts at once, as `running`. A motion or setting is
 never queued. Admission and the start happen in one step, so nothing else is
@@ -299,8 +266,7 @@ admitted between them.
 
 ### Halts, stops and cancel
 
-A halt runs even while the domain is held, because refusing a stop on a blocked
-device would leave it moving. On an idle domain a halt starts at once. On a busy
+On an idle domain a halt starts at once. On a busy
 domain it is `waiting`, and if the running operation is not itself a halt, the
 ledger asks its Run to stop (its own `stoppable` halts and confirms). When an
 operation settles, the oldest waiting halt starts in the same step.
@@ -318,32 +284,8 @@ Cancel of an operation ID Cria does not hold answers an error and cancels
 nothing: `404 not-found` for an ID it never held, `410 result-expired` for one it
 pruned (its request ID is still known). Both mean there is nothing to cancel, and
 `GET /v2/operations/{id}` answers the same two. The first is pinned by the golden
-scenario "refused: unknown operation, request and device"; the second by the
+scenario "refused: unknown operation and request"; the second by the
 ledger test for a pruned operation.
-
-### Recovery
-
-`POST /v2/devices/{id}/recover` with `{ instanceId, bindingId,
-externalRecoveryConfirmed: true, note }` says a person checked the equipment. It
-is refused `409 device-busy` while any operation is open in the domain, so every
-open operation belongs to the current binding. Otherwise it records the recovery,
-mints a new `bindingId` for the whole domain, and returns the device (`200`). The
-domain is no longer held. Vela must read the new `bindingId` before it commands
-again.
-
-The recovery does not need the domain to be held. On an idle domain that is not
-held it is still accepted (`200`), still records `{ at, note }` under the binding
-it ends, and still mints a new `bindingId`. So a request still in flight with the
-old binding is refused `409 binding-changed`, and a person's recovery is a fence:
-once it has answered, a request carrying the old binding can never be admitted,
-and a `GET /v2/requests/{instance}/{request}` that is missing afterwards proves
-the request never ran. The recovery is refused only for the reasons above:
-`device-busy` while an operation is open, `binding-changed` for a binding that is
-not current. The test "a recovery on a domain that is not held is accepted, mints
-a new binding, and refuses a request still carrying the old one"
-(`ts/apps/cria/test/operation-lifecycle.test.ts`) pins it, and the golden
-scenario "recover refused while a mount-stop runs" shows its second recover
-answering `200` with a new binding after a confirmed stop.
 
 ### Settle bounds
 
@@ -366,8 +308,8 @@ is available whatever the bound.
 ### What the ledger keeps
 
 The ledger keeps the newest `operationHistory` settled operations (config, default
-1000), never pruning one that holds its domain (a mount's uncertain ending). A snapshot lists every open
-operation, every one that holds a domain, and the newest 20 other settled ones.
+1000). A snapshot lists every open
+operation and the newest 20 settled ones.
 
 ## Module map
 
@@ -381,7 +323,6 @@ the same tag in their doc comment.
 | `packages/primitives/src/discipline/write-once.ts` | Discipline: writeOnce | Outcome |
 | `packages/primitives/src/discipline/confirm.ts` | Discipline: confirm | `confirm`, `writeConfirmed`; Outcome |
 | `packages/primitives/src/discipline/stoppable.ts` | Discipline: stoppable | writeOnce, Outcome |
-| `packages/primitives/src/quarantine.ts` | Quarantine | `quarantineOf`, a fold over endings; `ExternalRecovery` |
 | `packages/primitives/src/run.ts` | Run | Outcome, Effect `Fiber`, `SubscriptionRef` |
 | `packages/primitives/src/index.ts` | | The package's exports |
 | `packages/indi/src/xml.ts` | INDI boundary | XML framing, the INDI message union, request serialization |
@@ -397,9 +338,9 @@ the same tag in their doc comment.
 | `packages/cria-wire/src/values.ts` | View | `Reading`, `Outcome`, `Timestamp`, `Json` as wire schemas |
 | `packages/cria-wire/src/ids.ts` | View | Branded IDs: `InstanceId`, `OperationId`, `ImageId`, `BindingId` (UUIDs), `DeviceId`, `FailureDomain`, `RequestId` |
 | `packages/cria-wire/src/command.ts` | View | The 15 operation kinds as one table: device kind, halt, parameter bounds |
-| `packages/cria-wire/src/device.ts` | View | `Device`, one shape per kind; `Availability`, `Quarantine`, readings per kind |
+| `packages/cria-wire/src/device.ts` | View | `Device`, one shape per kind; `Availability`, readings per kind |
 | `packages/cria-wire/src/operation.ts` | View | `OperationRequest`, `Operation`, `Progress`, `Image` |
-| `packages/cria-wire/src/state.ts` | View | `State`, `Health`, `ErrorBody`, `errorCodes`, `RecoveryRequest`, `protocolVersion` |
+| `packages/cria-wire/src/state.ts` | View | `State`, `Health`, `ErrorBody`, `errorCodes`, `protocolVersion` |
 | `packages/cria-wire/src/index.ts` | | The package's exports |
 | `apps/cria/src/capability/fields.ts` | Reading | Property to Reading, decided once: fresh, stale, unavailable |
 | `apps/cria/src/capability/definitions.ts` | Reading | When a device connected and last defined a property, and whether the driver removed it |
@@ -413,7 +354,7 @@ the same tag in their doc comment.
 | `apps/cria/src/capability/connection.ts` | Capability: connection | writeOnce, confirm; serial port before connecting; device setup after |
 | `apps/cria/src/capability/setup.ts` | Capability: device setup | writeOnce, confirm; the table of setup steps per device kind (see "Device setup") |
 | `apps/cria/src/operation/workflows.ts` | Workflow bodies | One short body per operation kind over one capability, as a table keyed by kind |
-| `apps/cria/src/operation/ledger.ts` | Run (with history), Quarantine | The one owner of operations per rig (see "The ledger"); `onSettled` announces each settled operation once |
+| `apps/cria/src/operation/ledger.ts` | Run (with history) | The one owner of operations per rig (see "The ledger"); `onSettled` announces each settled operation once |
 | `apps/cria/src/refusal.ts` | Wire boundary | `Refusal`, a tagged error with a closed `ErrorCode`; the HTTP layer maps it to a status |
 | `apps/cria/src/ids.ts` | Composition | `mint`: new instance, operation, image and binding IDs, and start-up request IDs |
 | `packages/fits/src/fits.ts` | Image boundary (`@cria/fits`) | FITS (INDI BLOB) to ASCOM ImageBytes v1, and `fitsFrame`, a FITS test frame |
@@ -432,7 +373,7 @@ Tests and test tools:
 
 | Path | What it is |
 |---|---|
-| `packages/primitives/src/*.test.ts` | Outcome, disciplines, Run and the quarantine fold, on Effect's TestClock |
+| `packages/primitives/src/*.test.ts` | Outcome, disciplines and Run, on Effect's TestClock |
 | `packages/indi/src/*.test.ts` | XML framing from recorded traffic, with and without the tap; the client against a real indiserver |
 | `packages/recording/src/*.test.ts` | The recorder on a healthy, stalled, full and failing disk; the reader on a torn tail and on damage in the middle |
 | `testing/recorder-crash.test.ts` | `kill -9` of a real process at each step of the recorder's write order |
@@ -510,15 +451,14 @@ exposed for another time, a stale blob, a different size), Cria reads
 
 | `CCD_EXPOSURE` at the deadline | Capture ends | Camera |
 |---|---|---|
-| Not Busy (Idle, Ok or Alert) | `failed: rejected`, the message lists what was seen and says the camera is idle and free | Not held. The next capture is accepted at once. The mismatched frame is dropped, never returned or kept. |
-| Busy, or not readable | `uncertain: not-confirmed` | Not held (only the mount holds). The capture is `uncertain`, so Vela ends the run; the next command is accepted once the camera is idle. |
+| Not Busy (Idle, Ok or Alert) | `failed: rejected`, the message lists what was seen and says the camera is idle and free | The next capture is accepted at once. The mismatched frame is dropped, never returned or kept. |
+| Busy, or not readable | `uncertain: not-confirmed` | The capture is `uncertain`, so Vela ends the run; the next command is accepted once the camera is idle. |
 
 Why this is not a replay of an unknown outcome: "never blindly replay" covers a
 command whose effect Cria cannot tell. Here the effect is known. The camera is
 idle, nothing is in flight, and no frame of ours exists, so exposing again
 cannot add to anything. Seen on errai (2026-10-26): a bias capture of 0.1 s came
-back as the ZWO driver's minimum exposure, 3.2e-5 s. The camera was fine, and
-the old rule held it until a person called recover. The reason is `rejected`,
+back as the ZWO driver's minimum exposure, 3.2e-5 s. The camera was fine. The reason is `rejected`,
 the closest existing reason, as for a driver that settles a setting at another
 value, so the wire and the protocol version are unchanged. No frame arriving at
 all stays `failed: unavailable`.
@@ -705,7 +645,7 @@ travel direction. That margin is the rounded-up worst 9x stop travel in the
 AM5 recordings. A path outside the envelope fails with reason `invalid` and
 a message naming the limit. No setting or motion command is sent on refusal.
 Home and park are exempt so they can escape an unsafe pose. Their existing
-held-device and availability checks still apply. Stop is always exempt.
+availability checks still apply. Stop is always exempt.
 During goto and rate moves, every new position is checked with a margin of
 `pointingErrorArcmin` plus 7.02 arcseconds per degree of physical axis travel
 since the fix exposure. This matches the conservative policy in Vela's rig
@@ -803,7 +743,7 @@ motion, never start it. Unconfirmed, the outcome is `uncertain: stop-not-confirm
 never `confirmed`. This covers `mount-stop`, cancelling a slew, park, home,
 `mount-axis` or `mount-rotate`, and SIGTERM. A park or home that a client stopped
 and whose property stays `Busy` is stopped when its position has stopped, and the
-mount is not held; one whose position keeps changing stays `uncertain` and held,
+mount is `stopped`; one whose position keeps changing stays `uncertain`,
 as does one whose position cannot be read.
 
 Starting a home, slew, park, `mount-axis` or `mount-rotate` is refused as busy
@@ -881,7 +821,7 @@ that comes back is set up again. Setup runs as an ordinary `device-connect`
 operation (`connected: true`, request ID `startup-…`) through the ledger, on a
 device that is already connected, so it connects nothing. That makes it
 single-flight with Vela's operations and shows in the operation list. A device
-with nothing to write gets no operation. A refused submission (the domain busy or held) sent nothing and is
+with nothing to write gets no operation. A refused submission (the domain busy) sent nothing and is
 tried again. A setup that ran is not run again until the device connects again,
 or someone sends `device-connect` with `connected: true`, which always runs the
 setup steps after connecting (`connect: true` at start included). With commands
@@ -894,9 +834,9 @@ or `UPLOAD_MODE already sends frames to Cria`. Until setup has run on a
 connection, the device's availability is `starting` with the message
 `Waiting for device setup`, so Vela does not command a mount that would refuse
 its goto. Setup steps cannot move equipment. An unconfirmed or refused setup
-write ends `failed`, names the step, and leaves the device ready without a hold.
+write ends `failed`, names the step, and leaves the device ready.
 Setup stops at that step and does not retry automatically. Commands that can
-move equipment keep their existing uncertain outcome and hold rules.
+move equipment keep their existing uncertain outcome.
 
 **A refused goto says what to do.** A goto rejected before motion starts ends
 `failed: rejected`. Its outcome preserves the driver's message and explains that
@@ -983,7 +923,6 @@ signal, and Vela refuses any value but 5.
 | `GET /v2/operations/{id}` | `Operation`, `404 not-found`, or `410 result-expired`. |
 | `GET /v2/requests/{instance}/{request}` | The operation for a request ID, for a lost POST response. `404 not-found` if unknown. |
 | `POST /v2/operations/{id}/cancel` | `202` with the `Operation`; `404 not-found` for an unknown ID, `410 result-expired` for a pruned one (see "Halts, stops and cancel"). |
-| `POST /v2/devices/{id}/recover` | `RecoveryRequest`, answered `200` with the `Device` (see "Recovery"). |
 | `GET /v2/images/{id}/original` | ImageBytes v1 with an exact `content-length` and `ETag` = SHA-256. `410 image-gone` for an image ID Cria no longer holds or never held. `404 not-found` for a path segment that is not an image ID. |
 
 When a token is configured, every route except `/health` needs
@@ -1001,7 +940,7 @@ closed `errorCodes` list, and each code has exactly one HTTP status:
 | 401 | `unauthorized` |
 | 403 | `origin-rejected`, `commands-disabled` |
 | 404 | `not-found` |
-| 409 | `request-conflict`, `instance-changed`, `binding-changed`, `device-blocked`, `device-busy` |
+| 409 | `request-conflict`, `instance-changed`, `binding-changed`, `device-busy` |
 | 410 | `result-expired`, `image-gone` |
 | 413 | `request-too-large` |
 | 429 | `too-many-subscribers` |
@@ -1045,10 +984,9 @@ One shape per kind, so every reading has a typed value:
 Device = {
   id: string; kind: 'camera' | 'mount' | 'focuser' | 'weather' | 'switch'
   name: string                // the INDI device name; operation requests send it as expectedName
-  bindingId: string           // one per failure domain; changes on recovery
+  bindingId: string           // one per failure domain; never changes while Cria runs
   failureDomain: string
   availability: { ready: true } | { ready: false; reason: AvailabilityReason; message: string }
-  quarantine: { held: false } | { held: true; reason: string; since: number }
   readings: { ... per kind, below }
   // kind 'switch' only:
   channels: Array<{ id, name, writable, minimum, maximum, step, on, value }>   // each a Reading
@@ -1056,12 +994,12 @@ Device = {
   lastCommandedSetpointC: { value: number; commandedAt: number } | null
 }
 
-AvailabilityReason = 'commands-disabled' | 'blocked' | 'unavailable' | 'starting'
+AvailabilityReason = 'commands-disabled' | 'unavailable' | 'starting'
                    | 'disconnected' | 'stale' | 'busy'
 ```
 
 `availability` says why a device cannot take a command now. The reasons, in order
-of precedence: commands disabled; quarantine held; indiserver or the driver gone;
+of precedence: commands disabled; indiserver or the driver gone;
 device disconnected; connection or name not fresh; device setup not run yet on
 this connection (`starting`, see "Device setup"); a Cria operation open in the
 failure domain. Work started by another INDI client does not make a device unavailable.
@@ -1090,8 +1028,7 @@ Operation =                                  // one union on state; kind and par
   | { ...Accepted; state: 'waiting' }                                     // a halt kind only
   | { ...Accepted; state: 'running'; startedAt: number; progress: Progress }
   | { ...Accepted; state: 'settled'; startedAt: number; settledAt: number; motion?: MotionRecord
-      outcome: Outcome<{ values: Record<string, Json>; image: Image | null }>
-      recovery: null | { at: number; note: string } }                    // non-null only on a recovered uncertain operation
+      outcome: Outcome<{ values: Record<string, Json>; image: Image | null }> }
 
 Accepted = {
   id, instanceId, requestId, deviceId, bindingId, expectedName, failureDomain
@@ -1109,10 +1046,7 @@ domain. It has no timing, progress or outcome yet. The schema has a `waiting`
 member only for the halt kinds, so a waiting motion is not a valid Operation, in
 the type or on the wire. `running` starts when the operation is handed to its
 Run, and `settled` once its Outcome is known. Each state carries only its own
-fields. That only an uncertain operation has a `recovery` is a schema check,
-because TypeScript cannot narrow on the nested `outcome.kind`. Vela matches
-`state`, then `outcome.kind`. Whether the device is quarantined is a device fact
-(`quarantine`), not an operation field.
+fields. Vela matches `state`, then `outcome.kind`.
 
 The 15 kinds and their parameters are the table in `packages/cria-wire/src/command.ts`.
 Two of their checks matter to Vela:
@@ -1220,8 +1154,7 @@ socket is not draining gets no new writes until it drains, and is dropped after
 
 ### Changed from protocol 4
 
-Protocol 4 is the .NET Cria's wire (`contract/openapi.json`). [The Vela migration
-checklist](vela-migration.md) says what Vela changes for each row.
+Protocol 4 is the .NET Cria's wire (`contract/openapi.json`).
 
 | Protocol 4 | Protocol 5 |
 |---|---|
@@ -1229,9 +1162,8 @@ checklist](vela-migration.md) says what Vela changes for each row.
 | Operation `status` (`accepted`, `running`, `succeeded`, `failed`, `cancelled`, `uncertain`), `settled`, `blocksDevice`, `cancelRequested`, `acknowledged`, `observation` | `state` (`waiting`, `running`, `settled`), each with only its own fields; `outcome.kind` (`confirmed`, `failed`, `stopped`, `uncertain`) on `settled` |
 | Operation `message`, `result`, `image`, `reservedImageId` | `outcome.message`; `outcome.value.values`; `outcome.value.image` |
 | Operation `completedAt`, flat `phase` (open string), `elapsedSeconds` | `settledAt`; `progress.phase` (closed list), `progress.elapsedSeconds` |
-| Operation `reconciliation { at, note, externalRecoveryConfirmed }` | `recovery { at, note }` |
 | Reading `{ value, observedAt, checkedAt, readStartedAt, generation, status: pending, current, unsupported, error, stale, message }` | `fresh`, `stale`, or `unavailable` with a reason |
-| Device `fields`, `expectedName`, `health`, `commandReady`, `blocked`, `reason`, `observationGeneration`, `refreshPending` | `readings` typed per kind, `name`, `availability`, `quarantine`, `afterOperation` |
+| Device `fields`, `expectedName`, `health`, `commandReady`, `blocked`, `reason`, `observationGeneration`, `refreshPending` | `readings` typed per kind, `name`, `availability`, `afterOperation` |
 | ASCOM integers (camera state, pier side, tracking rate, coordinate system), `sensorType` and Bayer offsets | Named values; `activity`, `bayerPattern` |
 | `canStopExposure`, `atHome`, image `preview` | Removed |
 | `primaryAxisRates: [{ minimum, maximum }]` | `[{ name, degreesPerSecond }]` |
@@ -1241,7 +1173,6 @@ checklist](vela-migration.md) says what Vela changes for each row.
 | `error.code` an open string | A closed list, one status per code |
 | `GET /v2/images/{id}/original` with a malformed ID: `410 image-gone` | `404 not-found` |
 | A second stop behind a running operation settled `failed: busy`, unsent | Waits its turn and runs |
-| Recovery while an operation is open | Refused `409 device-busy` |
 | A `bindingId` per device | One per failure domain |
 | `sequence` one counter for the process | Per rig |
 | SSE `: heartbeat` comment after about 4 s without a write | None; a snapshot at least once a second |
@@ -1256,7 +1187,7 @@ package registry.
 
 - `ts/packages/primitives` is `@cria/primitives`: Outcome, Reading
   (`Reading.required` included), the disciplines, Run (`makeRun`: `changes`,
-  `view`, `start`, `stop`, `await`), Quarantine. No Cria or INDI imports.
+  `view`, `start`, `stop`, `await`). No Cria or INDI imports.
 - `ts/packages/cria-wire` is `@cria/wire`: the protocol 5 schemas.
 - `ts/packages/fits` is `@cria/fits`: FITS header, FITS to ImageBytes v1 and
   `fitsFrame`. No dependencies. Vela's packager uses it to compute the same
@@ -1406,8 +1337,7 @@ Each Cria start opens one folder, `<start time>-<instanceId>`, under `dir`:
   clock as the INDI lines, and joins a write to its operation by the time window
   without a clock shared with Vela. Each settled operation is one `op` line. Lines for
   operations on different devices can swap by a few milliseconds; each carries its
-  own `settledAt`. The `recovery` field is `null`, as at the moment of
-  settling.
+  own `settledAt`.
 - `blobs/<connection>-<n>-<index>.blob`, one file per image payload, in the
   `msg` line's `blobs` and named by a `ref` on the elided `<oneBLOB .../>` in its
   `xml`. Nothing is hashed on errai.
@@ -1645,12 +1575,11 @@ It holds no `op` lines.
 ## Restarts and crashes
 
 - **Cria restarts.** It gets a new `instanceId`, an empty ledger (operations, request IDs,
-  bindings and recoveries, so no quarantine carries over), and an empty image
+  and bindings), and an empty image
   folder. INDI drivers keep running and keep their state, so a camera that was
   exposing reads `exposing` and a capture settles `failed: busy`.
 - **A driver crashes.** `indiserver` deletes its properties. Cria marks the device
-  unavailable. An operation in flight ends `uncertain: driver-lost` and
-  quarantines a mount (any other kind only settles `uncertain`). When the driver is back and the device connected, it
+  unavailable. An operation in flight ends `uncertain: driver-lost`. When the driver is back and the device connected, it
   is set up again. Run `indiserver -r 0` so indiserver does not restart a crashed
   driver by itself. Cria never restarts a driver; the outside rig supervisor may,
   in the one narrow case AGENTS.md and docs/runtime.md describe.
@@ -1693,7 +1622,7 @@ effect, because indiserver writes to each client in turn.
 1. **Primitives, on Effect's TestClock.** Outcome precedence; `writeOnce` against
    every row of its table; the confirm deadline; `stoppable` interrupted
    mid-motion with a stop that confirms, fails and hangs; Run single flight and
-   stop after settle; the quarantine fold. No real
+   stop after settle. No real
    time passes.
 2. **INDI boundary.** XML framing from recorded traffic split at random byte
    boundaries; entities; BLOB decode; `delProperty`; one client test against a

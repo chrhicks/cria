@@ -31,11 +31,7 @@ export interface DeviceSpec {
   readonly travel?: { readonly min: number; readonly max: number }
 }
 
-/**
- * A settled operation as tests assert on it: its Outcome flattened, and
- * whether its device is quarantined once it settled (a device fact in
- * protocol 5, read from the state right after).
- */
+/** A settled operation as tests assert on it: its Outcome flattened. */
 export interface Ending {
   readonly id: string
   readonly state: Settled['state']
@@ -44,7 +40,6 @@ export interface Ending {
   readonly message: string | null
   readonly values: Readonly<Record<string, unknown>> | null
   readonly image: Extract<Settled['outcome'], { kind: 'confirmed' }>['value']['image']
-  readonly quarantined: boolean
   readonly operation: Settled
 }
 
@@ -63,7 +58,7 @@ export interface Cria {
   readonly stop: () => Promise<void>
 }
 
-export function ending(operation: Settled, quarantined: boolean): Ending {
+export function ending(operation: Settled): Ending {
   const outcome = operation.outcome
 
   return {
@@ -74,7 +69,6 @@ export function ending(operation: Settled, quarantined: boolean): Ending {
     message: 'message' in outcome ? outcome.message : null,
     values: outcome.kind === 'confirmed' ? outcome.value.values : null,
     image: outcome.kind === 'confirmed' ? outcome.value.image : null,
-    quarantined,
     operation,
   }
 }
@@ -126,7 +120,7 @@ export async function startCria(
         timeoutMs,
       )
     } catch (error) {
-      throw new Error(`${(error as Error).message}; last state ${JSON.stringify(last?.devices.map(d => [d.id, d.availability, d.quarantine]))}`)
+      throw new Error(`${(error as Error).message}; last state ${JSON.stringify(last?.devices.map(d => [d.id, d.availability]))}`)
     }
   }
 
@@ -157,7 +151,7 @@ export async function startCria(
       timeoutMs,
     )
 
-    return ending(operation, (await device(operation.deviceId)).quarantine.held)
+    return ending(operation)
   }
 
   const run = async (deviceId: string, kind: string, parameters: object) => {

@@ -206,11 +206,10 @@ describe('a capture after a frame the driver rounded but publishes as asked', ()
     const startedAt = Date.now()
     const capture = await cria.run('camera', 'capture', { exposureSeconds: 0.1, light: true })
 
-    expect([capture.kind, capture.reason, capture.message, capture.quarantined]).toEqual([
+    expect([capture.kind, capture.reason, capture.message]).toEqual([
       'failed',
       'unavailable',
       'No frame arrived within the 0.1 s exposure and the 1 s readout allowance',
-      false,
     ])
     expect(Date.now() - startedAt).toBeLessThan(5000)
     expect(sent('CCD_ABORT_EXPOSURE')).toBe(1)

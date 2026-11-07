@@ -17,11 +17,10 @@ const devices = [
   { id: 'weather', serial: '/dev/serial/by-id/weather' },
 ]
 
-type Reason = 'unavailable' | 'disconnected' | 'starting' | 'busy' | 'blocked' | undefined
+type Reason = 'unavailable' | 'disconnected' | 'starting' | 'busy' | undefined
 
 interface FakeDevice {
   reason: Reason
-  held?: boolean
   readings?: Record<string, unknown>
 }
 
@@ -69,7 +68,6 @@ class FakeCria {
         bindingId: `binding-${id}`,
         failureDomain: domains[id] ?? id,
         availability: device.reason ? { ready: false, reason: device.reason, message: device.reason } : { ready: true },
-        quarantine: device.held ? { held: true, reason: 'test', since: 0 } : { held: false },
         readings: device.readings ?? {},
       })),
     }
@@ -237,7 +235,6 @@ describe('rule a: a missing device whose hardware is present gets its driver res
   it.each([
     ['an operation open on the same driver’s other device', (c: FakeCria) => c.operations.push({ deviceId: 'guide', failureDomain: 'guide', state: 'running', kind: 'capture' })],
     ['an operation open on the missing device’s own domain', (c: FakeCria) => c.operations.push({ deviceId: 'primary', failureDomain: 'primary', state: 'running', kind: 'device-connect' })],
-    ['a hold on the same driver’s other device', (c: FakeCria) => void (c.devices.guide!.held = true)],
     ['the same driver’s other camera exposing', (c: FakeCria) => void (c.devices.guide!.readings = { activity: { status: 'fresh', value: 'exposing' } })],
   ])('does not restart a driver with %s, and does once that clears', async (_name, block) => {
     const { cria, present, fifo, poll, build } = current
@@ -251,7 +248,6 @@ describe('rule a: a missing device whose hardware is present gets its driver res
     expect(fifo).toEqual([])
 
     cria.operations.length = 0
-    cria.devices.guide!.held = false
     cria.devices.guide!.readings = {}
     await poll(supervisor, 1)
     expect(fifo.map(entry => entry.line)).toEqual(['stop indi_asi_ccd', 'start indi_asi_ccd'])
@@ -448,40 +444,6 @@ describe('rule b: a defined, disconnected device whose hardware is present gets 
     await poll(build(), 6)
 
     expect(cria.posts).toEqual([])
-  })
-
-  it('does not connect a device that is held', async () => {
-    const { cria, present, poll, build } = current
-
-    cria.devices.mount!.reason = 'disconnected'
-    cria.devices.mount!.held = true
-    present.add('mount')
-    await poll(build(), 6)
-
-    expect(cria.posts).toEqual([])
-  })
-
-  it('goes quiet after a refusal that names a hold, until the hold clears', async () => {
-    const { cria, present, logs, poll, build } = current
-
-    cria.devices.mount!.reason = 'disconnected'
-    present.add('mount')
-    cria.answer = { status: 409, body: { error: { code: 'device-blocked', message: 'Blocked until recovered: x' }, instanceId: 'i' } }
-    const supervisor = build()
-
-    await poll(supervisor, 2)
-    expect(cria.posts).toHaveLength(1)
-    expect(logs.some(line => line.includes('refused device-blocked; waiting'))).toBe(true)
-
-    // Cria still says held: stay quiet however long it takes.
-    cria.devices.mount!.held = true
-    await poll(supervisor, 40)
-    expect(cria.posts).toHaveLength(1)
-
-    cria.devices.mount!.held = false
-    cria.answer = { status: 202, body: {} }
-    await poll(supervisor, 1)
-    expect(cria.posts).toHaveLength(2)
   })
 
   it('goes quiet after commands-disabled, and tries again once commands are enabled', async () => {

@@ -74,7 +74,7 @@ describe('camera', () => {
     const camera = await cria.device('primary')
     const operation = await cria.run('primary', 'capture', { exposureSeconds: 0.5, light: true })
 
-    expect(operation).toMatchObject({ kind: 'confirmed', state: 'settled', quarantined: false })
+    expect(operation).toMatchObject({ kind: 'confirmed', state: 'settled' })
     expect([camera.readings.width, camera.readings.height]).toMatchObject([
       { status: 'fresh', value: 1280 },
       { status: 'fresh', value: 1024 },
@@ -166,7 +166,7 @@ describe('camera', () => {
     await cria.cancel(submitted.body.id)
     const operation = await cria.settled(submitted.body.id)
 
-    expect(operation).toMatchObject({ kind: 'stopped', state: 'settled', quarantined: false })
+    expect(operation).toMatchObject({ kind: 'stopped', state: 'settled' })
     const camera = await cria.waitFor(allReady(['primary']))
 
     expect(camera.devices.find(device => device.id === 'primary')!.readings.activity.value).toBe('idle')
@@ -181,7 +181,7 @@ describe('camera', () => {
     )
     const operation = await cria.run('primary', 'capture', { exposureSeconds: 1, light: true })
 
-    expect(operation).toMatchObject({ kind: 'failed', state: 'settled', quarantined: false })
+    expect(operation).toMatchObject({ kind: 'failed', state: 'settled' })
     expect(operation.message).toMatch(/not idle/)
     await cria.waitFor(allReady(['primary']))
   })
@@ -214,7 +214,7 @@ describe('focuser', () => {
     try {
       const refused = await cria.run('focuser', 'focuser-move', { position: 100000, minPosition: 1, maxPosition: 2_000_000 })
 
-      expect(refused).toMatchObject({ kind: 'failed', reason: 'invalid', message: 'Focuser target approaches the mechanical limit', quarantined: false })
+      expect(refused).toMatchObject({ kind: 'failed', reason: 'invalid', message: 'Focuser target approaches the mechanical limit' })
 
       await cria.waitFor(allReady(['focuser']))
       expect(await cria.run('focuser', 'focuser-move', { position: 50500, minPosition: 1, maxPosition: 90000 })).toMatchObject({ kind: 'confirmed' })

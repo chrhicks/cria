@@ -61,7 +61,6 @@ export function makeCriaClient(base: string, fetch: typeof globalThis.fetch = gl
     operation: (id: string) => request('GET', `/v2/operations/${id}`, Operation),
     byRequest: (instanceId: string, requestId: string) => request('GET', `/v2/requests/${instanceId}/${encodeURIComponent(requestId)}`, Operation),
     cancel: (id: string) => request('POST', `/v2/operations/${id}/cancel`, Operation),
-    recover: (deviceId: string, body: unknown) => request('POST', `/v2/devices/${deviceId}/recover`, Schema.Unknown, body),
 
     /** The first SSE `state` event, decoded. */
     async firstEvent(): Promise<State> {

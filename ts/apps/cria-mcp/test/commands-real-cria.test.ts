@@ -222,37 +222,17 @@ describe('the command tools against a real Cria on fake INDI', () => {
     }),
   )
 
-  it.live('a held device blocks commands, and recover clears the hold', () =>
+  it.live('an uncertain ending holds nothing: the next command is admitted', () =>
     Effect.gen(function* () {
       const fake = yield* fakeRig({ ignoreTracking: true })
-      const { answered, answer, withIdentity, settled, state } = yield* rigWith({ fake, ignoreTracking: true })
-      const tracking = yield* answered('mount-tracking', { ...(yield* withIdentity('mount', 'tracking-held')), parameters: { tracking: true } })
+      const { answered, withIdentity, settled } = yield* rigWith({ fake, ignoreTracking: true })
+      const tracking = yield* answered('mount-tracking', { ...(yield* withIdentity('mount', 'tracking-uncertain')), parameters: { tracking: true } })
 
       expect(outcomeOf(yield* settled(tracking.id))?.kind).toBe('uncertain')
 
-      const held = (yield* state).devices.find(device => device.id === 'mount')!
+      const next = yield* answered('mount-park', yield* withIdentity('mount', 'park-after-uncertain'))
 
-      expect(held.quarantine).toMatchObject({ held: true })
-
-      const blocked = yield* answer('mount-park', yield* withIdentity('mount', 'park-blocked'))
-
-      expect(blocked).toMatchObject({ kind: 'refused', body: { error: { code: 'device-blocked' } } })
-
-      const notChecked = yield* answer('recover', { deviceId: 'mount', instanceId: held.bindingId, bindingId: held.bindingId, externalRecoveryConfirmed: true, note: 'wrong instance' })
-
-      expect(notChecked.kind).toBe('refused')
-
-      const recovered = yield* answered('recover', {
-        deviceId: 'mount',
-        instanceId: (yield* state).instanceId,
-        bindingId: held.bindingId,
-        externalRecoveryConfirmed: true,
-        note: 'checked the fake mount by hand',
-      })
-
-      expect(recovered).toMatchObject({ id: 'mount', quarantine: { held: false } })
-      expect((yield* state).devices.find(device => device.id === 'mount')!.quarantine).toEqual({ held: false })
-      expect((yield* answered('operation', { operationId: tracking.id })).recovery).toMatchObject({ note: 'checked the fake mount by hand' })
+      expect(next).toMatchObject({ kind: 'mount-park' })
     }),
   )
 })

@@ -123,7 +123,6 @@ describe('a mount', () => {
     const startup = (await cria.state()).operations.find(operation => operation.requestId.startsWith('startup-'))
 
     expect(during).toEqual({ ready: false, reason: 'starting', message: 'Waiting for device setup' })
-    expect(device.quarantine.held).toBe(false)
     expect(startup).toMatchObject({ state: 'settled', outcome: { kind: 'failed', reason: 'unavailable', message: expect.stringContaining(`setup: ${property}`) } })
     expect(writes(property)).toHaveLength(1)
     if (property === 'GEOGRAPHIC_COORD') expect(writes('TIME_UTC')).toHaveLength(0)
@@ -140,7 +139,7 @@ describe('a mount', () => {
     await cria.waitFor(allReady(['mount']))
     const outcome = await cria.run('mount', 'mount-slew', { rightAscensionDegrees: 120, declinationDegrees: 20, coordinateSystem: 'topocentric' })
 
-    expect(outcome).toMatchObject({ kind: 'failed', reason: 'rejected', quarantined: false })
+    expect(outcome).toMatchObject({ kind: 'failed', reason: 'rejected' })
     expect(outcome.message).toContain('Nothing moved')
     expect(outcome.message).toContain('AM5 e7')
     expect(outcome.message).toContain('device-connect')
