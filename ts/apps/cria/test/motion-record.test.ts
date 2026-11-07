@@ -10,7 +10,7 @@ afterEach(async () => {
   await fake?.stop()
 })
 
-it('keeps home and standalone stop records in the state snapshot', async () => {
+it('keeps home and standalone stop records on the operation', async () => {
   fake = new FakeIndi()
   await fake.start()
   addMount(fake, 'Fake mount')
