@@ -5,7 +5,7 @@ export const settings = {
   indiPort: { value: 7624, description: 'indiserver port' },
   pollMs: { value: 5_000, description: 'How often the rig program compares INDI with this file' },
   settlePolls: { value: 2, description: 'Polls in a row a device must look the same before the rig program acts on it: a USB device can show in sysfs before it can be opened, and a restarted driver takes a moment to define its devices' },
-  stopGapMs: { value: 1_000, description: 'Between stop and start on the FIFO, so indiserver has dropped the old process' },
+  fifoGapMs: { value: 1_000, description: 'Between any two lines written to the FIFO. Between stop and start it lets indiserver drop the old process; between drivers it lets indiserver reopen the FIFO, which it closes after each writer: a start written right after another driver\'s line failed with ENXIO on errai, 2026-11-07 17:07 ET' },
   backoffMs: { value: [10_000, 30_000, 60_000], description: 'Wait before the next try after the 1st, 2nd and later failure, for a write that did not take and for a driver restart' },
   minRestartGapMs: { value: 20_000, description: 'One driver is restarted at most once in this long, whatever the backoff says' },
   numberTolerance: { value: 1e-6, description: 'How far a number INDI shows may be from the wanted one and still count as set: GEOGRAPHIC_COORD came back from the AM5 within 2.2e-7 of what was written in all 31 recordings from 2026-11-03 to 11-07 (0 in 30 of them), so this only absorbs the text round trip' },
@@ -16,7 +16,7 @@ export const settings = {
 
 export const nowToken = { value: 'now', description: 'In onConnect, a text value of "now" is written as the current UTC time, YYYY-MM-DDTHH:MM:SS, the form TIME_UTC takes on the wire' } as const
 
-const numberKeys = ['indiPort', 'pollMs', 'settlePolls', 'stopGapMs', 'minRestartGapMs', 'deadLinkMs', 'errorGapMs', 'reconnectWaitMs'] as const
+const numberKeys = ['indiPort', 'pollMs', 'settlePolls', 'fifoGapMs', 'minRestartGapMs', 'deadLinkMs', 'errorGapMs', 'reconnectWaitMs'] as const
 
 export type WantedValue = number | boolean | string
 
@@ -111,7 +111,7 @@ export function parseConfig(json: unknown, environment: { readonly runtimeDir?: 
   const numbers = {} as Record<(typeof numberKeys)[number], number>
   for (const key of numberKeys) {
     const value = json[key] ?? settings[key].value
-    if (typeof value !== 'number' || !Number.isInteger(value) || value < 0 || (key !== 'stopGapMs' && value < 1)) fail(`${key} must be a positive integer`)
+    if (typeof value !== 'number' || !Number.isInteger(value) || value < 0 || (key !== 'fifoGapMs' && value < 1)) fail(`${key} must be a positive integer`)
     numbers[key] = value as number
   }
 

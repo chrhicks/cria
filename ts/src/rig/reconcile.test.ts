@@ -142,7 +142,7 @@ describe('the rig file', () => {
       fifo: '/run/user/1000/indi.fifo',
       pollMs: 5000,
       settlePolls: 2,
-      stopGapMs: 1000,
+      fifoGapMs: 1000,
       minRestartGapMs: 20_000,
       deadLinkMs: 30_000,
       errorGapMs: 5000,

@@ -123,7 +123,7 @@ describe('the rig program against a real indiserver', () => {
       indiPort: server.port,
       settlePolls: 1,
       minRestartGapMs: 1,
-      stopGapMs: 200,
+      fifoGapMs: 200,
       backoffMs: [100],
       devices: [
         { id: 'focuser', indiDevice: 'Focuser Simulator', serial: '/dev/null', driver: 'indi_simulator_focus', connected: true },
@@ -164,7 +164,7 @@ describe('the rig program against a real indiserver', () => {
       fifo,
       indiPort: server.port,
       settlePolls: 1,
-      stopGapMs: 100,
+      fifoGapMs: 100,
       devices: [{ id: 'focuser', indiDevice: 'Focuser Simulator', serial: '/dev/null', driver: 'indi_simulator_focus', connected: true }],
     })
 
@@ -338,5 +338,39 @@ describe('the FIFO', () => {
   it('fails at once, instead of hanging, when nothing reads the FIFO or it does not exist', async () => {
     await expect(writeFifo(fifoPath(), 'stop indi_asi_ccd')).rejects.toMatchObject({ code: 'ENXIO' })
     await expect(writeFifo(join(tmpdir(), 'no-such-fifo'), 'stop x')).rejects.toMatchObject({ code: 'ENOENT' })
+  })
+})
+
+describe('the FIFO', () => {
+  it('spaces every line, across drivers too, so indiserver has reopened it', async () => {
+    const config = parseConfig({
+      fifo: '/run/test/indi.fifo',
+      settlePolls: 1,
+      devices: [
+        { id: 'focuser', indiDevice: 'ZWO EAF', usb: '03c3:1f10', driver: 'indi_asi_focuser', connected: true },
+        { id: 'mount', indiDevice: 'ZWO AM5', serial: '/dev/serial/by-id/mount', driver: 'indi_lx200am5', connected: true },
+      ],
+    })
+    const clock = { at: 1_000_000 }
+    const lines: Array<{ readonly line: string; readonly at: number }> = []
+    const rig = createRig({
+      config,
+      now: () => clock.at,
+      sleep: async ms => {
+        clock.at += ms
+      },
+      hardwarePresent: () => true,
+      writeFifo: async (_path, line) => void lines.push({ line, at: clock.at }),
+      indi: { view: async () => ({ linked: true, devices: new Map() }), write: async () => {} },
+      log: () => {},
+    })
+
+    for (let poll = 0; poll < 3 && lines.length === 0; poll += 1) {
+      await rig.tick()
+      clock.at += config.pollMs
+    }
+
+    expect(lines.map(entry => entry.line)).toEqual(['stop indi_asi_focuser', 'start indi_asi_focuser', 'stop indi_lx200am5', 'start indi_lx200am5'])
+    for (let index = 1; index < lines.length; index += 1) expect(lines[index]!.at - lines[index - 1]!.at).toBeGreaterThanOrEqual(config.fifoGapMs)
   })
 })
