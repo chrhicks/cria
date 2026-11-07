@@ -6,7 +6,7 @@ Cria runs on errai, the rig's mini PC (Intel N150) on Arch Linux. Three programs
 - Cria is a Node process. It connects to `indiserver` at `127.0.0.1:7624` as an INDI client and serves Vela over HTTP and SSE on port 4319.
 - The rig supervisor is a small Node script beside them. It brings devices up as they are powered (see "The rig supervisor").
 
-[The architecture](architecture.md) says what each part owns. [SPEC.md](ts/SPEC.md) is the full contract. The .NET service on Windows is legacy. Its runtime notes are in [legacy-windows.md](legacy-windows.md).
+[The architecture](architecture.md) says what each part owns. [SPEC.md](ts/SPEC.md) is the full contract.
 
 ## The production layout in `ts/deploy`
 

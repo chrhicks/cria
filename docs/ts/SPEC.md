@@ -6,7 +6,7 @@ disagree, this file is the intent and the code has the bug.
 
 ## What this is
 
-The legacy Cria is a .NET service on Windows that drives ASCOM through isolated
+Cria used to be a .NET service on Windows that drove ASCOM through isolated
 worker processes. On Linux every rig device has an INDI driver, and INDI already runs one
 process per driver. So the new Cria is an INDI client. It is a TypeScript service
 that connects to `indiserver` on TCP 7624, turns INDI properties into Readings,
@@ -960,32 +960,6 @@ next one. A reconnect gets a fresh snapshot, with no replay. A subscriber whose
 socket is not draining gets no new writes until it drains, and is dropped after
 30 s stuck. At most 16 subscribers are accepted at once; the 17th gets
 `429 too-many-subscribers`.
-
-### Changed from protocol 4
-
-Protocol 4 is the .NET Cria's wire (`contract/openapi.json`).
-
-| Protocol 4 | Protocol 5 |
-|---|---|
-| `protocolVersion: 4` | `5` |
-| Operation `status` (`accepted`, `running`, `succeeded`, `failed`, `cancelled`, `uncertain`), `settled`, `blocksDevice`, `cancelRequested`, `acknowledged`, `observation` | `state` (`waiting`, `running`, `settled`), each with only its own fields; `outcome.kind` (`confirmed`, `failed`, `stopped`, `uncertain`) on `settled` |
-| Operation `message`, `result`, `image`, `reservedImageId` | `outcome.message`; `outcome.value.values`; `outcome.value.image` |
-| Operation `completedAt`, flat `phase` (open string), `elapsedSeconds` | `settledAt`; `progress.phase` (closed list), `progress.elapsedSeconds` |
-| Reading `{ value, observedAt, checkedAt, readStartedAt, generation, status: pending, current, unsupported, error, stale, message }` | `fresh`, `stale`, or `unavailable` with a reason |
-| Device `fields`, `expectedName`, `health`, `commandReady`, `blocked`, `reason`, `observationGeneration`, `refreshPending` | `readings` typed per kind, `name`, `availability`, `afterOperation` |
-| ASCOM integers (camera state, pier side, tracking rate, coordinate system), `sensorType` and Bayer offsets | Named values; `activity`, `bayerPattern` |
-| `canStopExposure`, `atHome`, image `preview` | Removed |
-| `primaryAxisRates: [{ minimum, maximum }]` | `[{ name, degreesPerSecond }]` |
-| Focuser `maxStep` from `FOCUS_MAX`; no lower bound | `maxStep` the smallest of `FOCUS_MAX`, the position's maximum and the travel window; `minStep` added |
-| `setpointC` reading | Always unsupported; `lastCommandedSetpointC` |
-| `mount-slew` frames `j2050`, `b1950` | Refused; `topocentric` or `j2000` only |
-| `error.code` an open string | A closed list, one status per code |
-| `GET /v2/images/{id}/original` with a malformed ID: `410 image-gone` | `404 not-found` |
-| A second stop behind a running operation settled `failed: busy`, unsent | Waits its turn and runs |
-| A `bindingId` per device | None |
-| `sequence` one counter for the process | Per rig |
-| SSE `: heartbeat` comment after about 4 s without a write | None; a snapshot at least once a second |
-| `POST /v2/devices/{id}/refresh`, `/v2/schema`, `/v2/service`, `/v2/service/stop`, `/v2/telemetry/*` | Removed |
 
 ## Where the code lives
 

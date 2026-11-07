@@ -4,10 +4,6 @@ Cria is the rig-side service between the telescope equipment and Vela. It is a T
 
 [SPEC.md](docs/ts/SPEC.md) is the contract and the design. [The architecture](docs/architecture.md) says what Cria and Vela each own. [Runtime](docs/runtime.md) covers errai, and [testing](docs/testing.md) covers the checks.
 
-## Legacy .NET service on Windows
-
-Until 2026-10-15, Cria was a .NET 10 API with .NET Framework 4.8 ASCOM driver workers and a Windows desktop launcher, and it spoke protocol 4. It stays in the repo but is legacy. Its code and tools are in `src/`, `tests/`, `contract/`, `config/`, `tools/`, `packaging/windows/` and `licenses/third-party/`, with the root `Cria.slnx`, `global.json`, `Directory.Build.props` and `package.json`. [legacy-windows.md](docs/legacy-windows.md) keeps its runtime and test notes.
-
 ## Build and verify
 
 You need Node 24 or later, pnpm, and libindi with its simulators for the tests.
@@ -26,15 +22,8 @@ pnpm verify
 | --- | --- |
 | `ts/` | The TypeScript Cria: the shared packages, the service, its tests and tools. See [ts/README.md](ts/README.md) |
 | `ts/deploy/` | The systemd user units for `indiserver`, Cria and the rig supervisor, and errai's configuration |
-| `docs/` | [Architecture](docs/architecture.md), [runtime](docs/runtime.md), [testing](docs/testing.md) and the [legacy Windows notes](docs/legacy-windows.md) |
+| `docs/` | [Architecture](docs/architecture.md), [runtime](docs/runtime.md) and [testing](docs/testing.md) |
 | `docs/ts/` | [SPEC.md](docs/ts/SPEC.md) |
-| `src/` | Legacy. The .NET API, driver contracts, worker logic, Windows worker and desktop launcher |
-| `tests/` | Legacy. The .NET fixture and its API, failure and Vela checks |
-| `contract/` | Legacy. The protocol 4 OpenAPI schema and its generator |
-| `config/` | Legacy. The Windows configuration example |
-| `tools/` | Legacy. The .NET check and Windows packaging scripts |
-| `packaging/windows/` | Legacy. Windows startup and installation entry points |
-| `licenses/third-party/` | Legacy. Dependency notices and source checksums for the Windows package |
 
 Research under `docs/planning/` stays local and ignored, as do `archive/` and generated outputs.
 
