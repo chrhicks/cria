@@ -17,7 +17,7 @@ export const State = Schema.Struct({
     devices: Schema.Array(Device),
     operations: Schema.Array(Operation),
 });
-export const Health = Schema.Struct({ status: Schema.Literal('ok'), protocolVersion: Schema.Literal(protocolVersion) });
+export const Health = Schema.Struct({ status: Schema.Literal('ok'), protocolVersion: Schema.Literal(protocolVersion), instanceId: InstanceId, commandsEnabled: Schema.Boolean });
 export const errorCodes = [
     'request-error',
     'origin-rejected',

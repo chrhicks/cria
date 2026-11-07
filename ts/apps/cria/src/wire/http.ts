@@ -63,7 +63,8 @@ export function makeHttpServer(rig: Rig): Server {
     const path = url.pathname.split('/').filter(Boolean)
     const method = request.method ?? 'GET'
 
-    if (method === 'GET' && url.pathname === '/health') return { status: 200, body: { status: 'ok', protocolVersion } }
+    if (method === 'GET' && url.pathname === '/health')
+      return { status: 200, body: { status: 'ok', protocolVersion, instanceId: rig.instanceId, commandsEnabled: rig.config.commandsEnabled } }
 
     if (request.headers.origin) throw refuse('origin-rejected', 'Browser origins are not accepted')
 

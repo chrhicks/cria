@@ -22,7 +22,7 @@ export const State = Schema.Struct({
 
 export type State = typeof State.Type
 
-export const Health = Schema.Struct({ status: Schema.Literal('ok'), protocolVersion: Schema.Literal(protocolVersion) })
+export const Health = Schema.Struct({ status: Schema.Literal('ok'), protocolVersion: Schema.Literal(protocolVersion), instanceId: InstanceId, commandsEnabled: Schema.Boolean })
 
 export const errorCodes = [
   'request-error',

@@ -35,8 +35,10 @@ describe('protocol 5', () => {
   it('serves health, state and events in the protocol 5 shapes', async () => {
     const client = makeCriaClient(cria.base)
 
-    expect(await client.health()).toEqual({ status: 'ok', protocolVersion: 5 })
+    const health = await client.health()
     const state = await client.state()
+
+    expect(health).toEqual({ status: 'ok', protocolVersion: 5, instanceId: state.instanceId, commandsEnabled: true })
 
     expect(state.devices[0]).toMatchObject({ kind: 'camera', name: camera, lastCommandedSetpointC: null })
     expect((await client.firstEvent()).instanceId).toBe(state.instanceId)
