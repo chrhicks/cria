@@ -43,5 +43,4 @@ export { MotionAxes, MotionCommanded, MotionRecord, stoppedHows } from './motion
 export { Image, Operation, OperationRequest, OperationResult, Progress, requestIdentity } from './operation.js'
 export { ErrorBody, Health, RecoveryRequest, State, errorCodes, protocolVersion, type ErrorCode } from './state.js'
 export { Json, Outcome, Reading, Timestamp } from './values.js'
-export { LeaseId, MountLease, LeaseRequest, mountLeaseMs, mountLeaseRenewMs, mountLeaseWatchMs, needsMountLease } from './lease.js'
 export { KeepOutBand, MountEnvelope, AcceptedFix, EnvelopeRequest, FixRequest, MountFeedback } from './envelope.js'

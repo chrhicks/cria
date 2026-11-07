@@ -1,6 +1,5 @@
 import { afterEach, expect, it } from 'vitest'
 import { Schema } from 'effect'
-import { MountLease, Operation } from '@cria/wire'
 import { FakeIndi, addMount } from '@cria/fake-indi'
 import { allReady, startCria, until, type Cria } from './harness.js'
 
@@ -14,7 +13,7 @@ let ra = 30
 let coastScale = 1
 const starts: number[] = []
 
-async function start(tracking = true, leaseRequired = false) {
+async function start(tracking = true) {
   speed = 0
   ra = 30
   coastScale = 1
@@ -46,7 +45,7 @@ async function start(tracking = true, leaseRequired = false) {
     }
     return 'handled'
   }
-  cria = await startCria(fake.port, [{ id: 'mount', kind: 'mount', indiDevice: mount, motion: { positionReadMs: 1100 } }], { mountLeaseRequired: leaseRequired })
+  cria = await startCria(fake.port, [{ id: 'mount', kind: 'mount', indiDevice: mount, motion: { positionReadMs: 1100 } }])
   await cria.waitFor(allReady(['mount']))
   // Idle admissions reflect a stationary mount; tracking Busy is emitted once it moves.
   fake.update(mount, 'EQUATORIAL_EOD_COORD', { state: 'Idle' })
@@ -99,43 +98,6 @@ it('adapts to a twenty percent coast change and clamps a run of outliers', async
   for (let i = 0; i < 9; i++) expect(await rotate()).toBeLessThanOrEqual(0.03)
   expect(await rotate()).toBe(0.03)
 }, 120_000)
-
-it('a lease lapse between legs never starts the approach', async () => {
-  await start(false, true)
-  const identity = { instanceId: (await cria.state()).instanceId, bindingId: (await cria.device('mount')).bindingId }
-  const lease = async (request: object) => {
-    const response = await fetch(`${cria.base}/v2/devices/mount/lease`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ...identity, ...request }) })
-    expect(response.status).toBe(200)
-    return Schema.decodeUnknownSync(MountLease)(await response.json())
-  }
-  const held = await lease({ action: 'acquire', holder: 'approach-test' })
-  const behaviour = fake.behaviour
-  let fastHalted = false
-  fake.behaviour = (server, vector, values) => {
-    if (vector.name === 'TELESCOPE_SLEW_RATE' && starts.length === 1) {
-      fastHalted = true
-      setTimeout(() => {
-        server.apply(vector, values)
-        server.update(mount, vector.name, { state: 'Ok' })
-      }, 1500).unref()
-      return 'handled'
-    }
-    return behaviour?.(server, vector, values)
-  }
-  const renew = setInterval(() => {
-    if (!fastHalted) void lease({ action: 'renew', leaseId: held.id })
-  }, 250)
-  try {
-    const response = await fetch(`${cria.base}/v2/operations`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ...identity, deviceId: 'mount', expectedName: mount, requestId: crypto.randomUUID(), leaseId: held.id, kind: 'mount-rotate', parameters: { rateDegreesPerSecond: 720 * sidereal, distanceDegrees: 23 } }) })
-    const operation = Schema.decodeUnknownSync(Operation)(await response.json())
-    const ended = await cria.settled(operation.id, 60_000)
-    expect(ended.kind).toBe('stopped')
-    expect(speed).toBe(0)
-    expect(starts).toHaveLength(1)
-  } finally {
-    clearInterval(renew)
-  }
-}, 90_000)
 
 it('ends uncertain with the mount stopped when the fast leg never moves', async () => {
   await start(false)

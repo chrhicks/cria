@@ -85,7 +85,6 @@ export function makeRig(config: Config, options: { readonly recording?: Recordin
     const inner = yield* makeLedger({
       instanceId,
       commandsEnabled: config.commandsEnabled,
-      mountLeaseRequired: config.mountLeaseRequired ?? false,
       history: config.operationHistory,
       onSettled: operation => {
         recorder?.operation(operation)

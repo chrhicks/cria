@@ -67,7 +67,6 @@ export declare const requestIdentity: {
     deviceId: Schema.brand<Schema.String, "DeviceId">;
     bindingId: Schema.brand<Schema.String, "BindingId">;
     expectedName: Schema.String;
-    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
 };
 export declare const OperationRequest: Schema.Union<(Schema.Struct<{
     kind: Schema.Literal<"camera-configure">;
@@ -86,7 +85,6 @@ export declare const OperationRequest: Schema.Union<(Schema.Struct<{
     deviceId: Schema.brand<Schema.String, "DeviceId">;
     bindingId: Schema.brand<Schema.String, "BindingId">;
     expectedName: Schema.String;
-    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
 }> | Schema.Struct<{
     kind: Schema.Literal<"capture">;
     parameters: Schema.Struct<{
@@ -100,7 +98,6 @@ export declare const OperationRequest: Schema.Union<(Schema.Struct<{
     deviceId: Schema.brand<Schema.String, "DeviceId">;
     bindingId: Schema.brand<Schema.String, "BindingId">;
     expectedName: Schema.String;
-    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
 }> | Schema.Struct<{
     kind: Schema.Literal<"cooling">;
     parameters: Schema.Struct<{
@@ -112,7 +109,6 @@ export declare const OperationRequest: Schema.Union<(Schema.Struct<{
     deviceId: Schema.brand<Schema.String, "DeviceId">;
     bindingId: Schema.brand<Schema.String, "BindingId">;
     expectedName: Schema.String;
-    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
 }> | Schema.Struct<{
     kind: Schema.Literal<"device-connect">;
     parameters: Schema.Struct<{
@@ -123,7 +119,6 @@ export declare const OperationRequest: Schema.Union<(Schema.Struct<{
     deviceId: Schema.brand<Schema.String, "DeviceId">;
     bindingId: Schema.brand<Schema.String, "BindingId">;
     expectedName: Schema.String;
-    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
 }> | Schema.Struct<{
     kind: Schema.Literal<"focuser-halt">;
     parameters: Schema.Struct<{}>;
@@ -132,7 +127,6 @@ export declare const OperationRequest: Schema.Union<(Schema.Struct<{
     deviceId: Schema.brand<Schema.String, "DeviceId">;
     bindingId: Schema.brand<Schema.String, "BindingId">;
     expectedName: Schema.String;
-    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
 }> | Schema.Struct<{
     kind: Schema.Literal<"focuser-move">;
     parameters: Schema.Struct<{
@@ -145,7 +139,6 @@ export declare const OperationRequest: Schema.Union<(Schema.Struct<{
     deviceId: Schema.brand<Schema.String, "DeviceId">;
     bindingId: Schema.brand<Schema.String, "BindingId">;
     expectedName: Schema.String;
-    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
 }> | Schema.Struct<{
     kind: Schema.Literal<"mount-axis">;
     parameters: Schema.Struct<{
@@ -157,7 +150,6 @@ export declare const OperationRequest: Schema.Union<(Schema.Struct<{
     deviceId: Schema.brand<Schema.String, "DeviceId">;
     bindingId: Schema.brand<Schema.String, "BindingId">;
     expectedName: Schema.String;
-    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
 }> | Schema.Struct<{
     kind: Schema.Literal<"mount-home">;
     parameters: Schema.Struct<{}>;
@@ -166,7 +158,6 @@ export declare const OperationRequest: Schema.Union<(Schema.Struct<{
     deviceId: Schema.brand<Schema.String, "DeviceId">;
     bindingId: Schema.brand<Schema.String, "BindingId">;
     expectedName: Schema.String;
-    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
 }> | Schema.Struct<{
     kind: Schema.Literal<"mount-park">;
     parameters: Schema.Struct<{}>;
@@ -175,7 +166,6 @@ export declare const OperationRequest: Schema.Union<(Schema.Struct<{
     deviceId: Schema.brand<Schema.String, "DeviceId">;
     bindingId: Schema.brand<Schema.String, "BindingId">;
     expectedName: Schema.String;
-    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
 }> | Schema.Struct<{
     kind: Schema.Literal<"mount-rotate">;
     parameters: Schema.Struct<{
@@ -187,7 +177,6 @@ export declare const OperationRequest: Schema.Union<(Schema.Struct<{
     deviceId: Schema.brand<Schema.String, "DeviceId">;
     bindingId: Schema.brand<Schema.String, "BindingId">;
     expectedName: Schema.String;
-    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
 }> | Schema.Struct<{
     kind: Schema.Literal<"mount-slew">;
     parameters: Schema.Struct<{
@@ -200,7 +189,6 @@ export declare const OperationRequest: Schema.Union<(Schema.Struct<{
     deviceId: Schema.brand<Schema.String, "DeviceId">;
     bindingId: Schema.brand<Schema.String, "BindingId">;
     expectedName: Schema.String;
-    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
 }> | Schema.Struct<{
     kind: Schema.Literal<"mount-stop">;
     parameters: Schema.Struct<{}>;
@@ -209,7 +197,6 @@ export declare const OperationRequest: Schema.Union<(Schema.Struct<{
     deviceId: Schema.brand<Schema.String, "DeviceId">;
     bindingId: Schema.brand<Schema.String, "BindingId">;
     expectedName: Schema.String;
-    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
 }> | Schema.Struct<{
     kind: Schema.Literal<"mount-tracking">;
     parameters: Schema.Struct<{
@@ -220,7 +207,6 @@ export declare const OperationRequest: Schema.Union<(Schema.Struct<{
     deviceId: Schema.brand<Schema.String, "DeviceId">;
     bindingId: Schema.brand<Schema.String, "BindingId">;
     expectedName: Schema.String;
-    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
 }> | Schema.Struct<{
     kind: Schema.Literal<"mount-unpark">;
     parameters: Schema.Struct<{}>;
@@ -229,7 +215,6 @@ export declare const OperationRequest: Schema.Union<(Schema.Struct<{
     deviceId: Schema.brand<Schema.String, "DeviceId">;
     bindingId: Schema.brand<Schema.String, "BindingId">;
     expectedName: Schema.String;
-    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
 }> | Schema.Struct<{
     kind: Schema.Literal<"switch-set">;
     parameters: Schema.Struct<{
@@ -241,7 +226,6 @@ export declare const OperationRequest: Schema.Union<(Schema.Struct<{
     deviceId: Schema.brand<Schema.String, "DeviceId">;
     bindingId: Schema.brand<Schema.String, "BindingId">;
     expectedName: Schema.String;
-    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
 }>)[]>;
 export type OperationRequest = typeof OperationRequest.Type;
 export declare const Progress: Schema.Struct<{
@@ -257,7 +241,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
     deviceId: Schema.brand<Schema.String, "DeviceId">;
     bindingId: Schema.brand<Schema.String, "BindingId">;
     expectedName: Schema.String;
-    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
     id: Schema.brand<Schema.String, "OperationId">;
     failureDomain: Schema.brand<Schema.String, "FailureDomain">;
     acceptedAt: Schema.Number;
@@ -270,7 +253,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
     deviceId: Schema.brand<Schema.String, "DeviceId">;
     bindingId: Schema.brand<Schema.String, "BindingId">;
     expectedName: Schema.String;
-    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
     id: Schema.brand<Schema.String, "OperationId">;
     failureDomain: Schema.brand<Schema.String, "FailureDomain">;
     acceptedAt: Schema.Number;
@@ -292,7 +274,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
     deviceId: Schema.brand<Schema.String, "DeviceId">;
     bindingId: Schema.brand<Schema.String, "BindingId">;
     expectedName: Schema.String;
-    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
     id: Schema.brand<Schema.String, "OperationId">;
     failureDomain: Schema.brand<Schema.String, "FailureDomain">;
     acceptedAt: Schema.Number;
@@ -315,7 +296,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
     deviceId: Schema.brand<Schema.String, "DeviceId">;
     bindingId: Schema.brand<Schema.String, "BindingId">;
     expectedName: Schema.String;
-    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
     id: Schema.brand<Schema.String, "OperationId">;
     failureDomain: Schema.brand<Schema.String, "FailureDomain">;
     acceptedAt: Schema.Number;
@@ -336,7 +316,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
     deviceId: Schema.brand<Schema.String, "DeviceId">;
     bindingId: Schema.brand<Schema.String, "BindingId">;
     expectedName: Schema.String;
-    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
     id: Schema.brand<Schema.String, "OperationId">;
     failureDomain: Schema.brand<Schema.String, "FailureDomain">;
     acceptedAt: Schema.Number;
@@ -356,7 +335,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
     deviceId: Schema.brand<Schema.String, "DeviceId">;
     bindingId: Schema.brand<Schema.String, "BindingId">;
     expectedName: Schema.String;
-    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
     id: Schema.brand<Schema.String, "OperationId">;
     failureDomain: Schema.brand<Schema.String, "FailureDomain">;
     acceptedAt: Schema.Number;
@@ -374,7 +352,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
     deviceId: Schema.brand<Schema.String, "DeviceId">;
     bindingId: Schema.brand<Schema.String, "BindingId">;
     expectedName: Schema.String;
-    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
     id: Schema.brand<Schema.String, "OperationId">;
     failureDomain: Schema.brand<Schema.String, "FailureDomain">;
     acceptedAt: Schema.Number;
@@ -396,7 +373,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
     deviceId: Schema.brand<Schema.String, "DeviceId">;
     bindingId: Schema.brand<Schema.String, "BindingId">;
     expectedName: Schema.String;
-    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
     id: Schema.brand<Schema.String, "OperationId">;
     failureDomain: Schema.brand<Schema.String, "FailureDomain">;
     acceptedAt: Schema.Number;
@@ -417,7 +393,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
     deviceId: Schema.brand<Schema.String, "DeviceId">;
     bindingId: Schema.brand<Schema.String, "BindingId">;
     expectedName: Schema.String;
-    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
     id: Schema.brand<Schema.String, "OperationId">;
     failureDomain: Schema.brand<Schema.String, "FailureDomain">;
     acceptedAt: Schema.Number;
@@ -435,7 +410,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
     deviceId: Schema.brand<Schema.String, "DeviceId">;
     bindingId: Schema.brand<Schema.String, "BindingId">;
     expectedName: Schema.String;
-    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
     id: Schema.brand<Schema.String, "OperationId">;
     failureDomain: Schema.brand<Schema.String, "FailureDomain">;
     acceptedAt: Schema.Number;
@@ -453,7 +427,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
     deviceId: Schema.brand<Schema.String, "DeviceId">;
     bindingId: Schema.brand<Schema.String, "BindingId">;
     expectedName: Schema.String;
-    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
     id: Schema.brand<Schema.String, "OperationId">;
     failureDomain: Schema.brand<Schema.String, "FailureDomain">;
     acceptedAt: Schema.Number;
@@ -474,7 +447,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
     deviceId: Schema.brand<Schema.String, "DeviceId">;
     bindingId: Schema.brand<Schema.String, "BindingId">;
     expectedName: Schema.String;
-    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
     id: Schema.brand<Schema.String, "OperationId">;
     failureDomain: Schema.brand<Schema.String, "FailureDomain">;
     acceptedAt: Schema.Number;
@@ -496,7 +468,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
     deviceId: Schema.brand<Schema.String, "DeviceId">;
     bindingId: Schema.brand<Schema.String, "BindingId">;
     expectedName: Schema.String;
-    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
     id: Schema.brand<Schema.String, "OperationId">;
     failureDomain: Schema.brand<Schema.String, "FailureDomain">;
     acceptedAt: Schema.Number;
@@ -514,7 +485,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
     deviceId: Schema.brand<Schema.String, "DeviceId">;
     bindingId: Schema.brand<Schema.String, "BindingId">;
     expectedName: Schema.String;
-    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
     id: Schema.brand<Schema.String, "OperationId">;
     failureDomain: Schema.brand<Schema.String, "FailureDomain">;
     acceptedAt: Schema.Number;
@@ -534,7 +504,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
     deviceId: Schema.brand<Schema.String, "DeviceId">;
     bindingId: Schema.brand<Schema.String, "BindingId">;
     expectedName: Schema.String;
-    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
     id: Schema.brand<Schema.String, "OperationId">;
     failureDomain: Schema.brand<Schema.String, "FailureDomain">;
     acceptedAt: Schema.Number;
@@ -552,7 +521,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
     deviceId: Schema.brand<Schema.String, "DeviceId">;
     bindingId: Schema.brand<Schema.String, "BindingId">;
     expectedName: Schema.String;
-    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
     id: Schema.brand<Schema.String, "OperationId">;
     failureDomain: Schema.brand<Schema.String, "FailureDomain">;
     acceptedAt: Schema.Number;
@@ -573,7 +541,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
     deviceId: Schema.brand<Schema.String, "DeviceId">;
     bindingId: Schema.brand<Schema.String, "BindingId">;
     expectedName: Schema.String;
-    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
     id: Schema.brand<Schema.String, "OperationId">;
     failureDomain: Schema.brand<Schema.String, "FailureDomain">;
     acceptedAt: Schema.Number;
@@ -600,7 +567,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
     deviceId: Schema.brand<Schema.String, "DeviceId">;
     bindingId: Schema.brand<Schema.String, "BindingId">;
     expectedName: Schema.String;
-    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
     id: Schema.brand<Schema.String, "OperationId">;
     failureDomain: Schema.brand<Schema.String, "FailureDomain">;
     acceptedAt: Schema.Number;
@@ -710,7 +676,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
     deviceId: Schema.brand<Schema.String, "DeviceId">;
     bindingId: Schema.brand<Schema.String, "BindingId">;
     expectedName: Schema.String;
-    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
     id: Schema.brand<Schema.String, "OperationId">;
     failureDomain: Schema.brand<Schema.String, "FailureDomain">;
     acceptedAt: Schema.Number;
@@ -818,7 +783,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
     deviceId: Schema.brand<Schema.String, "DeviceId">;
     bindingId: Schema.brand<Schema.String, "BindingId">;
     expectedName: Schema.String;
-    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
     id: Schema.brand<Schema.String, "OperationId">;
     failureDomain: Schema.brand<Schema.String, "FailureDomain">;
     acceptedAt: Schema.Number;
@@ -925,7 +889,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
     deviceId: Schema.brand<Schema.String, "DeviceId">;
     bindingId: Schema.brand<Schema.String, "BindingId">;
     expectedName: Schema.String;
-    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
     id: Schema.brand<Schema.String, "OperationId">;
     failureDomain: Schema.brand<Schema.String, "FailureDomain">;
     acceptedAt: Schema.Number;
@@ -1030,7 +993,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
     deviceId: Schema.brand<Schema.String, "DeviceId">;
     bindingId: Schema.brand<Schema.String, "BindingId">;
     expectedName: Schema.String;
-    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
     id: Schema.brand<Schema.String, "OperationId">;
     failureDomain: Schema.brand<Schema.String, "FailureDomain">;
     acceptedAt: Schema.Number;
@@ -1139,7 +1101,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
     deviceId: Schema.brand<Schema.String, "DeviceId">;
     bindingId: Schema.brand<Schema.String, "BindingId">;
     expectedName: Schema.String;
-    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
     id: Schema.brand<Schema.String, "OperationId">;
     failureDomain: Schema.brand<Schema.String, "FailureDomain">;
     acceptedAt: Schema.Number;
@@ -1247,7 +1208,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
     deviceId: Schema.brand<Schema.String, "DeviceId">;
     bindingId: Schema.brand<Schema.String, "BindingId">;
     expectedName: Schema.String;
-    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
     id: Schema.brand<Schema.String, "OperationId">;
     failureDomain: Schema.brand<Schema.String, "FailureDomain">;
     acceptedAt: Schema.Number;
@@ -1352,7 +1312,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
     deviceId: Schema.brand<Schema.String, "DeviceId">;
     bindingId: Schema.brand<Schema.String, "BindingId">;
     expectedName: Schema.String;
-    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
     id: Schema.brand<Schema.String, "OperationId">;
     failureDomain: Schema.brand<Schema.String, "FailureDomain">;
     acceptedAt: Schema.Number;
@@ -1457,7 +1416,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
     deviceId: Schema.brand<Schema.String, "DeviceId">;
     bindingId: Schema.brand<Schema.String, "BindingId">;
     expectedName: Schema.String;
-    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
     id: Schema.brand<Schema.String, "OperationId">;
     failureDomain: Schema.brand<Schema.String, "FailureDomain">;
     acceptedAt: Schema.Number;
@@ -1565,7 +1523,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
     deviceId: Schema.brand<Schema.String, "DeviceId">;
     bindingId: Schema.brand<Schema.String, "BindingId">;
     expectedName: Schema.String;
-    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
     id: Schema.brand<Schema.String, "OperationId">;
     failureDomain: Schema.brand<Schema.String, "FailureDomain">;
     acceptedAt: Schema.Number;
@@ -1674,7 +1631,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
     deviceId: Schema.brand<Schema.String, "DeviceId">;
     bindingId: Schema.brand<Schema.String, "BindingId">;
     expectedName: Schema.String;
-    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
     id: Schema.brand<Schema.String, "OperationId">;
     failureDomain: Schema.brand<Schema.String, "FailureDomain">;
     acceptedAt: Schema.Number;
@@ -1779,7 +1735,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
     deviceId: Schema.brand<Schema.String, "DeviceId">;
     bindingId: Schema.brand<Schema.String, "BindingId">;
     expectedName: Schema.String;
-    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
     id: Schema.brand<Schema.String, "OperationId">;
     failureDomain: Schema.brand<Schema.String, "FailureDomain">;
     acceptedAt: Schema.Number;
@@ -1886,7 +1841,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
     deviceId: Schema.brand<Schema.String, "DeviceId">;
     bindingId: Schema.brand<Schema.String, "BindingId">;
     expectedName: Schema.String;
-    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
     id: Schema.brand<Schema.String, "OperationId">;
     failureDomain: Schema.brand<Schema.String, "FailureDomain">;
     acceptedAt: Schema.Number;
@@ -1991,7 +1945,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
     deviceId: Schema.brand<Schema.String, "DeviceId">;
     bindingId: Schema.brand<Schema.String, "BindingId">;
     expectedName: Schema.String;
-    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
     id: Schema.brand<Schema.String, "OperationId">;
     failureDomain: Schema.brand<Schema.String, "FailureDomain">;
     acceptedAt: Schema.Number;
@@ -2099,7 +2052,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
     deviceId: Schema.brand<Schema.String, "DeviceId">;
     bindingId: Schema.brand<Schema.String, "BindingId">;
     expectedName: Schema.String;
-    leaseId: Schema.optionalKey<Schema.brand<Schema.String, "LeaseId">>;
     id: Schema.brand<Schema.String, "OperationId">;
     failureDomain: Schema.brand<Schema.String, "FailureDomain">;
     acceptedAt: Schema.Number;

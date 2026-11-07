@@ -32,7 +32,7 @@ const firstTagName = /^\s*<[^>]*?\bname="([^"]*)"/
 
 export type OpenPublisher = (broker: BrokerSettings, onConnected: (connection: number) => void) => Publisher
 
-function asked({ bindingId: _binding, expectedName: _name, leaseId: _lease, ...kept }: Submission) {
+function asked({ bindingId: _binding, expectedName: _name, ...kept }: Submission) {
   return kept
 }
 
@@ -89,7 +89,7 @@ export function makeCriaStream(
           publisher.publish('rig-dev.cria.write', entries.cria('write', { device: wireDevice(wireDevices, xml), property: firstTagName.exec(xml)?.[1] ?? '', conn, xml }))
         },
       },
-      settled: ({ bindingId: _binding, expectedName: _name, leaseId: _lease, failureDomain: _domain, recovery: _recovery, ...operation }) =>
+      settled: ({ bindingId: _binding, expectedName: _name, failureDomain: _domain, recovery: _recovery, ...operation }) =>
         publisher.publish('rig-dev.cria.settled', entries.cria('settled', operation)),
     }
   })
