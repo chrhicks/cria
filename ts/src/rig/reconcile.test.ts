@@ -634,6 +634,18 @@ describe('a dead link: the driver reports errors while the device still looks co
     expect(bench.logs().some(line => line.includes('box POWER_CHANNELS is Busy; not restarting'))).toBe(true)
   })
 
+  it('only says so when a serial device fails and the rig file names no driver to restart, and reconnects again later', () => {
+    const bench = new Bench({}, [{ id: 'mount', indiDevice: 'ZWO AM5', serial: '/dev/serial/by-id/mount', connected: true }, { id: 'box', indiDevice: 'Pegasus PPBA', serial: '/dev/serial/by-id/box', connected: true }])
+
+    bench.poll(2)
+    bench.sim('mount').brokenSince = bench.now
+    bench.poll(40)
+
+    expect(bench.restarts()).toEqual([])
+    expect(bench.logs().filter(line => line.includes('mount: still failing after the reconnect, and the rig file names no driver to restart'))).toHaveLength(1)
+    expect(bench.writes('CONNECTION').filter(write => 'DISCONNECT' in write.values).length).toBeGreaterThan(1)
+  })
+
   it('restarts the driver again when the same device fails again later', () => {
     const bench = new Bench()
 

@@ -140,6 +140,12 @@ export function decide(config: RigConfig, observation: Observation, previous: Me
     }
   }
 
+  for (const device of config.devices) {
+    if (!restartDue.has(device.id) || device.driver !== undefined) continue
+    delete memoryOf(device).reconnectedAt
+    note(`dead:${device.id}`, `rig: ${device.id}: still failing after the reconnect, and the rig file names no driver to restart`)
+  }
+
   const restarting = new Set<string>()
 
   for (const driver of new Set(config.devices.flatMap(device => (device.driver ? [device.driver] : [])))) {
