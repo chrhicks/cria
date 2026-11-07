@@ -18,14 +18,9 @@ export interface Property {
   readonly device: string
   readonly name: string
   readonly kind: PropertyKind
-  readonly label: string
   readonly state: PropertyState
   readonly perm: Permission
   readonly elements: ReadonlyMap<string, ElementDefinition>
-  /** The driver's message with the latest definition or update, often the reason for an Alert. */
-  readonly message?: string
-  /** When Cria last received a definition or update of this property (epoch ms). */
-  readonly receivedAt: number
 }
 
 export type MirrorChange =
@@ -51,12 +46,12 @@ export class Mirror {
     return devices.map(device => ({ type: 'deleted', device }))
   }
 
-  apply(message: IndiMessage, now: number): MirrorChange[] {
+  apply(message: IndiMessage): MirrorChange[] {
     switch (message.type) {
       case 'def':
-        return [this.define(message.vector, now)]
+        return [this.define(message.vector)]
       case 'set':
-        return this.update(message.vector, now)
+        return this.update(message.vector)
       case 'del':
         return [this.delete(message.device, message.name)]
       default:
@@ -64,17 +59,14 @@ export class Mirror {
     }
   }
 
-  private define(vector: VectorDefinition, now: number): MirrorChange {
+  private define(vector: VectorDefinition): MirrorChange {
     const property: Property = {
       device: vector.device,
       name: vector.name,
       kind: vector.kind,
-      label: vector.label,
       state: vector.state,
       perm: vector.perm,
-      ...(vector.message === undefined ? {} : { message: vector.message }),
       elements: new Map(vector.elements.map(element => [element.name, element])),
-      receivedAt: now,
     }
 
     this.store(property)
@@ -82,7 +74,7 @@ export class Mirror {
     return { type: 'property', origin: 'def', property }
   }
 
-  private update(vector: VectorUpdate, now: number): MirrorChange[] {
+  private update(vector: VectorUpdate): MirrorChange[] {
     const current = this.property(vector.device, vector.name)
 
     // An update for an undefined property can't be interpreted (no kind, no limits).
@@ -97,14 +89,7 @@ export class Mirror {
       elements.set(update.name, merge(element, update))
     }
 
-    const { message: _previous, ...rest } = current
-    const property: Property = {
-      ...rest,
-      state: vector.state ?? current.state,
-      ...(vector.message === undefined ? {} : { message: vector.message }),
-      elements,
-      receivedAt: now,
-    }
+    const property: Property = { ...current, state: vector.state ?? current.state, elements }
 
     this.store(property)
 

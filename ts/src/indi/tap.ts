@@ -13,8 +13,7 @@ export interface TappedMessage {
   /**
    * The wire text of one top-level element as the client saw it, not
    * re-serialized from the parsed message: `IndiMessage` drops `rule`, `group`,
-   * `format` and every element the parser ignores, and replay needs them. Every
-   * BLOB payload is elided to a self-closing `<oneBLOB .../>`.
+   * `format` and every element the parser ignores, and replay needs them.
    */
   readonly xml: string
 }

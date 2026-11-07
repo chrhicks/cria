@@ -1,6 +1,7 @@
-import { Effect, Option, Scope } from 'effect'
+import { Effect, Option, Scope, Stream } from 'effect'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { startIndiServer, type RunningIndiServer } from '../../testing/indiserver.ts'
+import { propertyOf } from '../../testing/property.ts'
 import { makeIndiClient, type IndiClient } from './client.ts'
 import type { TappedConnection, TappedMessage } from './tap.ts'
 
@@ -37,17 +38,12 @@ const waitFor = <A>(effect: Effect.Effect<Option.Option<A>>) =>
   }).pipe(Effect.timeout('5 seconds'))
 
 describe('INDI client against a real indiserver', () => {
-  it('mirrors definitions, and refresh has indiserver define every property again', () =>
+  it('mirrors the definitions indiserver sends', () =>
     withClient(client =>
       Effect.gen(function* () {
-        const focuser = client.device('Focuser Simulator')
-        const before = yield* waitFor(focuser.property('CONNECTION'))
+        const connection = yield* waitFor(propertyOf(client.device('Focuser Simulator'), 'CONNECTION'))
 
-        yield* Effect.sleep('2 millis')
-        yield* client.refresh
-        const after = yield* waitFor(focuser.property('CONNECTION').pipe(Effect.map(Option.filter(property => property.receivedAt > before.receivedAt))))
-
-        expect(after.name).toBe('CONNECTION')
+        expect(connection.name).toBe('CONNECTION')
       }),
     ))
 
@@ -56,31 +52,28 @@ describe('INDI client against a real indiserver', () => {
       Effect.gen(function* () {
         const focuser = client.device('Focuser Simulator')
 
-        yield* waitFor(focuser.property('CONNECTION'))
+        yield* waitFor(propertyOf(focuser, 'CONNECTION'))
         yield* focuser.send('CONNECTION', { CONNECT: true })
-        const position = yield* waitFor(focuser.property('ABS_FOCUS_POSITION'))
+        const position = yield* waitFor(propertyOf(focuser, 'ABS_FOCUS_POSITION'))
         const target = 50100
 
         expect(position.elements.get('FOCUS_ABSOLUTE_POSITION')).toMatchObject({ kind: 'number', value: 50000 })
 
-        const states = yield* Effect.scoped(
-          Effect.gen(function* () {
-            const subscription = yield* focuser.subscribe
-            const seen: string[] = []
+        const states: string[] = []
 
-            yield* focuser.send('ABS_FOCUS_POSITION', { FOCUS_ABSOLUTE_POSITION: target })
-            while (true) {
-              const event = yield* subscription.next
-
-              if (event.type !== 'property' || event.property.name !== 'ABS_FOCUS_POSITION') continue
-              seen.push(event.property.state)
-              if (event.property.state === 'Ok' || event.property.state === 'Alert') return seen
-            }
-          }),
-        ).pipe(Effect.timeout('10 seconds'))
+        yield* Effect.forkScoped(
+          Stream.runForEach(focuser.events, event =>
+            Effect.sync(() => {
+              if (event.type === 'property' && event.property.name === 'ABS_FOCUS_POSITION') states.push(event.property.state)
+            }),
+          ),
+        )
+        yield* Effect.sleep('50 millis')
+        yield* focuser.send('ABS_FOCUS_POSITION', { FOCUS_ABSOLUTE_POSITION: target })
+        yield* waitFor(Effect.sync(() => Option.fromNullishOr(states.find(state => state === 'Ok' || state === 'Alert'))))
 
         expect(states.at(-1)).toBe('Ok')
-        expect(Option.getOrUndefined(yield* focuser.property('ABS_FOCUS_POSITION'))?.elements.get('FOCUS_ABSOLUTE_POSITION')).toMatchObject({ value: target })
+        expect(Option.getOrUndefined(yield* propertyOf(focuser, 'ABS_FOCUS_POSITION'))?.elements.get('FOCUS_ABSOLUTE_POSITION')).toMatchObject({ value: target })
       }),
     ))
 
@@ -103,9 +96,9 @@ describe('INDI client against a real indiserver', () => {
           const client = yield* makeIndiClient({ host: '127.0.0.1', port: server.port, tap })
           const focuser = client.device('Focuser Simulator')
 
-          yield* waitFor(focuser.property('CONNECTION'))
+          yield* waitFor(propertyOf(focuser, 'CONNECTION'))
           yield* focuser.send('CONNECTION', { CONNECT: true })
-          yield* waitFor(focuser.property('ABS_FOCUS_POSITION'))
+          yield* waitFor(propertyOf(focuser, 'ABS_FOCUS_POSITION'))
         }),
       ),
     )

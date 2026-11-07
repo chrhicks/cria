@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto'
 import { hostname } from 'node:os'
 import { readRigFile, wireIdsOf } from '../rig/file.ts'
 import { makeIndiClient, type TrafficTap } from '../indi/index.ts'
-import { brokerSettings, makeEntries, openPublisher, refreshSubject, wireSubject } from '../stream/index.ts'
+import { brokerSettings, makeEntries, openPublisher, wireSubject } from '../stream/index.ts'
 import { Effect } from 'effect'
 import { RecorderConfig } from './config.ts'
 import { makeDebugChangeFilter } from './debug-lines.ts'
@@ -60,17 +60,7 @@ export async function runRecorder(): Promise<void> {
   await broker.ready
 
   await Promise.all([
-    Effect.runPromise(
-      Effect.scoped(
-        Effect.flatMap(makeIndiClient({ ...config.indi, tap }), indi => {
-          broker.listen(refreshSubject, () => {
-            Effect.runFork(indi.refresh.pipe(Effect.tapError(error => Effect.sync(() => console.error(`rig-stream-client: refresh not sent: ${error.message}`)))))
-          })
-
-          return Effect.never
-        }),
-      ),
-    ),
+    Effect.runPromise(Effect.scoped(Effect.flatMap(makeIndiClient({ ...config.indi, tap }), () => Effect.never))),
     followJournal(config.journalExclusions, config.journalCursorFile, async line => {
       await broker.publishConfirmed('rig-dev.system', entries.system(line))
     }),

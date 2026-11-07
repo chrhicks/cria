@@ -12,7 +12,7 @@
  * is lost ends the connection. Both are logged (see `ProblemLog`).
  */
 import net from 'node:net'
-import { Data, Effect, Option, PubSub, Scope, Stream, SubscriptionRef } from 'effect'
+import { Data, Effect, PubSub, Scope, Stream, SubscriptionRef } from 'effect'
 import { Mirror, type MirrorChange, type Property } from './mirror.ts'
 import type { TrafficTap } from './tap.ts'
 import { ProblemLog } from './problems.ts'
@@ -37,19 +37,11 @@ export type DeviceEvent =
   | { readonly type: 'connection'; readonly status: ConnectionStatus }
   | { readonly type: 'message'; readonly device?: string; readonly text: string }
 
-export interface DeviceSubscription {
-  /** The next event for this device, waiting if there is none yet. */
-  readonly next: Effect.Effect<DeviceEvent>
-}
-
 export type Values = Readonly<Record<string, number | boolean | string>>
 
 export interface IndiDevice {
   readonly name: string
-  readonly property: (name: string) => Effect.Effect<Option.Option<Property>>
   readonly properties: Effect.Effect<ReadonlyArray<Property>>
-  /** Subscribe before sending a command so its answer can't be missed. */
-  readonly subscribe: Effect.Effect<DeviceSubscription, never, Scope.Scope>
   readonly events: Stream.Stream<DeviceEvent>
   /** One new*Vector. Sent exactly once; never retried here. */
   readonly send: (property: string, values: Values) => Effect.Effect<void, IndiError>
@@ -58,7 +50,6 @@ export interface IndiDevice {
 export interface IndiClient {
   readonly status: Effect.Effect<ConnectionStatus>
   readonly device: (name: string) => IndiDevice
-  readonly refresh: Effect.Effect<void, IndiError>
 }
 
 export interface IndiClientOptions {
@@ -135,7 +126,7 @@ export function makeIndiClient(options: IndiClientOptions): Effect.Effect<IndiCl
         return
       }
 
-      for (const change of mirror.apply(message, Date.now())) publish(toClientEvent(change))
+      for (const change of mirror.apply(message)) publish(toClientEvent(change))
     }
 
     // An element that is bad on its own: skipped and logged. The property it was about is forgotten every time, even
@@ -149,7 +140,7 @@ export function makeIndiClient(options: IndiClientOptions): Effect.Effect<IndiCl
       if (problem.device === undefined || problem.name === undefined || !/^(def|set)\w+Vector$/.test(problem.tag)) return
       const { device, name } = problem
 
-      if (mirror.property(device, name)) for (const change of mirror.apply({ type: 'del', device, name }, Date.now())) publish(toClientEvent(change))
+      if (mirror.property(device, name)) for (const change of mirror.apply({ type: 'del', device, name })) publish(toClientEvent(change))
       if (logged) transmit({ type: 'getProperties', device, name }, current)
     }
 
@@ -216,23 +207,7 @@ export function makeIndiClient(options: IndiClientOptions): Effect.Effect<IndiCl
     yield* Effect.forkScoped(connectForever)
     yield* Effect.addFinalizer(() => Effect.sync(() => socket?.destroy()))
 
-    const subscribeDevice = (name: string) =>
-      Effect.gen(function* () {
-        const subscription = yield* PubSub.subscribe(events)
-        const next: Effect.Effect<DeviceEvent> = Effect.gen(function* () {
-          while (true) {
-            const item = yield* PubSub.take(subscription)
-
-            if (item.device === undefined || item.device === name) return item.event
-          }
-        })
-
-        return { next }
-      })
-
     const device = (name: string): IndiDevice => {
-      const property = (property: string) => Effect.sync(() => Option.fromNullishOr(mirror.property(name, property)))
-
       const sendVector = (propertyName: string, values: Values) =>
         Effect.gen(function* () {
           const known = mirror.property(name, propertyName)
@@ -247,9 +222,7 @@ export function makeIndiClient(options: IndiClientOptions): Effect.Effect<IndiCl
 
       return {
         name,
-        property,
         properties: Effect.sync(() => mirror.properties(name)),
-        subscribe: subscribeDevice(name),
         events: Stream.fromPubSub(events).pipe(
           Stream.filter(item => item.device === undefined || item.device === name),
           Stream.map(item => item.event),
@@ -261,7 +234,6 @@ export function makeIndiClient(options: IndiClientOptions): Effect.Effect<IndiCl
     return {
       status: SubscriptionRef.get(status),
       device,
-      refresh: send({ type: 'getProperties' }),
     }
   })
 }

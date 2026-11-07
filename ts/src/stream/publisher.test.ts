@@ -26,7 +26,6 @@ function fakeBroker() {
     },
     close: () => Promise.resolve(),
     getServer: () => 'fake',
-    subscribe: () => { throw new Error('not used') },
     status: async function* () {
       while (true) yield { type: await new Promise<string>(resolve => (announce = resolve)) }
     },

@@ -3,7 +3,6 @@ export {
   makeIndiClient,
   type ConnectionStatus,
   type DeviceEvent,
-  type DeviceSubscription,
   type IndiClient,
   type IndiClientOptions,
   type IndiDevice,

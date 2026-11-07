@@ -6,7 +6,7 @@
 - Lost framing (an element that never closes, a tag that is not a tag, an unbalanced closing tag) is logged and drops the connection. A new connection is the only safe reset, and the reconnect is paced.
 - A skipped `def*Vector` or `set*Vector` whose device and name can be read forgets that property in the mirror, so subscribers see `deleted` and never a stale value. Each time a problem is logged the driver is asked for that property again (`getProperties`).
 - One log line per problem, with the driver's text bounded and escaped. A repeat of the same problem is logged once a minute and counted into the next line, and all problems together are capped at 20 lines a minute (`problems.ts`).
-- A `setBLOBVector` is framed and skipped, never decoded. The tap gets its wire text with each payload removed. Cria never asks indiserver for BLOBs, so normally none arrive.
+- A `setBLOBVector` is framed and skipped, never decoded. Cria never asks indiserver for BLOBs, so none arrive.
 - The tap gets every element's wire text, bad ones included.
 
 Each case is a test in `bad-input.test.ts`.
