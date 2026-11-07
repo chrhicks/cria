@@ -1,7 +1,6 @@
 import { createServer, type Server, type Socket } from 'node:net'
 import type { AddressInfo } from 'node:net'
 import { afterEach, describe, expect, it } from 'vitest'
-// @ts-expect-error plain ESM script with JSDoc types, not part of a TypeScript project
 import { LineReader, classify, encodeRequest, parseArgs, runStep, settle, steps } from '../deploy/phd2-rpc.mjs'
 
 type Handler = (request: { method: string; params?: Record<string, unknown>; id: number }, socket: Socket) => void
@@ -13,14 +12,17 @@ class FakePhd2 {
   server: Server
   port = 0
 
-  constructor(private readonly handler: Handler) {
+  private readonly handler: Handler
+
+  constructor(handler: Handler) {
+    this.handler = handler
     this.server = createServer(socket => {
       this.sockets.add(socket)
       socket.setEncoding('utf8')
       socket.write('{"Event":"Version","PHDVersion":"2.6.14","PHDSubver":"","MsgVersion":1}\r\n')
       const reader = new LineReader()
       socket.on('data', chunk => {
-        for (const line of reader.push(chunk as string)) {
+        for (const line of reader.push(String(chunk))) {
           this.raw.push(line)
           const request = JSON.parse(line)
           this.requests.push(request)
@@ -53,7 +55,7 @@ async function run(name: string, handler: Handler, options: Record<string, unkno
   await fake.listen()
   const out: string[] = []
   const err: string[] = []
-  const step = name === 'watch' ? null : steps[name]({ pixels: 3, recalibrate: false, ...options })
+  const step = name === 'watch' ? null : steps[name]!({ pixels: 3, recalibrate: false, ...options })
   const code = await runStep({ host: '127.0.0.1', port: fake.port, step, watchSeconds: 0.2, waitSeconds, pollMs: 10 }, { out: line => out.push(line), err: line => err.push(line) })
   return { code, out, err }
 }
@@ -61,7 +63,7 @@ async function run(name: string, handler: Handler, options: Record<string, unkno
 describe('framing', () => {
   it('ends a request with CRLF and sends one JSON object per line', () => {
     expect(encodeRequest(7, { method: 'loop', done: 'reply', waitSeconds: 1 })).toBe('{"method":"loop","id":7}\r\n')
-    expect(encodeRequest(7, steps.connect({ pixels: 3, recalibrate: false }))).toBe('{"method":"set_connected","params":{"connected":true},"id":7}\r\n')
+    expect(encodeRequest(7, steps.connect!({ pixels: 3, recalibrate: false }))).toBe('{"method":"set_connected","params":{"connected":true},"id":7}\r\n')
   })
 
   it('joins a line that arrives in pieces and strips CRLF', () => {
@@ -82,8 +84,8 @@ describe('framing', () => {
 describe('steps', () => {
   it('sends the settle tolerance Chris chose: 1.5 px for 10 s, timeout 90 s', () => {
     expect(settle).toEqual({ pixels: 1.5, time: 10, timeout: 90 })
-    expect(steps.guide({ pixels: 3, recalibrate: false }).params).toEqual({ settle, recalibrate: false })
-    expect(steps.dither({ pixels: 3, recalibrate: false }).params).toEqual({ amount: 3, raOnly: false, settle })
+    expect(steps.guide!({ pixels: 3, recalibrate: false }).params).toEqual({ settle, recalibrate: false })
+    expect(steps.dither!({ pixels: 3, recalibrate: false }).params).toEqual({ amount: 3, raOnly: false, settle })
   })
 
   it('has one subcommand for each step Chris asked for', () => {
@@ -181,7 +183,7 @@ describe('runStep when nothing listens', () => {
     const port = (probe.address() as AddressInfo).port
     await new Promise(resolve => probe.close(resolve))
     const err: string[] = []
-    const code = await runStep({ host: '127.0.0.1', port, step: steps.state({ pixels: 3, recalibrate: false }), waitSeconds: 1 }, { out: () => undefined, err: line => err.push(line) })
+    const code = await runStep({ host: '127.0.0.1', port, step: steps.state!({ pixels: 3, recalibrate: false }), waitSeconds: 1 }, { out: () => undefined, err: line => err.push(line) })
     expect(code).toBe(2)
     expect(err.join('\n')).toContain('ECONNREFUSED')
   })

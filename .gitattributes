@@ -1,2 +1,0 @@
-# Preserve upstream notice bytes, including line endings, for source hash checks.
-licenses/third-party/* -text -whitespace

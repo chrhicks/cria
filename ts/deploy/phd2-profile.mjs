@@ -6,7 +6,7 @@
 //
 // PHD2 keeps its settings with wxConfig("PHDGuidingV2"), which on Linux is an INI
 // file: root keys first, then `[group/sub]` headers with `key=value` lines.
-// docs/runtime.md ("PHD2 on errai") cites the PHD2 2.6.14 source for every key.
+// docs/phd2.md cites the PHD2 2.6.14 source for every key.
 // Only the keys in `entries` are set; the rest of the file (a calibration, other profiles) is kept.
 import { copyFileSync, existsSync, readFileSync, readdirSync, renameSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'

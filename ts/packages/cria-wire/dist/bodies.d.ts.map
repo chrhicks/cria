@@ -1,1 +1,0 @@
-{"version":3,"file":"bodies.d.ts","sourceRoot":"","sources":["../src/bodies.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,MAAM,EAAE,MAAM,QAAQ,CAAA;AAG/B,eAAO,MAAM,eAAe,IAAI,CAAA;AAEhC,eAAO,MAAM,MAAM;;;;EAA4H,CAAA;AAE/I,eAAO,MAAM,cAAc;;;EAAmE,CAAA;AAE9F,eAAO,MAAM,aAAa;;;;EAIxB,CAAA;AAEF,MAAM,MAAM,cAAc,GAAG,OAAO,cAAc,CAAC,IAAI,CAAA;AACvD,MAAM,MAAM,aAAa,GAAG,OAAO,aAAa,CAAC,IAAI,CAAA"}

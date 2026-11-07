@@ -1,5 +1,0 @@
-packages:
-  - packages/*
-  - apps/*
-overrides:
-  '@effect/platform-node-shared': 4.0.3

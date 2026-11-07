@@ -1,7 +1,7 @@
-import { FakeIndi, addCamera, addMount } from '@cria/fake-indi'
-import { startCria, propertyOf, until, type DeviceSpec } from '../../apps/cria/test/harness.js'
-import { makeCriaClient, type CriaClient } from '../cria-client.js'
-import { failedStep, recordingFetch, type Recorded } from './golden.js'
+import { FakeIndi, addCamera, addMount } from '../fake-indi/index.ts'
+import { startCria, propertyOf, until, type DeviceSpec } from '../harness.ts'
+import { makeCriaClient, type CriaClient } from '../cria-client.ts'
+import { failedStep, recordingFetch, type Recorded } from './golden.ts'
 
 const camera = 'Fake CCD'
 const mount = 'ZWO AM5'
