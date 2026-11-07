@@ -274,9 +274,9 @@ operation has no deadline field, and Vela cannot read the configured values.
 |---|---|
 | Capture | None. A capture ends on its frame, an Alert, a lost driver or connection, or a cancel. A client that sees the camera has stopped counting cancels it. |
 | Motion (slew, home, focuser move) | `operationTimeoutMs` for the driver to finish the motion, then `failed: unavailable`. |
-| Setting | `acknowledgeMs` for the driver to answer, then up to the confirm deadline (15 s unless the kind sets its own) for the new state; `uncertain` if either passes. |
-| Stop (`mount-stop`, `focuser-halt`) and a cancelled operation's stop | `stopWithin`: 20 s for the mount and focuser, 15 s for the camera abort. A stop is confirmed from the position, not from any property's state (see "Stopping the mount"). |
-| `device-connect` | `initializeTimeoutMs` for the driver to acknowledge the connect and again for the device to read connected, then `uncertain`. Device setup follows under its own writes' bounds. |
+| Setting | `acknowledgeMs` for the driver to answer, then `confirmMs` (15 s) for the new state; `uncertain` if either passes. |
+| Stop (`mount-stop`, `focuser-halt`) and a cancelled operation's stop | `acknowledgeMs` plus `confirmMs` (20 s). A stop is confirmed from the position, not from any property's state (see "Stopping the mount"). |
+| `device-connect` | `connectTimeoutMs` for the driver to acknowledge the connect and again for the device to read connected, then `uncertain`. Device setup follows under its own writes' bounds. |
 
 These bounds are per kind, not one guarantee stated in code: nothing enforces a
 single limit across kinds, and a kind added later needs its own. A person's Stop
@@ -533,7 +533,7 @@ the drift. Still means within that tolerance, not unchanged: a mount drifting
 under it is accepted as stopped (0.01°/s is 0.015° over the 1.5 s between reads;
 a synthetic probe, not seen on the rig).
 
-The stop is bounded by `stopWithin` (20 s): inside `stoppable` the abort is sent
+The stop is bounded by `acknowledgeMs` plus `confirmMs` (20 s): inside `stoppable` the abort is sent
 again until the position has stopped or the 20 s pass, and `mount-stop` gives up at
 20 s. A stop or abort is the only command that is ever resent: it can only stop
 motion, never start it. Unconfirmed, the outcome is `uncertain: stop-not-confirmed`,
@@ -812,8 +812,8 @@ Readings per kind. Values are named, not ASCOM integers:
 | Kind | Readings |
 |---|---|
 | all | `connected` boolean, `name` string |
-| camera | `activity` `'idle' \| 'exposing'`; `temperatureC`, `setpointC` (unsupported), `coolerOn`, `coolerPowerPercent`; `sensorWidthPixels`, `sensorHeightPixels`, `pixelWidthMicrons`, `pixelHeightMicrons`, `width`, `height`; `bayerPattern` `'mono' \| 'rggb' \| 'grbg' \| 'gbrg' \| 'bggr'`; `canAbortExposure`, `canSetTemperature`, `canGetCoolerPower`; `exposureMinimum`, `exposureMaximum`; `gain`, `gainMinimum`, `gainMaximum`, `offset`, `offsetMinimum`, `offsetMaximum` |
-| mount | `rightAscensionHours`, `declinationDegrees`, `siderealTimeHours`; `slewing`, `tracking`; `trackingRate` `'sidereal' \| 'lunar' \| 'solar'`; `pierSide` `'east' \| 'west' \| 'unknown'`; `coordinateSystem` `'topocentric' \| 'j2000'`; `latitudeDegrees`, `longitudeDegrees` (east positive), `elevationMeters`; `canSlew`, `canSetTracking`, `canFindHome`, `canMovePrimaryAxis`; `primaryAxisRates` `Array<{ name, degreesPerSecond }>` |
+| camera | `activity` `'idle' \| 'exposing'`; `temperatureC`, `setpointC` (unsupported), `coolerOn`, `coolerPowerPercent`; `sensorWidthPixels`, `sensorHeightPixels`, `pixelWidthMicrons`, `pixelHeightMicrons`, `width`, `height`; `bayerPattern` `'mono' \| 'rggb' \| 'grbg' \| 'gbrg' \| 'bggr'`; `exposureMinimum`, `exposureMaximum`; `gain`, `gainMinimum`, `gainMaximum`, `offset`, `offsetMinimum`, `offsetMaximum` |
+| mount | `rightAscensionHours`, `declinationDegrees`, `siderealTimeHours`; `slewing`, `tracking`; `trackingRate` `'sidereal' \| 'lunar' \| 'solar'`; `pierSide` `'east' \| 'west' \| 'unknown'`; `coordinateSystem` `'topocentric' \| 'j2000'`; `latitudeDegrees`, `longitudeDegrees` (east positive), `elevationMeters`; `primaryAxisRates` `Array<{ name, degreesPerSecond }>` |
 | focuser | `position`, `moving`, `temperatureC`, `absolute`, `minStep`, `maxStep` (the usable window; both ends allowed except `maxStep` at the driver's top; see "The focuser travel window") |
 | box | `temperatureC`, `humidityPercent`, `dewPointC`, `channelCount`; per channel `id`, `name`, `writable`, `minimum`, `maximum`, `step`, `on`, `value` |
 
@@ -1010,8 +1010,9 @@ stop the process. `ts/deploy/rig.errai.json` is the rig's config:
   "imageBudgetBytes": 1073741824,
   "commandsEnabled": true,
   "acknowledgeMs": 5000,
+  "confirmMs": 15000,
   "operationTimeoutMs": 180000,
-  "initializeTimeoutMs": 120000,
+  "connectTimeoutMs": 120000,
   "operationHistory": 1000,
   "devices": [
     { "id": "primary", "kind": "camera", "indiDevice": "ZWO CCD ASI2600MC Pro" },
@@ -1031,9 +1032,10 @@ stop the process. `ts/deploy/rig.errai.json` is the rig's config:
 
 The example shows three of the rig's five devices. Every key but `imageDirectory`
 and `devices` has a default (the values above). `acknowledgeMs` is how long a
-driver has to acknowledge a command. `operationTimeoutMs` is the overrun allowance
+driver has to acknowledge a command. `confirmMs` is how long it then has to show a
+setting applied or a device at rest; a stop gets both. `operationTimeoutMs` is the overrun allowance
 for a motion.
-`initializeTimeoutMs` is how long a cold device may take to connect through `device-connect`.
+`connectTimeoutMs` is how long a cold device may take to connect through `device-connect`.
 A device connects, and is set up, only when `device-connect` asks it to (the
 rig supervisor does that on the rig), with the serial `port` written first. A
 failure leaves the device disconnected and says so. Cria never changes power,
@@ -1351,7 +1353,7 @@ It holds no `op` lines.
   steps abort exposures and stop the mount and focuser before the process exits,
   and a mount's stop waits until it stands still (at most 20 s).
   `deploy/cria.service` allows 180 s (`TimeoutStopSec`), because a
-  `device-connect` can run uninterruptibly for `initializeTimeoutMs`.
+  `device-connect` can run uninterruptibly for `connectTimeoutMs`.
 
 ## Image path
 

@@ -99,7 +99,7 @@ const time: Step = (context, snapshot, _device, now) =>
     const values = { UTC: new Date(now).toISOString().slice(0, 19), OFFSET: '0.00' }
     const write = Effect.andThen(
       sendOnce(context.device, 'TIME_UTC', values, context.timing),
-      confirmProperty(context.device, 'TIME_UTC', property => property.state !== 'Alert' && textElement('UTC')(property) === values.UTC, 15_000),
+      confirmProperty(context.device, 'TIME_UTC', property => property.state !== 'Alert' && textElement('UTC')(property) === values.UTC, context.timing.confirmMs),
     )
 
     return { kind: 'write', property: 'TIME_UTC', values, write }

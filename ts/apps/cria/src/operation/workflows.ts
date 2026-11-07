@@ -93,12 +93,7 @@ export function makeWorkflows(images: ImageStore, onFrame: (frame: FrameKept) =>
     cooling: (camera, parameters) => camera.cooling(parameters).pipe(Effect.map(values)),
     'focuser-move': (focuser, parameters) => focuser.move(parameters).pipe(Effect.map(values)),
     'focuser-halt': focuser => focuser.halt.pipe(Effect.map(values)),
-    'mount-slew': (mount, parameters, { note }) => mount.slew(parameters, note).pipe(
-      Effect.map(values),
-      Effect.mapError(error => error._tag === 'Failed' && error.reason === 'rejected'
-        ? new Failed({ reason: 'rejected', message: `${error.message}. Nothing moved. An AM5 can refuse a goto when its site and time are not synced after power-on (AM5 e7). Send device-connect with connected: true to re-send site and time, then try the goto again. If no site is configured, configure it first.` })
-        : error),
-    ),
+    'mount-slew': (mount, parameters, { note }) => mount.slew(parameters, note).pipe(Effect.map(values)),
     'mount-tracking': (mount, { tracking }) => mount.setTracking(tracking).pipe(Effect.map(values)),
     'mount-axis': (mount, { rateDegreesPerSecond, durationSeconds }, { note }) => mount.moveAxis(rateDegreesPerSecond, durationSeconds, note).pipe(Effect.map(values)),
     'mount-rotate': (mount, { rateDegreesPerSecond, distanceDegrees }, { note }) => mount.rotate(rateDegreesPerSecond, distanceDegrees, note).pipe(Effect.map(values)),

@@ -79,7 +79,7 @@ export function makeFocuser(context: CapabilityContext, travel?: FocuserTravel):
 
   const abort = Effect.gen(function* () {
     yield* sendOnce(device, 'FOCUS_ABORT_MOTION', { ABORT: true }, timing)
-    yield* confirmProperty(device, position, property => property.state !== 'Busy', 15_000)
+    yield* confirmProperty(device, position, property => property.state !== 'Busy', timing.confirmMs)
   })
 
   const move = (move: ParamsOf<'focuser-move'>) =>
@@ -105,7 +105,7 @@ export function makeFocuser(context: CapabilityContext, travel?: FocuserTravel):
         }),
         settle: untilSettled(device, position, () => true, timing.operationTimeoutMs),
         stop: abort,
-        stopWithin: 20_000,
+        stopWithin: timing.stopMs,
       })
       const reached = positionValue(arrived)
 

@@ -55,7 +55,7 @@ function start(before: ReadonlyArray<(now: number) => Property>, script: Readonl
         }),
     } as unknown as IndiDevice
 
-    return yield* startMotion(device, 'TELESCOPE_MOTION_WE', { MOTION_EAST: true }, { acknowledgeMs: 300 }, { refused: switchNotStarted('MOTION_EAST') })
+    return yield* startMotion(device, 'TELESCOPE_MOTION_WE', { MOTION_EAST: true }, { acknowledgeMs: 300, confirmMs: 15_000 }, { refused: switchNotStarted('MOTION_EAST') })
   })
 
   return { sent, run: () => Effect.runPromise(Effect.flip(run)).then(error => error as { _tag: string; reason: string; message: string }) , ok: () => Effect.runPromise(run) }

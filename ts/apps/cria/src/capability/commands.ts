@@ -16,6 +16,7 @@ import { Failed, Uncertain, confirm, writeConfirmed, writeOnce, type Answer, typ
 
 export interface Timing {
   readonly acknowledgeMs: number
+  readonly confirmMs: number
 }
 
 /** A send that failed before or during the write. */
@@ -154,13 +155,13 @@ export function switchConfirmed(
   property: string,
   values: Values,
   holds: (property: Property) => boolean,
-  timing: Timing & { readonly confirmMs?: number },
+  timing: Timing,
 ) {
   return writeConfirmed(write(device, property, values, timing), () => ({
     command: describe(device, property),
     read: current(device, property),
     holds: (observed: Property) => observed.state !== 'Alert' && holds(observed),
-    within: timing.confirmMs ?? 15_000,
+    within: timing.confirmMs,
   }))
 }
 
@@ -185,7 +186,7 @@ export function numbersApplied(
   device: IndiDevice,
   property: string,
   values: Readonly<Record<string, number>>,
-  timing: Timing & { readonly confirmMs?: number },
+  timing: Timing,
   tolerance: Readonly<Record<string, number>> = {},
 ) {
   const elements = Object.keys(values)
@@ -218,7 +219,7 @@ export function numbersApplied(
         }
       })
 
-      const settled = yield* Effect.timeoutOption(echo, timing.confirmMs ?? 15_000)
+      const settled = yield* Effect.timeoutOption(echo, timing.confirmMs)
 
       if (Option.isSome(settled)) return settled.value
 
