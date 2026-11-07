@@ -212,8 +212,6 @@ export function createSupervisor(dependencies) {
           instanceId: state.instanceId,
           requestId,
           deviceId: device.id,
-          bindingId: current.bindingId,
-          expectedName: current.name,
           kind: 'device-connect',
           parameters: { connected: true },
         }),

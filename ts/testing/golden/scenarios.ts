@@ -37,8 +37,6 @@ const specs: Record<Kind, DeviceSpec> = {
 interface Identity {
   readonly requestId?: string
   readonly instanceId?: string
-  readonly bindingId?: string
-  readonly expectedName?: string
 }
 
 export interface Golden {
@@ -96,8 +94,6 @@ export async function runScenario(scenario: Scenario): Promise<Recorded[]> {
         instanceId: identity.instanceId ?? state.instanceId,
         requestId: identity.requestId ?? crypto.randomUUID(),
         deviceId,
-        bindingId: identity.bindingId ?? target?.bindingId ?? crypto.randomUUID(),
-        expectedName: identity.expectedName ?? target?.name ?? deviceId,
         kind,
         parameters,
       } as unknown as OperationRequest)
@@ -580,14 +576,6 @@ export const scenarios: ReadonlyArray<Scenario> = [
     devices: ['camera'],
     run: async g => {
       await g.submit('camera', 'capture', { exposureSeconds: 1, light: true }, { instanceId: crypto.randomUUID() })
-    },
-  },
-  {
-    name: 'refused: binding changed',
-    devices: ['camera'],
-    run: async g => {
-      await g.submit('camera', 'capture', { exposureSeconds: 1, light: true }, { bindingId: crypto.randomUUID() })
-      await g.submit('camera', 'capture', { exposureSeconds: 1, light: true }, { expectedName: 'Another CCD' })
     },
   },
   {

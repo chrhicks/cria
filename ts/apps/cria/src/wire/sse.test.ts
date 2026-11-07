@@ -17,7 +17,7 @@ function fakeRig() {
 
     if (gate) yield* Effect.promise(() => gate!)
 
-    return { sequence: revision, revision, operations: [], facts: () => undefined as never } satisfies LedgerSnapshot
+    return { sequence: revision, revision, operations: [], busy: () => false } satisfies LedgerSnapshot
   })
 
   const rig = {

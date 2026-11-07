@@ -3,7 +3,7 @@
  * Values are named (`'east'`, `'sidereal'`), not ASCOM integers.
  */
 import { Schema } from 'effect'
-import { BindingId, DeviceId, FailureDomain, OperationId } from './ids.js'
+import { DeviceId, FailureDomain, OperationId } from './ids.js'
 import { Reading, Timestamp } from './values.js'
 
 export const deviceKinds = ['camera', 'mount', 'focuser', 'weather', 'switch'] as const
@@ -131,7 +131,6 @@ export const SwitchChannel = Schema.Struct({
 const identity = {
   id: DeviceId,
   name: Schema.String,
-  bindingId: BindingId,
   failureDomain: FailureDomain,
   availability: Availability,
   /** The latest settled operation in the domain that every fresh reading here postdates. */

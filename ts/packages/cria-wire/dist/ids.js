@@ -4,7 +4,6 @@ const Identifier = Schema.String.pipe(Schema.check(Schema.isPattern(/^[a-zA-Z0-9
 export const InstanceId = Uuid.pipe(Schema.brand('InstanceId'));
 export const OperationId = Uuid.pipe(Schema.brand('OperationId'));
 export const ImageId = Uuid.pipe(Schema.brand('ImageId'));
-export const BindingId = Uuid.pipe(Schema.brand('BindingId'));
 export const DeviceId = Identifier.pipe(Schema.brand('DeviceId'));
 export const FailureDomain = Identifier.pipe(Schema.brand('FailureDomain'));
 export const RequestId = Schema.String.pipe(Schema.check(Schema.isBetweenLength(1, 128), Schema.isPattern(/^[^\u0000-\u001f\u007f-\u009f]+$/)), Schema.brand('RequestId'));

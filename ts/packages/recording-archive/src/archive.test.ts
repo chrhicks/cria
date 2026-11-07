@@ -59,7 +59,6 @@ async function session(name: string, over: { age?: number } = {}) {
             requestId: `req-${k}`,
             deviceId: 'primary',
             kind: 'capture',
-            expectedName: 'Synthetic Camera',
             id: `op-${k}`,
             startedAt,
             settledAt: parsed.at + 5,

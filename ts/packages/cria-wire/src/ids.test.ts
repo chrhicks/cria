@@ -1,6 +1,6 @@
 import { Result, Schema } from 'effect'
 import { describe, expect, expectTypeOf, it } from 'vitest'
-import { BindingId, DeviceId, FailureDomain, ImageId, InstanceId, OperationId, RequestId } from './index.js'
+import { DeviceId, FailureDomain, ImageId, InstanceId, OperationId, RequestId } from './index.js'
 
 const id = '00000000-0000-4000-8000-000000000001'
 const decodes = <S extends Schema.Top & { readonly DecodingServices: never }>(schema: S, value: unknown) =>
@@ -10,7 +10,6 @@ describe('identifiers', () => {
   it('keeps each kind of ID apart', () => {
     expectTypeOf<OperationId>().not.toExtend<ImageId>()
     expectTypeOf<ImageId>().not.toExtend<OperationId>()
-    expectTypeOf<InstanceId>().not.toExtend<BindingId>()
     expectTypeOf<DeviceId>().not.toExtend<FailureDomain>()
     expectTypeOf<string>().not.toExtend<RequestId>()
     expectTypeOf<OperationId>().toExtend<string>()

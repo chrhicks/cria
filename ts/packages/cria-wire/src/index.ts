@@ -30,7 +30,6 @@ export {
   type ReadingsOf,
 } from './device.js'
 export {
-  BindingId,
   DeviceId,
   FailureDomain,
   ImageId,

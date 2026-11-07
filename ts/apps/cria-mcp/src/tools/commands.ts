@@ -8,7 +8,7 @@ import { Reply, toReply } from '../reply.js'
 import { change } from './annotations.js'
 
 const footer =
-  'Copy instanceId, deviceId, bindingId and expectedName (the device name) from `state`, and choose your own requestId. Cria may refuse the command; its refusal comes back unchanged. ' +
+  'Copy instanceId and deviceId from `state`, and choose your own requestId. Cria may refuse the command; its refusal comes back unchanged. ' +
   'Returns as soon as Cria accepts, usually running: follow with `wait`, which is also how to pause before the next call (code-mode has no setTimeout). If the answer is lost, Cria may or may not have acted: call `request` with the same requestId before sending again.'
 
 const commandTool = <K extends ExposedKind>(kind: K) =>

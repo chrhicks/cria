@@ -47,7 +47,7 @@ describe('state against a real Cria on fake INDI', () => {
 
       expect(body.instanceId).toBe(direct.instanceId)
       expect(body.commandsEnabled).toBe(false)
-      expect(body.devices.map(device => [device.id, device.kind, device.bindingId])).toEqual(direct.devices.map(device => [device.id, device.kind, device.bindingId]))
+      expect(body.devices.map(device => [device.id, device.kind])).toEqual(direct.devices.map(device => [device.id, device.kind]))
     }),
   )
 

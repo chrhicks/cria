@@ -32,10 +32,6 @@ const firstTagName = /^\s*<[^>]*?\bname="([^"]*)"/
 
 export type OpenPublisher = (broker: BrokerSettings, onConnected: (connection: number) => void) => Publisher
 
-function asked({ bindingId: _binding, expectedName: _name, ...kept }: Submission) {
-  return kept
-}
-
 export function makeCriaStream(
   config: Config,
   instanceId: InstanceId,
@@ -77,9 +73,9 @@ export function makeCriaStream(
 
     return {
       accepted: (submission, operation) =>
-        publisher.publish('rig-dev.cria.request', entries.cria('request', { ...asked(submission), result: 'accepted', operationId: operation.id })),
+        publisher.publish('rig-dev.cria.request', entries.cria('request', { ...submission, result: 'accepted', operationId: operation.id })),
       refused: (submission, refusal) =>
-        publisher.publish('rig-dev.cria.request', entries.cria('request', { ...asked(submission), result: 'refused', code: refusal.code, message: refusal.message })),
+        publisher.publish('rig-dev.cria.request', entries.cria('request', { ...submission, result: 'refused', code: refusal.code, message: refusal.message })),
       frame: frame => publisher.publish('rig-dev.cria.frame', entries.cria('frame', frame)),
       traffic: {
         connection: () => {},
@@ -89,7 +85,7 @@ export function makeCriaStream(
           publisher.publish('rig-dev.cria.write', entries.cria('write', { device: wireDevice(wireDevices, xml), property: firstTagName.exec(xml)?.[1] ?? '', conn, xml }))
         },
       },
-      settled: ({ bindingId: _binding, expectedName: _name, failureDomain: _domain, ...operation }) =>
+      settled: ({ failureDomain: _domain, ...operation }) =>
         publisher.publish('rig-dev.cria.settled', entries.cria('settled', operation)),
     }
   })

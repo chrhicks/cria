@@ -143,7 +143,6 @@
           "availability": {
             "ready": true
           },
-          "bindingId": "<binding-1>",
           "failureDomain": "fake-ccd",
           "id": "camera",
           "kind": "camera",
@@ -302,7 +301,6 @@
           "availability": {
             "ready": true
           },
-          "bindingId": "<binding-2>",
           "failureDomain": "zwo-am5",
           "id": "mount",
           "kind": "mount",
@@ -466,7 +464,6 @@
           "availability": {
             "ready": true
           },
-          "bindingId": "<binding-3>",
           "failureDomain": "fake-focuser",
           "id": "focuser",
           "kind": "focuser",
@@ -517,7 +514,6 @@
           "availability": {
             "ready": true
           },
-          "bindingId": "<binding-4>",
           "failureDomain": "fake-ppb",
           "id": "weather",
           "kind": "weather",
@@ -578,7 +574,6 @@
           "availability": {
             "ready": true
           },
-          "bindingId": "<binding-4>",
           "channels": [
             {
               "id": {
@@ -735,9 +730,7 @@
       "operations": [
         {
           "acceptedAt": "<time>",
-          "bindingId": "<binding-2>",
           "deviceId": "mount",
-          "expectedName": "ZWO AM5",
           "failureDomain": "zwo-am5",
           "id": "<operation-1>",
           "instanceId": "<instance-1>",
@@ -777,7 +770,6 @@
           "availability": {
             "ready": true
           },
-          "bindingId": "<binding-1>",
           "failureDomain": "fake-ccd",
           "id": "camera",
           "kind": "camera",
@@ -936,7 +928,6 @@
           "availability": {
             "ready": true
           },
-          "bindingId": "<binding-2>",
           "failureDomain": "zwo-am5",
           "id": "mount",
           "kind": "mount",
@@ -1100,7 +1091,6 @@
           "availability": {
             "ready": true
           },
-          "bindingId": "<binding-3>",
           "failureDomain": "fake-focuser",
           "id": "focuser",
           "kind": "focuser",
@@ -1151,7 +1141,6 @@
           "availability": {
             "ready": true
           },
-          "bindingId": "<binding-4>",
           "failureDomain": "fake-ppb",
           "id": "weather",
           "kind": "weather",
@@ -1212,7 +1201,6 @@
           "availability": {
             "ready": true
           },
-          "bindingId": "<binding-4>",
           "channels": [
             {
               "id": {
@@ -1369,9 +1357,7 @@
       "operations": [
         {
           "acceptedAt": "<time>",
-          "bindingId": "<binding-2>",
           "deviceId": "mount",
-          "expectedName": "ZWO AM5",
           "failureDomain": "zwo-am5",
           "id": "<operation-1>",
           "instanceId": "<instance-1>",
@@ -1404,9 +1390,7 @@
     "step": 1,
     "request": "POST /v2/operations",
     "sent": {
-      "bindingId": "<binding-1>",
       "deviceId": "camera",
-      "expectedName": "Fake CCD",
       "instanceId": "<instance-1>",
       "kind": "capture",
       "parameters": {
@@ -1418,9 +1402,7 @@
     "status": 202,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "camera",
-      "expectedName": "Fake CCD",
       "failureDomain": "fake-ccd",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
@@ -1445,9 +1427,7 @@
     "status": 200,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "camera",
-      "expectedName": "Fake CCD",
       "failureDomain": "fake-ccd",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
@@ -1458,7 +1438,6 @@
           "image": {
             "binX": 1,
             "binY": 1,
-            "bindingId": "<binding-1>",
             "cameraName": "Fake CCD",
             "capturedAt": "<time>",
             "capturedAtSource": "camera",
@@ -1511,9 +1490,7 @@
     "step": 1,
     "request": "POST /v2/operations",
     "sent": {
-      "bindingId": "<binding-1>",
       "deviceId": "camera",
-      "expectedName": "Fake CCD",
       "instanceId": "<instance-1>",
       "kind": "capture",
       "parameters": {
@@ -1526,9 +1503,7 @@
     "status": 202,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "camera",
-      "expectedName": "Fake CCD",
       "failureDomain": "fake-ccd",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
@@ -1554,9 +1529,7 @@
     "status": 200,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "camera",
-      "expectedName": "Fake CCD",
       "failureDomain": "fake-ccd",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
@@ -1567,7 +1540,6 @@
           "image": {
             "binX": 1,
             "binY": 1,
-            "bindingId": "<binding-1>",
             "cameraName": "Fake CCD",
             "capturedAt": "<time>",
             "capturedAtSource": "camera",
@@ -1608,9 +1580,7 @@
     "step": 3,
     "request": "POST /v2/operations",
     "sent": {
-      "bindingId": "<binding-1>",
       "deviceId": "camera",
-      "expectedName": "Fake CCD",
       "instanceId": "<instance-1>",
       "kind": "capture",
       "parameters": {
@@ -1623,9 +1593,7 @@
     "status": 202,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "camera",
-      "expectedName": "Fake CCD",
       "failureDomain": "fake-ccd",
       "id": "<operation-2>",
       "instanceId": "<instance-1>",
@@ -1651,9 +1619,7 @@
     "status": 200,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "camera",
-      "expectedName": "Fake CCD",
       "failureDomain": "fake-ccd",
       "id": "<operation-2>",
       "instanceId": "<instance-1>",
@@ -1664,7 +1630,6 @@
           "image": {
             "binX": 1,
             "binY": 1,
-            "bindingId": "<binding-1>",
             "cameraName": "Fake CCD",
             "capturedAt": "<time>",
             "capturedAtSource": "camera",
@@ -1705,9 +1670,7 @@
     "step": 1,
     "request": "POST /v2/operations",
     "sent": {
-      "bindingId": "<binding-1>",
       "deviceId": "camera",
-      "expectedName": "Fake CCD",
       "instanceId": "<instance-1>",
       "kind": "camera-configure",
       "parameters": {
@@ -1721,9 +1684,7 @@
     "status": 202,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "camera",
-      "expectedName": "Fake CCD",
       "failureDomain": "fake-ccd",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
@@ -1750,9 +1711,7 @@
     "status": 200,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "camera",
-      "expectedName": "Fake CCD",
       "failureDomain": "fake-ccd",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
@@ -1788,9 +1747,7 @@
     "step": 1,
     "request": "POST /v2/operations",
     "sent": {
-      "bindingId": "<binding-1>",
       "deviceId": "camera",
-      "expectedName": "Fake CCD",
       "instanceId": "<instance-1>",
       "kind": "camera-configure",
       "parameters": {
@@ -1802,9 +1759,7 @@
     "status": 202,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "camera",
-      "expectedName": "Fake CCD",
       "failureDomain": "fake-ccd",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
@@ -1829,9 +1784,7 @@
     "status": 200,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "camera",
-      "expectedName": "Fake CCD",
       "failureDomain": "fake-ccd",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
@@ -1865,9 +1818,7 @@
     "step": 1,
     "request": "POST /v2/operations",
     "sent": {
-      "bindingId": "<binding-1>",
       "deviceId": "camera",
-      "expectedName": "Fake CCD",
       "instanceId": "<instance-1>",
       "kind": "camera-configure",
       "parameters": {
@@ -1878,9 +1829,7 @@
     "status": 202,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "camera",
-      "expectedName": "Fake CCD",
       "failureDomain": "fake-ccd",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
@@ -1904,9 +1853,7 @@
     "status": 200,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "camera",
-      "expectedName": "Fake CCD",
       "failureDomain": "fake-ccd",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
@@ -1930,9 +1877,7 @@
     "step": 1,
     "request": "POST /v2/operations",
     "sent": {
-      "bindingId": "<binding-1>",
       "deviceId": "camera",
-      "expectedName": "Fake CCD",
       "instanceId": "<instance-1>",
       "kind": "cooling",
       "parameters": {
@@ -1943,9 +1888,7 @@
     "status": 202,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "camera",
-      "expectedName": "Fake CCD",
       "failureDomain": "fake-ccd",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
@@ -1969,9 +1912,7 @@
     "status": 200,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "camera",
-      "expectedName": "Fake CCD",
       "failureDomain": "fake-ccd",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
@@ -2006,7 +1947,6 @@
           "availability": {
             "ready": true
           },
-          "bindingId": "<binding-1>",
           "failureDomain": "fake-ccd",
           "id": "camera",
           "kind": "camera",
@@ -2170,9 +2110,7 @@
       "operations": [
         {
           "acceptedAt": "<time>",
-          "bindingId": "<binding-1>",
           "deviceId": "camera",
-          "expectedName": "Fake CCD",
           "failureDomain": "fake-ccd",
           "id": "<operation-1>",
           "instanceId": "<instance-1>",
@@ -2204,9 +2142,7 @@
     "step": 1,
     "request": "POST /v2/operations",
     "sent": {
-      "bindingId": "<binding-1>",
       "deviceId": "focuser",
-      "expectedName": "Fake Focuser",
       "instanceId": "<instance-1>",
       "kind": "focuser-move",
       "parameters": {
@@ -2219,9 +2155,7 @@
     "status": 202,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "focuser",
-      "expectedName": "Fake Focuser",
       "failureDomain": "fake-focuser",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
@@ -2247,9 +2181,7 @@
     "status": 200,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "focuser",
-      "expectedName": "Fake Focuser",
       "failureDomain": "fake-focuser",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
@@ -2279,9 +2211,7 @@
     "step": 1,
     "request": "POST /v2/operations",
     "sent": {
-      "bindingId": "<binding-1>",
       "deviceId": "focuser",
-      "expectedName": "Fake Focuser",
       "instanceId": "<instance-1>",
       "kind": "focuser-halt",
       "parameters": {},
@@ -2290,9 +2220,7 @@
     "status": 202,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "focuser",
-      "expectedName": "Fake Focuser",
       "failureDomain": "fake-focuser",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
@@ -2314,9 +2242,7 @@
     "status": 200,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "focuser",
-      "expectedName": "Fake Focuser",
       "failureDomain": "fake-focuser",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
@@ -2342,9 +2268,7 @@
     "step": 1,
     "request": "POST /v2/operations",
     "sent": {
-      "bindingId": "<binding-1>",
       "deviceId": "focuser",
-      "expectedName": "Fake Focuser",
       "instanceId": "<instance-1>",
       "kind": "focuser-move",
       "parameters": {
@@ -2357,9 +2281,7 @@
     "status": 202,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "focuser",
-      "expectedName": "Fake Focuser",
       "failureDomain": "fake-focuser",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
@@ -2383,9 +2305,7 @@
     "step": 2,
     "request": "POST /v2/operations",
     "sent": {
-      "bindingId": "<binding-1>",
       "deviceId": "focuser",
-      "expectedName": "Fake Focuser",
       "instanceId": "<instance-1>",
       "kind": "focuser-halt",
       "parameters": {},
@@ -2394,9 +2314,7 @@
     "status": 202,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "focuser",
-      "expectedName": "Fake Focuser",
       "failureDomain": "fake-focuser",
       "id": "<operation-2>",
       "instanceId": "<instance-1>",
@@ -2413,9 +2331,7 @@
     "status": 200,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "focuser",
-      "expectedName": "Fake Focuser",
       "failureDomain": "fake-focuser",
       "id": "<operation-2>",
       "instanceId": "<instance-1>",
@@ -2443,9 +2359,7 @@
     "status": 200,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "focuser",
-      "expectedName": "Fake Focuser",
       "failureDomain": "fake-focuser",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
@@ -2469,9 +2383,7 @@
     "step": 1,
     "request": "POST /v2/operations",
     "sent": {
-      "bindingId": "<binding-1>",
       "deviceId": "mount",
-      "expectedName": "ZWO AM5",
       "instanceId": "<instance-1>",
       "kind": "mount-slew",
       "parameters": {
@@ -2484,9 +2396,7 @@
     "status": 202,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "mount",
-      "expectedName": "ZWO AM5",
       "failureDomain": "zwo-am5",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
@@ -2512,9 +2422,7 @@
     "status": 200,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "mount",
-      "expectedName": "ZWO AM5",
       "failureDomain": "zwo-am5",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
@@ -2573,9 +2481,7 @@
     "step": 1,
     "request": "POST /v2/operations",
     "sent": {
-      "bindingId": "<binding-1>",
       "deviceId": "mount",
-      "expectedName": "ZWO AM5",
       "instanceId": "<instance-1>",
       "kind": "mount-tracking",
       "parameters": {
@@ -2586,9 +2492,7 @@
     "status": 202,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "mount",
-      "expectedName": "ZWO AM5",
       "failureDomain": "zwo-am5",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
@@ -2612,9 +2516,7 @@
     "status": 200,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "mount",
-      "expectedName": "ZWO AM5",
       "failureDomain": "zwo-am5",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
@@ -2642,9 +2544,7 @@
     "step": 1,
     "request": "POST /v2/operations",
     "sent": {
-      "bindingId": "<binding-1>",
       "deviceId": "mount",
-      "expectedName": "ZWO AM5",
       "instanceId": "<instance-1>",
       "kind": "mount-axis",
       "parameters": {
@@ -2656,9 +2556,7 @@
     "status": 202,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "mount",
-      "expectedName": "ZWO AM5",
       "failureDomain": "zwo-am5",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
@@ -2683,9 +2581,7 @@
     "status": 200,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "mount",
-      "expectedName": "ZWO AM5",
       "failureDomain": "zwo-am5",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
@@ -2743,9 +2639,7 @@
     "step": 1,
     "request": "POST /v2/operations",
     "sent": {
-      "bindingId": "<binding-1>",
       "deviceId": "mount",
-      "expectedName": "ZWO AM5",
       "instanceId": "<instance-1>",
       "kind": "mount-axis",
       "parameters": {
@@ -2757,9 +2651,7 @@
     "status": 202,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "mount",
-      "expectedName": "ZWO AM5",
       "failureDomain": "zwo-am5",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
@@ -2784,9 +2676,7 @@
     "status": 200,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "mount",
-      "expectedName": "ZWO AM5",
       "failureDomain": "zwo-am5",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
@@ -2811,9 +2701,7 @@
     "step": 1,
     "request": "POST /v2/operations",
     "sent": {
-      "bindingId": "<binding-1>",
       "deviceId": "mount",
-      "expectedName": "ZWO AM5",
       "instanceId": "<instance-1>",
       "kind": "mount-rotate",
       "parameters": {
@@ -2825,9 +2713,7 @@
     "status": 202,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "mount",
-      "expectedName": "ZWO AM5",
       "failureDomain": "zwo-am5",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
@@ -2852,9 +2738,7 @@
     "status": 200,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "mount",
-      "expectedName": "ZWO AM5",
       "failureDomain": "zwo-am5",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
@@ -2913,9 +2797,7 @@
     "step": 1,
     "request": "POST /v2/operations",
     "sent": {
-      "bindingId": "<binding-1>",
       "deviceId": "mount",
-      "expectedName": "ZWO AM5",
       "instanceId": "<instance-1>",
       "kind": "mount-rotate",
       "parameters": {
@@ -2927,9 +2809,7 @@
     "status": 202,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "mount",
-      "expectedName": "ZWO AM5",
       "failureDomain": "zwo-am5",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
@@ -2954,9 +2834,7 @@
     "status": 200,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "mount",
-      "expectedName": "ZWO AM5",
       "failureDomain": "zwo-am5",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
@@ -3015,9 +2893,7 @@
     "step": 1,
     "request": "POST /v2/operations",
     "sent": {
-      "bindingId": "<binding-1>",
       "deviceId": "mount",
-      "expectedName": "ZWO AM5",
       "instanceId": "<instance-1>",
       "kind": "mount-home",
       "parameters": {},
@@ -3026,9 +2902,7 @@
     "status": 202,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "mount",
-      "expectedName": "ZWO AM5",
       "failureDomain": "zwo-am5",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
@@ -3050,9 +2924,7 @@
     "status": 200,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "mount",
-      "expectedName": "ZWO AM5",
       "failureDomain": "zwo-am5",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
@@ -3100,9 +2972,7 @@
     "step": 1,
     "request": "POST /v2/operations",
     "sent": {
-      "bindingId": "<binding-1>",
       "deviceId": "mount",
-      "expectedName": "ZWO AM5",
       "instanceId": "<instance-1>",
       "kind": "mount-park",
       "parameters": {},
@@ -3111,9 +2981,7 @@
     "status": 202,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "mount",
-      "expectedName": "ZWO AM5",
       "failureDomain": "zwo-am5",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
@@ -3135,9 +3003,7 @@
     "status": 200,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "mount",
-      "expectedName": "ZWO AM5",
       "failureDomain": "zwo-am5",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
@@ -3185,9 +3051,7 @@
     "step": 3,
     "request": "POST /v2/operations",
     "sent": {
-      "bindingId": "<binding-1>",
       "deviceId": "mount",
-      "expectedName": "ZWO AM5",
       "instanceId": "<instance-1>",
       "kind": "mount-unpark",
       "parameters": {},
@@ -3196,9 +3060,7 @@
     "status": 202,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "mount",
-      "expectedName": "ZWO AM5",
       "failureDomain": "zwo-am5",
       "id": "<operation-2>",
       "instanceId": "<instance-1>",
@@ -3220,9 +3082,7 @@
     "status": 200,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "mount",
-      "expectedName": "ZWO AM5",
       "failureDomain": "zwo-am5",
       "id": "<operation-2>",
       "instanceId": "<instance-1>",
@@ -3246,9 +3106,7 @@
     "step": 1,
     "request": "POST /v2/operations",
     "sent": {
-      "bindingId": "<binding-1>",
       "deviceId": "mount",
-      "expectedName": "ZWO AM5",
       "instanceId": "<instance-1>",
       "kind": "mount-stop",
       "parameters": {},
@@ -3257,9 +3115,7 @@
     "status": 202,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "mount",
-      "expectedName": "ZWO AM5",
       "failureDomain": "zwo-am5",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
@@ -3281,9 +3137,7 @@
     "status": 200,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "mount",
-      "expectedName": "ZWO AM5",
       "failureDomain": "zwo-am5",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
@@ -3331,9 +3185,7 @@
     "step": 3,
     "request": "POST /v2/operations",
     "sent": {
-      "bindingId": "<binding-1>",
       "deviceId": "mount",
-      "expectedName": "ZWO AM5",
       "instanceId": "<instance-1>",
       "kind": "mount-stop",
       "parameters": {},
@@ -3342,9 +3194,7 @@
     "status": 202,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "mount",
-      "expectedName": "ZWO AM5",
       "failureDomain": "zwo-am5",
       "id": "<operation-2>",
       "instanceId": "<instance-1>",
@@ -3366,9 +3216,7 @@
     "status": 200,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "mount",
-      "expectedName": "ZWO AM5",
       "failureDomain": "zwo-am5",
       "id": "<operation-2>",
       "instanceId": "<instance-1>",
@@ -3416,9 +3264,7 @@
     "step": 1,
     "request": "POST /v2/operations",
     "sent": {
-      "bindingId": "<binding-1>",
       "deviceId": "mount",
-      "expectedName": "ZWO AM5",
       "instanceId": "<instance-1>",
       "kind": "mount-slew",
       "parameters": {
@@ -3431,9 +3277,7 @@
     "status": 202,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "mount",
-      "expectedName": "ZWO AM5",
       "failureDomain": "zwo-am5",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
@@ -3457,9 +3301,7 @@
     "step": 2,
     "request": "POST /v2/operations",
     "sent": {
-      "bindingId": "<binding-1>",
       "deviceId": "mount",
-      "expectedName": "ZWO AM5",
       "instanceId": "<instance-1>",
       "kind": "mount-stop",
       "parameters": {},
@@ -3468,9 +3310,7 @@
     "status": 202,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "mount",
-      "expectedName": "ZWO AM5",
       "failureDomain": "zwo-am5",
       "id": "<operation-2>",
       "instanceId": "<instance-1>",
@@ -3487,9 +3327,7 @@
     "status": 200,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "mount",
-      "expectedName": "ZWO AM5",
       "failureDomain": "zwo-am5",
       "id": "<operation-2>",
       "instanceId": "<instance-1>",
@@ -3539,9 +3377,7 @@
     "status": 200,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "mount",
-      "expectedName": "ZWO AM5",
       "failureDomain": "zwo-am5",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
@@ -3593,9 +3429,7 @@
     "step": 1,
     "request": "POST /v2/operations",
     "sent": {
-      "bindingId": "<binding-1>",
       "deviceId": "mount",
-      "expectedName": "ZWO AM5",
       "instanceId": "<instance-1>",
       "kind": "mount-slew",
       "parameters": {
@@ -3608,9 +3442,7 @@
     "status": 202,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "mount",
-      "expectedName": "ZWO AM5",
       "failureDomain": "zwo-am5",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
@@ -3636,9 +3468,7 @@
     "status": 200,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "mount",
-      "expectedName": "ZWO AM5",
       "failureDomain": "zwo-am5",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
@@ -3666,9 +3496,7 @@
     "status": 200,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "mount",
-      "expectedName": "ZWO AM5",
       "failureDomain": "zwo-am5",
       "id": "<id-1>",
       "instanceId": "<instance-1>",
@@ -3697,9 +3525,7 @@
     "step": 2,
     "request": "POST /v2/operations",
     "sent": {
-      "bindingId": "<binding-1>",
       "deviceId": "mount",
-      "expectedName": "ZWO AM5",
       "instanceId": "<instance-1>",
       "kind": "mount-slew",
       "parameters": {
@@ -3712,9 +3538,7 @@
     "status": 202,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "mount",
-      "expectedName": "ZWO AM5",
       "failureDomain": "zwo-am5",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
@@ -3740,9 +3564,7 @@
     "status": 200,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "mount",
-      "expectedName": "ZWO AM5",
       "failureDomain": "zwo-am5",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
@@ -3801,9 +3623,7 @@
     "step": 1,
     "request": "POST /v2/operations",
     "sent": {
-      "bindingId": "<binding-1>",
       "deviceId": "mount",
-      "expectedName": "ZWO AM5",
       "instanceId": "<instance-1>",
       "kind": "mount-slew",
       "parameters": {
@@ -3816,9 +3636,7 @@
     "status": 202,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "mount",
-      "expectedName": "ZWO AM5",
       "failureDomain": "zwo-am5",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
@@ -3842,9 +3660,7 @@
     "step": 2,
     "request": "POST /v2/operations",
     "sent": {
-      "bindingId": "<binding-1>",
       "deviceId": "mount",
-      "expectedName": "ZWO AM5",
       "instanceId": "<instance-1>",
       "kind": "mount-stop",
       "parameters": {},
@@ -3853,9 +3669,7 @@
     "status": 202,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "mount",
-      "expectedName": "ZWO AM5",
       "failureDomain": "zwo-am5",
       "id": "<operation-2>",
       "instanceId": "<instance-1>",
@@ -3872,9 +3686,7 @@
     "status": 200,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "mount",
-      "expectedName": "ZWO AM5",
       "failureDomain": "zwo-am5",
       "id": "<operation-2>",
       "instanceId": "<instance-1>",
@@ -3924,9 +3736,7 @@
     "status": 200,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "mount",
-      "expectedName": "ZWO AM5",
       "failureDomain": "zwo-am5",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
@@ -3978,9 +3788,7 @@
     "step": 1,
     "request": "POST /v2/operations",
     "sent": {
-      "bindingId": "<binding-1>",
       "deviceId": "mount",
-      "expectedName": "ZWO AM5",
       "instanceId": "<instance-1>",
       "kind": "mount-slew",
       "parameters": {
@@ -3993,9 +3801,7 @@
     "status": 202,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "mount",
-      "expectedName": "ZWO AM5",
       "failureDomain": "zwo-am5",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
@@ -4019,9 +3825,7 @@
     "step": 2,
     "request": "POST /v2/operations",
     "sent": {
-      "bindingId": "<binding-1>",
       "deviceId": "mount",
-      "expectedName": "ZWO AM5",
       "instanceId": "<instance-1>",
       "kind": "mount-stop",
       "parameters": {},
@@ -4030,9 +3834,7 @@
     "status": 202,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "mount",
-      "expectedName": "ZWO AM5",
       "failureDomain": "zwo-am5",
       "id": "<operation-2>",
       "instanceId": "<instance-1>",
@@ -4047,9 +3849,7 @@
     "step": 3,
     "request": "POST /v2/operations",
     "sent": {
-      "bindingId": "<binding-1>",
       "deviceId": "mount",
-      "expectedName": "ZWO AM5",
       "instanceId": "<instance-1>",
       "kind": "mount-stop",
       "parameters": {},
@@ -4058,9 +3858,7 @@
     "status": 202,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "mount",
-      "expectedName": "ZWO AM5",
       "failureDomain": "zwo-am5",
       "id": "<operation-3>",
       "instanceId": "<instance-1>",
@@ -4077,9 +3875,7 @@
     "status": 200,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "mount",
-      "expectedName": "ZWO AM5",
       "failureDomain": "zwo-am5",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
@@ -4133,9 +3929,7 @@
     "status": 200,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "mount",
-      "expectedName": "ZWO AM5",
       "failureDomain": "zwo-am5",
       "id": "<operation-2>",
       "instanceId": "<instance-1>",
@@ -4185,9 +3979,7 @@
     "status": 200,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "mount",
-      "expectedName": "ZWO AM5",
       "failureDomain": "zwo-am5",
       "id": "<operation-3>",
       "instanceId": "<instance-1>",
@@ -4235,9 +4027,7 @@
     "step": 1,
     "request": "POST /v2/operations",
     "sent": {
-      "bindingId": "<binding-1>",
       "deviceId": "switch",
-      "expectedName": "Fake PPB",
       "instanceId": "<instance-1>",
       "kind": "switch-set",
       "parameters": {
@@ -4249,9 +4039,7 @@
     "status": 202,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "switch",
-      "expectedName": "Fake PPB",
       "failureDomain": "fake-ppb",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
@@ -4276,9 +4064,7 @@
     "status": 200,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "switch",
-      "expectedName": "Fake PPB",
       "failureDomain": "fake-ppb",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
@@ -4307,9 +4093,7 @@
     "step": 3,
     "request": "POST /v2/operations",
     "sent": {
-      "bindingId": "<binding-1>",
       "deviceId": "switch",
-      "expectedName": "Fake PPB",
       "instanceId": "<instance-1>",
       "kind": "switch-set",
       "parameters": {
@@ -4321,9 +4105,7 @@
     "status": 202,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "switch",
-      "expectedName": "Fake PPB",
       "failureDomain": "fake-ppb",
       "id": "<operation-2>",
       "instanceId": "<instance-1>",
@@ -4348,9 +4130,7 @@
     "status": 200,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "switch",
-      "expectedName": "Fake PPB",
       "failureDomain": "fake-ppb",
       "id": "<operation-2>",
       "instanceId": "<instance-1>",
@@ -4379,9 +4159,7 @@
     "step": 1,
     "request": "POST /v2/operations",
     "sent": {
-      "bindingId": "<binding-1>",
       "deviceId": "switch",
-      "expectedName": "Fake PPB",
       "instanceId": "<instance-1>",
       "kind": "switch-set",
       "parameters": {
@@ -4393,9 +4171,7 @@
     "status": 202,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "switch",
-      "expectedName": "Fake PPB",
       "failureDomain": "fake-ppb",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
@@ -4420,9 +4196,7 @@
     "status": 200,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "switch",
-      "expectedName": "Fake PPB",
       "failureDomain": "fake-ppb",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
@@ -4447,9 +4221,7 @@
     "step": 1,
     "request": "POST /v2/operations",
     "sent": {
-      "bindingId": "<binding-1>",
       "deviceId": "weather",
-      "expectedName": "Fake PPB",
       "instanceId": "<instance-1>",
       "kind": "device-connect",
       "parameters": {
@@ -4460,9 +4232,7 @@
     "status": 202,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "weather",
-      "expectedName": "Fake PPB",
       "failureDomain": "fake-ppb",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
@@ -4486,9 +4256,7 @@
     "status": 200,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "weather",
-      "expectedName": "Fake PPB",
       "failureDomain": "fake-ppb",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
@@ -4516,9 +4284,7 @@
     "step": 3,
     "request": "POST /v2/operations",
     "sent": {
-      "bindingId": "<binding-1>",
       "deviceId": "weather",
-      "expectedName": "Fake PPB",
       "instanceId": "<instance-1>",
       "kind": "device-connect",
       "parameters": {
@@ -4529,9 +4295,7 @@
     "status": 202,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "weather",
-      "expectedName": "Fake PPB",
       "failureDomain": "fake-ppb",
       "id": "<operation-2>",
       "instanceId": "<instance-1>",
@@ -4555,9 +4319,7 @@
     "status": 200,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "weather",
-      "expectedName": "Fake PPB",
       "failureDomain": "fake-ppb",
       "id": "<operation-2>",
       "instanceId": "<instance-1>",
@@ -4585,9 +4347,7 @@
     "step": 1,
     "request": "POST /v2/operations",
     "sent": {
-      "bindingId": "<binding-1>",
       "deviceId": "camera",
-      "expectedName": "Fake CCD",
       "instanceId": "<instance-1>",
       "kind": "capture",
       "parameters": {
@@ -4599,9 +4359,7 @@
     "status": 202,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "camera",
-      "expectedName": "Fake CCD",
       "failureDomain": "fake-ccd",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
@@ -4626,9 +4384,7 @@
     "status": 202,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "camera",
-      "expectedName": "Fake CCD",
       "failureDomain": "fake-ccd",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
@@ -4653,9 +4409,7 @@
     "status": 200,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "camera",
-      "expectedName": "Fake CCD",
       "failureDomain": "fake-ccd",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
@@ -4680,9 +4434,7 @@
     "status": 202,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "camera",
-      "expectedName": "Fake CCD",
       "failureDomain": "fake-ccd",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
@@ -4705,9 +4457,7 @@
     "step": 1,
     "request": "POST /v2/operations",
     "sent": {
-      "bindingId": "<binding-1>",
       "deviceId": "camera",
-      "expectedName": "Fake CCD",
       "instanceId": "<instance-1>",
       "kind": "capture",
       "parameters": {
@@ -4719,9 +4469,7 @@
     "status": 202,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "camera",
-      "expectedName": "Fake CCD",
       "failureDomain": "fake-ccd",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
@@ -4744,9 +4492,7 @@
     "step": 2,
     "request": "POST /v2/operations",
     "sent": {
-      "bindingId": "<binding-1>",
       "deviceId": "camera",
-      "expectedName": "Fake CCD",
       "instanceId": "<instance-1>",
       "kind": "camera-configure",
       "parameters": {
@@ -4768,9 +4514,7 @@
     "step": 1,
     "request": "POST /v2/operations",
     "sent": {
-      "bindingId": "<binding-1>",
       "deviceId": "mount",
-      "expectedName": "ZWO AM5",
       "instanceId": "<instance-1>",
       "kind": "capture",
       "parameters": {
@@ -4802,7 +4546,6 @@
             "ready": false,
             "reason": "commands-disabled"
           },
-          "bindingId": "<binding-1>",
           "failureDomain": "fake-ccd",
           "id": "camera",
           "kind": "camera",
@@ -4970,9 +4713,7 @@
     "step": 2,
     "request": "POST /v2/operations",
     "sent": {
-      "bindingId": "<binding-1>",
       "deviceId": "camera",
-      "expectedName": "Fake CCD",
       "instanceId": "<instance-1>",
       "kind": "capture",
       "parameters": {
@@ -4995,9 +4736,7 @@
     "step": 1,
     "request": "POST /v2/operations",
     "sent": {
-      "bindingId": "<binding-1>",
       "deviceId": "camera",
-      "expectedName": "Fake CCD",
       "instanceId": "<instance-1>",
       "kind": "capture",
       "parameters": {
@@ -5016,63 +4755,11 @@
     }
   },
   {
-    "scenario": "refused: binding changed",
-    "step": 1,
-    "request": "POST /v2/operations",
-    "sent": {
-      "bindingId": "<binding-1>",
-      "deviceId": "camera",
-      "expectedName": "Fake CCD",
-      "instanceId": "<instance-1>",
-      "kind": "capture",
-      "parameters": {
-        "exposureSeconds": 1,
-        "light": true
-      },
-      "requestId": "<request-1>"
-    },
-    "status": 409,
-    "body": {
-      "error": {
-        "code": "binding-changed",
-        "message": "The device binding changed; read the state again"
-      },
-      "instanceId": "<instance-1>"
-    }
-  },
-  {
-    "scenario": "refused: binding changed",
-    "step": 2,
-    "request": "POST /v2/operations",
-    "sent": {
-      "bindingId": "<binding-2>",
-      "deviceId": "camera",
-      "expectedName": "Another CCD",
-      "instanceId": "<instance-1>",
-      "kind": "capture",
-      "parameters": {
-        "exposureSeconds": 1,
-        "light": true
-      },
-      "requestId": "<request-2>"
-    },
-    "status": 409,
-    "body": {
-      "error": {
-        "code": "binding-changed",
-        "message": "This device is Fake CCD"
-      },
-      "instanceId": "<instance-1>"
-    }
-  },
-  {
     "scenario": "refused: invalid request",
     "step": 1,
     "request": "POST /v2/operations",
     "sent": {
-      "bindingId": "<binding-1>",
       "deviceId": "camera",
-      "expectedName": "Fake CCD",
       "instanceId": "<instance-1>",
       "kind": "capture",
       "parameters": {
@@ -5095,9 +4782,7 @@
     "step": 2,
     "request": "POST /v2/operations",
     "sent": {
-      "bindingId": "<binding-1>",
       "deviceId": "camera",
-      "expectedName": "Fake CCD",
       "instanceId": "<instance-1>",
       "kind": "capture",
       "parameters": {
@@ -5119,9 +4804,7 @@
     "step": 3,
     "request": "POST /v2/operations",
     "sent": {
-      "bindingId": "<binding-1>",
       "deviceId": "camera",
-      "expectedName": "Fake CCD",
       "instanceId": "<instance-1>",
       "kind": "teleport",
       "parameters": {},
@@ -5141,9 +4824,7 @@
     "step": 4,
     "request": "POST /v2/operations",
     "sent": {
-      "bindingId": "<binding-2>",
       "deviceId": "nowhere",
-      "expectedName": "nowhere",
       "instanceId": "<instance-1>",
       "kind": "capture",
       "parameters": {
@@ -5166,9 +4847,7 @@
     "step": 5,
     "request": "POST /v2/operations",
     "sent": {
-      "bindingId": "<binding-1>",
       "deviceId": "camera",
-      "expectedName": "Fake CCD",
       "instanceId": "<instance-1>",
       "kind": "capture",
       "parameters": {
@@ -5192,9 +4871,7 @@
     "step": 1,
     "request": "POST /v2/operations",
     "sent": {
-      "bindingId": "<binding-1>",
       "deviceId": "camera",
-      "expectedName": "Fake CCD",
       "instanceId": "<instance-1>",
       "kind": "capture",
       "parameters": {
@@ -5218,9 +4895,7 @@
     "step": 2,
     "request": "POST /v2/operations",
     "sent": {
-      "bindingId": "<binding-1>",
       "deviceId": "camera",
-      "expectedName": "Fake CCD",
       "instanceId": "<instance-1>",
       "kind": "capture",
       "parameters": {
@@ -5244,9 +4919,7 @@
     "step": 3,
     "request": "POST /v2/operations",
     "sent": {
-      "bindingId": "<binding-1>",
       "deviceId": "camera",
-      "expectedName": "Fake CCD",
       "instanceId": "<instance-1>",
       "kind": "capture",
       "parameters": {
@@ -5309,9 +4982,7 @@
     "step": 1,
     "request": "POST /v2/operations",
     "sent": {
-      "bindingId": "<binding-1>",
       "deviceId": "camera",
-      "expectedName": "Fake CCD",
       "instanceId": "<instance-1>",
       "kind": "camera-configure",
       "parameters": {
@@ -5325,9 +4996,7 @@
     "status": 202,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "camera",
-      "expectedName": "Fake CCD",
       "failureDomain": "fake-ccd",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
@@ -5354,9 +5023,7 @@
     "status": 200,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "camera",
-      "expectedName": "Fake CCD",
       "failureDomain": "fake-ccd",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
@@ -5392,9 +5059,7 @@
     "step": 3,
     "request": "POST /v2/operations",
     "sent": {
-      "bindingId": "<binding-1>",
       "deviceId": "camera",
-      "expectedName": "Fake CCD",
       "instanceId": "<instance-1>",
       "kind": "camera-configure",
       "parameters": {
@@ -5408,9 +5073,7 @@
     "status": 202,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "camera",
-      "expectedName": "Fake CCD",
       "failureDomain": "fake-ccd",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
@@ -5446,9 +5109,7 @@
     "step": 4,
     "request": "POST /v2/operations",
     "sent": {
-      "bindingId": "<binding-1>",
       "deviceId": "camera",
-      "expectedName": "Fake CCD",
       "instanceId": "<instance-1>",
       "kind": "camera-configure",
       "parameters": {
@@ -5475,9 +5136,7 @@
     "status": 200,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "camera",
-      "expectedName": "Fake CCD",
       "failureDomain": "fake-ccd",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
@@ -5513,9 +5172,7 @@
     "step": 1,
     "request": "POST /v2/operations",
     "sent": {
-      "bindingId": "<binding-1>",
       "deviceId": "switch",
-      "expectedName": "Fake PPB",
       "instanceId": "<instance-1>",
       "kind": "switch-set",
       "parameters": {
@@ -5527,9 +5184,7 @@
     "status": 202,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "switch",
-      "expectedName": "Fake PPB",
       "failureDomain": "fake-ppb",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
@@ -5554,9 +5209,7 @@
     "status": 200,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "switch",
-      "expectedName": "Fake PPB",
       "failureDomain": "fake-ppb",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
@@ -5598,9 +5251,7 @@
     "step": 4,
     "request": "POST /v2/operations",
     "sent": {
-      "bindingId": "<binding-1>",
       "deviceId": "switch",
-      "expectedName": "Fake PPB",
       "instanceId": "<instance-1>",
       "kind": "switch-set",
       "parameters": {
@@ -5636,9 +5287,7 @@
     "step": 1,
     "request": "POST /v2/operations",
     "sent": {
-      "bindingId": "<binding-1>",
       "deviceId": "camera",
-      "expectedName": "Fake CCD",
       "instanceId": "<instance-1>",
       "kind": "capture",
       "parameters": {
@@ -5650,9 +5299,7 @@
     "status": 202,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "camera",
-      "expectedName": "Fake CCD",
       "failureDomain": "fake-ccd",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
@@ -5677,9 +5324,7 @@
     "status": 200,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "camera",
-      "expectedName": "Fake CCD",
       "failureDomain": "fake-ccd",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
@@ -5690,7 +5335,6 @@
           "image": {
             "binX": 1,
             "binY": 1,
-            "bindingId": "<binding-1>",
             "cameraName": "Fake CCD",
             "capturedAt": "<time>",
             "capturedAtSource": "camera",
@@ -5730,9 +5374,7 @@
     "step": 3,
     "request": "POST /v2/operations",
     "sent": {
-      "bindingId": "<binding-1>",
       "deviceId": "camera",
-      "expectedName": "Fake CCD",
       "instanceId": "<instance-1>",
       "kind": "capture",
       "parameters": {
@@ -5744,9 +5386,7 @@
     "status": 202,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "camera",
-      "expectedName": "Fake CCD",
       "failureDomain": "fake-ccd",
       "id": "<operation-2>",
       "instanceId": "<instance-1>",
@@ -5771,9 +5411,7 @@
     "status": 200,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "camera",
-      "expectedName": "Fake CCD",
       "failureDomain": "fake-ccd",
       "id": "<operation-2>",
       "instanceId": "<instance-1>",
@@ -5784,7 +5422,6 @@
           "image": {
             "binX": 1,
             "binY": 1,
-            "bindingId": "<binding-1>",
             "cameraName": "Fake CCD",
             "capturedAt": "<time>",
             "capturedAtSource": "camera",
@@ -5863,9 +5500,7 @@
     "step": 1,
     "request": "POST /v2/operations",
     "sent": {
-      "bindingId": "<binding-1>",
       "deviceId": "camera",
-      "expectedName": "Fake CCD",
       "instanceId": "<instance-1>",
       "kind": "capture",
       "parameters": {
@@ -5877,9 +5512,7 @@
     "status": 202,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "camera",
-      "expectedName": "Fake CCD",
       "failureDomain": "fake-ccd",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
@@ -5904,9 +5537,7 @@
     "status": 200,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "camera",
-      "expectedName": "Fake CCD",
       "failureDomain": "fake-ccd",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
@@ -5938,7 +5569,6 @@
           "availability": {
             "ready": true
           },
-          "bindingId": "<binding-1>",
           "failureDomain": "fake-ccd",
           "id": "camera",
           "kind": "camera",
@@ -6099,9 +5729,7 @@
       "operations": [
         {
           "acceptedAt": "<time>",
-          "bindingId": "<binding-1>",
           "deviceId": "camera",
-          "expectedName": "Fake CCD",
           "failureDomain": "fake-ccd",
           "id": "<operation-1>",
           "instanceId": "<instance-1>",
@@ -6130,9 +5758,7 @@
     "step": 4,
     "request": "POST /v2/operations",
     "sent": {
-      "bindingId": "<binding-1>",
       "deviceId": "camera",
-      "expectedName": "Fake CCD",
       "instanceId": "<instance-1>",
       "kind": "capture",
       "parameters": {
@@ -6144,9 +5770,7 @@
     "status": 202,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "camera",
-      "expectedName": "Fake CCD",
       "failureDomain": "fake-ccd",
       "id": "<operation-2>",
       "instanceId": "<instance-1>",
@@ -6171,9 +5795,7 @@
     "status": 200,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "camera",
-      "expectedName": "Fake CCD",
       "failureDomain": "fake-ccd",
       "id": "<operation-2>",
       "instanceId": "<instance-1>",
@@ -6184,7 +5806,6 @@
           "image": {
             "binX": 1,
             "binY": 1,
-            "bindingId": "<binding-1>",
             "cameraName": "Fake CCD",
             "capturedAt": "<time>",
             "capturedAtSource": "camera",
@@ -6226,9 +5847,7 @@
     "status": 200,
     "body": {
       "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
       "deviceId": "camera",
-      "expectedName": "Fake CCD",
       "failureDomain": "fake-ccd",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
@@ -6260,7 +5879,6 @@
           "availability": {
             "ready": true
           },
-          "bindingId": "<binding-1>",
           "failureDomain": "fake-ccd",
           "id": "camera",
           "kind": "camera",
@@ -6419,7 +6037,6 @@
           "availability": {
             "ready": true
           },
-          "bindingId": "<binding-2>",
           "failureDomain": "fake-focuser",
           "id": "focuser",
           "kind": "focuser",
@@ -6487,7 +6104,6 @@
           "availability": {
             "ready": true
           },
-          "bindingId": "<binding-1>",
           "failureDomain": "fake-ccd",
           "id": "camera",
           "kind": "camera",
@@ -6646,7 +6262,6 @@
           "availability": {
             "ready": true
           },
-          "bindingId": "<binding-2>",
           "failureDomain": "fake-focuser",
           "id": "focuser",
           "kind": "focuser",
@@ -6713,7 +6328,6 @@
           "availability": {
             "ready": true
           },
-          "bindingId": "<binding-1>",
           "failureDomain": "fake-ccd",
           "id": "camera",
           "kind": "camera",
@@ -6872,7 +6486,6 @@
           "availability": {
             "ready": true
           },
-          "bindingId": "<binding-2>",
           "failureDomain": "fake-focuser",
           "id": "focuser",
           "kind": "focuser",

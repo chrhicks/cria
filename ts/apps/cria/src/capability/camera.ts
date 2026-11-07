@@ -18,6 +18,7 @@ type R<T> = Reading.Reading<T>
 export type BayerPattern = Exclude<Image['color'], 'mono'>
 
 export interface CapturedFrame {
+  readonly cameraName: string
   readonly fits: Buffer
   readonly width: number
   readonly height: number
@@ -199,7 +200,7 @@ export function makeCamera(context: CapabilityContext, frameGrid: FrameGrid = {}
 
         yield* report({ phase: 'readout' })
 
-        return { fits, ...geometry, color, dispatchedAt }
+        return { cameraName: device.name, fits, ...geometry, color, dispatchedAt }
       }),
     )
 

@@ -15,14 +15,13 @@ import type { AutofocusSample, Capture, Delivery, VelaFrame } from './plan.js'
 const CaptureOperation = Schema.Struct({
   id: Schema.String,
   kind: Schema.Literal('capture'),
-  expectedName: Schema.String,
   startedAt: Schema.Number,
   settledAt: Schema.Number,
   outcome: Schema.Struct({
     kind: Schema.String,
     value: Schema.optionalKey(
       Schema.Struct({
-        image: Schema.NullOr(Schema.Struct({ id: Schema.String, capturedAt: Schema.Number, capturedAtSource: Schema.String, exposureSeconds: Schema.Number })),
+        image: Schema.NullOr(Schema.Struct({ id: Schema.String, cameraName: Schema.String, capturedAt: Schema.Number, capturedAtSource: Schema.String, exposureSeconds: Schema.Number })),
       }),
     ),
   }),
@@ -69,10 +68,10 @@ export async function readRecordingEvidence(dir: string): Promise<RecordingEvide
 
       if (Result.isFailure(decoded)) throw new ArchiveError(`an op line for ${line.operation.id} does not decode: ${String(decoded.failure)}`)
 
-      const { id, expectedName, startedAt, settledAt, outcome } = decoded.success
+      const { id, startedAt, settledAt, outcome } = decoded.success
       const image = outcome.value?.image
 
-      if (image) captures.push({ operationId: id, imageId: image.id, device: expectedName, startedAt, settledAt, capturedAt: image.capturedAt, capturedAtSource: image.capturedAtSource, exposureSeconds: image.exposureSeconds })
+      if (image) captures.push({ operationId: id, imageId: image.id, device: image.cameraName, startedAt, settledAt, capturedAt: image.capturedAt, capturedAtSource: image.capturedAtSource, exposureSeconds: image.exposureSeconds })
     }
 
     if (line.k === 'msg' && line.dir === 'in' && line.blobs !== undefined) {

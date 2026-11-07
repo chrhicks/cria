@@ -9,7 +9,7 @@ import { Effect } from 'effect'
 import type { Device, State } from '@cria/wire'
 import { protocolVersion } from '@cria/wire'
 import type { Reading } from '@cria/primitives'
-import type { DomainFacts, LedgerSnapshot } from '../operation/ledger.js'
+import type { LedgerSnapshot } from '../operation/ledger.js'
 import type { Rig, RigDevice } from '../rig.js'
 
 type Availability = Device['availability']
@@ -37,7 +37,7 @@ function availabilityOf(facts: Facts): Availability {
   return { ready: true }
 }
 
-export function projectDevice(rig: Rig, device: RigDevice, facts: DomainFacts) {
+export function projectDevice(rig: Rig, device: RigDevice, busy: boolean) {
   return Effect.gen(function* () {
     const indi = yield* rig.client.status
     const body = yield* device.capability.observe
@@ -47,13 +47,12 @@ export function projectDevice(rig: Rig, device: RigDevice, facts: DomainFacts) {
       name: body.readings.name,
       connected: body.readings.connected,
       settingUp: (yield* device.setup.current) === undefined,
-      busy: facts.busy,
+      busy,
     })
 
     return {
       id: device.config.id,
       name: device.config.indiDevice,
-      bindingId: facts.binding,
       failureDomain: device.failureDomain,
       availability,
       ...body,
@@ -64,7 +63,7 @@ export function projectDevice(rig: Rig, device: RigDevice, facts: DomainFacts) {
 export function projectState(rig: Rig, snapshot: LedgerSnapshot) {
   return Effect.gen(function* () {
     const generatedAt = Date.now()
-    const devices = yield* Effect.forEach(rig.devices, device => projectDevice(rig, device, snapshot.facts(device.failureDomain)))
+    const devices = yield* Effect.forEach(rig.devices, device => projectDevice(rig, device, snapshot.busy(device.failureDomain)))
 
     const state: State = {
       protocolVersion,

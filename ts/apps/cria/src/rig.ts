@@ -93,7 +93,6 @@ export function makeRig(config: Config, options: { readonly recording?: Recordin
       devices: devices.map(device => ({
         id: device.config.id,
         kind: device.config.kind,
-        name: device.config.indiDevice,
         failureDomain: device.failureDomain,
         work: workflowFor(device, workflows),
       })),
@@ -175,13 +174,10 @@ function endsSession(event: DeviceEvent): boolean {
 /** device-connect with `connected: true` connects the device if it is not, then runs its setup steps. */
 function connectAndSetUp(device: RigDevice, ledger: Ledger, instanceId: InstanceId) {
   return Effect.gen(function* () {
-    const { binding } = yield* ledger.facts(device.config.id)
     const submitted = yield* ledger.submit({
       instanceId,
       requestId: mint.startupRequestId(),
       deviceId: device.config.id,
-      bindingId: binding,
-      expectedName: device.config.indiDevice,
       kind: 'device-connect',
       parameters: { connected: true },
     })

@@ -6,7 +6,7 @@
  */
 import { Schema } from 'effect';
 import { CommandSchema, HaltCommandSchema } from './command.js';
-import { BindingId, DeviceId, FailureDomain, ImageId, InstanceId, OperationId, RequestId } from './ids.js';
+import { DeviceId, FailureDomain, ImageId, InstanceId, OperationId, RequestId } from './ids.js';
 import { MotionRecord } from './motion.js';
 import { Json, Outcome, Timestamp } from './values.js';
 const Name = Schema.String.pipe(Schema.check(Schema.isBetweenLength(1, 256)));
@@ -16,7 +16,6 @@ export const Image = Schema.Struct({
     instanceId: InstanceId,
     deviceId: DeviceId,
     cameraName: Name,
-    bindingId: BindingId,
     width: Schema.Number,
     height: Schema.Number,
     binX: Schema.Number,
@@ -39,13 +38,11 @@ export const OperationResult = Schema.Struct({
     values: Schema.Record(Schema.String, Json),
     image: Schema.NullOr(Image),
 });
-/** The five fields that identify a request to a device, shared by `OperationRequest` and every operation state. */
+/** The three fields that identify a request to a device, shared by `OperationRequest` and every operation state. */
 export const requestIdentity = {
     instanceId: InstanceId,
     requestId: RequestId,
     deviceId: DeviceId,
-    bindingId: BindingId,
-    expectedName: Name,
 };
 /** What Vela sends: its identity for the request, then one command, flat. */
 // Preserve each command's discriminant when a shared field is optional.

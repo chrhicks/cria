@@ -250,8 +250,6 @@ describe('kill -9 of the whole service', () => {
       instanceId: state.instanceId,
       requestId: crypto.randomUUID(),
       deviceId: target.id,
-      bindingId: target.bindingId,
-      expectedName: target.name,
       kind: 'capture',
       parameters: { exposureSeconds: 0.3, light: true },
     } as never)

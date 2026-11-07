@@ -1,25 +1,16 @@
 import { Deferred } from 'effect'
-import { BindingId, DeviceId, FailureDomain, InstanceId, OperationId, RequestId, type Command, type Operation } from '@cria/wire'
+import { DeviceId, FailureDomain, InstanceId, OperationId, RequestId, type Command, type Operation } from '@cria/wire'
 import { describe, expect, it } from 'vitest'
 import { admit, cancel, initialState, prune, settle, snapshot, wait, type LedgerState, type Rules, type Submission, type Transition } from './ledger.js'
 
 const uuid = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`
 const instanceId = InstanceId.make(uuid(1))
-const mountBinding = BindingId.make(uuid(2))
-const cameraBinding = BindingId.make(uuid(3))
-const mount = { id: DeviceId.make('mount'), kind: 'mount', name: 'ZWO AM5', failureDomain: FailureDomain.make('zwo-am5') } as const
-const camera = { id: DeviceId.make('camera'), kind: 'camera', name: 'Fake CCD', failureDomain: FailureDomain.make('fake-ccd') } as const
-const focuser = { id: DeviceId.make('focuser'), kind: 'focuser', name: 'Fake Focuser', failureDomain: FailureDomain.make('fake-focuser') } as const
-const relay = { id: DeviceId.make('switch'), kind: 'switch', name: 'Fake Relay', failureDomain: FailureDomain.make('fake-relay') } as const
-const focuserBinding = BindingId.make(uuid(5))
-const relayBinding = BindingId.make(uuid(6))
+const mount = { id: DeviceId.make('mount'), kind: 'mount', failureDomain: FailureDomain.make('zwo-am5') } as const
+const camera = { id: DeviceId.make('camera'), kind: 'camera', failureDomain: FailureDomain.make('fake-ccd') } as const
+const focuser = { id: DeviceId.make('focuser'), kind: 'focuser', failureDomain: FailureDomain.make('fake-focuser') } as const
+const relay = { id: DeviceId.make('switch'), kind: 'switch', failureDomain: FailureDomain.make('fake-relay') } as const
 const rules: Rules = { instanceId, commandsEnabled: true, history: 3, devices: new Map([mount, camera, focuser, relay].map(device => [device.id, device])) }
-const empty = initialState([
-  [mount.failureDomain, mountBinding],
-  [camera.failureDomain, cameraBinding],
-  [focuser.failureDomain, focuserBinding],
-  [relay.failureDomain, relayBinding],
-])
+const empty = initialState()
 
 const slew = { kind: 'mount-slew', parameters: { rightAscensionDegrees: 120, declinationDegrees: 10, coordinateSystem: 'topocentric' } } as const
 const stop = { kind: 'mount-stop', parameters: {} } as const
@@ -28,24 +19,15 @@ const confirmed = { kind: 'confirmed', value: { values: {}, image: null } } as c
 const lost = { kind: 'uncertain', reason: 'no-acknowledgement', message: 'no answer' } as const
 
 type Device = typeof mount | typeof camera | typeof focuser | typeof relay
-const bindingOf = new Map<string, BindingId>([
-  [mount.id, mountBinding],
-  [camera.id, cameraBinding],
-  [focuser.id, focuserBinding],
-  [relay.id, relayBinding],
-])
-
-const request = (n: number, command: Command, device: Device = mount, bindingId = mountBinding): Submission => ({
+const request = (n: number, command: Command, device: Device = mount): Submission => ({
   instanceId,
   requestId: RequestId.make(`r${n}`),
   deviceId: device.id,
-  bindingId,
-  expectedName: device.name,
   ...command,
 })
 
 function admitted(state: LedgerState, n: number, command: Command, device: Device = mount) {
-  return admit(rules, state, { submission: request(n, command, device, bindingOf.get(device.id)!), id: OperationId.make(uuid(100 + n)), now: n })
+  return admit(rules, state, { submission: request(n, command, device), id: OperationId.make(uuid(100 + n)), now: n })
 }
 
 const id = (n: number) => OperationId.make(uuid(100 + n))
@@ -67,8 +49,6 @@ describe('admission', () => {
       instanceId,
       requestId: 'r1',
       deviceId: 'mount',
-      bindingId: mountBinding,
-      expectedName: 'ZWO AM5',
       failureDomain: 'zwo-am5',
       acceptedAt: 1,
       ...slew,
@@ -88,8 +68,6 @@ describe('admission', () => {
       instanceId,
       requestId: 'r2',
       deviceId: 'mount',
-      bindingId: mountBinding,
-      expectedName: 'ZWO AM5',
       failureDomain: 'zwo-am5',
       acceptedAt: 2,
       ...stop,
@@ -111,13 +89,11 @@ describe('admission', () => {
     expect(resultOf(admitted(slewing, 1, { kind: 'camera-configure', parameters: { binX: 2 } }, camera))).toMatchObject({ code: 'request-conflict' })
   })
 
-  it('checks the instance, device, binding, name, kind and commandsEnabled in that order', () => {
+  it('checks the instance, device, kind and commandsEnabled in that order', () => {
     const at = (submission: Submission, onRules = rules) => resultOf(admit(onRules, empty, { submission, id: id(9), now: 9 }))
 
     expect(at({ ...request(9, tracking), instanceId: InstanceId.make(uuid(9)), deviceId: DeviceId.make('nowhere') })).toMatchObject({ code: 'instance-changed' })
     expect(at({ ...request(9, tracking), deviceId: DeviceId.make('nowhere') })).toMatchObject({ code: 'request-error', message: 'Unknown device nowhere' })
-    expect(at({ ...request(9, tracking), bindingId: cameraBinding })).toMatchObject({ code: 'binding-changed' })
-    expect(at({ ...request(9, tracking), expectedName: 'Other' })).toMatchObject({ code: 'binding-changed', message: 'This device is ZWO AM5' })
     expect(at(request(9, { kind: 'capture', parameters: { exposureSeconds: 1, light: true } }))).toMatchObject({ code: 'request-error', message: 'A mount cannot run capture' })
     expect(at(request(9, tracking), { ...rules, commandsEnabled: false })).toMatchObject({ code: 'commands-disabled' })
   })
