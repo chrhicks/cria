@@ -1,4 +1,4 @@
-# User unit: install to ~/.config/systemd/user/ (README.md). Disable with
+# Linked from the checkout by install.sh. Disable with
 # `systemctl --user disable --now rig-supervisor`. It reads
 # ~/.config/cria/rig.json.
 [Unit]

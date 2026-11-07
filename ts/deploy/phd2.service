@@ -1,5 +1,5 @@
-# PHD2 as rig equipment: headless under Xvfb, event server on. User unit: install to
-# ~/.config/systemd/user/ (docs/phd2.md). Write the profile first
+# PHD2 as rig equipment: headless under Xvfb, event server on. Linked from the checkout by
+# install.sh, but never enabled by it (docs/phd2.md). Write the profile first
 # (phd2-profile.mjs) and then enable it; it does nothing to the rig until a client
 # sends a command to port 4400.
 #
