@@ -72,7 +72,7 @@ async function listen(device: string, property: string) {
 }
 
 describe('camera', () => {
-  it('captures a frame whose original downloads as the camera's FITS with the advertised size and digest', async () => {
+  it('captures a frame whose original downloads as the camera FITS with the advertised size and digest', async () => {
     const camera = await cria.device('primary')
     const operation = await cria.run('primary', 'capture', { exposureSeconds: 0.5, light: true })
 

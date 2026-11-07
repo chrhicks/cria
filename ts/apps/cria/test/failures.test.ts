@@ -228,7 +228,11 @@ describe('evidence from the driver (review R1-#8, #9, #10)', () => {
 })
 
 describe("a capture takes only its own frame (review R1-#7)", () => {
-  const firstPixel = async (url: string) => Buffer.from(await (await fetch(cria.base + url)).arrayBuffer()).readUInt16LE(44)
+  const firstPixel = async (url: string) => {
+    const bytes = Buffer.from(await (await fetch(cria.base + url)).arrayBuffer())
+
+    return bytes.readInt16BE(readFitsHeader(bytes).dataStart) + 32768
+  }
 
   it('ignores a frame from another client (different exposure time) that arrives during its exposure', async () => {
     const normal = exposeNormally()
