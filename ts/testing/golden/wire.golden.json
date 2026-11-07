@@ -5,6 +5,8 @@
     "request": "GET /health",
     "status": 200,
     "body": {
+      "commandsEnabled": true,
+      "instanceId": "<instance-1>",
       "protocolVersion": 5,
       "status": "ok"
     }
