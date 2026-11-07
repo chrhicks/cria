@@ -57,6 +57,13 @@ describe('what the framer and parser do with unexpected input', () => {
     expect(elements[1]!.message).toMatchObject({ type: 'def', vector: { kind: 'switch' } })
   })
 
+  it('does not call another client\'s relayed new*Vector a problem', () => {
+    const wire = ['Number', 'Switch', 'Text', 'BLOB'].map(kind => `<new${kind}Vector device="D" name="N"><one${kind} name="e">1</one${kind}></new${kind}Vector>`).join('')
+    const { elements } = frame(wire)
+
+    expect(elements.slice(0, 4).map(element => [element.message, element.problem])).toEqual([[undefined, undefined], [undefined, undefined], [undefined, undefined], [undefined, undefined]])
+  })
+
   it('names the device, property and tag of a bad element so it can be found again', () => {
     const { elements } = frame('<setNumberVector device="Test Mount" name="COORDS"><oneNumber name="RA">1x</oneNumber></setNumberVector>')
 
