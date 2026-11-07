@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { parseConfig, type RigConfig, type WantedValue } from './config.ts'
+import { parseConfig, refusedProperties, type RigConfig, type WantedValue } from './config.ts'
 import type { DeviceFacts } from './indi-link.ts'
 import { decide, emptyMemory, holds, markUnsent, type Action, type Memory } from './reconcile.ts'
 
@@ -174,6 +174,8 @@ describe('the rig file', () => {
     [one({ properties: { X: {} } }), 'must be an object of element values'],
     [one({ properties: { X: { Y: null } } }), 'must be a finite number, a boolean or a string'],
     [one({ onConnect: [] }), 'onConnect must be an object'],
+    [one({ properties: { CCD_EXPOSURE: { CCD_EXPOSURE_VALUE: 1 } } }), 'properties.CCD_EXPOSURE starts a motion or an exposure'],
+    [one({ onConnect: { TELESCOPE_PARK: { PARK: true } } }), 'onConnect.TELESCOPE_PARK starts a motion or an exposure'],
     [{ fifo: '/x', devices: [one({}).devices[0], one({}).devices[0]] }, 'listed twice'],
     [{ ...one({}), extra: 1 }, 'unknown key extra'],
     [{ ...one({}), backoffMs: [] }, 'backoffMs must be'],
@@ -408,6 +410,10 @@ describe('the properties a device should have', () => {
     other.sim('mount').properties.TIME_UTC = { UTC: '2000-01-01T00:00:00', OFFSET: '0.00' }
     other.poll(3)
     expect(other.writes('TIME_UTC')).toHaveLength(1)
+  })
+
+  it.each(refusedProperties.value)('refuses %s in the rig file', name => {
+    expect(() => makeConfig({}, [{ id: 'a', indiDevice: 'A', usb: '03c3:260a', driver: 'indi_x', connected: true, properties: { [name]: { X: 1 } } }])).toThrow('starts a motion or an exposure')
   })
 
   it('never writes a property that starts a motion or an exposure unless the rig file names it', () => {
