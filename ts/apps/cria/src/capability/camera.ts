@@ -10,8 +10,8 @@ import { Failed, Reading, Uncertain, stoppable, type Ending, type Report } from 
 import { readFitsHeader } from '@cria/fits'
 import { confirmProperty, notACommand, numbersApplied, sendOnce, startMotion, switchConfirmed } from './commands.js'
 import { invalid, liveSnapshot, required, type CapabilityContext } from './context.js'
-import { firstNumberElement, limitElement, numberElement, switchElement, textElement, type DeviceSnapshot } from './fields.js'
-import type { CaptureFrameType, DeviceBody, Image, ParamsOf, Progress, ReadingsOf } from '@cria/wire'
+import { limitElement, numberElement, switchElement, textElement, type DeviceSnapshot } from './fields.js'
+import type { CaptureFrameType, Image, ParamsOf, Progress } from '@cria/wire'
 
 type R<T> = Reading.Reading<T>
 
@@ -27,7 +27,6 @@ export interface CapturedFrame {
 }
 
 export interface Camera {
-  readonly observe: Effect.Effect<DeviceBody<'camera'>>
   readonly capture: (request: ParamsOf<'capture'>, report: Report<Progress>) => Effect.Effect<CapturedFrame, Ending>
   readonly configure: (settings: ParamsOf<'camera-configure'>) => Effect.Effect<ParamsOf<'camera-configure'>, Failed | Uncertain>
   readonly cooling: (request: ParamsOf<'cooling'>) => Effect.Effect<ParamsOf<'cooling'>, Failed | Uncertain>
@@ -39,32 +38,18 @@ const command = { alertMeansStale: false }
 const gainProperties = ['CCD_GAIN', 'CCD_CONTROLS']
 const offsetProperties = ['CCD_OFFSET', 'CCD_CONTROLS']
 
-function readings(snapshot: DeviceSnapshot): ReadingsOf<'camera'> {
+function readings(snapshot: DeviceSnapshot) {
   const read = snapshot.reading
 
   return {
-    connected: snapshot.connected,
-    name: snapshot.name,
-    // Alert after an abort or a failed frame: the camera is idle again.
     activity: read('CCD_EXPOSURE', property => (property.state === 'Busy' ? 'exposing' : 'idle'), command),
-    temperatureC: read('CCD_TEMPERATURE', numberElement('CCD_TEMPERATURE_VALUE')),
-    // INDI reports the sensor temperature, never the target.
-    setpointC: Reading.unavailable('unsupported'),
-    coolerOn: read('CCD_COOLER', switchElement('COOLER_ON')),
-    coolerPowerPercent: read('CCD_COOLER_POWER', numberElement('CCD_COOLER_VALUE')),
-    sensorWidthPixels: read('CCD_INFO', numberElement('CCD_MAX_X')),
-    sensorHeightPixels: read('CCD_INFO', numberElement('CCD_MAX_Y')),
-    pixelWidthMicrons: read('CCD_INFO', numberElement('CCD_PIXEL_SIZE_X')),
-    pixelHeightMicrons: read('CCD_INFO', numberElement('CCD_PIXEL_SIZE_Y')),
     width: read('CCD_FRAME', numberElement('WIDTH')),
     height: read('CCD_FRAME', numberElement('HEIGHT')),
     bayerPattern: cfa(snapshot),
     exposureMinimum: read('CCD_EXPOSURE', limitElement(['CCD_EXPOSURE_VALUE'], 'min'), command),
     exposureMaximum: read('CCD_EXPOSURE', limitElement(['CCD_EXPOSURE_VALUE'], 'max'), command),
-    gain: read(gainProperties, firstNumberElement(['GAIN', 'Gain'])),
     gainMinimum: read(gainProperties, limitElement(['GAIN', 'Gain'], 'min')),
     gainMaximum: read(gainProperties, limitElement(['GAIN', 'Gain'], 'max')),
-    offset: read(offsetProperties, firstNumberElement(['OFFSET', 'Offset'])),
     offsetMinimum: read(offsetProperties, limitElement(['OFFSET', 'Offset'], 'min')),
     offsetMaximum: read(offsetProperties, limitElement(['OFFSET', 'Offset'], 'max')),
   }
@@ -100,7 +85,6 @@ export function shiftPattern(pattern: BayerPattern, dx: number, dy: number): Bay
 
 export function makeCamera(context: CapabilityContext): Camera {
   const { device, timing } = context
-  let lastCommanded: DeviceBody<'camera'>['lastCommandedSetpointC'] = null
 
   const abort = Effect.gen(function* () {
     yield* sendOnce(device, 'CCD_ABORT_EXPOSURE', { ABORT: true }, timing)
@@ -208,7 +192,6 @@ export function makeCamera(context: CapabilityContext): Camera {
           arrived: property =>
             property.state === 'Ok' && Math.abs((numberElement('CCD_TEMPERATURE_VALUE')(property) ?? Number.NaN) - setpoint) <= 0.5,
         })
-        lastCommanded = { value: setpoint, commandedAt: Date.now() }
         result.setpointC = request.setpointC
       }
 
@@ -231,7 +214,6 @@ export function makeCamera(context: CapabilityContext): Camera {
     })
 
   return {
-    observe: Effect.map(context.snapshot, snapshot => ({ kind: 'camera', readings: readings(snapshot), lastCommandedSetpointC: lastCommanded })),
     capture,
     configure,
     cooling,

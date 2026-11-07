@@ -1,6 +1,5 @@
 /**
- * Capability: the power box. Its weather readings, from INDI's standard weather
- * interface, and its configured channels, each one INDI element: an on/off
+ * Capability: the power box. Its configured channels, each one INDI element: an on/off
  * switch (the PPB Micro's 12 V master) or a number (a dew heater's duty cycle).
  * Setting one is `switchConfirmed` or `numbersApplied`.
  *
@@ -14,7 +13,6 @@ import { Failed, Reading, type Uncertain } from '@cria/primitives'
 import { numbersApplied, switchConfirmed } from './commands.js'
 import { invalid, liveSnapshot, required, type CapabilityContext } from './context.js'
 import { numberElement, type DeviceSnapshot } from './fields.js'
-import type { DeviceBody } from '@cria/wire'
 
 type R<T> = Reading.Reading<T>
 
@@ -26,11 +24,10 @@ export interface ChannelConfig {
 }
 
 export interface Box {
-  readonly observe: Effect.Effect<DeviceBody<'box'>>
   readonly set: (channelId: number, value: number) => Effect.Effect<{ value: number }, Failed | Uncertain>
 }
 
-function channelReadings(snapshot: DeviceSnapshot, channel: ChannelConfig, id: number): DeviceBody<'box'>['channels'][number] {
+function channelReadings(snapshot: DeviceSnapshot, channel: ChannelConfig) {
   const element = <T>(extract: (found: ElementDefinition) => T | undefined): R<T> =>
     snapshot.reading(channel.property, property => {
       const found = property.elements.get(channel.element)
@@ -39,32 +36,16 @@ function channelReadings(snapshot: DeviceSnapshot, channel: ChannelConfig, id: n
     })
 
   return {
-    id: Reading.map(snapshot.reading(channel.property, () => true), () => id),
-    name: Reading.map(snapshot.reading(channel.property, () => true), () => channel.name),
     writable: snapshot.reading(channel.property, property => property.perm !== 'ro'),
     minimum: element(found => (found.kind === 'number' ? found.min : found.kind === 'switch' ? 0 : undefined)),
     maximum: element(found => (found.kind === 'number' ? found.max : found.kind === 'switch' ? 1 : undefined)),
     step: element(found => (found.kind === 'number' ? found.step : found.kind === 'switch' ? 1 : undefined)),
     on: element(found => (found.kind === 'switch' ? found.on : found.kind === 'number' ? found.value > 0 : undefined)),
-    value: element(found => (found.kind === 'number' ? found.value : found.kind === 'switch' ? (found.on ? 1 : 0) : undefined)),
   }
 }
 
 export function makeBox(context: CapabilityContext, channels: ReadonlyArray<ChannelConfig>): Box {
   const { device, timing } = context
-
-  const observe = (snapshot: DeviceSnapshot): DeviceBody<'box'> => ({
-    kind: 'box',
-    readings: {
-      connected: snapshot.connected,
-      name: snapshot.name,
-      temperatureC: snapshot.reading('WEATHER_PARAMETERS', numberElement('WEATHER_TEMPERATURE')),
-      humidityPercent: snapshot.reading('WEATHER_PARAMETERS', numberElement('WEATHER_HUMIDITY')),
-      dewPointC: snapshot.reading('WEATHER_PARAMETERS', numberElement('WEATHER_DEWPOINT')),
-      channelCount: Reading.map(snapshot.connected, () => channels.length),
-    },
-    channels: channels.map((channel, id) => channelReadings(snapshot, channel, id)),
-  })
 
   const set = (channelId: number, value: number) =>
     Effect.gen(function* () {
@@ -72,7 +53,7 @@ export function makeBox(context: CapabilityContext, channels: ReadonlyArray<Chan
 
       if (!channel) return yield* invalid(`No switch channel ${channelId}`)
       const snapshot = yield* liveSnapshot(context)
-      const observed = channelReadings(snapshot, channel, channelId)
+      const observed = channelReadings(snapshot, channel)
 
       if (!(yield* required(observed.writable, `${channel.name} control`)))
         return yield* new Failed({ reason: 'unsupported', message: `${channel.name} is read-only` })
@@ -80,7 +61,7 @@ export function makeBox(context: CapabilityContext, channels: ReadonlyArray<Chan
       const automatic = channels.map((candidate, id) => ({ candidate, id })).find(({ candidate }) => candidate.name === channel.automaticWhileOn)
 
       // The driver accepts a manual value and then overrides it (auto dew sets the duty back within seconds).
-      if (automatic && (yield* required(channelReadings(snapshot, automatic.candidate, automatic.id).on, automatic.candidate.name)))
+      if (automatic && (yield* required(channelReadings(snapshot, automatic.candidate).on, automatic.candidate.name)))
         return yield* invalid(
           `${channel.name} is set automatically while ${automatic.candidate.name} is on; switch ${automatic.candidate.name} (channel ${automatic.id}) off first`,
         )
@@ -119,7 +100,6 @@ export function makeBox(context: CapabilityContext, channels: ReadonlyArray<Chan
     })
 
   return {
-    observe: Effect.map(context.snapshot, observe),
     set,
   }
 }

@@ -1,7 +1,6 @@
 import { Result, Schema } from 'effect'
 import { describe, expect, it } from 'vitest'
 import { shiftPattern } from './capability/camera.js'
-import { localSiderealHours } from './capability/mount.js'
 import { decodeConfig } from './config.js'
 import { CommandSchema } from '@cria/wire'
 
@@ -85,10 +84,5 @@ describe('INDI to ASCOM conventions', () => {
     expect(shiftPattern('rggb', 1, 0)).toBe('grbg')
     expect(shiftPattern('rggb', 0, 1)).toBe('gbrg')
     expect(shiftPattern('rggb', 3, 5)).toBe('bggr')
-  })
-
-  it('computes local sidereal time (GMST at J2000.0 is 18.697 h)', () => {
-    expect(localSiderealHours(Date.parse('2000-01-01T12:00:00Z'), 0)).toBeCloseTo(18.697374558, 6)
-    expect(localSiderealHours(Date.parse('2000-01-01T12:00:00Z'), -112.07)).toBeCloseTo(11.226041225, 6)
   })
 })

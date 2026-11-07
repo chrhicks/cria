@@ -1,7 +1,7 @@
 /**
  * Wire boundary: protocol 5 over HTTP. Routes decode their input once with the
- * @cria/wire schemas, call the ledger, and project the answer (project.ts). The
- * refusal of browser origins lives here.
+ * @cria/wire schemas and call the ledger. The refusal of browser origins lives
+ * here.
  */
 import { open } from 'node:fs/promises'
 import { pipeline } from 'node:stream'
@@ -20,8 +20,6 @@ import {
 } from '@cria/wire'
 import { Refusal, refuse } from '../refusal.js'
 import type { Rig } from '../rig.js'
-import { projectDevice, projectState } from './project.js'
-import { makeEventStream } from './sse.js'
 
 const maxBodyBytes = 16 * 1024
 
@@ -38,7 +36,6 @@ const statusOf: { readonly [C in ErrorCode]: number } = {
   'result-expired': 410,
   'image-gone': 410,
   'request-too-large': 413,
-  'too-many-subscribers': 429,
   'internal-error': 500,
 }
 
@@ -47,8 +44,6 @@ function errorReply(refusal: Refusal, instanceId: InstanceId): { readonly status
 }
 
 export function makeHttpServer(rig: Rig): Server {
-  const events = makeEventStream(rig)
-
   const run = <A>(effect: Effect.Effect<A, Refusal>, toReply: (value: A) => Reply) =>
     Effect.runPromiseExit(effect).then(exit => {
       if (Exit.isSuccess(exit)) return toReply(exit.value)
@@ -69,15 +64,6 @@ export function makeHttpServer(rig: Rig): Server {
     if (request.headers.origin) throw refuse('origin-rejected', 'Browser origins are not accepted')
 
     if (path[0] !== 'v2') throw refuse('not-found', 'No such route')
-
-    if (method === 'GET' && path.length === 2 && path[1] === 'state')
-      return run(Effect.flatMap(rig.ledger.snapshot, snapshot => projectState(rig, snapshot)), state => ({ status: 200, body: state }))
-
-    if (method === 'GET' && path.length === 2 && path[1] === 'events') {
-      if (!events(request, response)) throw refuse('too-many-subscribers', 'Too many event subscribers')
-
-      return 'streamed'
-    }
 
     if (method === 'POST' && path.length === 2 && path[1] === 'operations')
       return run(rig.ledger.submit(decodeBody(OperationRequest, await readJson(request))), operation => ({ status: 202, body: operation }))

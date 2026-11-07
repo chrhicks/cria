@@ -10,7 +10,7 @@
  */
 import { Effect, Option } from 'effect'
 import { selectedSwitch, type Property, type Values } from '@cria/indi'
-import { Failed, Reading, Uncertain, stoppable, type Ending } from '@cria/primitives'
+import { Failed, Uncertain, stoppable, type Ending } from '@cria/primitives'
 import type { MountMotionSettings } from '../config.js'
 import { sendOnce, startMotion, switchConfirmed, switchNotStarted, untilSettled } from './commands.js'
 import { invalid, liveSnapshot, required, type CapabilityContext } from './context.js'
@@ -19,7 +19,7 @@ import type { DeviceSetup, StepOutcome } from './setup.js'
 import { track, type Note, type Tracking } from './motion-record.js'
 import { makeRotate } from './rotate.js'
 import { angularDelta, beforeCommand, confirmStopped, positionOf, type Command, type Position } from './stopped.js'
-import type { DeviceBody, MotionCommanded, ParamsOf, ReadingsOf } from '@cria/wire'
+import type { MotionCommanded, ParamsOf } from '@cria/wire'
 
 type CoordinateFrame = ParamsOf<'mount-slew'>['coordinateSystem']
 
@@ -29,7 +29,6 @@ export interface AxisRate {
 }
 
 export interface Mount {
-  readonly observe: Effect.Effect<DeviceBody<'mount'>>
   readonly slew: (target: ParamsOf<'mount-slew'>, note: Note) => Effect.Effect<{ rightAscensionDegrees: number; declinationDegrees: number }, Ending>
   readonly setTracking: (tracking: boolean) => Effect.Effect<{ tracking: boolean }, Failed | Uncertain>
   readonly home: (note: Note) => Effect.Effect<{}, Ending>
@@ -60,50 +59,17 @@ function coordinatesProperty(snapshot: DeviceSnapshot): { name: string; frame: C
     : { name: 'EQUATORIAL_COORD', frame: 'j2000' }
 }
 
-function pierSideOf(property: Property) {
-  const side = selectedSwitch(property)
-  return side === 'PIER_EAST' ? 'east' : side === 'PIER_WEST' ? 'west' : 'unknown'
-}
-
-function readings(snapshot: DeviceSnapshot): ReadingsOf<'mount'> {
+function readings(snapshot: DeviceSnapshot) {
   const read = snapshot.reading
   const coordinates = coordinatesProperty(snapshot)
-  const longitude = read('GEOGRAPHIC_COORD', property => {
-    const east = numberElement('LONG')(property)
-
-    return east === undefined ? undefined : east > 180 ? east - 360 : east
-  })
 
   return {
-    connected: snapshot.connected,
-    name: snapshot.name,
-    // Alert on the coordinates means a slew failed; the position is still reported.
     rightAscensionHours: read(coordinates.name, numberElement('RA'), command),
     declinationDegrees: read(coordinates.name, numberElement('DEC'), command),
-    siderealTimeHours: Reading.map(longitude, east => localSiderealHours(Date.now(), east)),
     slewing: read(coordinates.name, property => property.state === 'Busy', command),
-    tracking: read('TELESCOPE_TRACK_STATE', switchElement('TRACK_ON')),
-    trackingRate: read('TELESCOPE_TRACK_MODE', property => {
-      const mode = selectedSwitch(property)
-
-      return mode === 'TRACK_SIDEREAL' ? 'sidereal' : mode === 'TRACK_LUNAR' ? 'lunar' : mode === 'TRACK_SOLAR' ? 'solar' : undefined
-    }),
-    pierSide: read('TELESCOPE_PIER_SIDE', pierSideOf),
     coordinateSystem: read(coordinates.name, () => coordinates.frame),
-    latitudeDegrees: read('GEOGRAPHIC_COORD', numberElement('LAT')),
-    longitudeDegrees: longitude,
-    elevationMeters: read('GEOGRAPHIC_COORD', numberElement('ELEV')),
     primaryAxisRates: read('TELESCOPE_SLEW_RATE', axisRates),
   }
-}
-
-/** Greenwich mean sidereal time (IAU 1982, good to well under a second) plus longitude. */
-export function localSiderealHours(epochMs: number, eastLongitudeDegrees: number): number {
-  const daysSinceJ2000 = epochMs / 86_400_000 + 2440587.5 - 2451545.0
-  const greenwich = 18.697374558 + 24.06570982441908 * daysSinceJ2000
-  const local = greenwich + eastLongitudeDegrees / 15
-
-  return ((local % 24) + 24) % 24
 }
 
 function homeElement(property: Property | undefined): string | undefined {
@@ -359,7 +325,6 @@ export function makeMount(context: CapabilityContext, motion: MountMotionSetting
   })
 
   return {
-    observe: Effect.map(context.snapshot, snapshot => ({ kind: 'mount', readings: readings(snapshot) })),
     slew,
     setTracking,
     home,

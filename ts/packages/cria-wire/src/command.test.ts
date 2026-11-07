@@ -1,6 +1,6 @@
 import { Schema } from 'effect'
 import { describe, expect, expectTypeOf, it } from 'vitest'
-import { SwitchChannel, captureFrameTypes, commands, shutterOpen, isHalt, type DeviceBody, type DeviceFor, type HaltKind, type ParamsOf, type ReadingsOf } from './index.js'
+import { captureFrameTypes, commands, shutterOpen, isHalt, type DeviceFor, type HaltKind, type ParamsOf } from './index.js'
 
 describe('command table', () => {
   it('makes exactly the stops halts', () => {
@@ -19,16 +19,11 @@ describe('command table', () => {
     expect(() => Schema.decodeUnknownSync(commands['mount-home'].schema)({ kind: 'mount-stop', parameters: {} })).toThrow()
   })
 
-  it('derives parameter and device body types from the wire schemas', () => {
+  it('derives parameter types from the wire schemas', () => {
     expectTypeOf<ParamsOf<'mount-slew'>>().toEqualTypeOf<{
       readonly rightAscensionDegrees: number
       readonly declinationDegrees: number
       readonly coordinateSystem: 'topocentric' | 'j2000'
-    }>()
-    expectTypeOf<DeviceBody<'box'>>().toEqualTypeOf<{
-      readonly kind: 'box'
-      readonly readings: ReadingsOf<'box'>
-      readonly channels: ReadonlyArray<typeof SwitchChannel.Type>
     }>()
   })
 

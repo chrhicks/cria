@@ -133,19 +133,6 @@ export function textElement(element: string) {
   }
 }
 
-/** The first element of `names` that the property has, as a number. */
-export function firstNumberElement(names: ReadonlyArray<string>) {
-  return (property: Property) => {
-    for (const name of names) {
-      const found = property.elements.get(name)
-
-      if (found?.kind === 'number') return found.value
-    }
-
-    return undefined
-  }
-}
-
 export function limitElement(names: ReadonlyArray<string>, which: 'min' | 'max') {
   return (property: Property) => {
     for (const name of names) {
