@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-import { randomUUID } from 'node:crypto'
 import { constants, existsSync, readFileSync, readdirSync } from 'node:fs'
 import { open } from 'node:fs/promises'
 import { homedir } from 'node:os'
@@ -15,11 +14,12 @@ export const settings = {
   settlePolls: { value: 2, description: 'Polls in a row a device must look the same before the supervisor acts: a USB device can show in sysfs before it can be opened, and a restarted driver takes a moment to define its devices' },
   stopGapMs: { value: 1_000, description: 'Between stop and start on the FIFO, so indiserver has dropped the old process' },
   requestTimeoutMs: { value: 5_000, description: 'How long one request to Cria may take before the supervisor treats Cria as unreachable' },
+  connectRequestTimeoutMs: { value: 180_000, description: "How long the supervisor waits for Cria's answer to a connect: longer than Cria's connectTimeoutMs and its setup writes, or a slow cold connect looks like no answer" },
   backoffMs: { value: [10_000, 30_000, 60_000], description: 'Wait before the next try after the 1st, 2nd and later failure' },
   minRestartGapMs: { value: 20_000, description: 'One driver is restarted at most once in this long, whatever the backoff says' },
 }
 
-const numberKeys = ['indiPort', 'pollMs', 'settlePolls', 'stopGapMs', 'requestTimeoutMs', 'minRestartGapMs']
+const numberKeys = ['indiPort', 'pollMs', 'settlePolls', 'stopGapMs', 'requestTimeoutMs', 'connectRequestTimeoutMs', 'minRestartGapMs']
 
 export function parseConfig(json, environment = {}) {
   const fail = message => {
@@ -146,7 +146,6 @@ const errorText = error => (error instanceof Error ? error.message : String(erro
 
 export function createSupervisor(dependencies) {
   const { config, now, sleep, log, indi } = dependencies
-  const uuid = dependencies.uuid ?? randomUUID
   const devices = new Map(config.devices.map(device => [device.id, { hardwareStreak: 0, missingStreak: 0, attempts: 0 }]))
   const drivers = new Map()
   const said = new Map()
@@ -161,15 +160,15 @@ export function createSupervisor(dependencies) {
   const clearNote = subject => said.delete(subject)
   const wait = attempts => config.backoffMs[Math.max(0, Math.min(attempts, config.backoffMs.length) - 1)]
 
-  const request = (path, init = {}) =>
-    dependencies.fetch(`${config.criaUrl}${path}`, { ...init, signal: AbortSignal.timeout(config.requestTimeoutMs) })
+  const request = (path, init = {}, timeoutMs = config.requestTimeoutMs) =>
+    dependencies.fetch(`${config.criaUrl}${path}`, { ...init, signal: AbortSignal.timeout(timeoutMs) })
 
   async function readHealth() {
     try {
       const response = await request('/health')
       if (!response.ok) throw new Error(`HTTP ${response.status}`)
       const health = await response.json()
-      if (typeof health?.instanceId !== 'string' || typeof health?.commandsEnabled !== 'boolean') throw new Error('health names no instance')
+      if (typeof health?.instanceId !== 'string') throw new Error('health names no instance')
 
       return health
     } catch (error) {
@@ -180,59 +179,30 @@ export function createSupervisor(dependencies) {
     }
   }
 
-  const forgetSetUp = entry => {
-    entry.setUpIn = undefined
-    entry.pending = undefined
-  }
-
-  async function settle(configured, entry) {
-    const { instanceId, requestId } = entry.pending
-
-    try {
-      const response = await request(`/v2/requests/${instanceId}/${encodeURIComponent(requestId)}`)
-      if (!response.ok) throw new Error(`HTTP ${response.status}`)
-      const operation = await response.json()
-
-      if (operation.state !== 'settled') return
-      entry.pending = undefined
-      if (operation.outcome?.kind === 'confirmed') {
-        entry.setUpIn = instanceId
-        entry.attempts = 0
-        log(`rig-supervisor: ${configured.id}: set up (${requestId})`)
-
-        return
-      }
-      log(`rig-supervisor: ${configured.id}: device-connect ended ${operation.outcome?.kind ?? 'without an outcome'}; trying again after the backoff`)
-    } catch (error) {
-      entry.pending = undefined
-      log(`rig-supervisor: ${configured.id}: device-connect (${requestId}) could not be read back: ${errorText(error)}; trying again after the backoff`)
-    }
-  }
-
   async function connect(configured, entry, instanceId) {
-    const requestId = `supervisor-${uuid()}`
     entry.attempts += 1
     entry.lastAttemptAt = now()
+    log(`rig-supervisor: ${configured.id}: device-connect sent (attempt ${entry.attempts})`)
 
     try {
-      const response = await request('/v2/operations', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ instanceId, requestId, deviceId: configured.id, kind: 'device-connect', parameters: { connected: true } }),
-      })
+      const response = await request(
+        '/connect',
+        { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ deviceId: configured.id, connected: true }) },
+        config.connectRequestTimeoutMs,
+      )
+      const body = await response.json().catch(() => undefined)
 
-      if (response.status === 202) {
-        entry.pending = { instanceId, requestId }
-        log(`rig-supervisor: ${configured.id}: device-connect sent (${requestId}, attempt ${entry.attempts})`)
+      if (response.status === 200 && body?.outcome === 'confirmed') {
+        entry.setUpIn = instanceId
+        entry.attempts = 0
+        log(`rig-supervisor: ${configured.id}: set up`)
 
         return
       }
 
-      const body = await response.json().catch(() => undefined)
-
-      log(`rig-supervisor: ${configured.id}: device-connect refused ${body?.error?.code ?? `HTTP ${response.status}`}; trying again after the backoff`)
+      log(`rig-supervisor: ${configured.id}: device-connect ${body?.outcome ?? `HTTP ${response.status}`}${body?.message ? ` (${body.message})` : ''}; trying again after the backoff`)
     } catch (error) {
-      log(`rig-supervisor: ${configured.id}: device-connect (${requestId}) got no answer: ${errorText(error)}; trying again after the backoff`)
+      log(`rig-supervisor: ${configured.id}: device-connect got no answer: ${errorText(error)}; trying again after the backoff`)
     }
   }
 
@@ -268,15 +238,9 @@ export function createSupervisor(dependencies) {
     }
     if (lastInstanceId !== undefined && health.instanceId !== lastInstanceId) {
       log(`rig-supervisor: Cria restarted (instance ${health.instanceId}); every device needs setting up again`)
-      for (const entry of devices.values()) forgetSetUp(entry)
+      for (const entry of devices.values()) entry.setUpIn = undefined
     }
     lastInstanceId = health.instanceId
-    if (!health.commandsEnabled) {
-      note('commands', 'Cria has commands disabled; doing nothing')
-
-      return
-    }
-    clearNote('commands')
 
     const view = await indi.view()
     const linkDown = !view.linked || config.devices.every(device => !view.devices.has(device.indiDevice))
@@ -291,7 +255,6 @@ export function createSupervisor(dependencies) {
       entry.hardwareStreak = (await dependencies.hardwarePresent(configured)) ? entry.hardwareStreak + 1 : 0
       entry.missingStreak = !linkDown && !current ? entry.missingStreak + 1 : 0
       if (linkDown || !current || current.connection === 'disconnected') entry.setUpIn = undefined
-      if (entry.pending && !linkDown) await settle(configured, entry)
     }
 
     const restarting = new Set()
@@ -344,7 +307,7 @@ export function createSupervisor(dependencies) {
         if (entry.setUpIn === health.instanceId) entry.attempts = 0
         continue
       }
-      if (entry.pending || (configured.driver && restarting.has(configured.driver))) continue
+      if (configured.driver && restarting.has(configured.driver)) continue
       if (entry.hardwareStreak < config.settlePolls) {
         note(`connect:${configured.id}`, `${configured.id}: ${current.connection}, hardware not present yet`)
         continue

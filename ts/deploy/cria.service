@@ -1,10 +1,5 @@
-# User unit: install to ~/.config/systemd/user/ (docs/runtime.md). Cria starts
-# after indiserver but does not need it up: it retries the INDI connection
-# forever, and sets each device up again when its driver or indiserver returns.
-# SIGTERM stops Cria cleanly: running operations are interrupted and their stop
-# steps abort exposures and halt motion before the process exits.
 [Unit]
-Description=Cria (INDI to Vela)
+Description=Cria (INDI connection and rig stream tap)
 # Retry forever: at boot the tailnet address Cria listens on (EADDRNOTAVAIL) does not exist until
 # tailscale is up, and the default start limit would give up after 5 tries in 10 s.
 StartLimitIntervalSec=0
@@ -18,9 +13,6 @@ PartOf=indiserver.service
 ExecStart=/usr/bin/node %h/dev/personal/cria-ts/ts/apps/cria/dist/main.js %h/.config/cria/rig.json
 Restart=always
 RestartSec=3
-# Longer than the longest uninterruptible step: a connect may take up to
-# initializeTimeoutMs (120 s), then stops get stopWithin (20 s). Review R2 P3b.
-TimeoutStopSec=180
 
 [Install]
 WantedBy=default.target

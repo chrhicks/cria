@@ -1,74 +1,15 @@
-# Vela and Cria architecture
-
-This page explains how the work splits between Vela and Cria. Vela's AGENTS.md is the product authority. [SPEC.md](ts/SPEC.md) is the contract, and the wire is the Effect Schema package `ts/packages/cria-wire` (`@cria/wire`). [Runtime](runtime.md) covers how Cria runs on errai.
-
-## Where Cria fits
-
-Vela's server talks to each rig through one adapter, chosen when the rig is composed:
-
-- **Alpaca.** Vela talks directly to an Alpaca server, for example a Seestar.
-- **Cria.** Vela sends commands over HTTP to Cria on the rig PC, and reads the rig from the rig stream, for example the FRA 400 rig.
+# Architecture
 
 ```
-Browser → Vela server ──HTTP (protocol 5)──▶ Cria ──INDI over TCP 7624──▶ indiserver ──▶ one process per driver ──▶ devices
+drivers -> indiserver -> Cria -> rig stream (NATS on thuban) -> clients
+                           ^
+                      rig-supervisor
 ```
 
-The browser renders what the Vela server projects, including which actions are available. Cria refuses any request that carries an `Origin` header, so a browser cannot call it.
+- **Drivers and `indiserver`** own the equipment. One process per driver; `indiserver -r 0` does not restart a crashed one.
+- **Cria** (`ts/apps/cria`) is an INDI client. It sends nothing on its own. It publishes every `new*Vector` it sends to the rig stream, and on `POST /connect` it connects or disconnects one configured device and sets it up. See [SPEC.md](ts/SPEC.md).
+- **The rig stream client** (`ts/apps/rig-stream`) publishes the raw INDI traffic, the system journal and PHD2 to the stream. The viewer in the same package shows it.
+- **The rig supervisor** (`ts/deploy/rig-supervisor.mjs`) is outside Cria. It restarts a driver whose device is missing while its hardware is present, and asks Cria to connect devices. See [runtime.md](runtime.md#the-rig-supervisor).
+- **Clients** read the rig from the stream. The one thing they ask Cria for is a device connection.
 
-## Who owns what
-
-Moving Cria from .NET on Windows to TypeScript on Linux did not change the split.
-
-| Cria owns | Vela owns |
-| --- | --- |
-| Accepting a command, running it, confirming it and reporting the outcome | Runs and workflows, in Vela server memory |
-| One bounded operation at a time per device: one exposure, one focuser move, one slew | Decisions: what to do next, retries, when to stop |
-| Request-ID dedupe, cancellation, and holding a mount after an uncertain outcome | Image processing, previews, plate solving, FITS |
-| A rolling set of the newest captured images, until they are dropped | The archive of saved images |
-
-Cria never decides what a run does next. Vela never talks to a driver directly on a Cria rig.
-
-Cria never acts on its own: it does not connect a device or set one up unless a `device-connect` operation asks it to. A connected device that is not set up is `starting` to Cria until then, and a goto on it refuses with advice. On the rig the supervisor sends that `device-connect`, within about two polls (roughly 10 s); [docs/runtime.md](runtime.md#the-rig-supervisor) has its rules.
-
-Each device takes one command at a time. The Pegasus power box is one device, `box`, and its switch channels are set through it.
-
-## What changed on Linux
-
-INDI already runs each driver as its own process, so Cria runs no worker processes of its own. A driver crash shows up as the driver's properties disappearing, and a command on that device refuses or ends `uncertain`. INDI pushes property changes, so the facts a command checks stay current while a camera exposes.
-
-Cria offers no picture of the rig of its own. The rig stream (NATS, JetStream `RIG_DEV`) carries the drivers' INDI traffic and Cria's `cria.request`, `cria.settled`, `cria.write` and `cria.frame` entries, and clients read the rig from there. Before sending, a command checks that the facts it needs are fresh, and refuses when they are not. Vela and Cria import the same `@cria/wire` package, so they agree on the wire by construction.
-
-## The layers of the service
-
-Each layer imports only from the layers below it in this diagram. The INDI boundary and the wire boundary map to no primitive on purpose. The INDI boundary absorbs INDI's irregularities, and the wire boundary holds the HTTP details, so the layers between them see neither.
-
-```
-wire boundary    apps/cria/src/wire          HTTP routes, protocol 5 (@cria/wire)
-workflows        apps/cria/src/operation     the ledger, one operation at a time per device
-capabilities     apps/cria/src/capability    camera, mount, focuser, box, connection
-disciplines      @cria/primitives            writeOnce, confirm, stoppable
-types            @cria/primitives            Outcome, Reading
-INDI boundary    @cria/indi                  XML framing, the TCP connection, the property mirror
-```
-
-`apps/cria/src/rig.ts` builds all of it from the configuration, with dependencies passed as plain arguments. The image store (`apps/cria/src/image`) keeps the camera's FITS in a rolling set.
-
-For the details, read these sections of SPEC.md:
-
-- [The layers](ts/SPEC.md#the-layers), for what each part is.
-- [Primitives](ts/SPEC.md#primitives), for Outcome, Reading and the disciplines.
-- [The ledger](ts/SPEC.md#the-ledger), for admission, halts and cancel.
-- [The INDI boundary](ts/SPEC.md#the-indi-boundary), for which INDI property backs each reading.
-- [The wire (protocol 5)](ts/SPEC.md#the-wire-protocol-5), for endpoints, errors and the rules behind the shapes.
-
-## Unknown outcomes
-
-If Cria cannot tell whether a command took effect, the operation ends `uncertain`, and the next command is accepted. Neither Cria nor Vela resends the command. A stop or abort is the one exception. Cria may send it again until the device confirms it is stationary, because an abort can only stop motion. A motion or a setting is never sent again.
-
-Whichever client is driving stops on `uncertain` and tells Chris. Cria does not stop it for them.
-
-## Restarts
-
-Runs are ephemeral. A new Cria instance has a new `instanceId`, an empty operation table and an empty image folder, so anything in flight before it is unknown. Vela reports the affected run as interrupted. It does not resume the run or resend commands. A restarted Vela server also starts fresh and does not rebuild runs from Cria. There is no durable session, journal, custody or receipt protocol between the two.
-
-The INDI drivers keep running across a Cria restart and keep their state. [SPEC.md, "Restarts and crashes"](ts/SPEC.md#restarts-and-crashes) covers a Cria restart, a driver crash, `indiserver` going away and SIGTERM.
+Packages in `ts/packages`: `indi` (client, mirror, XML, tap), `stream` (entry format, subjects, publisher), `cria-wire` (health and connect schemas, committed `dist/`), `fake-indi` (test server).

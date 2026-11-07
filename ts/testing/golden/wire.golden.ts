@@ -6,7 +6,7 @@ import { runScenario, scenarios } from './scenarios.js'
 
 const file = join(import.meta.dirname, 'wire.golden.json')
 
-it('protocol 5 wire matches the golden', async () => {
+it('protocol 6 wire matches the golden', async () => {
   const actual: Entry[] = []
 
   for (const scenario of scenarios) actual.push(...normalize(scenario.name, await runScenario(scenario)))

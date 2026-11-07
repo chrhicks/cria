@@ -244,7 +244,7 @@ function describeClient(entry) {
 
   const { connection, version, sources: published } = entry.body
 
-  return { ...base, what: 'connected', pairs: [['connection', String(connection)], ['version', String(version)], ['sources', published.join(', ')]] }
+  return { ...base, what: 'connected', pairs: [['connection', String(connection)], ...(version === undefined ? [] : [['version', String(version)]]), ['sources', published.join(', ')]] }
 }
 
 function describeCria(entry) {

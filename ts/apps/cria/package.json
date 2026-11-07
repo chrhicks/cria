@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "description": "Cria on Linux: serves Vela's protocol 5 from INDI devices",
+  "description": "Cria on Linux: connects INDI devices and taps the rig stream; serves /health and /connect",
   "bin": {
     "cria": "./dist/main.js"
   },
@@ -13,9 +13,7 @@
     "start": "node dist/main.js"
   },
   "dependencies": {
-    "@cria/fits": "workspace:*",
     "@cria/indi": "workspace:*",
-    "@cria/primitives": "workspace:*",
     "@cria/stream": "workspace:*",
     "@cria/wire": "workspace:*",
     "effect": "4.0.3"

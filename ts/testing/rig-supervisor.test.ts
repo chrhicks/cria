@@ -45,12 +45,11 @@ class FakeIndi {
 
 class FakeCria {
   instanceId = '11111111-1111-4111-8111-111111111111'
-  commandsEnabled = true
   reachable = true
-  health: () => unknown = () => ({ status: 'ok', protocolVersion: 5, instanceId: this.instanceId, commandsEnabled: this.commandsEnabled })
+  health: () => unknown = () => ({ status: 'ok', protocolVersion: 6, instanceId: this.instanceId })
   posts: Array<Record<string, unknown>> = []
-  answer: { status: number; body: unknown } = { status: 202, body: {} }
-  outcomes = new Map<string, string>()
+  answer: { status: number; body: unknown } = { status: 200, body: { outcome: 'confirmed' } }
+  connectDelayMs = 0
   server: Server = createServer((request, response) => void this.handle(request, response))
   url = ''
 
@@ -65,10 +64,6 @@ class FakeCria {
     return new Promise<void>(resolve => this.server.close(() => resolve()))
   }
 
-  settleAll(kind = 'confirmed') {
-    for (const post of this.posts) if (!this.outcomes.has(post.requestId as string)) this.outcomes.set(post.requestId as string, kind)
-  }
-
   private json(response: ServerResponse, status: number, body: unknown) {
     response.writeHead(status, { 'content-type': 'application/json' }).end(JSON.stringify(body))
   }
@@ -76,21 +71,14 @@ class FakeCria {
   private async handle(request: IncomingMessage, response: ServerResponse) {
     if (!this.reachable) return void request.socket.destroy()
     if (request.method === 'GET' && request.url === '/health') return this.json(response, 200, this.health())
-    if (request.method === 'POST' && request.url === '/v2/operations') {
+    if (request.method === 'POST' && request.url === '/connect') {
       const chunks: Buffer[] = []
 
       for await (const chunk of request) chunks.push(chunk as Buffer)
       this.posts.push(JSON.parse(Buffer.concat(chunks).toString('utf8')) as Record<string, unknown>)
+      await new Promise(resolve => setTimeout(resolve, this.connectDelayMs))
 
       return this.json(response, this.answer.status, this.answer.body)
-    }
-    const asked = /^\/v2\/requests\/([^/]+)\/([^/]+)$/.exec(request.url ?? '')
-
-    if (request.method === 'GET' && asked) {
-      const requestId = decodeURIComponent(asked[2]!)
-      const kind = this.outcomes.get(requestId)
-
-      return this.json(response, 200, kind ? { state: 'settled', outcome: { kind } } : { state: 'running' })
     }
 
     return this.json(response, 404, {})
@@ -104,7 +92,6 @@ function harness(overrides: Record<string, unknown> = {}) {
   const present = new Set<string>()
   const fifo: Array<{ line: string; at: number }> = []
   const logs: string[] = []
-  let counter = 0
 
   const build = (writer?: (path: string, line: string) => Promise<void>) =>
     createSupervisor({
@@ -122,7 +109,6 @@ function harness(overrides: Record<string, unknown> = {}) {
           fifo.push({ line, at: clock.at })
         }),
       log: (line: string) => logs.push(line),
-      uuid: () => `uuid-${++counter}`,
     })
 
   const poll = async (supervisor: ReturnType<typeof build>, count = 1) => {
@@ -146,9 +132,7 @@ afterEach(() => current.cria.stop())
 
 const setUpEverything = async (supervisor: { tick: () => Promise<void> }) => {
   for (const device of devices) current.present.add(device.id)
-  await current.poll(supervisor, 2)
-  current.cria.settleAll()
-  await current.poll(supervisor, 1)
+  await current.poll(supervisor, 3)
   current.cria.posts = []
 }
 
@@ -165,6 +149,7 @@ describe('config', () => {
       settlePolls: 2,
       stopGapMs: 1000,
       requestTimeoutMs: 5000,
+      connectRequestTimeoutMs: 180_000,
       minRestartGapMs: 20_000,
       backoffMs: [10_000, 30_000, 60_000],
       devices: [{ id: 'a', indiDevice: 'Cam', usb: '03c3:260a', driver: 'indi_asi_ccd' }],
@@ -319,17 +304,6 @@ describe('rule a: a missing device whose hardware is present gets its driver res
     expect(fifo.map(entry => entry.line)).toEqual(['stop indi_asi_ccd', 'start indi_asi_ccd'])
   })
 
-  it('does nothing while commands are disabled', async () => {
-    const { cria, indi, present, fifo, poll, build } = current
-
-    cria.commandsEnabled = false
-    indi.missing('primary')
-    present.add('primary')
-    await poll(build(), 10)
-
-    expect(fifo).toEqual([])
-  })
-
   it('backs off 20 s (the restart floor), 30 s, then 60 s, and resets once the device is defined', async () => {
     const { indi, present, fifo, poll, build } = current
 
@@ -398,7 +372,7 @@ describe('rule a: a missing device whose hardware is present gets its driver res
 })
 
 describe('rule b: a device that is disconnected, or not set up in this Cria instance, gets one device-connect', () => {
-  it("posts device-connect with Cria's instance from /health, and stops once it settles confirmed", async () => {
+  it('posts device-connect and stops once Cria answers confirmed', async () => {
     const { cria, indi, present, poll, build } = current
 
     indi.set('mount', 'disconnected')
@@ -407,10 +381,9 @@ describe('rule b: a device that is disconnected, or not set up in this Cria inst
 
     await poll(supervisor, 2)
     expect(cria.posts.filter(post => post.deviceId === 'mount')).toEqual([
-      { instanceId: cria.instanceId, requestId: 'supervisor-uuid-1', deviceId: 'mount', kind: 'device-connect', parameters: { connected: true } },
+      { deviceId: 'mount', connected: true },
     ])
 
-    cria.settleAll()
     indi.set('mount', 'connected')
     await poll(supervisor, 20)
     expect(cria.posts.filter(post => post.deviceId === 'mount')).toHaveLength(1)
@@ -423,7 +396,6 @@ describe('rule b: a device that is disconnected, or not set up in this Cria inst
     const supervisor = build()
 
     await poll(supervisor, 2)
-    cria.settleAll()
     await poll(supervisor, 20)
 
     expect(cria.posts.filter(post => post.deviceId === 'focuser')).toHaveLength(1)
@@ -440,7 +412,7 @@ describe('rule b: a device that is disconnected, or not set up in this Cria inst
     cria.instanceId = '22222222-2222-4222-8222-222222222222'
     await poll(supervisor, 1)
 
-    expect(cria.posts.map(post => [post.deviceId, post.instanceId])).toEqual(devices.map(device => [device.id, cria.instanceId]))
+    expect(cria.posts.map(post => post.deviceId)).toEqual(devices.map(device => device.id))
   })
 
   it('sets a device up again after it disconnects and reconnects, or vanishes and returns', async () => {
@@ -450,7 +422,6 @@ describe('rule b: a device that is disconnected, or not set up in this Cria inst
     await setUpEverything(supervisor)
     indi.set('focuser', 'disconnected')
     await poll(supervisor, 1)
-    cria.settleAll()
     indi.set('focuser', 'connected')
     await poll(supervisor, 5)
     expect(cria.posts.map(post => post.deviceId)).toEqual(['focuser'])
@@ -463,19 +434,10 @@ describe('rule b: a device that is disconnected, or not set up in this Cria inst
     expect(cria.posts.map(post => post.deviceId)).toEqual(['mount'])
   })
 
-  it('sends no second device-connect while its own is still open', async () => {
-    const { cria, indi, present, poll, build } = current
-
-    indi.set('mount', 'disconnected')
-    present.add('mount')
-    await poll(build(), 30)
-
-    expect(cria.posts.filter(post => post.deviceId === 'mount')).toHaveLength(1)
-  })
-
-  it('retries after 10 s, then 30 s, then 60 s at most, each with a new request ID, when the outcome is not confirmed', async () => {
+  it('retries after 10 s, then 30 s, then 60 s at most, when the outcome is not confirmed', async () => {
     const { cria, clock, indi, present, build } = current
 
+    cria.answer = { status: 200, body: { outcome: 'uncertain' } }
     indi.set('mount', 'disconnected')
     present.add('mount')
     const supervisor = build()
@@ -486,25 +448,56 @@ describe('rule b: a device that is disconnected, or not set up in this Cria inst
 
       await supervisor.tick()
       if (cria.posts.length > before) sentAt.push(clock.at)
-      cria.settleAll('uncertain')
       clock.at += 5_000
     }
     const gaps = sentAt.slice(1).map((at, index) => (at - sentAt[index]!) / 1000)
 
     expect(gaps.slice(0, 5).map(gap => Math.floor(gap / 5) * 5)).toEqual([10, 30, 60, 60, 60])
-    expect(new Set(cria.posts.map(post => post.requestId)).size).toBe(cria.posts.length)
   })
 
-  it('backs off after a refusal such as device-busy', async () => {
+  it('backs off after a failed outcome and logs its message', async () => {
     const { cria, indi, present, logs, poll, build } = current
 
-    cria.answer = { status: 409, body: { error: { code: 'device-busy', message: 'busy' } } }
+    cria.answer = { status: 200, body: { outcome: 'failed', message: 'setup: TIME_UTC: bad' } }
     indi.set('mount', 'disconnected')
     present.add('mount')
     await poll(build(), 4)
 
     expect(cria.posts).toHaveLength(2)
-    expect(logs.some(line => line.includes('device-connect refused device-busy'))).toBe(true)
+    expect(logs.some(line => line.includes('device-connect failed (setup: TIME_UTC: bad)'))).toBe(true)
+  })
+
+  it('backs off after an HTTP error such as an unknown device', async () => {
+    const { cria, indi, present, logs, poll, build } = current
+
+    cria.answer = { status: 404, body: { message: 'No device mount' } }
+    indi.set('mount', 'disconnected')
+    present.add('mount')
+    await poll(build(), 4)
+
+    expect(cria.posts).toHaveLength(2)
+    expect(logs.some(line => line.includes('device-connect HTTP 404'))).toBe(true)
+  })
+
+  it('waits for a slow answer for longer than an ordinary request may take', async () => {
+    const slow = harness({ requestTimeoutMs: 100, connectRequestTimeoutMs: 5000 })
+
+    await slow.cria.start()
+    try {
+      slow.cria.connectDelayMs = 300
+      slow.indi.set('mount', 'disconnected')
+      slow.present.add('mount')
+      const supervisor = slow.build()
+
+      await slow.poll(supervisor, 2)
+      slow.indi.set('mount', 'connected')
+      await slow.poll(supervisor, 10)
+
+      expect(slow.cria.posts).toHaveLength(1)
+      expect(slow.logs.some(line => line.includes('mount: set up'))).toBe(true)
+    } finally {
+      await slow.cria.stop()
+    }
   })
 
   it('waits for hardware, and while CONNECTION is changing', async () => {
@@ -523,16 +516,6 @@ describe('rule b: a device that is disconnected, or not set up in this Cria inst
     expect(cria.posts.map(post => post.deviceId)).toEqual(['mount'])
   })
 
-  it('does nothing while commands are disabled', async () => {
-    const { cria, indi, present, poll, build } = current
-
-    cria.commandsEnabled = false
-    indi.set('mount', 'disconnected')
-    present.add('mount')
-    await poll(build(), 10)
-
-    expect(cria.posts).toEqual([])
-  })
 })
 
 describe('guards', () => {
@@ -563,7 +546,7 @@ describe('guards', () => {
   it('treats a health answer without an instance as Cria being unreachable', async () => {
     const { cria, indi, present, fifo, poll, build } = current
 
-    cria.health = () => ({ status: 'ok', protocolVersion: 5 })
+    cria.health = () => ({ status: 'ok', protocolVersion: 6 })
     indi.missing('primary')
     present.add('primary')
     await poll(build(), 5)

@@ -15,12 +15,7 @@ const rules = {
 type Rule = keyof typeof rules
 
 const allowed: Record<string, Partial<Record<Rule, readonly [count: number, why: string]>>> = {
-  'packages/primitives/src/outcome.ts': { 'catch-all': [1, 'settle: the one place an ending becomes a value'] },
-  'packages/primitives/src/discipline/stoppable.ts': { 'catch-all': [4, 'classifies start, settle and stop endings'] },
-  'packages/primitives/src/discipline/confirm.ts': { 'catch-all': [1, 'a failed read is retried; reads only'] },
-  'packages/fake-indi/src/play.ts': { 'node-timer': [1, 'the one real timer a played motion waits on; tests pass their own clock'] },
   'packages/fake-indi/src/server.ts': { 'promise-catch': [1, 'a write to a client that closed mid-image must not stop the writes queued behind it'] },
-  'packages/fits/src/frame.ts': { 'wall-clock': [1, 'a test frame is stamped with the moment it was made unless the caller says when'] },
   'packages/indi/src/client.ts': {
     'try-catch': [1, 'a bug in applying a message closes the socket from inside a Node data handler'],
     'wall-clock': [6, 'receive times and connection status times; the reconnect backoff resets after 10 s connected; the receive time of a forgotten property'],
@@ -40,28 +35,6 @@ const allowed: Record<string, Partial<Record<Rule, readonly [count: number, why:
     'wall-clock': [1, 'an entry with no time of its own is stamped when the client saw it'],
   },
   'apps/rig-stream/src/viewer.ts': { 'promise-catch': [1, 'a page whose stream fails is logged and closed, and its browser reconnects'] },
-  'apps/cria/src/capability/commands.ts': { 'catch-all': [1, 'notACommand: BLOB routing, not a physical command'] },
-  'apps/cria/src/capability/camera.ts': {
-    'try-catch': [1, 'an unreadable FITS header means the frame is not ours, in a plain function'],
-    'wall-clock': [2, 'dispatch time compared with the driver-stamped DATE-OBS; elapsed progress'],
-  },
-  'apps/cria/src/capability/setup.ts': {
-    'catch-all': [1, 'driver debug only helps watching the rig, so failing to set it is logged and never stops a device'],
-    'promise-catch': [1, 'the same line'],
-  },
-  'apps/cria/src/capability/fields.ts': { 'wall-clock': [1, 'takenAt compared with receive times, which are wall-clock'] },
-  'apps/cria/src/image/store.ts': {
-    'try-catch': [1, 'removes the partial file, then rethrows into Effect.tryPromise'],
-    'wall-clock': [1, 'retainedAt is a wire timestamp'],
-  },
-  'apps/cria/src/operation/ledger.ts': {
-    'catch-all': [1, 'records the outcome from the body exit'],
-    'wall-clock': [3, 'admission and settle use wire epoch timestamps'],
-  },
-  'apps/cria/src/wire/http.ts': {
-    'try-catch': [1, 'a body that is not JSON is refused as request-error'],
-    'promise-catch': [3, "the Node request handler's boundary; an image that cannot be opened is gone; closing after a download reports nothing"],
-  },
 }
 
 function sources(directory: string): string[] {
@@ -99,7 +72,7 @@ describe('source rules', () => {
     expect(
       lint({
         'apps/cria/src/new.ts': 'Effect.ignore(x); try { y() } catch {}; p.catch(() => 0); Date.now(); setTimeout(f, 1)',
-        'packages/fits/src/frame.ts': 'const stamp = 0',
+        'apps/rig-stream/src/client.ts': 'const stamp = 0',
       }),
     ).toEqual([
       'apps/cria/src/new.ts: catch-all found 1, allowed 0',
@@ -107,7 +80,7 @@ describe('source rules', () => {
       'apps/cria/src/new.ts: promise-catch found 1, allowed 0',
       'apps/cria/src/new.ts: wall-clock found 1, allowed 0',
       'apps/cria/src/new.ts: node-timer found 1, allowed 0',
-      'packages/fits/src/frame.ts: wall-clock found 0, allowed 1',
+      'apps/rig-stream/src/client.ts: wall-clock found 0, allowed 1',
     ])
   })
 })

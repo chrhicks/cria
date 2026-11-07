@@ -1,17 +1,11 @@
 {
   "listen": { "host": "127.0.0.1", "port": 4319 },
   "indi": { "host": "127.0.0.1", "port": 7624 },
-  "imageDirectory": "/var/lib/cria/images",
-  "imageBudgetBytes": 1073741824,
-  "commandsEnabled": true,
-  "acknowledgeMs": 5000,
-  "operationTimeoutMs": 180000,
   "connectTimeoutMs": 120000,
-  "operationHistory": 1000,
   "devices": [
     { "id": "primary", "kind": "camera", "indiDevice": "ZWO CCD ASI2600MC Pro" },
     { "id": "guide", "kind": "camera", "indiDevice": "ZWO CCD ASI220MM Mini" },
-    { "id": "focuser", "kind": "focuser", "indiDevice": "ZWO EAF", "travel": { "min": 15500, "max": 38000 } },
+    { "id": "focuser", "kind": "focuser", "indiDevice": "ZWO EAF" },
     {
       "id": "mount",
       "kind": "mount",
@@ -24,15 +18,7 @@
       "id": "box",
       "kind": "box",
       "indiDevice": "Pegasus PPBA",
-      "port": "/dev/serial/by-id/usb-Pegasus_Astro_PPBMicro_revB_PPBMA00000-if00-port0",
-      "channels": [
-        { "name": "12V ports", "property": "POWER_CHANNELS", "element": "POWER_CHANNEL_1" },
-        { "name": "Dew A", "property": "DEW_CHANNELS", "element": "DEW_CHANNEL_1" },
-        { "name": "Dew B", "property": "DEW_CHANNELS", "element": "DEW_CHANNEL_2" },
-        { "name": "Dew A duty (%)", "property": "DEW_DUTY_CYCLES", "element": "DEW_CHANNEL_1", "automaticWhileOn": "Auto dew" },
-        { "name": "Dew B duty (%)", "property": "DEW_DUTY_CYCLES", "element": "DEW_CHANNEL_2", "automaticWhileOn": "Auto dew" },
-        { "name": "Auto dew", "property": "AUTO_DEW_CONTROL", "element": "DEW_CHANNEL_1" }
-      ]
+      "port": "/dev/serial/by-id/usb-Pegasus_Astro_PPBMicro_revB_PPBMA00000-if00-port0"
     }
   ]
 }

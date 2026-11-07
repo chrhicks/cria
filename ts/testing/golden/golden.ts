@@ -1,5 +1,3 @@
-import { createHash } from 'node:crypto'
-
 export const failedStep = 'scenario failed'
 
 export interface Entry {
@@ -14,35 +12,21 @@ export interface Entry {
 export interface Recorded {
   readonly request: string
   readonly sent?: unknown
-  readonly status: number
+  status: number
   body: unknown
 }
 
 export function recordingFetch(into: Recorded[]): typeof globalThis.fetch {
   return async (input, init) => {
     const response = await fetch(input, init)
-    const url = new URL(String(input))
-    const type = response.headers.get('content-type') ?? ''
     const entry: Recorded = {
-      request: `${init?.method ?? 'GET'} ${url.pathname}`,
+      request: `${init?.method ?? 'GET'} ${new URL(String(input)).pathname}`,
       ...(typeof init?.body === 'string' ? { sent: JSON.parse(init.body) } : {}),
       status: response.status,
-      body: { contentType: type },
+      body: await response.clone().json(),
     }
 
     into.push(entry)
-    if (type === 'application/json') entry.body = await response.clone().json()
-    if (type === 'application/fits') {
-      const bytes = Buffer.from(await response.clone().arrayBuffer())
-
-      entry.body = {
-        contentType: type,
-        contentLength: response.headers.get('content-length'),
-        etag: response.headers.get('etag'),
-        bytes: bytes.length,
-        sha256: createHash('sha256').update(bytes).digest('hex'),
-      }
-    }
 
     return response
   }
@@ -50,56 +34,23 @@ export function recordingFetch(into: Recorded[]): typeof globalThis.fetch {
 
 const uuid = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/g
 const utc = /\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d/g
-const times = new Set(['acceptedAt', 'startedAt', 'settledAt', 'observedAt', 'generatedAt', 'since', 'commandedAt', 'sentAt', 'capturedAt', 'retainedAt', 'at'])
-const labels: Record<string, string> = {
-  instanceId: 'instance',
-  requestId: 'request',
-  operationId: 'operation',
-  url: 'image',
-}
-
-function labelOf(key: string, parent: object): string {
-  if (key === 'id' && 'requestId' in parent) return 'operation'
-  if (key === 'id' && 'sha256' in parent) return 'image'
-
-  return labels[key] ?? 'id'
-}
 
 export function normalize(scenario: string, recorded: ReadonlyArray<Recorded>): Entry[] {
   const names = new Map<string, string>()
-  const counts = new Map<string, number>()
 
-  const name = (id: string, label: string) => {
-    const known = names.get(id)
-
-    if (known) return known
-    const count = (counts.get(label) ?? 0) + 1
-
-    counts.set(label, count)
-    names.set(id, `<${label}-${count}>`)
-
-    return `<${label}-${count}>`
-  }
-
-  const visit = (value: unknown, key: string, parent: object, motionObservation = false): unknown => {
-    if (Array.isArray(value)) return value.map(item => visit(item, key, parent, motionObservation))
-    if (key === 'siderealTimeHours' && value !== null && typeof value === 'object' && typeof (value as { value?: unknown }).value === 'number')
-      return visit({ ...value, value: '<sidereal>' }, key, parent, motionObservation)
+  const visit = (value: unknown): unknown => {
+    if (Array.isArray(value)) return value.map(visit)
     if (value !== null && typeof value === 'object')
       return Object.fromEntries(
         Object.keys(value)
           .sort()
-          .map(inner => [inner, visit((value as Record<string, unknown>)[inner], inner, value, motionObservation || (inner === 'observed' && 'commanded' in value && 'stopped' in value))]),
+          .map(key => [key, visit((value as Record<string, unknown>)[key])]),
       )
-    if (typeof value === 'number' && key === 'coastDegrees') return '<angle>'
-    // Abort endpoints depend on when the stop arrives. Fixture tests check the actual displacement.
-    if (motionObservation && typeof value === 'number') return '<angle>'
-    if (typeof value === 'number' && times.has(key)) return '<time>'
-    if (typeof value === 'number' && key === 'elapsedSeconds') return '<elapsed>'
-    if (typeof value === 'number' && key === 'sequence') return '<sequence>'
-    if (typeof value === 'string' && value.length > 1000) return `<${value.length} characters>`
-    if (typeof value === 'string' && (key === 'sha256' || key === 'etag')) return name(value.replaceAll('"', ''), 'sha256')
-    if (typeof value === 'string') return value.replace(uuid, id => name(id, labelOf(key, parent))).replace(utc, '<utc>')
+    if (typeof value === 'string')
+      return value
+        .replace(uuid, id => names.get(id) ?? names.set(id, `<instance-${names.size + 1}>`).get(id)!)
+        .replace(utc, '<utc>')
+        .replace(/LONG=247\.93\d*/, 'LONG=247.93')
 
     return value
   }
@@ -107,84 +58,25 @@ export function normalize(scenario: string, recorded: ReadonlyArray<Recorded>): 
   return recorded.map((entry, index) => ({
     scenario,
     step: index + 1,
-    request: visit(entry.request, 'request', {}) as string,
-    ...(entry.sent === undefined ? {} : { sent: visit(entry.sent, 'sent', {}) }),
+    request: entry.request,
+    ...(entry.sent === undefined ? {} : { sent: visit(entry.sent) }),
     status: entry.status,
-    body: visit(entry.body, 'body', {}),
+    body: visit(entry.body),
   }))
 }
 
 export function diff(expected: ReadonlyArray<Entry>, actual: ReadonlyArray<Entry>): string[] {
-  const group = (entries: ReadonlyArray<Entry>) => {
-    const groups = new Map<string, Entry[]>()
-
-    for (const entry of entries) groups.set(entry.scenario, [...(groups.get(entry.scenario) ?? []), entry])
-
-    return groups
-  }
-  const want = group(expected)
-  const got = group(actual)
   const report: string[] = []
 
-  for (const scenario of new Set([...want.keys(), ...got.keys()])) {
-    const before = want.get(scenario)
-    const after = got.get(scenario)
+  for (let index = 0; index < Math.max(expected.length, actual.length); index++) {
+    const want = expected[index]
+    const got = actual[index]
 
-    if (!before) {
-      report.push(`scenario "${scenario}": new, not in the golden`)
-      continue
-    }
-    if (!after) {
-      report.push(`scenario "${scenario}": in the golden, did not run`)
-      continue
-    }
-
-    for (let step = 0; step < Math.max(before.length, after.length); step++) {
-      const want = before[step]
-      const got = after[step]
-
-      if (got?.request === failedStep || !got) {
-        if (got) report.push(`scenario "${scenario}", step ${step + 1}: the scenario stopped: ${String(got.body)}`)
-        if (before.length > step) report.push(`scenario "${scenario}": golden steps ${step + 1} to ${before.length} did not run`)
-        break
-      }
-      if (!want) {
-        report.push(`scenario "${scenario}", step ${step + 1} (${got.request}): not in the golden`)
-        continue
-      }
-
-      const lines: string[] = []
-
-      compare(want, got, '', lines)
-      if (lines.length > 0) report.push(`scenario "${scenario}", step ${step + 1} (${got.request}):`, ...lines.map(line => `  ${line}`))
-    }
+    if (got?.request === failedStep) report.push(`scenario "${got.scenario}": the scenario stopped: ${String(got.body)}`)
+    else if (!want) report.push(`scenario "${got!.scenario}", step ${got!.step} (${got!.request}): not in the golden`)
+    else if (!got) report.push(`scenario "${want.scenario}", step ${want.step} (${want.request}): in the golden, did not run`)
+    else if (JSON.stringify(want) !== JSON.stringify(got)) report.push(`scenario "${got.scenario}", step ${got.step} (${got.request}):`, `  golden ${JSON.stringify(want)}`, `  got    ${JSON.stringify(got)}`)
   }
 
   return report
-}
-
-function compare(expected: unknown, actual: unknown, path: string, lines: string[]) {
-  if (isObject(expected) && isObject(actual)) {
-    for (const key of new Set([...Object.keys(expected), ...Object.keys(actual)])) {
-      const inner = Array.isArray(expected) ? `${path}[${key}]` : path ? `${path}.${key}` : key
-
-      if (!(key in actual)) lines.push(`${inner}: missing (golden has ${show(expected[key])})`)
-      else if (!(key in expected)) lines.push(`${inner}: unexpected ${show(actual[key])}`)
-      else compare(expected[key], actual[key], inner, lines)
-    }
-
-    return
-  }
-
-  if (JSON.stringify(expected) !== JSON.stringify(actual)) lines.push(`${path}: golden ${show(expected)}, got ${show(actual)}`)
-}
-
-function isObject(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === 'object'
-}
-
-function show(value: unknown): string {
-  const text = JSON.stringify(value) ?? 'nothing'
-
-  return text.length > 120 ? `${text.slice(0, 117)}...` : text
 }
