@@ -2,7 +2,7 @@
  * Capability: device setup (docs/ts/SPEC.md, "Device setup"). The AM5 refuses
  * every goto until its site and time are set after it powers on.
  */
-import { Clock, Effect, Ref } from 'effect'
+import { Clock, Data, Effect, Ref, Schedule } from 'effect'
 import type { Values } from '@cria/indi'
 import { Failed, type Uncertain, type Reading } from '@cria/primitives'
 import type { DeviceKind } from '@cria/wire'
@@ -22,18 +22,21 @@ type Plan =
   | { readonly kind: 'write'; readonly property: string; readonly values: Values; readonly write: Effect.Effect<unknown, Failed | Uncertain> }
   | { readonly kind: 'none'; readonly outcome: StepOutcome }
 
-type Step = (context: CapabilityContext, snapshot: DeviceSnapshot, device: DeviceConfig, now: number) => Effect.Effect<Plan, Failed>
+type Step = (context: CapabilityContext, snapshot: DeviceSnapshot, device: DeviceConfig, now: number) => Effect.Effect<Plan, Failed | DefinitionsSettling>
 
 const setting = { alertMeansStale: false }
 
 const kept = (property: string, why: string): Plan => ({ kind: 'none', outcome: { property, done: true, text: `${property} ${why}` } })
 const notSent = (property: string, why: string): Plan => ({ kind: 'none', outcome: { property, done: false, text: `${property} not sent: ${why}` } })
 
-function defines(reading: Reading.Reading<unknown>, property: string): Effect.Effect<boolean, Failed> {
+class DefinitionsSettling extends Data.TaggedError('DefinitionsSettling')<{ readonly property: string }> {}
+
+function defines(reading: Reading.Reading<unknown>, property: string): Effect.Effect<boolean, Failed | DefinitionsSettling> {
   if (reading.status !== 'unavailable') return Effect.succeed(true)
   if (reading.reason === 'unsupported') return Effect.succeed(false)
+  if (reading.reason === 'not-read') return Effect.fail(new DefinitionsSettling({ property }))
 
-  return Effect.fail(new Failed({ reason: 'unavailable', message: `${property} is not read yet` }))
+  return Effect.fail(new Failed({ reason: 'unavailable', message: `${property} is not read: ${reading.message ?? reading.reason}` }))
 }
 
 const uploadToClient: Step = (context, snapshot) =>
@@ -119,12 +122,6 @@ export interface DeviceSetup {
   readonly hasSteps: boolean
   /** What setup did since the device connected; undefined while it is due. */
   readonly current: Effect.Effect<ReadonlyArray<StepOutcome> | undefined>
-  /**
-   * Whether setup has a write to make now. When it has none, records that at
-   * once. Fails while the device is not connected and current, or a reading a
-   * step needs is not read yet.
-   */
-  readonly due: Effect.Effect<boolean, Failed>
   /** Runs every step in order and records what happened; returns the summary an operation reports. */
   readonly run: Effect.Effect<string | undefined, Failed>
   readonly endSession: Effect.Effect<void>
@@ -143,20 +140,10 @@ export function makeDeviceSetup(context: CapabilityContext, device: DeviceConfig
     const plan = (step: Step) =>
       Effect.gen(function* () {
         return yield* step(context, yield* liveSnapshot(context), device, yield* Clock.currentTimeMillis)
-      })
-
-    const due = Effect.gen(function* () {
-      const { session, outcomes } = yield* Ref.get(state)
-
-      if (outcomes !== undefined) return false
-      const plans = yield* Effect.forEach(kindSteps, plan)
-      const unneeded = plans.flatMap(planned => (planned.kind === 'none' ? [planned.outcome] : []))
-
-      if (unneeded.length < plans.length) return true
-      yield* record(session, unneeded)
-
-      return false
-    })
+      }).pipe(
+        Effect.retry({ while: error => error._tag === 'DefinitionsSettling', schedule: Schedule.spaced('250 millis') }),
+        Effect.mapError(error => (error._tag === 'DefinitionsSettling' ? new Failed({ reason: 'unavailable', message: `${error.property} is not read yet` }) : error)),
+      )
 
     const run = Effect.gen(function* () {
       const { session } = yield* Ref.get(state)
@@ -187,7 +174,6 @@ export function makeDeviceSetup(context: CapabilityContext, device: DeviceConfig
     return {
       hasSteps: kindSteps.length > 0,
       current: Effect.map(Ref.get(state), current => current.outcomes),
-      due,
       run,
       endSession: Ref.update(state, current => ({ session: current.session + 1, outcomes: kindSteps.length === 0 ? [] : undefined })),
     }

@@ -9,7 +9,7 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { FakeIndi, connection } from '@cria/fake-indi'
 import { addDewHeaters, addEaf, appliesNothing } from './drivers.js'
-import { allReady, noneNotRead, startCria, type Cria } from './harness.js'
+import { allReady, connectDevices, noneNotRead, startCria, type Cria } from './harness.js'
 
 const eaf = 'ZWO EAF'
 let fake: FakeIndi
@@ -25,6 +25,7 @@ async function startFocuser(options: Parameters<typeof addEaf>[2], wrap: (inner:
   await fake.start()
   fake.behaviour = wrap(addEaf(fake, eaf, options))
   cria = await startCria(fake.port, [{ id: 'focuser', kind: 'focuser', indiDevice: eaf }], { acknowledgeMs: 600 })
+  await connectDevices(cria, ['focuser'])
   await cria.waitFor(allReady(['focuser']))
   await cria.waitFor(noneNotRead)
 }
@@ -71,6 +72,7 @@ describe('a power box that acknowledges a switch write and does not apply it (de
     addDewHeaters(fake, box)
     fake.behaviour = appliesNothing('POWER_CHANNELS')
     cria = await startCria(fake.port, [{ id: 'box', kind: 'box', indiDevice: box, channels: [{ name: '12V', property: 'POWER_CHANNELS', element: 'POWER_CHANNEL_1' }] }], { acknowledgeMs: 600 })
+    await connectDevices(cria, ['box'])
     await cria.waitFor(allReady(['box']))
 
     const first = await cria.run('box', 'switch-set', { channelId: 0, value: 0 })

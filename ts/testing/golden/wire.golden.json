@@ -506,8 +506,32 @@
       "operations": [
         {
           "acceptedAt": "<time>",
-          "deviceId": "mount",
+          "deviceId": "camera",
           "id": "<operation-1>",
+          "instanceId": "<instance-1>",
+          "kind": "device-connect",
+          "outcome": {
+            "kind": "confirmed",
+            "value": {
+              "image": null,
+              "values": {
+                "connected": true,
+                "setup": "UPLOAD_MODE already sends frames to Cria"
+              }
+            }
+          },
+          "parameters": {
+            "connected": true
+          },
+          "requestId": "<request-1>",
+          "settledAt": "<time>",
+          "startedAt": "<time>",
+          "state": "settled"
+        },
+        {
+          "acceptedAt": "<time>",
+          "deviceId": "mount",
+          "id": "<operation-2>",
           "instanceId": "<instance-1>",
           "kind": "device-connect",
           "outcome": {
@@ -523,7 +547,7 @@
           "parameters": {
             "connected": true
           },
-          "requestId": "setup-<request-1>",
+          "requestId": "<request-2>",
           "settledAt": "<time>",
           "startedAt": "<time>",
           "state": "settled"
@@ -1030,8 +1054,32 @@
       "operations": [
         {
           "acceptedAt": "<time>",
-          "deviceId": "mount",
+          "deviceId": "camera",
           "id": "<operation-1>",
+          "instanceId": "<instance-1>",
+          "kind": "device-connect",
+          "outcome": {
+            "kind": "confirmed",
+            "value": {
+              "image": null,
+              "values": {
+                "connected": true,
+                "setup": "UPLOAD_MODE already sends frames to Cria"
+              }
+            }
+          },
+          "parameters": {
+            "connected": true
+          },
+          "requestId": "<request-1>",
+          "settledAt": "<time>",
+          "startedAt": "<time>",
+          "state": "settled"
+        },
+        {
+          "acceptedAt": "<time>",
+          "deviceId": "mount",
+          "id": "<operation-2>",
           "instanceId": "<instance-1>",
           "kind": "device-connect",
           "outcome": {
@@ -1047,7 +1095,7 @@
           "parameters": {
             "connected": true
           },
-          "requestId": "setup-<request-1>",
+          "requestId": "<request-2>",
           "settledAt": "<time>",
           "startedAt": "<time>",
           "state": "settled"
@@ -1522,6 +1570,30 @@
       "generatedAt": "<time>",
       "instanceId": "<instance-1>",
       "operations": [
+        {
+          "acceptedAt": "<time>",
+          "deviceId": "camera",
+          "id": "<operation-2>",
+          "instanceId": "<instance-1>",
+          "kind": "device-connect",
+          "outcome": {
+            "kind": "confirmed",
+            "value": {
+              "image": null,
+              "values": {
+                "connected": true,
+                "setup": "UPLOAD_MODE already sends frames to Cria"
+              }
+            }
+          },
+          "parameters": {
+            "connected": true
+          },
+          "requestId": "<request-2>",
+          "settledAt": "<time>",
+          "startedAt": "<time>",
+          "state": "settled"
+        },
         {
           "acceptedAt": "<time>",
           "deviceId": "camera",
@@ -2725,14 +2797,46 @@
     }
   },
   {
-    "scenario": "mount-slew on an AM5 set up at start: the site, then the time, then the goto",
+    "scenario": "mount-slew on an AM5 set up by device-connect: the site, then the time, then the goto",
     "step": 1,
-    "request": "GET /v2/operations/<id-1>",
+    "request": "POST /v2/operations",
+    "sent": {
+      "deviceId": "mount",
+      "instanceId": "<instance-1>",
+      "kind": "device-connect",
+      "parameters": {
+        "connected": true
+      },
+      "requestId": "<request-1>"
+    },
+    "status": 202,
+    "body": {
+      "acceptedAt": "<time>",
+      "deviceId": "mount",
+      "id": "<operation-1>",
+      "instanceId": "<instance-1>",
+      "kind": "device-connect",
+      "parameters": {
+        "connected": true
+      },
+      "progress": {
+        "elapsedSeconds": null,
+        "phase": "preparing"
+      },
+      "requestId": "<request-1>",
+      "startedAt": "<time>",
+      "state": "running"
+    }
+  },
+  {
+    "scenario": "mount-slew on an AM5 set up by device-connect: the site, then the time, then the goto",
+    "step": 2,
+    "request": "GET /v2/operations/<operation-1>",
     "status": 200,
     "body": {
       "acceptedAt": "<time>",
       "deviceId": "mount",
-      "id": "<id-1>",
+      "id": "<operation-1>",
       "instanceId": "<instance-1>",
       "kind": "device-connect",
       "outcome": {
@@ -2748,15 +2852,15 @@
       "parameters": {
         "connected": true
       },
-      "requestId": "setup-<request-1>",
+      "requestId": "<request-1>",
       "settledAt": "<time>",
       "startedAt": "<time>",
       "state": "settled"
     }
   },
   {
-    "scenario": "mount-slew on an AM5 set up at start: the site, then the time, then the goto",
-    "step": 2,
+    "scenario": "mount-slew on an AM5 set up by device-connect: the site, then the time, then the goto",
+    "step": 3,
     "request": "POST /v2/operations",
     "sent": {
       "deviceId": "mount",
@@ -2773,7 +2877,7 @@
     "body": {
       "acceptedAt": "<time>",
       "deviceId": "mount",
-      "id": "<operation-1>",
+      "id": "<operation-2>",
       "instanceId": "<instance-1>",
       "kind": "mount-slew",
       "parameters": {
@@ -2791,14 +2895,14 @@
     }
   },
   {
-    "scenario": "mount-slew on an AM5 set up at start: the site, then the time, then the goto",
-    "step": 3,
-    "request": "GET /v2/operations/<operation-1>",
+    "scenario": "mount-slew on an AM5 set up by device-connect: the site, then the time, then the goto",
+    "step": 4,
+    "request": "GET /v2/operations/<operation-2>",
     "status": 200,
     "body": {
       "acceptedAt": "<time>",
       "deviceId": "mount",
-      "id": "<operation-1>",
+      "id": "<operation-2>",
       "instanceId": "<instance-1>",
       "kind": "mount-slew",
       "motion": {
@@ -4807,6 +4911,30 @@
         {
           "acceptedAt": "<time>",
           "deviceId": "camera",
+          "id": "<operation-2>",
+          "instanceId": "<instance-1>",
+          "kind": "device-connect",
+          "outcome": {
+            "kind": "confirmed",
+            "value": {
+              "image": null,
+              "values": {
+                "connected": true,
+                "setup": "UPLOAD_MODE already sends frames to Cria"
+              }
+            }
+          },
+          "parameters": {
+            "connected": true
+          },
+          "requestId": "<request-2>",
+          "settledAt": "<time>",
+          "startedAt": "<time>",
+          "state": "settled"
+        },
+        {
+          "acceptedAt": "<time>",
+          "deviceId": "camera",
           "id": "<operation-1>",
           "instanceId": "<instance-1>",
           "kind": "capture",
@@ -4841,13 +4969,13 @@
         "exposureSeconds": 0.05,
         "light": true
       },
-      "requestId": "<request-2>"
+      "requestId": "<request-3>"
     },
     "status": 202,
     "body": {
       "acceptedAt": "<time>",
       "deviceId": "camera",
-      "id": "<operation-2>",
+      "id": "<operation-3>",
       "instanceId": "<instance-1>",
       "kind": "capture",
       "parameters": {
@@ -4858,7 +4986,7 @@
         "elapsedSeconds": null,
         "phase": "preparing"
       },
-      "requestId": "<request-2>",
+      "requestId": "<request-3>",
       "startedAt": "<time>",
       "state": "running"
     }
@@ -4866,12 +4994,12 @@
   {
     "scenario": "no acknowledgement: uncertain, the next capture runs",
     "step": 5,
-    "request": "GET /v2/operations/<operation-2>",
+    "request": "GET /v2/operations/<operation-3>",
     "status": 200,
     "body": {
       "acceptedAt": "<time>",
       "deviceId": "camera",
-      "id": "<operation-2>",
+      "id": "<operation-3>",
       "instanceId": "<instance-1>",
       "kind": "capture",
       "outcome": {
@@ -4887,7 +5015,7 @@
             "height": 6,
             "id": "<image-1>",
             "instanceId": "<instance-1>",
-            "operationId": "<operation-2>",
+            "operationId": "<operation-3>",
             "original": {
               "bytes": 140,
               "mediaType": "application/imagebytes",
@@ -4904,7 +5032,7 @@
         "exposureSeconds": 0.05,
         "light": true
       },
-      "requestId": "<request-2>",
+      "requestId": "<request-3>",
       "settledAt": "<time>",
       "startedAt": "<time>",
       "state": "settled"
@@ -5124,7 +5252,32 @@
       ],
       "generatedAt": "<time>",
       "instanceId": "<instance-1>",
-      "operations": [],
+      "operations": [
+        {
+          "acceptedAt": "<time>",
+          "deviceId": "camera",
+          "id": "<operation-1>",
+          "instanceId": "<instance-1>",
+          "kind": "device-connect",
+          "outcome": {
+            "kind": "confirmed",
+            "value": {
+              "image": null,
+              "values": {
+                "connected": true,
+                "setup": "UPLOAD_MODE already sends frames to Cria"
+              }
+            }
+          },
+          "parameters": {
+            "connected": true
+          },
+          "requestId": "<request-1>",
+          "settledAt": "<time>",
+          "startedAt": "<time>",
+          "state": "settled"
+        }
+      ],
       "protocolVersion": 5,
       "sequence": "<sequence>"
     }
@@ -5316,7 +5469,32 @@
       ],
       "generatedAt": "<time>",
       "instanceId": "<instance-1>",
-      "operations": [],
+      "operations": [
+        {
+          "acceptedAt": "<time>",
+          "deviceId": "camera",
+          "id": "<operation-1>",
+          "instanceId": "<instance-1>",
+          "kind": "device-connect",
+          "outcome": {
+            "kind": "confirmed",
+            "value": {
+              "image": null,
+              "values": {
+                "connected": true,
+                "setup": "UPLOAD_MODE already sends frames to Cria"
+              }
+            }
+          },
+          "parameters": {
+            "connected": true
+          },
+          "requestId": "<request-1>",
+          "settledAt": "<time>",
+          "startedAt": "<time>",
+          "state": "settled"
+        }
+      ],
       "protocolVersion": 5,
       "sequence": "<sequence>"
     }
@@ -5509,7 +5687,32 @@
       ],
       "generatedAt": "<time>",
       "instanceId": "<instance-1>",
-      "operations": [],
+      "operations": [
+        {
+          "acceptedAt": "<time>",
+          "deviceId": "camera",
+          "id": "<operation-1>",
+          "instanceId": "<instance-1>",
+          "kind": "device-connect",
+          "outcome": {
+            "kind": "confirmed",
+            "value": {
+              "image": null,
+              "values": {
+                "connected": true,
+                "setup": "UPLOAD_MODE already sends frames to Cria"
+              }
+            }
+          },
+          "parameters": {
+            "connected": true
+          },
+          "requestId": "<request-1>",
+          "settledAt": "<time>",
+          "startedAt": "<time>",
+          "state": "settled"
+        }
+      ],
       "protocolVersion": 5,
       "sequence": "<sequence>"
     }

@@ -41,18 +41,19 @@ In `supervisor.json`, use errai's real serial by-id paths for the mount and the 
 The mini PC may boot before the rest of the rig has power. Nothing has to be started by hand:
 
 1. `indiserver`, Cria and the supervisor start at boot. Cria serves its API at once; every device reads `unavailable` until its driver defines it.
-2. `indi_lx200am5` and `indi_pegasus_ppba` always define their device, but connecting fails until the serial port exists. When the port appears, the supervisor sends `device-connect`; Cria writes the port, connects, and runs device setup (site and time for the AM5).
+2. `indi_lx200am5` and `indi_pegasus_ppba` always define their device, but connecting fails until the serial port exists. When the port appears, the supervisor sends `device-connect`; Cria writes the port, connects, and then runs device setup (site and time for the AM5). Until then the device reads `disconnected`.
 3. `indi_asi_ccd` and `indi_asi_focuser` define a device only if the USB device is present when the driver starts. When a camera or the EAF is powered later, the supervisor restarts that one driver, then connects the device the same way.
+4. A device that is connected but not set up reads `starting`, for example after a Cria restart or a power-on that left the driver connected. Cria does not set it up by itself: the supervisor sends the same `device-connect`, within about two polls (roughly 10 s), and Cria connects if it has to and runs the setup steps.
 
 Each step waits for the picture to hold for two polls (about 10 s) so a device that has just enumerated, or Cria's first seconds after it reconnects to indiserver, do not cause a restart.
 
 ## The rig supervisor
 
-Cria never restarts a driver and never connects a device on its own. Chris asked on 2026-10-16 for an outside process that does exactly that, narrowly, so the rig comes up unattended. `ts/deploy/rig-supervisor.mjs` is that process (Node built-ins only). It is the one exception to the old rule "never restart a driver automatically". It polls Cria's `GET /v2/state` every 5 s and does two things.
+Cria never restarts a driver, and never connects or sets up a device on its own. Chris asked on 2026-10-16 for an outside process that does exactly that, narrowly, so the rig comes up unattended. `ts/deploy/rig-supervisor.mjs` is that process (Node built-ins only). It is the one exception to the old rule "never restart a driver automatically". It polls Cria's `GET /v2/state` every 5 s and does two things. Cria only acts when asked, so the supervisor is the only thing on the rig that asks for a device's connection and setup.
 
 **Restart a driver.** A configured device whose availability reads `unavailable` (indiserver or the driver does not define it), whose hardware is present (a USB `vid:pid` in sysfs, or the serial path), gets its driver restarted, if nothing is open on any device that driver serves, and none of them is exposing, slewing or moving. The supervisor writes `stop <driver>`, waits 1 s, then writes `start <driver>` to the FIFO. Both cameras share `indi_asi_ccd`, so restarting it drops the other camera's INDI session too, which is why the check covers every device of the driver. A device on that driver that was connected is disconnected by the restart, and the supervisor connects it again. Repeats back off at 20 s (never more than one restart per driver per 20 s), then 30 s, then 60 s; the count resets when the driver's devices show up.
 
-**Connect a device.** A defined device whose availability reads `disconnected`, whose hardware is present, with commands enabled and nothing open on it, gets one `POST /v2/operations` with `device-connect`, `connected: true` and a fresh `supervisor-<uuid>` request ID. A request is never resent. Further attempts wait 10 s, then 30 s, then 60 s while the device stays disconnected. After a refusal that says `commands-disabled` or an open operation (`device-busy`), it waits quietly until that has cleared.
+**Connect and set up a device.** A defined device whose availability reads `disconnected`, or `starting` (connected, setup not run), whose hardware is present, with commands enabled and nothing open on it, gets one `POST /v2/operations` with `device-connect`, `connected: true` and a fresh `supervisor-<uuid>` request ID. A request is never resent. Further attempts wait 10 s, then 30 s, then 60 s while the device stays `disconnected` or `starting`; the count resets when it is ready. After a refusal that says `commands-disabled` or an open operation (`device-busy`), it waits quietly until that has cleared.
 
 It does nothing at all while Cria is unreachable (and must see Cria and the hardware agree for two polls after it returns), while commands are disabled, and, for the restart, when every device is unavailable (indiserver is down, not one driver). It never switches power, and never sends motion, exposure or any other command. It logs one line per decision to stdout, so `journalctl --user -u rig-supervisor` shows every action.
 
@@ -225,19 +226,20 @@ One setting decides whether Cria can change the rig:
 
 - `commandsEnabled: false` makes the deploy read-only. Every operation is refused with `403 commands-disabled`, and every device's `availability` reads `commands-disabled`. That reason takes precedence over the others, so in a read-only deploy the readings show whether a device is stale or disconnected, and `availability` does not.
 
-Cria never switches power or connects a device on its own. A device connects only when a `device-connect` operation asks it to, after writing its serial `port`; on the rig the supervisor sends it.
+Cria never switches power, connects a device or sets one up on its own. A device connects, and is set up, only when a `device-connect` operation with `connected: true` asks it to, after writing its serial `port` if it has to connect; on the rig the supervisor sends it.
 
 `listen.host` is `127.0.0.1` in both configurations, so only errai itself can reach Cria. Vela runs on another machine, so `listen.host` has to be errai's tailnet address before Vela can connect. Cria refuses any request with an `Origin` header, so a browser cannot call it.
 
 ## Stop and restart
 
-`systemctl stop` sends SIGTERM. Cria then interrupts every running operation. Each one aborts its exposure, or stops the mount or the focuser, and confirms the stop before the process exits. `cria.service` allows 180 s for this, because a start-up connect can run for up to `initializeTimeoutMs` (120 s) before the stops start, and each stop then gets up to 20 s. SIGINT does the same.
+`systemctl stop` sends SIGTERM. Cria then interrupts every running operation. Each one aborts its exposure, or stops the mount or the focuser, and confirms the stop before the process exits. `cria.service` allows 180 s for this, because a `device-connect` can run for up to `initializeTimeoutMs` (120 s) before the stops start, and each stop then gets up to 20 s. SIGINT does the same.
 
 A restart is a new Cria with nothing carried over:
 
 - It has a new `instanceId`. Anything in flight before the restart is unknown.
 - The operation table is empty. No request IDs carry over.
 - The image folder is emptied.
+- Nothing about setup carries over. Every connected device with setup steps reads `starting`, and the supervisor's `device-connect` sets it up again within about two polls (roughly 10 s). Without the supervisor it stays `starting` until a person or Vela sends one.
 
 The INDI drivers keep running and keep their state. A camera that was exposing still reads `exposing`, and a new capture on it settles `failed: busy`.
 
@@ -249,7 +251,7 @@ If a driver crashes, `indiserver` deletes its properties and Cria reports the de
 
 1. stops the supervisor, then Cria (each running operation stops its device first, as above), then indiserver and every driver;
 2. starts indiserver and its drivers, and waits in `indi-ready.sh` until they are up;
-3. starts Cria, which connects with an empty copy and runs device setup (site and time on the mount), then the supervisor, which connects the devices.
+3. starts Cria, which connects with an empty copy, then the supervisor, which sends each device its `device-connect`; Cria then connects it if needed and runs device setup (site and time on the mount).
 
 Use this instead of restarting one driver through the FIFO or Cria on its own when a driver stops answering. Why: on 2026-11-03 the AM5, EAF and Pegasus drivers each went stale after about three hours (writes unanswered, readings not refreshed). Restarting them one by one worked, but a restart of indiserver under a running Cria leaves Cria with stale copies ("What it cannot see" above), and an unanswered stop ended `uncertain`. Restarting the drivers also restarts `indi_asi_ccd`, so the camera cooler stops until Cria connects the camera again and the cooler is turned back on.
 

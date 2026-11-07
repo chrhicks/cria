@@ -56,6 +56,21 @@ async function slewThenTerminate() {
 
   const port = await until('main.ts to print its port', () => /listening on (\d+)/.exec(log)?.[1], 15_000)
   const client = makeCriaClient(`http://127.0.0.1:${port}`)
+  const initial = await client.state()
+  const connecting = await client.submit({
+    instanceId: initial.instanceId,
+    requestId: crypto.randomUUID(),
+    deviceId: 'mount',
+    kind: 'device-connect',
+    parameters: { connected: true },
+  } as unknown as OperationRequest)
+
+  if (!connecting.ok) throw new Error(`device-connect refused ${connecting.status}`)
+  await until('the mount to connect and be set up', async () => {
+    const reply = await client.operation(connecting.body.id)
+
+    return reply.ok && reply.body.state === 'settled'
+  })
   const state = await until('the mount to be ready with every reading read', async () => {
     const current = await client.state()
 

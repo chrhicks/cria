@@ -9,7 +9,7 @@
  */
 import { FakeIndi, addCamera, addMount, connection, type Behaviour } from '@cria/fake-indi'
 import { addDewHeaters, addEaf, am5, appliesNothing, exposeNormally, guideLoop, type Am5Options, type FakeAm5 } from './drivers.js'
-import { startCria, until, type Cria, type DeviceSpec, type Ending } from './harness.js'
+import { connectDevices, startCria, until, type Cria, type DeviceSpec, type Ending } from './harness.js'
 
 export const names = {
   primary: 'ZWO CCD ASI2600MC Pro',
@@ -247,6 +247,8 @@ export async function startRig(scenario: Scenario, options: RigOptions = {}): Pr
     },
   )
   const rig = { fake, mount, cria }
+
+  await connectDevices(cria, devices.map(device => device.id).filter(id => !(scenario.boxDisconnected && id === 'box')))
 
   return {
     ...rig,

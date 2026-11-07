@@ -202,6 +202,7 @@ describe('a configured recording that cannot open', () => {
 
     await writeFile(blocker, 'x')
     cria = await startCria(indi.port, [camera], { record: { dir: blocker, reserveGb: 0, queueMb: 4 } })
+    await connectDevices(cria, ['primary'])
     await cria.waitFor(allReady(['primary']))
 
     expect(cria.service.rig.recorder).toBeUndefined()

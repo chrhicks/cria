@@ -8,7 +8,7 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { FakeIndi, addMount } from '@cria/fake-indi'
 import { am5, type Am5Options, type FakeAm5 } from './drivers.js'
-import { allReady, startCria, until, type Cria } from './harness.js'
+import { allReady, connectDevices, startCria, until, type Cria } from './harness.js'
 
 const mount = 'ZWO AM5'
 const site = { latitudeDegrees: 33.45, longitudeDegrees: -112.07, elevationMeters: 331 }
@@ -25,6 +25,7 @@ async function start(options: Am5Options, declination?: number) {
   model = am5(fake, mount, options)
   fake.behaviour = model.behaviour
   cria = await startCria(fake.port, [{ id: 'mount', kind: 'mount', indiDevice: mount, site, motion: { positionReadMs: 300 } }], { acknowledgeMs: 600 })
+  await connectDevices(cria, ['mount'])
   await cria.waitFor(allReady(['mount']))
 }
 
@@ -141,8 +142,9 @@ describe('an AM5 site left Alert after a rejected rewrite', () => {
 
     for (let restart = 0; restart < 2; restart++) {
       cria = await startCria(fake.port, [{ id: 'mount', kind: 'mount', indiDevice: mount, site }], { acknowledgeMs: 600 })
+      await connectDevices(cria, ['mount'])
       await cria.waitFor(allReady(['mount']))
-      const startup = (await cria.state()).operations.find(operation => operation.requestId.startsWith('setup-'))
+      const startup = (await cria.state()).operations.find(operation => operation.kind === 'device-connect')
 
       expect(startup).toMatchObject({ state: 'settled', outcome: { kind: 'failed', message: expect.stringContaining('setup: GEOGRAPHIC_COORD') } })
       expect(sent('GEOGRAPHIC_COORD')).toHaveLength(restart + 1)

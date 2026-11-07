@@ -1,4 +1,4 @@
-import { Deferred, Effect, Fiber, FiberMap, Option, PubSub, Ref, Scope, Stream } from 'effect'
+import { Effect, Fiber, FiberMap, Option, PubSub, Ref, Scope, Stream } from 'effect'
 import { fromExit, type Ending, type Outcome, type Report } from '@cria/primitives'
 import {
   commands,
@@ -45,7 +45,6 @@ export interface Rules {
 export interface LedgerState {
   readonly operations: ReadonlyMap<OperationId, Stored>
   readonly requests: ReadonlyMap<RequestId, { readonly fingerprint: string; readonly operation: OperationId }>
-  readonly waiters: ReadonlyMap<OperationId, ReadonlyArray<Deferred.Deferred<Settled>>>
   readonly revision: number
   readonly sequence: number
 }
@@ -53,7 +52,6 @@ export interface LedgerState {
 export type After =
   | { readonly kind: 'start'; readonly operation: Running }
   | { readonly kind: 'stop'; readonly operation: Running }
-  | { readonly kind: 'resolve'; readonly waiters: ReadonlyArray<Deferred.Deferred<Settled>>; readonly operation: Settled }
 
 export interface Step<A> {
   readonly result: A
@@ -78,7 +76,6 @@ export function initialState(): LedgerState {
   return {
     operations: new Map(),
     requests: new Map(),
-    waiters: new Map(),
     revision: 0,
     sequence: 0,
   }
@@ -184,14 +181,11 @@ export function settle(
     rules,
     changed(state, {
       operations: following ? put(operations, following.id, following) : operations,
-      waiters: new Map([...state.waiters].filter(([id]) => id !== ended.id)),
     }),
   )
-  const waiters = state.waiters.get(ended.id) ?? []
-  const resolve: ReadonlyArray<After> = waiters.length > 0 ? [{ kind: 'resolve', waiters, operation: ended }] : []
   const start: ReadonlyArray<After> = following ? [{ kind: 'start', operation: following }] : []
 
-  return [step(ended, [...resolve, ...start]), settledState]
+  return [step(ended, start), settledState]
 }
 
 export function prune(rules: Rules, state: LedgerState): LedgerState {
@@ -210,15 +204,6 @@ export function cancel(state: LedgerState, id: OperationId): Transition<Operatio
   if (!operation) return [step(missing(state, id)), state]
 
   return [step(operation, operation.state === 'running' && !isHalt(operation) ? [{ kind: 'stop', operation }] : []), state]
-}
-
-export function wait(state: LedgerState, input: { readonly id: OperationId; readonly waiter: Deferred.Deferred<Settled> }): Transition<void | Refusal> {
-  const operation = state.operations.get(input.id)
-
-  if (!operation) return [step(missing(state, input.id)), state]
-  if (operation.state === 'settled') return [step(undefined, [{ kind: 'resolve', waiters: [input.waiter], operation }]), state]
-
-  return [step(undefined), { ...state, waiters: put(state.waiters, input.id, [...(state.waiters.get(input.id) ?? []), input.waiter]) }]
 }
 
 export function snapshot(rules: Rules, state: LedgerState): Transition<LedgerSnapshot> {
@@ -268,7 +253,6 @@ export interface Ledger {
   readonly cancel: (id: OperationId) => Effect.Effect<Operation, Refusal>
   readonly operation: (id: OperationId) => Effect.Effect<Operation, Refusal>
   readonly request: (instanceId: InstanceId, requestId: RequestId) => Effect.Effect<Operation, Refusal>
-  readonly awaitSettled: (id: OperationId) => Effect.Effect<Settled, Refusal>
   readonly snapshot: Effect.Effect<LedgerSnapshot>
   readonly revisions: Stream.Stream<number>
 }
@@ -336,8 +320,6 @@ export function makeLedger(options: LedgerOptions): Effect.Effect<Ledger, never,
           return Effect.asVoid(FiberMap.run(working, after.operation.id, execute(after.operation)))
         case 'stop':
           return Effect.asVoid(Effect.forkIn(stop(after.operation), scope))
-        case 'resolve':
-          return Effect.forEach(after.waiters, waiter => Deferred.succeed(waiter, after.operation), { discard: true })
       }
     }
 
@@ -353,14 +335,6 @@ export function makeLedger(options: LedgerOptions): Effect.Effect<Ledger, never,
       cancel: id => Effect.flatMap(apply(current => cancel(current, id)), answer),
       operation: id => read(current => find(current, id)),
       request: (instanceId, requestId) => read(current => byRequest(rules, current, instanceId, requestId)),
-      awaitSettled: id =>
-        Effect.gen(function* () {
-          const waiter = yield* Deferred.make<Settled>()
-
-          yield* answer(yield* apply(current => wait(current, { id, waiter })))
-
-          return yield* Deferred.await(waiter)
-        }),
       snapshot: apply(current => snapshot(rules, current)),
       revisions: Stream.fromPubSub(revisions),
     }

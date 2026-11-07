@@ -8,7 +8,7 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { FakeIndi } from '@cria/fake-indi'
 import { addEaf } from './drivers.js'
-import { allReady, noneNotRead, startCria, until, valueOf, type Cria } from './harness.js'
+import { allReady, connectDevices, noneNotRead, startCria, until, valueOf, type Cria } from './harness.js'
 
 const eaf = 'ZWO EAF'
 const travel = { min: 15500, max: 38000 }
@@ -25,6 +25,7 @@ async function start(options: { position?: number; travel?: { min: number; max: 
   await fake.start()
   fake.behaviour = addEaf(fake, eaf, { position: options.position })
   cria = await startCria(fake.port, [{ id: 'focuser', kind: 'focuser', indiDevice: eaf, ...(options.travel && { travel: options.travel }) }])
+  await connectDevices(cria, ['focuser'])
   await cria.waitFor(allReady(['focuser']))
   await cria.waitFor(noneNotRead)
 }

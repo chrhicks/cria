@@ -1,7 +1,7 @@
 import { afterEach, expect, it } from 'vitest'
 import { Schema } from 'effect'
 import { FakeIndi, addMount } from '@cria/fake-indi'
-import { allReady, startCria, until, type Cria } from './harness.js'
+import { allReady, connectDevices, startCria, until, type Cria } from './harness.js'
 
 const mount = 'Approach simulator'
 const sidereal = 15.041067 / 3600
@@ -46,6 +46,7 @@ async function start(tracking = true) {
     return 'handled'
   }
   cria = await startCria(fake.port, [{ id: 'mount', kind: 'mount', indiDevice: mount, motion: { positionReadMs: 1100 } }])
+  await connectDevices(cria, ['mount'])
   await cria.waitFor(allReady(['mount']))
   // Idle admissions reflect a stationary mount; tracking Busy is emitted once it moves.
   fake.update(mount, 'EQUATORIAL_EOD_COORD', { state: 'Idle' })

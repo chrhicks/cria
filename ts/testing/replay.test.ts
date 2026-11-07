@@ -111,6 +111,7 @@ afterEach(async () => {
 async function run(options: { faults?: Parameters<typeof startReplay>[1] extends infer O ? (O extends { faults?: infer F } ? F : never) : never } = {}) {
   replay = await startReplay(await loadTape(folder), options)
   cria = await startCria(replay.port, watching)
+  await connectDevices(cria, ['primary', 'mount'])
   await cria.waitFor(allReady(['primary', 'mount']))
 
   return { replay, cria }
@@ -223,6 +224,7 @@ describe('the indi-replay program', () => {
     const port = Number(await until('the program to print its port', () => /listening on 127\.0\.0\.1:(\d+)/.exec(out)?.[1]))
 
     cria = await startCria(port, watching)
+    await connectDevices(cria, ['primary', 'mount'])
     await cria.waitFor(allReady(['primary', 'mount']))
     expect((await cria.run('primary', 'capture', { exposureSeconds, light: true })).image!.sha256).toBe(recordedDigests[0])
 

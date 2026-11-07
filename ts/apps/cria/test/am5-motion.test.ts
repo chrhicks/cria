@@ -7,7 +7,7 @@
  */
 import { afterEach, describe, expect, it } from 'vitest'
 import { FakeIndi, addMount, loadAm5Fixtures, playMotion, type Value } from '@cria/fake-indi'
-import { allReady, startCria, until, type Cria, type Ending } from './harness.js'
+import { allReady, connectDevices, startCria, until, type Cria, type Ending } from './harness.js'
 
 const mount = 'ZWO AM5'
 const coordinates = 'EQUATORIAL_EOD_COORD'
@@ -47,6 +47,7 @@ async function start(timeScale: number, use: readonly string[]) {
   }
   playMotion(fake, mount, use.map(name => fixtures[name]!), { timeScale })
   cria = await startCria(fake.port, [{ id: 'mount', kind: 'mount', indiDevice: mount, motion: { positionReadMs } }], { acknowledgeMs: 600 })
+  await connectDevices(cria, ['mount'])
   await cria.waitFor(allReady(['mount']))
 }
 

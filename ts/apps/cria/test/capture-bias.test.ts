@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { FakeIndi, addCamera } from '@cria/fake-indi'
 import { fitsFrame } from '@cria/fits'
 import { biasAtMinimum, exposeNormally } from './drivers.js'
-import { allReady, startCria, type Cria } from './harness.js'
+import { allReady, connectDevices, startCria, type Cria } from './harness.js'
 
 const camera = 'Fake CCD'
 const minimum = 3.2e-5
@@ -29,6 +29,7 @@ afterEach(async () => {
 const start = async (overrides: object = {}) => {
   const started = await startCria(fake.port, [{ id: 'primary', kind: 'camera', indiDevice: camera }], { acknowledgeMs: 600, ...overrides })
 
+  await connectDevices(started, ['primary'])
   await started.waitFor(allReady(['primary']))
 
   return started

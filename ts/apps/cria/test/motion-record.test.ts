@@ -1,6 +1,6 @@
 import { afterEach, expect, it } from 'vitest'
 import { FakeIndi, addMount } from '@cria/fake-indi'
-import { allReady, startCria, type Cria } from './harness.js'
+import { allReady, connectDevices, startCria, type Cria } from './harness.js'
 
 let fake: FakeIndi
 let cria: Cria
@@ -15,6 +15,7 @@ it('keeps home and standalone stop records in the state snapshot', async () => {
   await fake.start()
   addMount(fake, 'Fake mount')
   cria = await startCria(fake.port, [{ id: 'mount', kind: 'mount', indiDevice: 'Fake mount', motion: { positionReadMs: 250 } }])
+  await connectDevices(cria, ['mount'])
   await cria.waitFor(allReady(['mount']))
 
   for (const [kind, how] of [['mount-home', 'arrived'], ['mount-stop', 'aborted']] as const) {

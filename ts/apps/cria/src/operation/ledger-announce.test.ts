@@ -31,15 +31,14 @@ describe('onSettled', () => {
           })
           const submit = (deviceId: string, name: string) =>
             Effect.gen(function* () {
-              const operation = yield* ledger.submit({
+              yield* ledger.submit({
                 instanceId,
                 requestId: RequestId.make(name),
                 deviceId: DeviceId.make(deviceId),
                 kind: 'capture',
                 parameters: { exposureSeconds: 1, light: true },
               })
-
-              return yield* ledger.awaitSettled(operation.id)
+              while (!announced.includes(name)) yield* Effect.sleep('1 millis')
             })
           yield* ledger.submit({
             instanceId,

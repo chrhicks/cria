@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { FakeIndi, addCamera, addMount } from '@cria/fake-indi'
 import { exposeNormally, moveMount } from './drivers.js'
-import { allReady, startCria, until, type Cria } from './harness.js'
+import { allReady, connectDevices, startCria, until, type Cria } from './harness.js'
 
 const camera = 'Fake CCD'
 const mount = 'ZWO AM5'
@@ -16,17 +16,40 @@ afterEach(async () => {
 
 const writes = (property: string) => fake.received.filter(xml => xml.startsWith('<new') && xml.includes(`name="${property}"`))
 
+const connectOperations = async () => (await cria.state()).operations.filter(operation => operation.kind === 'device-connect')
+
+describe('a device Cria has not been asked to set up', () => {
+  it('reports starting and writes nothing until a device-connect arrives', async () => {
+    fake = new FakeIndi()
+    await fake.start()
+    addCamera(fake, camera, { width: 8, height: 6, upload: 'local', connected: true })
+    fake.behaviour = exposeNormally()
+    cria = await startCria(fake.port, [{ id: 'primary', kind: 'camera', indiDevice: camera }])
+    await cria.waitFor(state => state.devices[0]!.availability.reason === 'starting')
+    await new Promise(resolve => setTimeout(resolve, 1000))
+
+    expect((await cria.device('primary')).availability).toEqual({ ready: false, reason: 'starting', message: 'Waiting for device setup' })
+    expect([writes('UPLOAD_MODE'), await connectOperations()]).toEqual([[], []])
+
+    await connectDevices(cria, ['primary'])
+
+    expect((await cria.device('primary')).availability).toEqual({ ready: true })
+    expect(writes('UPLOAD_MODE')).toHaveLength(1)
+  })
+})
+
 describe('a camera that saves frames locally', () => {
-  it('is switched to upload to Cria once it connects, and then captures', async () => {
+  it('is switched to upload to Cria when asked to connect, and then captures', async () => {
     fake = new FakeIndi()
     await fake.start()
     addCamera(fake, camera, { width: 8, height: 6, upload: 'local' })
     fake.behaviour = exposeNormally()
     cria = await startCria(fake.port, [{ id: 'primary', kind: 'camera', indiDevice: camera }])
+    await connectDevices(cria, ['primary'])
     await cria.waitFor(allReady(['primary']))
 
     const capture = await cria.run('primary', 'capture', { exposureSeconds: 0.05, light: true })
-    const startup = (await cria.state()).operations.find(operation => operation.requestId.startsWith('setup-'))
+    const [startup] = await connectOperations()
 
     expect(capture.kind).toBe('confirmed')
     expect(writes('UPLOAD_MODE')).toHaveLength(1)
@@ -38,15 +61,17 @@ describe('a camera that saves frames locally', () => {
     })
   })
 
-  it('already uploading to Cria is left alone: nothing sent, no operation', async () => {
+  it('already uploading to Cria is left alone: nothing written, and the device-connect confirms', async () => {
     fake = new FakeIndi()
     await fake.start()
     addCamera(fake, camera)
     fake.behaviour = exposeNormally()
     cria = await startCria(fake.port, [{ id: 'primary', kind: 'camera', indiDevice: camera }])
+    await connectDevices(cria, ['primary'])
     await cria.waitFor(allReady(['primary']))
 
-    expect([writes('UPLOAD_MODE'), (await cria.state()).operations]).toEqual([[], []])
+    expect(writes('UPLOAD_MODE')).toEqual([])
+    expect(await connectOperations()).toMatchObject([{ state: 'settled', outcome: { kind: 'confirmed' } }])
   })
 })
 
@@ -62,6 +87,7 @@ describe('a mount', () => {
 
   it('gets the configured site (INDI longitude 0-360 east), then the time, and is ready', async () => {
     await start()
+    await connectDevices(cria, ['mount'])
     await cria.waitFor(allReady(['mount']))
 
     expect(writes('GEOGRAPHIC_COORD').map(xml => [...xml.matchAll(/name="(\w+)">\s*([^<\s]+)/g)].map(([, name, value]) => `${name}=${value}`))).toEqual([
@@ -101,26 +127,29 @@ describe('a mount', () => {
     }
     cria = await startCria(fake.port, [{ id: 'mount', kind: 'mount', indiDevice: mount, site: { latitudeDegrees: 12.5, longitudeDegrees: 0, elevationMeters: 123 } }])
     if (latitude === undefined || typeof latitude === 'string') {
+      await cria.submit('mount', 'device-connect', { connected: true })
       await until('the unread site to be written', () => writes('GEOGRAPHIC_COORD').length > 0)
       expect(writes('GEOGRAPHIC_COORD')).toHaveLength(1)
       return
     }
+    await connectDevices(cria, ['mount'])
     await cria.waitFor(allReady(['mount']))
 
     expect(writes('GEOGRAPHIC_COORD')).toHaveLength(1)
     expect(writes('TIME_UTC')).toHaveLength(1)
-    const startup = (await cria.state()).operations.find(operation => operation.requestId.startsWith('setup-'))
-    expect(startup).toMatchObject({ state: 'settled', outcome: { kind: 'confirmed' } })
+    expect(await connectOperations()).toMatchObject([{ state: 'settled', outcome: { kind: 'confirmed' } }])
     expect(fake.received.filter(xml => xml.startsWith('<new') && /name="(GEOGRAPHIC_COORD|TIME_UTC)"/.test(xml)).map(xml => xml.includes('GEOGRAPHIC_COORD') ? 'site' : 'time')).toEqual(['site', 'time'])
   })
 
   it.each(['GEOGRAPHIC_COORD', 'TIME_UTC'])('fails without holding when %s gets no answer', async property => {
     await start((fake, vector, values) => (vector.name === property ? 'handled' : moveMount()(fake, vector, values)))
+    const submitted = await cria.submit('mount', 'device-connect', { connected: true })
     await until('the setup write to be sent', () => writes(property).length > 0)
     const during = (await cria.device('mount')).availability
+    await cria.settled(submitted.body.id)
     await cria.waitFor(allReady(['mount']))
     const device = await cria.device('mount')
-    const startup = (await cria.state()).operations.find(operation => operation.requestId.startsWith('setup-'))
+    const [startup] = await connectOperations()
 
     expect(during).toEqual({ ready: false, reason: 'starting', message: 'Waiting for device setup' })
     expect(startup).toMatchObject({ state: 'settled', outcome: { kind: 'failed', reason: 'unavailable', message: expect.stringContaining(`setup: ${property}`) } })
@@ -136,6 +165,7 @@ describe('a mount', () => {
       }
       return moveMount()(fake, vector, values)
     })
+    await connectDevices(cria, ['mount'])
     await cria.waitFor(allReady(['mount']))
     const outcome = await cria.run('mount', 'mount-slew', { rightAscensionDegrees: 120, declinationDegrees: 20, coordinateSystem: 'topocentric' })
 
@@ -159,6 +189,7 @@ describe('a mount', () => {
       return 'default'
     }
     cria = await startCria(fake.port, [{ id: 'mount', kind: 'mount', indiDevice: mount, driverDebug: true }])
+    await connectDevices(cria, ['mount'])
     await until('the level to be written', () => writes('DEBUG_LEVEL').length === 1)
     await cria.waitFor(allReady(['mount']))
 
@@ -173,6 +204,7 @@ describe('a mount', () => {
     fake.update(mount, 'GEOGRAPHIC_COORD', { values: { LAT: 0, LONG: 0, ELEV: 0 } })
     fake.define({ device: mount, name: 'DEBUG', kind: 'switch', perm: 'rw', rule: 'OneOfMany', state: 'Ok', elements: { ENABLE: { value: false }, DISABLE: { value: true } } })
     cria = await startCria(fake.port, [{ id: 'mount', kind: 'mount', indiDevice: mount, site, driverDebug: true }], { acknowledgeMs: 500 })
+    await connectDevices(cria, ['mount'])
     await until('debug to be tried', () => writes('DEBUG').length === 1)
     await cria.waitFor(allReady(['mount']))
 
@@ -186,6 +218,7 @@ describe('a mount', () => {
     addMount(fake, mount, { connected: true })
     fake.define({ device: mount, name: 'DEBUG', kind: 'switch', perm: 'rw', rule: 'OneOfMany', state: 'Ok', elements: { ENABLE: { value: false }, DISABLE: { value: true } } })
     cria = await startCria(fake.port, [{ id: 'mount', kind: 'mount', indiDevice: mount }])
+    await connectDevices(cria, ['mount'])
     await cria.waitFor(allReady(['mount']))
 
     expect(writes('DEBUG')).toHaveLength(0)
@@ -193,10 +226,13 @@ describe('a mount', () => {
 
   it('writes again after a Cria restart with the stored site, without changing tracking', async () => {
     await start()
+    await connectDevices(cria, ['mount'])
     await cria.waitFor(allReady(['mount']))
     const tracking = fake.vector(mount, 'TELESCOPE_TRACK_STATE').elements.TRACK_ON!.value
     await cria.stop()
     cria = await startCria(fake.port, [{ id: 'mount', kind: 'mount', indiDevice: mount, site }])
+    await cria.waitFor(state => state.devices[0]!.availability.reason === 'starting')
+    await connectDevices(cria, ['mount'])
     await cria.waitFor(allReady(['mount']))
 
     expect([writes('GEOGRAPHIC_COORD').length, writes('TIME_UTC').length]).toEqual([2, 2])
@@ -204,13 +240,16 @@ describe('a mount', () => {
     expect(fake.vector(mount, 'TELESCOPE_TRACK_STATE').elements.TRACK_ON!.value).toBe(tracking)
   })
 
-  it('is set up again when its driver comes back after going away', async () => {
+  it('is set up again, when asked, after its driver comes back from going away', async () => {
     await start()
+    await connectDevices(cria, ['mount'])
     await cria.waitFor(allReady(['mount']))
     fake.removeDevice(mount)
     await cria.waitFor(state => state.devices[0]!.availability.ready === false)
     addMount(fake, mount)
     fake.update(mount, 'GEOGRAPHIC_COORD', { values: { LAT: 0, LONG: 0, ELEV: 0 } })
+    await cria.waitFor(state => !state.devices[0]!.availability.ready && state.devices[0]!.availability.reason !== 'unavailable')
+    await connectDevices(cria, ['mount'])
     await cria.waitFor(allReady(['mount']))
 
     expect([writes('GEOGRAPHIC_COORD').length, writes('TIME_UTC').length]).toEqual([2, 2])
