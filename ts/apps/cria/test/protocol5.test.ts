@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { makeCriaClient } from '../../../testing/cria-client.js'
 import { FakeIndi, addCamera } from '@cria/fake-indi'
 import { exposeNormally } from './drivers.js'
-import { allReady, connectDevices, startCria, type Cria } from './harness.js'
+import { connectDevices, startCria, type Cria } from './harness.js'
 
 const camera = 'Fake CCD'
 let fake: FakeIndi
@@ -32,27 +32,19 @@ afterEach(async () => {
 })
 
 describe('protocol 5', () => {
-  it('serves health, state and events in the protocol 5 shapes', async () => {
+  it('serves health in the protocol 5 shape', async () => {
     const client = makeCriaClient(cria.base)
 
-    const health = await client.health()
-    const state = await client.state()
-
-    expect(health).toEqual({ status: 'ok', protocolVersion: 5, instanceId: state.instanceId, commandsEnabled: true })
-
-    expect(state.devices[0]).toMatchObject({ kind: 'camera', name: camera, lastCommandedSetpointC: null })
-    expect((await client.firstEvent()).instanceId).toBe(state.instanceId)
+    expect(await client.health()).toEqual({ status: 'ok', protocolVersion: 5, instanceId: cria.service.rig.instanceId, commandsEnabled: true })
   })
 
-  it('a capture settles with a confirmed outcome whose image downloads intact, and the device reports it read after it', async () => {
+  it('a capture settles with a confirmed outcome whose image downloads intact', async () => {
     const client = makeCriaClient(cria.base)
     await connectDevices(cria, ['primary'])
-    const state = await cria.waitFor(allReady(['primary']))
-    const device = state.devices[0]!
     const admitted = await client.submit({
-      instanceId: state.instanceId,
+      instanceId: cria.service.rig.instanceId,
       requestId: crypto.randomUUID(),
-      deviceId: device.id,
+      deviceId: 'primary',
       kind: 'capture',
       parameters: { exposureSeconds: 0.1, light: true },
     })
@@ -64,30 +56,22 @@ describe('protocol 5', () => {
 
     expect(operation.outcome).toMatchObject({ kind: 'confirmed', value: { image: { width: 8, height: 6 } } })
     expect((await client.download(operation)).status).toBe(200)
-
-    expect((await cria.state()).devices[0]!.availability).toEqual({ ready: true })
   })
 
-  it('reports a cooling setpoint as commanded, never as a reading', async () => {
+  it('confirms a cooling setpoint once the driver starts regulating', async () => {
     const client = makeCriaClient(cria.base)
     await connectDevices(cria, ['primary'])
-    const state = await cria.waitFor(allReady(['primary']))
-    const device = state.devices[0]!
     const admitted = await client.submit({
-      instanceId: state.instanceId,
+      instanceId: cria.service.rig.instanceId,
       requestId: crypto.randomUUID(),
-      deviceId: device.id,
+      deviceId: 'primary',
       kind: 'cooling',
       parameters: { setpointC: -10 },
     })
 
     if (!admitted.ok) throw new Error(admitted.body.error.message)
-    await cria.settled(admitted.body.id)
 
-    const camera = (await client.state()).devices[0]!
-
-    expect(camera.kind === 'camera' && camera.lastCommandedSetpointC).toMatchObject({ value: -10 })
-    expect(camera.kind === 'camera' && camera.readings.setpointC).toEqual({ status: 'unavailable', reason: 'unsupported' })
+    expect((await cria.settled(admitted.body.id)).operation.outcome).toMatchObject({ kind: 'confirmed', value: { values: { setpointC: -10 } } })
   })
 
   it('answers 410 image-gone for an image the store has dropped to stay in its budget', async () => {
@@ -95,7 +79,6 @@ describe('protocol 5', () => {
 
     try {
       await connectDevices(small, ['primary'])
-      await small.waitFor(allReady(['primary']))
       const first = await small.run('primary', 'capture', { exposureSeconds: 0.05, light: true })
 
       const second = await small.run('primary', 'capture', { exposureSeconds: 0.05, light: true })

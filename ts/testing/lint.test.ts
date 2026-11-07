@@ -43,14 +43,13 @@ const allowed: Record<string, Partial<Record<Rule, readonly [count: number, why:
   'apps/cria/src/capability/commands.ts': { 'catch-all': [1, 'notACommand: BLOB routing, not a physical command'] },
   'apps/cria/src/capability/camera.ts': {
     'try-catch': [1, 'an unreadable FITS header means the frame is not ours, in a plain function'],
-    'wall-clock': [3, 'dispatch time compared with the driver-stamped DATE-OBS; elapsed progress; commandedAt on the wire'],
+    'wall-clock': [2, 'dispatch time compared with the driver-stamped DATE-OBS; elapsed progress'],
   },
   'apps/cria/src/capability/setup.ts': {
     'catch-all': [1, 'driver debug only helps watching the rig, so failing to set it is logged and never stops a device'],
     'promise-catch': [1, 'the same line'],
   },
   'apps/cria/src/capability/fields.ts': { 'wall-clock': [1, 'takenAt compared with receive times, which are wall-clock'] },
-  'apps/cria/src/capability/mount.ts': { 'wall-clock': [1, 'sidereal time is a function of real time'] },
   'apps/cria/src/image/store.ts': {
     'try-catch': [1, 'removes the partial file, then rethrows into Effect.tryPromise'],
     'wall-clock': [1, 'retainedAt is a wire timestamp'],
@@ -59,15 +58,9 @@ const allowed: Record<string, Partial<Record<Rule, readonly [count: number, why:
     'catch-all': [1, 'records the outcome from the body exit'],
     'wall-clock': [3, 'admission and settle use wire epoch timestamps'],
   },
-  'apps/cria/src/wire/project.ts': { 'wall-clock': [1, 'generatedAt is a wire timestamp'] },
   'apps/cria/src/wire/http.ts': {
     'try-catch': [1, 'a body that is not JSON is refused as request-error'],
     'promise-catch': [3, "the Node request handler's boundary; an image that cannot be opened is gone; closing after a download reports nothing"],
-  },
-  'apps/cria/src/wire/sse.ts': {
-    'try-catch': [1, 'a snapshot that cannot be built ends the stream'],
-    'wall-clock': [2, 'the stream is paced on Node timers outside Effect (faked in sse.test.ts)'],
-    'node-timer': [1, 'the stream is paced on Node timers outside Effect (faked in sse.test.ts)'],
   },
 }
 
@@ -106,7 +99,7 @@ describe('source rules', () => {
     expect(
       lint({
         'apps/cria/src/new.ts': 'Effect.ignore(x); try { y() } catch {}; p.catch(() => 0); Date.now(); setTimeout(f, 1)',
-        'apps/cria/src/wire/project.ts': 'const generatedAt = 0',
+        'packages/fits/src/frame.ts': 'const stamp = 0',
       }),
     ).toEqual([
       'apps/cria/src/new.ts: catch-all found 1, allowed 0',
@@ -114,7 +107,7 @@ describe('source rules', () => {
       'apps/cria/src/new.ts: promise-catch found 1, allowed 0',
       'apps/cria/src/new.ts: wall-clock found 1, allowed 0',
       'apps/cria/src/new.ts: node-timer found 1, allowed 0',
-      'apps/cria/src/wire/project.ts: wall-clock found 0, allowed 1',
+      'packages/fits/src/frame.ts: wall-clock found 0, allowed 1',
     ])
   })
 })

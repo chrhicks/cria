@@ -7,7 +7,7 @@
 import { readFileSync } from 'node:fs'
 import net from 'node:net'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { allReady, connectDevices, noneNotRead, startCria, type Cria, type Device } from './harness.js'
+import { connectDevices, startCria, type Cria } from './harness.js'
 
 const recording = readFileSync(new URL('./fixtures/errai-2026-10-15.xml', import.meta.url), 'utf8')
 const deployConfig = JSON.parse(readFileSync(new URL('../../../deploy/rig.errai.json', import.meta.url), 'utf8'))
@@ -65,32 +65,18 @@ class Replay {
 
 let replay: Replay
 let cria: Cria
-let devices: Record<string, Device>
 
 beforeAll(async () => {
   replay = new Replay()
   await replay.start()
   cria = await startCria(replay.port, deployConfig.devices)
   await connectDevices(cria, deployConfig.devices.map((device: { id: string }) => device.id))
-  await cria.waitFor(allReady(deployConfig.devices.map((device: { id: string }) => device.id)))
-  const state = await cria.waitFor(noneNotRead)
-
-  devices = Object.fromEntries(state.devices.map(device => [device.id, device]))
 })
 
 afterAll(async () => {
   await cria?.stop()
   await replay?.stop()
 })
-
-/** A fresh reading's value; otherwise its status, or the reason it is unavailable. */
-const value = (device: string, field: string) => {
-  const reading = (devices[device]!.readings as Record<string, Device['readings']['connected'] | undefined>)[field]
-
-  if (reading?.status === 'fresh') return reading.value
-
-  return reading?.status === 'unavailable' ? reading.reason : reading?.status
-}
 
 describe('errai, replayed', () => {
   it('finds every configured device by its INDI name; sets up the 2600 (frames to Cria) and the AM5 (site, then time), and the 220MM needs nothing', () => {
@@ -100,9 +86,6 @@ describe('errai, replayed', () => {
       [...xml.matchAll(/<one\w+ name="(\w+)">\s*([^<]*?)\s*</g)].map(([, element, value]) => `${element}=${value}`).join(' '),
     ])
 
-    expect(Object.values(devices).map(device => [device.id, device.availability])).toEqual(
-      deployConfig.devices.map((device: { id: string }) => [device.id, { ready: true }]),
-    )
     expect(written.toSorted()).toEqual([
       ['ZWO AM5', 'DEBUG', 'ENABLE=On'],
       ['ZWO AM5', 'GEOGRAPHIC_COORD', 'LAT=33.45 LONG=247.93 ELEV=331'],
@@ -111,61 +94,44 @@ describe('errai, replayed', () => {
     ])
   })
 
-  it('reads the ASI2600MC Pro: geometry, RGGB colour, CCD_CONTROLS gain and offset, cooler', () => {
-    expect(value('primary', 'width')).toBe(6248)
-    expect(value('primary', 'height')).toBe(4176)
-    expect(value('primary', 'pixelWidthMicrons')).toBeCloseTo(3.76, 2)
-    expect(value('primary', 'bayerPattern')).toBe('rggb')
-    expect([value('primary', 'gain'), value('primary', 'gainMinimum'), value('primary', 'gainMaximum')]).toEqual([200, -25, 700])
-    expect([value('primary', 'offset'), value('primary', 'offsetMaximum')]).toEqual([1, 240])
-    expect([value('primary', 'exposureMinimum'), value('primary', 'exposureMaximum')]).toEqual([0.000032, 2000])
-    expect(value('primary', 'temperatureC')).toBe(23.8)
-    expect(value('primary', 'coolerOn')).toBe(false)
-    expect(value('primary', 'coolerPowerPercent')).toBe(0)
-    expect(value('primary', 'setpointC')).toBe('unsupported')
-    expect(devices.primary).toMatchObject({ lastCommandedSetpointC: null })
+  const refused = async (device: string, kind: string, parameters: object) => {
+    const before = replay.commands.length
+    const operation = await cria.run(device, kind, parameters)
+
+    expect(replay.commands.slice(before)).toEqual([])
+
+    return [operation.kind, operation.reason, operation.message]
+  }
+
+  it('refuses a gain or offset outside the 2600MC Pro CCD_CONTROLS ranges (gain to 700, offset to 240), before sending', async () => {
+    expect(await refused('primary', 'camera-configure', { gain: 701 })).toEqual(['failed', 'invalid', 'Invalid gain'])
+    expect(await refused('primary', 'camera-configure', { offset: 241 })).toEqual(['failed', 'invalid', 'Invalid offset'])
   })
 
-  it('reads the ASI220MM Mini as an uncooled mono camera', () => {
-    expect([value('guide', 'width'), value('guide', 'height'), value('guide', 'bayerPattern')]).toEqual([1920, 1080, 'mono'])
-    expect(value('guide', 'exposureMaximum')).toBe(10)
-    expect(value('guide', 'gain')).toBe(100)
+  it('refuses an exposure past each camera maximum (2000 s on the 2600MC Pro, 10 s on the 220MM Mini), before sending', async () => {
+    expect(await refused('primary', 'capture', { exposureSeconds: 2001, light: true })).toEqual(['failed', 'invalid', 'Exposure 2001 s is outside 0.000032-2000 s'])
+    expect(await refused('guide', 'capture', { exposureSeconds: 11, light: true })).toEqual(['failed', 'invalid', expect.stringMatching(/^Exposure 11 s is outside .*-10 s$/)])
   })
 
-  it('reads the AM5: JNow coordinates, tracking, home, named slew rates; no pier side yet', () => {
-    expect(value('mount', 'coordinateSystem')).toBe('topocentric')
-    expect(value('mount', 'declinationDegrees')).toBe(90)
-    expect([value('mount', 'tracking'), value('mount', 'slewing')]).toEqual([false, false])
-    expect(value('mount', 'trackingRate')).toBe('sidereal')
-    expect((value('mount', 'primaryAxisRates') as Array<{ degreesPerSecond: number }>).map(rate => rate.degreesPerSecond * 3600 / 15.041067)).toEqual(
-      [0.25, 0.5, 1, 2, 4, 8, 20, 60, 720, 1440].map(multiple => expect.closeTo(multiple, 6)),
-    )
-    // Both TELESCOPE_PIER_SIDE switches are Off on the AM5 (at least at the pole): reported as unknown.
-    expect(value('mount', 'pierSide')).toBe('unknown')
-  })
-
-  it('reads the EAF: position, travel, temperature', () => {
-    expect(value('focuser', 'position')).toBe(32749)
-    expect(value('focuser', 'temperatureC')).toBe(24)
-    // FOCUS_MAX says 100000 and ABS_FOCUS_POSITION allows 0 to 60000; the deploy config's travel window (15500 to 38000) is narrower than both.
-    expect([value('focuser', 'minStep'), value('focuser', 'maxStep')]).toEqual([15500, 38000])
-  })
-
-  it('reads the PPB Micro: its weather, the 12 V master and the dew channels', () => {
-    expect([value('box', 'temperatureC'), value('box', 'humidityPercent'), value('box', 'dewPointC')]).toEqual([21.6, 53, 11.6])
-
-    const powerBox = devices.box!
-    const fresh = <T>(reading: { status: string; value?: T }) => (reading.status === 'fresh' ? reading.value : reading.status)
-    const channels = powerBox.kind === 'box' ? powerBox.channels.map(channel => [fresh(channel.name), fresh(channel.value), fresh(channel.writable)]) : []
-
-    expect(channels).toEqual([
-      ['12V ports', 1, true],
-      ['Dew A', 1, true],
-      ['Dew B', 1, true],
-      ['Dew A duty (%)', 0, true],
-      ['Dew B duty (%)', 0, true],
-      ['Auto dew', 1, true],
+  it('refuses a slew in the wrong frame: the AM5 reports JNow, which Cria never converts', async () => {
+    expect(await refused('mount', 'mount-slew', { rightAscensionDegrees: 10, declinationDegrees: 20, coordinateSystem: 'j2000' })).toEqual([
+      'failed',
+      'invalid',
+      "Coordinates must be in the mount's frame (topocentric); Cria never converts frames",
     ])
+  })
+
+  it('refuses a move past the deploy config travel window (15500 to 38000), which is narrower than the EAF range, before sending', async () => {
+    expect(await refused('focuser', 'focuser-move', { position: 38001 })).toEqual([
+      'failed',
+      'invalid',
+      expect.stringMatching(/^Focuser target 38001 is outside the travel window 15500\.\.38000/),
+    ])
+    expect(await refused('focuser', 'focuser-move', { position: 15499 })).toEqual(['failed', 'invalid', expect.stringMatching(/outside the travel window 15500\.\.38000/)])
+  })
+
+  it('takes a gain inside the range and writes it to CCD_CONTROLS', async () => {
+    expect(await cria.run('primary', 'camera-configure', { gain: 300 })).toMatchObject({ kind: 'confirmed', values: { gain: 300 } })
   })
 
   it('refuses a manual dew duty while the PPBA has auto dew on, before sending', async () => {

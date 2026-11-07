@@ -18,14 +18,14 @@ Read the exit code of `./verify.sh` itself. Do not pipe it into `tee` or `tail`.
 
 ## What each layer proves
 
-The suite asserts literal values. Scenario tests wait for a state with a deadline that names what they waited for, never for a fixed time. Cria sets nothing up by itself, so a scenario test that needs a ready device sends `device-connect` with `connected: true` first, with `connectDevices` in `apps/cria/test/harness.ts`; a test about `starting` shows the device waiting until that arrives. `pnpm fake-rig serve` and the golden do the same for the devices they serve.
+The suite asserts literal values. Scenario tests wait for a state with a deadline that names what they waited for, never for a fixed time. Cria sets nothing up by itself, so a scenario test that needs a ready device sends `device-connect` with `connected: true` first, with `connectDevices` in `apps/cria/test/harness.ts`. A device is ready once that `device-connect` settled `confirmed`. `pnpm fake-rig serve` and the golden do the same for the devices they serve.
 
 | Layer | Files under `ts/` | What it proves |
 | --- | --- | --- |
 | Primitives | `packages/primitives/src/*.test.ts` | `writeOnce`, `confirm` and `stoppable` behave as SPEC says, on Effect's TestClock with no real time |
 | INDI boundary | `packages/indi/src/*.test.ts` | XML framing from recorded traffic split at random byte boundaries, BLOB decoding and `delProperty`, plus one client test against a real `indiserver` |
 | Wire schemas and the ledger | `packages/cria-wire/src/*.test.ts`, `apps/cria/src/operation/*.test.ts` | Every protocol 5 schema on literal inputs, and every ledger transition |
-| Wire and image boundaries | `apps/cria/src/wire/sse.test.ts`, `packages/fits/src/*.test.ts`, `apps/cria/src/image/*.test.ts` | The event stream's cadence, coalescing and subscriber limits, the FITS header, and the rolling image store |
+| Image boundaries | `packages/fits/src/*.test.ts`, `apps/cria/src/image/*.test.ts` | The FITS header, and the rolling image store |
 | Fake INDI server | `packages/fake-indi` (the server), `apps/cria/test/drivers.ts` (the rig's drivers on it) and the scenario tests beside them | Failures a simulator cannot produce: a driver that never acknowledges, a stop that never confirms, a dropped connection, a driver that disappears. Also the HTTP refusals, and SIGTERM during a slew aborting the mount before the process exits |
 | INDI simulators | `apps/cria/test/simulators.test.ts`, started by `testing/indiserver.ts` | Capture and download, cancel mid-exposure, focuser moves, slews and tracking against real INDI drivers |
 | errai, replayed | `apps/cria/test/errai.test.ts` | Cria running `deploy/rig.errai.json` against the real drivers' recorded definitions (`apps/cria/test/fixtures/errai-2026-10-15.xml`) |
@@ -116,7 +116,7 @@ A camera, focuser or box ends `uncertain` and the next command is accepted. The 
 `testing/mutate.mjs` breaks one line, runs the given tests and restores the file. It exits 0 when the tests fail on the broken line. A failing test shows that the test guards that line.
 
 ```sh
-node testing/mutate.mjs apps/cria/src/wire/sse.ts 'sentRevision = snapshotRevision' 'sentRevision = revision' apps/cria/src/wire/sse.test.ts
+node testing/mutate.mjs apps/cria/src/operation/ledger.ts "if (open.length > 0) return refused(refuse('device-busy'" "if (false) return refused(refuse('device-busy'" apps/cria/src/operation/ledger.test.ts
 ```
 
 ## What the tests do not prove

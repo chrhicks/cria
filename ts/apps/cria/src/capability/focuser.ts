@@ -10,10 +10,9 @@ import { confirmProperty, sendOnce, startMotion, untilSettled } from './commands
 import { invalid, liveSnapshot, required, type CapabilityContext } from './context.js'
 import { limitElement, numberElement, type DeviceSnapshot } from './fields.js'
 import type { FocuserTravel } from '../config.js'
-import type { DeviceBody, ParamsOf, ReadingsOf } from '@cria/wire'
+import type { ParamsOf } from '@cria/wire'
 
 export interface Focuser {
-  readonly observe: Effect.Effect<DeviceBody<'focuser'>>
   readonly move: (move: ParamsOf<'focuser-move'>) => Effect.Effect<{ position: number }, Ending>
   readonly halt: Effect.Effect<{ position: number }, Failed | Uncertain>
 }
@@ -36,16 +35,13 @@ function driverMax(snapshot: DeviceSnapshot) {
     : positionMax
 }
 
-function readings(snapshot: DeviceSnapshot, travel: FocuserTravel | undefined): ReadingsOf<'focuser'> {
+function readings(snapshot: DeviceSnapshot, travel: FocuserTravel | undefined) {
   const read = snapshot.reading
 
   return {
-    connected: snapshot.connected,
-    name: snapshot.name,
     // Alert on the position means the last move failed; the position is still reported, and the focuser can still move.
     position: read(position, positionValue, { alertMeansStale: false }),
     moving: read(position, property => property.state === 'Busy', { alertMeansStale: false }),
-    temperatureC: read('FOCUS_TEMPERATURE', numberElement('TEMPERATURE')),
     absolute: read(position, () => true, { alertMeansStale: false }),
     // The usable window, which Vela's autofocus searches: the driver's range narrowed by the travel window.
     minStep: Reading.map(read(position, limitElement(['FOCUS_ABSOLUTE_POSITION'], 'min'), { alertMeansStale: false }), min => Math.max(min, travel?.min ?? min)),
@@ -123,7 +119,6 @@ export function makeFocuser(context: CapabilityContext, travel?: FocuserTravel):
   })
 
   return {
-    observe: Effect.map(context.snapshot, snapshot => ({ kind: 'focuser', readings: readings(snapshot, travel) })),
     move,
     halt,
   }

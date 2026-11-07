@@ -1,6 +1,6 @@
 import { DeviceId, InstanceId, OperationId, RequestId, type Command } from '@cria/wire'
 import { describe, expect, it } from 'vitest'
-import { admit, cancel, initialState, prune, settle, snapshot, type LedgerState, type Rules, type Submission, type Transition } from './ledger.js'
+import { admit, cancel, initialState, prune, settle, type LedgerState, type Rules, type Submission, type Transition } from './ledger.js'
 
 const uuid = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`
 const instanceId = InstanceId.make(uuid(1))
@@ -55,7 +55,6 @@ describe('admission', () => {
       progress: { phase: 'preparing', elapsedSeconds: null },
     })
     expect(afterOf(started)).toEqual([['start', id(1)]])
-    expect(stateOf(started).revision).toBe(1)
   })
 
   it('records a halt on a busy device as waiting, with no timing, and asks the running motion to stop', () => {
@@ -195,17 +194,5 @@ describe('retention', () => {
     expect(resultOf(admitted(steps, 2, stop))).toMatchObject({ code: 'result-expired' })
     expect(resultOf(cancel(steps, id(2)))).toMatchObject({ code: 'result-expired' })
     expect(prune(rules, steps)).toBe(steps)
-  })
-})
-
-describe('snapshot', () => {
-  it('counts snapshots from 1 and carries the revision of the state it read', () => {
-    const changed = stateOf(admitted(empty, 1, tracking))
-    const first = snapshot(rules, changed)
-    const second = snapshot(rules, stateOf(first))
-
-    expect([resultOf(first).sequence, resultOf(second).sequence, resultOf(first).revision]).toEqual([1, 2, 1])
-    expect(stateOf(second).revision).toBe(1)
-    expect(resultOf(snapshot(rules, empty)).sequence).toBe(1)
   })
 })

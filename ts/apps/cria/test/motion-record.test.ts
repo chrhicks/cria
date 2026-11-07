@@ -1,6 +1,6 @@
 import { afterEach, expect, it } from 'vitest'
 import { FakeIndi, addMount } from '@cria/fake-indi'
-import { allReady, connectDevices, startCria, type Cria } from './harness.js'
+import { connectDevices, startCria, type Cria } from './harness.js'
 
 let fake: FakeIndi
 let cria: Cria
@@ -10,13 +10,12 @@ afterEach(async () => {
   await fake?.stop()
 })
 
-it('keeps home and standalone stop records in the state snapshot', async () => {
+it('keeps home and standalone stop records on the operation', async () => {
   fake = new FakeIndi()
   await fake.start()
   addMount(fake, 'Fake mount')
   cria = await startCria(fake.port, [{ id: 'mount', kind: 'mount', indiDevice: 'Fake mount', motion: { positionReadMs: 250 } }])
   await connectDevices(cria, ['mount'])
-  await cria.waitFor(allReady(['mount']))
 
   for (const [kind, how] of [['mount-home', 'arrived'], ['mount-stop', 'aborted']] as const) {
     const ended = await cria.run('mount', kind, {})
@@ -26,6 +25,6 @@ it('keeps home and standalone stop records in the state snapshot', async () => {
       observed: { from: { rightAscensionDegrees: 30, declinationDegrees: 40 }, to: { rightAscensionDegrees: 30, declinationDegrees: 40 }, travel: { rightAscensionDegrees: 0, declinationDegrees: 0 } },
       stopped: { how },
     })
-    expect((await cria.state()).operations.find(operation => operation.id === ended.id)).toEqual(ended.operation)
+    expect((await cria.client.operation(ended.id)).body).toEqual(ended.operation)
   }
 })

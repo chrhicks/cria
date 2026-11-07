@@ -3,7 +3,7 @@
 Cria runs on errai, the rig's mini PC (Intel N150) on Arch Linux. Three programs run there:
 
 - `indiserver` owns the drivers. It runs each INDI driver as its own process: `indi_asi_ccd` (both ZWO cameras), `indi_asi_focuser` (the EAF), `indi_lx200am5` (the AM5) and `indi_pegasus_ppba` (the Pegasus power box). It listens on TCP 7624.
-- Cria is a Node process. It connects to `indiserver` at `127.0.0.1:7624` as an INDI client and serves Vela over HTTP and SSE on port 4319.
+- Cria is a Node process. It connects to `indiserver` at `127.0.0.1:7624` as an INDI client and serves Vela over HTTP on port 4319.
 - The rig supervisor is a small Node script beside them. It brings devices up as they are powered (see "The rig supervisor").
 
 [The architecture](architecture.md) says what each part owns. [SPEC.md](ts/SPEC.md) is the full contract.
@@ -40,10 +40,10 @@ In `supervisor.json`, use errai's real serial by-id paths for the mount and the 
 
 The mini PC may boot before the rest of the rig has power. Nothing has to be started by hand:
 
-1. `indiserver`, Cria and the supervisor start at boot. Cria serves its API at once; every device reads `unavailable` until its driver defines it.
-2. `indi_lx200am5` and `indi_pegasus_ppba` always define their device, but connecting fails until the serial port exists. When the port appears, the supervisor sends `device-connect`; Cria writes the port, connects, and then runs device setup (site and time for the AM5). Until then the device reads `disconnected`.
+1. `indiserver`, Cria and the supervisor start at boot. Cria serves its API at once; a command on a device whose driver has not defined it yet is refused.
+2. `indi_lx200am5` and `indi_pegasus_ppba` always define their device, but connecting fails until the serial port exists. When the port appears, the supervisor sends `device-connect`; Cria writes the port, connects, and then runs device setup (site and time for the AM5). Until then the device stays disconnected.
 3. `indi_asi_ccd` and `indi_asi_focuser` define a device only if the USB device is present when the driver starts. When a camera or the EAF is powered later, the supervisor restarts that one driver, then connects the device the same way.
-4. A device that is connected but not set up reads `starting`, for example after a Cria restart or a power-on that left the driver connected. Cria does not set it up by itself: the supervisor sends the same `device-connect`, within about two polls (roughly 10 s), and Cria connects if it has to and runs the setup steps.
+4. A device that is connected but not set up is `starting` to Cria, for example after a Cria restart or a power-on that left the driver connected. Cria does not set it up by itself: the supervisor sends the same `device-connect`, within about two polls (roughly 10 s), and Cria connects if it has to and runs the setup steps.
 
 Each step waits for the picture to hold for two polls (about 10 s) so a device that has just enumerated, or Cria's first seconds after it reconnects to indiserver, do not cause a restart.
 
@@ -222,7 +222,7 @@ Cria takes one argument, the path to its JSON configuration (`node apps/cria/dis
 
 One setting decides whether Cria can change the rig:
 
-- `commandsEnabled: false` makes the deploy read-only. Every operation is refused with `403 commands-disabled`, and every device's `availability` reads `commands-disabled`. That reason takes precedence over the others, so in a read-only deploy the readings show whether a device is stale or disconnected, and `availability` does not.
+- `commandsEnabled: false` makes the deploy read-only. Every operation is refused with `403 commands-disabled`, and `GET /health` reports `commandsEnabled: false`. The rig stream still shows the drivers' state.
 
 Cria never switches power, connects a device or sets one up on its own. A device connects, and is set up, only when a `device-connect` operation with `connected: true` asks it to, after writing its serial `port` if it has to connect; on the rig the supervisor sends it.
 
@@ -237,11 +237,11 @@ A restart is a new Cria with nothing carried over:
 - It has a new `instanceId`. Anything in flight before the restart is unknown.
 - The operation table is empty. No request IDs carry over.
 - The image folder is emptied.
-- Nothing about setup carries over. Every connected device with setup steps reads `starting`, and the supervisor's `device-connect` sets it up again within about two polls (roughly 10 s). Without the supervisor it stays `starting` until a person or Vela sends one.
+- Nothing about setup carries over. Every connected device with setup steps is `starting`, and the supervisor's `device-connect` sets it up again within about two polls (roughly 10 s). Without the supervisor it stays `starting` until a person or Vela sends one.
 
-The INDI drivers keep running and keep their state. A camera that was exposing still reads `exposing`, and a new capture on it settles `failed: busy`.
+The INDI drivers keep running and keep their state. A camera that was exposing still is, and a new capture on it settles `failed: busy`.
 
-If a driver crashes, `indiserver` deletes its properties and Cria reports the device unavailable (the supervisor restarts the driver if its conditions hold). An operation in flight ends `uncertain: driver-lost`. If `indiserver` itself goes away, every device is unavailable and in-flight work ends uncertain. Cria reconnects at a paced interval and resends nothing. [SPEC.md, "Restarts and crashes"](ts/SPEC.md#restarts-and-crashes) has the details.
+If a driver crashes, `indiserver` deletes its properties and a command on the device is refused or ends uncertain (the supervisor restarts the driver if its conditions hold). An operation in flight ends `uncertain: driver-lost`. If `indiserver` itself goes away, every device is gone to Cria and in-flight work ends uncertain. Cria reconnects at a paced interval and resends nothing. [SPEC.md, "Restarts and crashes"](ts/SPEC.md#restarts-and-crashes) has the details.
 
 ## Restart the rig software
 

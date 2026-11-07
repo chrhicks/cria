@@ -8,14 +8,14 @@ disagree on a rule, one of them has a bug: find out which.
 ## What this is
 
 Cria is an INDI client. It is a TypeScript service that connects to
-`indiserver` on TCP 7624, turns INDI properties into Readings, runs one bounded
-operation at a time per device, and serves its clients over HTTP and SSE (wire
-protocol 5). INDI runs one process per driver, and those processes are the
+`indiserver` on TCP 7624, reads INDI properties as Readings for the commands that need them, runs one bounded
+operation at a time per device, and serves its clients over HTTP (wire
+protocol 5). Clients read the rig itself from the rig stream (NATS, JetStream `RIG_DEV`: the drivers' INDI traffic plus Cria's `cria.request`, `cria.settled`, `cria.write` and `cria.frame` entries). Cria keeps no client-facing picture of the rig. INDI runs one process per driver, and those processes are the
 isolation boundary: Cria sees a driver crash as the device's properties
 disappearing.
 
 ```
-Vela server ──HTTP/SSE (protocol 5)──▶ Cria (Node, Effect) ──INDI XML/TCP──▶ indiserver ──▶ one process per driver ──▶ devices
+Vela server ──HTTP (protocol 5)──▶ Cria (Node, Effect) ──INDI XML/TCP──▶ indiserver ──▶ one process per driver ──▶ devices
 ```
 
 Cria says one thing to one device and tells the truth about what happened. The
@@ -33,7 +33,7 @@ layers above it in this list.
    "honest state" once, so capabilities do not each derive them again.
 3. **Capabilities** (`apps/cria/src/capability`). Camera, mount, focuser,
    box (the Pegasus power box) and connection. Each is an INDI device seen through the
-   disciplines. `observe` returns Readings, and every command returns an Outcome.
+   disciplines. A command reads the Readings it needs and returns an Outcome.
    Capabilities never see XML or sockets. They see `IndiDevice` (properties,
    states, `send`) behind the INDI boundary.
 4. **Workflows run by the ledger** (`apps/cria/src/operation`). Each wire operation kind
@@ -47,9 +47,8 @@ Two boundaries sit around the layers and map to no primitive on purpose:
 - **INDI boundary** (`@cria/indi`). XML framing and parsing, the TCP connection,
   and the property mirror. This adapter absorbs protocol irregularity so nothing
   above it has to.
-- **Wire boundary** (`apps/cria/src/wire`). HTTP routes, SSE, and the projection
-  of the ledger's operations and the Readings into protocol 5 JSON, typed by
-  `@cria/wire`. The projection functions are Views.
+- **Wire boundary** (`apps/cria/src/wire`). The HTTP routes, which answer with the
+  ledger's operations as protocol 5 JSON, typed by `@cria/wire`.
 
 The image store (`apps/cria/src/image`) keeps the camera's FITS in a
 rolling set. It is domain storage, not a primitive.
@@ -110,15 +109,16 @@ type Reading<T> =
   | { status: 'unavailable'; reason: 'not-read' | 'unsupported' | 'failed'; message?: string }
 ```
 
-`unavailable` carries a closed reason. Vela's optional readers need "this device
-does not have this" (`unsupported`) apart from "this read failed" (`failed`).
-Times are epoch milliseconds.
+`unavailable` carries a closed reason: "this device does not have this"
+(`unsupported`) is kept apart from "this read failed" (`failed`). Times are epoch
+milliseconds. Readings stay inside Cria, for the commands that check a fact
+before sending; no route returns them.
 
 `Reading.required(reading, what)` is the fresh-or-fail step a command starts
 with. It returns `Effect<T, Failed>`: the value of a fresh Reading, `failed:
 unsupported` for `unavailable: unsupported`, and `failed: unavailable` for every
 other Reading that is not fresh (stale, not read, failed). `what` names the fact
-in the message. Cria's capabilities and a consumer's commands use the same one.
+in the message.
 
 **What fresh means on INDI.** INDI drivers poll their own hardware and push
 changes, and don't send an unchanged value again. Cria doesn't judge how recent a
@@ -198,10 +198,8 @@ and nothing persists, so an exposure error leaves the camera free.
 
 `apps/cria/src/operation/ledger.ts` is the one owner of operations, per rig. It
 holds one immutable state in a `Ref`. Each transition (admit, progress, settle,
-cancel, snapshot, prune) is a pure function that returns the new
+cancel, prune) is a pure function that returns the new
 state and the effects to run after it (start an operation, stop one).
-Each change increments a revision, which the ledger publishes for the event
-stream.
 
 Each operation runs as one fiber, keyed by its ID. The work is uninterruptible
 except inside `stoppable`'s wait, and the outcome comes from the body's own exit.
@@ -273,8 +271,7 @@ is available whatever the bound.
 ### What the ledger keeps
 
 The ledger keeps the newest `operationHistory` settled operations (config, default
-1000). A snapshot lists every open
-operation and the newest 20 settled ones.
+1000).
 
 ## Module map
 
@@ -310,7 +307,7 @@ Behaviour inside the boundary:
   about is forgotten until the driver defines it again. Only lost framing drops the connection. See
   [indi-bad-input.md](indi-bad-input.md).
 - `delProperty` without a name (driver gone or device removed) clears the device.
-  Its capabilities report every value unavailable, and its in-flight command ends
+  Every reading a command needs is unavailable, and its in-flight command ends
   uncertain.
 - A one-off read is `getProperties device=X name=Y`. The driver answers with that
   one definition (checked against libindi 2.2.5), and INDI forwards the answer to
@@ -324,32 +321,25 @@ Behaviour inside the boundary:
   other frame is skipped and logged, and the capture keeps waiting.
 - A capture has no deadline of its own. The camera's Alert ends it, and it stays open otherwise, so a hung camera holds the device until a client cancels the operation. The client decides from what it sees on the stream.
 
-### INDI properties per reading
+### INDI properties a command reads
 
 Standard INDI names, so the simulators and the rig drivers share them. Where the
-real drivers differ, the table lists both, and the first one present wins.
+real drivers differ, the table lists both, and the first one present wins. A
+command reads only the facts it needs, and refuses before sending when one is not
+fresh.
 
-| Reading | INDI property and element | Notes |
-|---|---|---|
-| camera `activity` | `CCD_EXPOSURE` state | `Busy` is `exposing`, else `idle` |
-| camera `temperatureC` | `CCD_TEMPERATURE.CCD_TEMPERATURE_VALUE` | |
-| camera `coolerOn` | `CCD_COOLER.COOLER_ON` | |
-| camera `setpointC` | none | Always `unavailable: unsupported`. INDI reports the sensor temperature, not the target. See `lastCommandedSetpointC`. |
-| camera `coolerPowerPercent` | `CCD_COOLER_POWER.CCD_COOLER_VALUE` | |
-| camera geometry | `CCD_INFO`, `CCD_FRAME` | `width` and `height` are `CCD_FRAME`'s `WIDTH` and `HEIGHT`, read directly. |
-| camera `gain`, `offset` | `CCD_GAIN.GAIN` or `CCD_CONTROLS.Gain`; `CCD_OFFSET.OFFSET` or `CCD_CONTROLS.Offset` | The ZWO driver uses `CCD_CONTROLS` |
-| camera `bayerPattern` | `CCD_CFA` (`CFA_OFFSET_X`, `CFA_OFFSET_Y`, `CFA_TYPE`, all text) | `mono` without `CCD_CFA`; the CFA offset shifts the pattern |
-| mount RA, Dec | `EQUATORIAL_EOD_COORD.RA/DEC`, else `EQUATORIAL_COORD` | `coordinateSystem` is `topocentric` (JNow) for the first, `j2000` for the second. Cria never converts frames. |
-| mount `slewing` | the coordinates property's state is `Busy` | |
-| mount `tracking` | `TELESCOPE_TRACK_STATE.TRACK_ON` | |
-| mount `pierSide` | `TELESCOPE_PIER_SIDE` | `PIER_EAST` is `east`, `PIER_WEST` is `west`, else `unknown` |
-| mount `trackingRate` | `TELESCOPE_TRACK_MODE` | `sidereal`, `lunar`, `solar`; another mode is unavailable |
-| mount site | `GEOGRAPHIC_COORD.LAT/LONG/ELEV` | INDI longitude is 0 to 360 east. Cria reports -180 to 180, east positive. |
-| mount `siderealTimeHours` | none | Computed from the system clock and the site longitude |
-| mount `primaryAxisRates` | `TELESCOPE_SLEW_RATE` | Named rates with degrees per second, parsed from the labels: the AM5 names them `1x` to `10x` but labels them with the true multiples `0.25x` to `1440x` |
-| focuser | `ABS_FOCUS_POSITION`, `FOCUS_MAX`, `FOCUS_TEMPERATURE`, `FOCUS_ABORT_MOTION` | `moving` is the position `Busy`; `maxStep` is the smallest of `FOCUS_MAX`, the position's maximum and the travel window's `max`; `minStep` the larger of the position's minimum and the window's `min` (see "The focuser travel window") |
-| box weather | `WEATHER_PARAMETERS.WEATHER_TEMPERATURE`, `_HUMIDITY`, `_DEWPOINT` | A missing element is `unsupported` |
-| box channels | the configured `property.element` list | For example `POWER_CHANNELS.POWER_CHANNEL_1` (12 V master) |
+| Fact | INDI property and element | Used by | Notes |
+|---|---|---|---|
+| camera activity | `CCD_EXPOSURE` state | `capture`, `camera-configure` | `Busy` is `exposing`, else `idle` |
+| camera exposure range | `CCD_EXPOSURE.CCD_EXPOSURE_VALUE` min and max | `capture` | |
+| camera geometry | `CCD_FRAME` | `capture` | `WIDTH` and `HEIGHT`, read directly |
+| camera gain and offset ranges | `CCD_GAIN.GAIN` or `CCD_CONTROLS.Gain`; `CCD_OFFSET.OFFSET` or `CCD_CONTROLS.Offset` | `camera-configure` | The ZWO driver uses `CCD_CONTROLS` |
+| camera `bayerPattern` | `CCD_CFA` (`CFA_OFFSET_X`, `CFA_OFFSET_Y`, `CFA_TYPE`, all text) | `capture` | `mono` without `CCD_CFA`; the CFA offset shifts the pattern |
+| mount RA, Dec | `EQUATORIAL_EOD_COORD.RA/DEC`, else `EQUATORIAL_COORD` | `mount-slew`, `mount-axis`, `mount-rotate` | The frame is `topocentric` (JNow) for the first, `j2000` for the second. Cria never converts frames. |
+| mount slewing | the coordinates property's state is `Busy` | `mount-slew`, `mount-axis`, `mount-rotate`, `mount-home` | |
+| mount axis rates | `TELESCOPE_SLEW_RATE` | `mount-axis`, `mount-rotate` | Named rates with degrees per second, parsed from the labels: the AM5 names them `1x` to `10x` but labels them with the true multiples `0.25x` to `1440x` |
+| focuser | `ABS_FOCUS_POSITION`, `FOCUS_MAX`, `FOCUS_ABORT_MOTION` | `focuser-move`, `focuser-halt` | Moving is the position `Busy`; the top is the smaller of `FOCUS_MAX` and the position's maximum; the travel window narrows it (see "The focuser travel window") |
+| box channel | the configured `property.element` list | `switch-set` | For example `POWER_CHANNELS.POWER_CHANNEL_1` (12 V master). Its range, step and writability come from the property's definition. |
 
 Commands use the same properties: exposure `CCD_EXPOSURE`, abort
 `CCD_ABORT_EXPOSURE`, cooler `CCD_COOLER` and `CCD_TEMPERATURE`, slew
@@ -526,17 +516,17 @@ itself, in the same way that it never connects a device by itself. A device is
 set up by `device-connect` with `connected: true`, which connects the device if
 it is not connected and then runs the setup steps, in one operation that goes
 through the ledger like any other. That makes it single-flight with Vela's
-operations and puts it in the operation list. A device with steps whose
-connection has not been set up yet reports availability `starting` until that
-`device-connect` has run. A connection ends when the device disconnects, its
+operations. A device with steps whose connection has not been set up yet is
+`starting`, which Cria tracks for its own commands (a goto on such a mount
+refuses with advice). A connection ends when the device disconnects, its
 driver goes away (`delProperty` without a name) or the indiserver connection is
-lost, and the next connection starts as `starting` again. A device with no steps
+lost, and the next connection is `starting` again. A device with no steps
 (a focuser, a box) is never `starting`. A setup that ran is not run again until
 the connection ends, or someone sends `device-connect` with `connected: true`
 again, which always runs the setup steps. With commands disabled, nothing runs.
 
 On the rig the supervisor is the one that asks: it sends the `device-connect`
-for a device that is `disconnected` or `starting` (docs/runtime.md, rule b),
+for a device that is disconnected, or connected but not set up in this Cria instance (docs/runtime.md, rule b),
 within about two polls, roughly 10 s, of the hardware being present and nothing
 being open on the device. Another client of the API (Vela, a test) can send it
 sooner.
@@ -544,10 +534,7 @@ sooner.
 **What it reports.** The `device-connect` outcome's values carry
 `setup`, one string of what each step did, for example
 `sent GEOGRAPHIC_COORD LAT=33.45 LONG=247.93 ELEV=331; sent TIME_UTC UTC=2026-10-16T00:21:47 OFFSET=0.00`
-or `UPLOAD_MODE already sends frames to Cria`. Until setup has run on a
-connection, the device's availability is `starting` with the message
-`Waiting for device setup`, so Vela does not command a mount that would refuse
-its goto. Setup steps cannot move equipment. An unconfirmed or refused setup
+or `UPLOAD_MODE already sends frames to Cria`. Setup steps cannot move equipment. An unconfirmed or refused setup
 write ends `failed`, names the step, and leaves the device ready.
 Setup stops at that step and does not retry automatically. Commands that can
 move equipment keep their existing uncertain outcome.
@@ -569,21 +556,20 @@ allows 0 to 60000, and the focus tube is already far out at 32749: Chris chose
 `travel: { min, max }` in the config (see "Configuration"), and errai's EAF has
 15500 to 38000. Cria never writes `FOCUS_MAX`; the window lives in Cria.
 
-**What Cria reports.** `maxStep` is the smallest of `FOCUS_MAX` (when the driver
-defines it), the position's own maximum and `travel.max`; `minStep` is the
+**The usable window.** The top is the smallest of `FOCUS_MAX` (when the driver
+defines it), the position's own maximum and `travel.max`; the bottom is the
 larger of the position's own minimum and `travel.min`. Without a window they are
-the driver's range, and `maxStep` never reports a `FOCUS_MAX` above what the
-position accepts. Vela's autofocus builds its search window from these two, so
-they are the usable window.
+the driver's range, and the top never exceeds what the position accepts. A move is
+checked against this window before anything is sent.
 
-**Without a window, or with a window as high as the driver's top**, `maxStep` is
+**Without a window, or with a window as high as the driver's top**, the top is
 the driver's top itself, and that value is not a usable target: the first refusal
 below (`approaches the mechanical limit`) refuses a target at or past the
 driver's top, so the highest target that is allowed is one step below it. "Both
 ends allowed" holds for a configured `travel.max` below the driver's top, such as
-errai's 38000, and for `minStep` always. A focuser with no window and a
-consumer that targets `maxStep` is refused `failed: invalid`; keep one step of
-margin below `maxStep` when no window is configured. The limits come from the property's definition, so
+errai's 38000, and for the bottom always. A focuser with no window and a
+client that targets the driver's top is refused `failed: invalid`; keep one step of
+margin below it when no window is configured. The limits come from the property's definition, so
 an `Alert` on the position (a refused move) does not make them, or `absolute`,
 stale; otherwise every move after a refused one would fail `unavailable`.
 
@@ -629,9 +615,7 @@ signal, and Vela refuses any value but 5.
 
 | Endpoint | Purpose |
 |---|---|
-| `GET /health` | `{ status: 'ok', protocolVersion: 5 }`. |
-| `GET /v2/state` | One `State` snapshot. |
-| `GET /v2/events` | The event stream (see "Event stream"). |
+| `GET /health` | `{ status: 'ok', protocolVersion: 5, instanceId, commandsEnabled }`. A client takes the `instanceId` for its requests from here. |
 | `POST /v2/operations` | `OperationRequest`, answered `202` with the `Operation` (see "Admission"). |
 | `GET /v2/operations/{id}` | `Operation`, `404 not-found`, or `410 result-expired`. |
 | `GET /v2/requests/{instance}/{request}` | The operation for a request ID, for a lost POST response. `404 not-found` if unknown. |
@@ -653,37 +637,21 @@ closed `errorCodes` list, and each code has exactly one HTTP status:
 | 409 | `request-conflict`, `instance-changed`, `device-busy` |
 | 410 | `result-expired`, `image-gone` |
 | 413 | `request-too-large` |
-| 429 | `too-many-subscribers` |
 | 500 | `internal-error` |
 
-### State and readings
+### The rig
 
-`@cria/wire` has the shapes. `instanceId` is new on every Cria start, so
-everything in flight before it is unknown. `sequence` counts snapshots from 1
-and `GET /v2/state` and the event stream share it. A Reading on the wire is
-exactly the primitive, with epoch milliseconds. Cria decides `fresh`, `stale`
-and `unavailable` once (see "What fresh means on INDI"); the age of a value is
-`observedAt`, and the client judges it. A snapshot that has stopped arriving
-says nothing about now, so a client treats readings as interrupted when its
-event stream is.
+Cria has no route that returns the rig's state. A client reads the rig from the
+rig stream: the drivers' own INDI traffic, with Cria's `cria.request`,
+`cria.settled`, `cria.write` and `cria.frame` entries beside it. What Cria alone
+answers is whether a command was accepted, what became of it, and the image it
+made. `instanceId` is new on every Cria start, so everything in flight before it
+is unknown.
 
-### Device
-
-One shape per kind, so every reading has a typed value, and readings are named,
-not ASCOM integers. A box carries its configured `channels`, and a camera its
-`lastCommandedSetpointC`.
-
-`availability` says why a device cannot take a command now. The reasons, in order
-of precedence: commands disabled; indiserver or the driver gone;
-device disconnected; connection or name not fresh; device setup not run yet on
-this connection (`starting`, see "Device setup"); a Cria operation open on
-the device. Work started by another INDI client does not make a device unavailable.
-It shows in the readings (a camera's `activity` is `exposing`), and Cria refuses
-the operation as `failed: busy`.
-
-`lastCommandedSetpointC` is the last setpoint Cria sent that the driver
-acknowledged (`Busy`, or `Ok` at the setpoint), with when. `readings.setpointC` is
-always `unavailable: unsupported`.
+When commands are disabled (`commandsEnabled: false`), every operation is refused
+`403 commands-disabled`. Work started by another INDI client does not stop Cria
+accepting an operation; the command refuses itself as `failed: busy` when the
+device it needs is already moving or exposing.
 
 ### Operation
 
@@ -701,11 +669,11 @@ The kinds and their parameters are the table in `packages/cria-wire/src/command.
 Checks a client should know:
 
 - `focuser-move` takes `position`. Cria refuses a target at or past the driver's top, or outside the configured travel
-  window (`minStep` to `maxStep`), as `failed: invalid`, before sending anything
+  window, as `failed: invalid`, before sending anything
   (see "The focuser travel window").
 - `mount-slew` takes `coordinateSystem` `'topocentric' | 'j2000'`. Any other
   frame is `400 request-error`. A frame other than the mount's own
-  (`readings.coordinateSystem`) settles `failed: invalid` before the mount moves.
+  settles `failed: invalid` before the mount moves.
 - `capture` takes `light` (the shutter is open) and an optional `frameType`
   (`'light' | 'flat' | 'dark' | 'bias'`) that says which. See "Capture frame type".
 - `camera-configure` takes `gain` and `offset`, and confirms with the values asked for.
@@ -750,7 +718,7 @@ only when the element is not already on, and confirms the switch before it sends
   `cria.write` entry on the rig stream (`CCD_EXPOSURE_VALUE`), and the camera's own
   `EXPTIME` is in the FITS Vela downloads. Vela does not read
   `Image.exposureSeconds` today. A client that needs the true bias time has the
-  camera minimum from `readings.exposureMinimum`.
+  camera minimum from the camera's `CCD_EXPOSURE` definition on the rig stream.
 
 A settled mount motion whose command was sent carries an optional `motion` record.
 `commanded` names the kind, target or signed RA rate and axis, and `sentAt` in epoch ms.
@@ -763,22 +731,6 @@ between readings, not a sum of the path or a claim of movement before the first 
 the stopped rule fired (see "Stopping the mount"). An unconfirmed stop has null final position, travel and
 time. Refused commands have no motion record.
 Peak rate is not computed here.
-
-### Event stream
-
-`GET /v2/events` is SSE. Each event is `event: state` with `data: <State>`. A new
-subscriber gets a snapshot at once. After that a snapshot goes out at least once a
-second, and within 250 ms of a ledger change. The stream sends nothing else. There
-is no heartbeat comment, because the one-second cadence already shows the
-connection is alive. Vela uses that cadence to detect a broken stream.
-
-The stream is not a log. Changes that land between two ticks coalesce into one
-snapshot. The stream sends a snapshot for the ledger revision captured with that
-snapshot, so a change that lands while a snapshot is being built goes out in the
-next one. A reconnect gets a fresh snapshot, with no replay. A subscriber whose
-socket is not draining gets no new writes until it drains, and is dropped after
-30 s stuck. At most 16 subscribers are accepted at once; the 17th gets
-`429 too-many-subscribers`.
 
 ## Where the code lives
 
@@ -885,25 +837,24 @@ AM5's values as defaults: `stationaryDegrees` 0.02, `positionReadMs` 1500,
 
 `travel` is a focuser's safe range in steps, `{ "min": 15500, "max": 38000 }`
 for errai's EAF: integers from 0 to 2147483646, `min` below `max`, both ends
-allowed. Cria reports it in `minStep` and `maxStep` and refuses a move outside
-it (see "The focuser travel window"). Cria refuses `travel` on a device that is
+allowed. Cria refuses a move outside it (see "The focuser travel window"). Cria refuses `travel` on a device that is
 not a focuser.
 
 ## Restarts and crashes
 
 - **Cria restarts.** It gets a new `instanceId`, an empty ledger (operations and request IDs), and an empty image
   folder. INDI drivers keep running and keep their state, so a camera that was
-  exposing reads `exposing` and a capture settles `failed: busy`. Cria remembers
-  nothing about setup, so every connected device with steps reads `starting` until
+  exposing still is, and a capture settles `failed: busy`. Cria remembers
+  nothing about setup, so every connected device with steps is `starting` until
   a `device-connect` arrives; the rig supervisor sends it within about two polls
   (roughly 10 s), and the setup writes happen again.
-- **A driver crashes.** `indiserver` deletes its properties. Cria marks the device
-  unavailable. An operation in flight ends `uncertain: driver-lost`. When the driver is back, the device is
-  `disconnected`, or `starting` if it is connected, until a `device-connect` arrives: the rig
+- **A driver crashes.** `indiserver` deletes its properties. Cria treats the device
+  as gone. An operation in flight ends `uncertain: driver-lost`. When the driver is back, the device is
+  disconnected, or `starting` if it is connected, until a `device-connect` arrives: the rig
   supervisor sends it within about two polls (roughly 10 s). Run `indiserver -r 0` so indiserver does not restart a crashed
   driver by itself. Cria never restarts a driver; the outside rig supervisor may,
   in the one narrow case AGENTS.md and docs/runtime.md describe.
-- **`indiserver` goes away.** Every device is unavailable, in-flight work is
+- **`indiserver` goes away.** Every device is gone to Cria, in-flight work is
   uncertain, and the reconnect is paced. No command is resent after reconnecting.
 - **SIGTERM.** Closing the process scope interrupts every running operation. Their `stoppable`
   steps abort exposures and stop the mount and focuser before the process exits,
@@ -931,10 +882,11 @@ handle, so a download that has started finishes. A request after the drop gets
 
 All tests run on thuban without hardware. Scenarios read as "given a rig state,
 when Vela does X, then Cria reports Y", and assert literal values. Scenario tests
-wait for a state (a fake device `Busy`, a reading, an operation settled) with a
-deadline that names what they waited for, never for a fixed time. A test that
-acts as another INDI client also waits until Cria's own `/v2/state` shows the
-effect, because indiserver writes to each client in turn.
+wait for a state (a fake device `Busy`, a vector on the fake INDI server, an
+operation settled) with a deadline that names what they waited for, never for a
+fixed time. A device is ready for commands once its `device-connect` settled
+`confirmed`. A test that acts as another INDI client also waits until Cria's own
+INDI mirror shows the effect, because indiserver writes to each client in turn.
 
 `pnpm golden` drives the scenarios in `testing/golden/scenarios.ts` through the
 typed client against Cria on the fake INDI server, normalizes IDs, times and
@@ -964,33 +916,18 @@ and the full suite, and passes on a fresh clone. See "Verification" in
 
 ## Open questions
 
-1. **Sidereal time.** Cria computes it from the system clock (chrony) and the
-   site longitude; the AM5 driver has no `TIME_LST`. Is a computed value good
-   enough for polar alignment, or must it come from the mount?
-2. **Rotate as a slew.** Polar alignment's rotate step might be better as a slew
+1. **Rotate as a slew.** Polar alignment's rotate step might be better as a slew
    to a computed RA. That needs a look at how Vela uses `mount-rotate`.
-3. **Pier side.** Both `TELESCOPE_PIER_SIDE` switches are Off at the pole, so
-   Cria reports `unknown`. Check again after slewing.
-4. **Cooler power scale.** The 2600's cooler power runs 0 to 1 (step 0.2), while
-   the wire calls it a percent. Check the scale while the cooler runs.
-5. **Dew duty step.** The PPBA advertises a 10 % step and Cria accepts only
+2. **Dew duty step.** The PPBA advertises a 10 % step and Cria accepts only
    multiples of it; the box holds 255 steps. If 10 is only a UI step, the check
    is too strict.
-6. **Not exposed yet:** the 2600's fan speed and anti-dew heater
+3. **Not exposed yet:** the 2600's fan speed and anti-dew heater
    (`CCD_CONTROLS.FanSpeedAdjust`, `.AntiDewHeater`), the PPBA's power sensors
    and adjustable output, and guide pulses.
-7. **Telemetry.** journald only. Keep it so, or bring back a small store?
-8. **Effect version.** Pinned to 4.0.3 exactly, as a peer dependency of the
+4. **Telemetry.** journald only. Keep it so, or bring back a small store?
+5. **Effect version.** Pinned to 4.0.3 exactly, as a peer dependency of the
    shared packages. npm has 4.0.5.
-9. **Private Cria, public Vela.** Vela installs `@cria/wire` from chrhicks/cria,
+6. **Private Cria, public Vela.** Vela installs `@cria/wire` from chrhicks/cria,
    which is private, while Vela is public. The options: make the Cria repo (or
    just these packages) public; give Vela's Docker build an SSH key or token; or
    copy `dist/` into Vela at each bump.
-10. **Availability and other clients.** A camera another INDI client is exposing
-    reads `exposing` but stays `availability.ready: true`, so a client learns it
-    is busy only from the capture's `failed: busy`.
-11. **Availability before the definitions settle.** A property that has not
-    arrived yet reads `unavailable: not-read` for up to 2 s after connecting, and
-    a command that needs it settles `failed: unavailable` before sending
-    anything. Device setup waits for them; other commands do not. Whether
-    `starting` should last until the definitions settle is open.

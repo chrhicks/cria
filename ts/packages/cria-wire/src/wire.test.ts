@@ -1,6 +1,6 @@
 import { Result, Schema } from 'effect'
 import { describe, expect, expectTypeOf, it } from 'vitest'
-import { Device, ErrorBody, Operation, OperationRequest, State, type HaltKind } from './index.js'
+import { ErrorBody, Operation, OperationRequest, type HaltKind } from './index.js'
 
 const strict = { onExcessProperty: 'error' } as const
 const decodes = <S extends Schema.Top & { readonly DecodingServices: never }>(schema: S, value: unknown) =>
@@ -72,10 +72,6 @@ describe('protocol 5 contract', () => {
   })
 
   it('refuses identifiers that are not IDs', () => {
-    const state = { protocolVersion: 5, instanceId: id, sequence: 1, generatedAt: 1, commandsEnabled: true, devices: [], operations: [] }
-
-    expect(decodes(State, state)).toBe(true)
-    expect(decodes(State, { ...state, instanceId: 'cria' })).toBe(false)
     expect(decodes(ErrorBody, { error: { code: 'not-found', message: 'No such operation' }, instanceId: 'cria' })).toBe(false)
     expect(decodes(Operation, { ...operation, deviceId: 'zwo eaf' })).toBe(false)
     expect(decodes(Operation, { ...operation, id: 'op-1' })).toBe(false)
@@ -84,28 +80,5 @@ describe('protocol 5 contract', () => {
   it('takes only the error codes Cria emits', () => {
     expect(decodes(ErrorBody, { error: { code: 'device-busy', message: 'The device is running another operation' }, instanceId: id })).toBe(true)
     expect(decodes(ErrorBody, { error: { code: 'busy', message: 'The device is running another operation' }, instanceId: id })).toBe(false)
-  })
-
-  it('types readings per device kind', () => {
-    const focuser = {
-      id: 'focuser',
-      kind: 'focuser',
-      name: 'ZWO EAF',
-      availability: { ready: false, reason: 'busy', message: 'waiting for a reading after the last operation' },
-      readings: {
-        connected: { status: 'fresh', value: true, observedAt: 5 },
-        name: { status: 'fresh', value: 'ZWO EAF', observedAt: 5 },
-        position: { status: 'stale', value: 32749, observedAt: 4 },
-        moving: { status: 'fresh', value: false, observedAt: 5 },
-        temperatureC: { status: 'unavailable', reason: 'unsupported' },
-        absolute: { status: 'fresh', value: true, observedAt: 5 },
-        minStep: { status: 'fresh', value: 15500, observedAt: 5 },
-        maxStep: { status: 'unavailable', reason: 'failed', message: 'driver gone' },
-      },
-    }
-
-    expect(decodes(Device, focuser)).toBe(true)
-    expect(decodes(Device, { ...focuser, readings: { ...focuser.readings, position: { status: 'fresh', value: 'far', observedAt: 5 } } })).toBe(false)
-    expect(decodes(State, { protocolVersion: 4, instanceId: id, sequence: 1, generatedAt: 1, commandsEnabled: true, devices: [], operations: [] })).toBe(false)
   })
 })

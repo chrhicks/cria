@@ -9,7 +9,7 @@ import { FakeIndi, addCamera, connection, type Behaviour } from '@cria/fake-indi
 import { fitsFrame, readFitsHeader } from '@cria/fits'
 import { exposeNormally } from './drivers.js'
 import { Effect, Option } from 'effect'
-import { allReady, connectDevices, noneNotRead, startCria, until, type Cria } from './harness.js'
+import { connectDevices, startCria, until, type Cria } from './harness.js'
 
 const camera = 'Fake CCD'
 let fake: FakeIndi
@@ -22,7 +22,6 @@ beforeEach(async () => {
   fake.behaviour = exposeNormally()
   cria = await startCria(fake.port, [{ id: 'primary', kind: 'camera', indiDevice: camera }], { acknowledgeMs: 600 })
   await connectDevices(cria, ['primary'])
-  await cria.waitFor(allReady(['primary']))
 })
 
 afterEach(async () => {
@@ -31,6 +30,7 @@ afterEach(async () => {
 })
 
 const exposures = () => fake.received.filter(xml => xml.includes('name="CCD_EXPOSURE"')).length
+const sees = (property: string) => Option.isSome(Effect.runSync(cria.service.rig.client.device(camera).property(property)))
 const exposing = () => until('the fake camera to expose', () => fake.vector(camera, 'CCD_EXPOSURE').state === 'Busy', 5000)
 
 describe('a camera that misbehaves', () => {
@@ -55,7 +55,6 @@ describe('a camera that misbehaves', () => {
 
     fake.update(camera, 'CCD_EXPOSURE', { state: 'Idle' })
     fake.behaviour = exposeNormally()
-    await cria.waitFor(allReady(['primary']))
     expect((await cria.run('primary', 'capture', { exposureSeconds: 0.05, light: true })).kind).toBe('confirmed')
     expect(exposures()).toBe(2)
   })
@@ -95,7 +94,7 @@ describe('a camera that misbehaves', () => {
     expect(operation.message).toMatch(/stop was not confirmed/)
   }, 40_000)
 
-  it('vanishes mid-exposure (driver crashed): uncertain, readings unavailable', async () => {
+  it('vanishes mid-exposure (driver crashed): uncertain, and the next capture fails', async () => {
     fake.behaviour = (fake, vector) => {
       if (vector.name !== 'CCD_EXPOSURE') return 'default'
       fake.update(camera, 'CCD_EXPOSURE', { state: 'Busy' })
@@ -107,10 +106,10 @@ describe('a camera that misbehaves', () => {
 
     expect(operation).toMatchObject({ kind: 'uncertain' })
     expect(operation.message).toMatch(/went away/)
-    expect((await cria.device('primary')).readings.temperatureC).toEqual({ status: 'unavailable', reason: 'failed', message: 'Fake CCD is not defined by indiserver' })
+    expect((await cria.run('primary', 'capture', { exposureSeconds: 0.05, light: true })).kind).toBe('failed')
   })
 
-  it('loses the indiserver connection mid-exposure: uncertain; readings stale, then current again after reconnecting', async () => {
+  it('loses the indiserver connection mid-exposure: uncertain, and the exposure was sent once', async () => {
     fake.behaviour = (fake, vector) => {
       if (vector.name !== 'CCD_EXPOSURE') return 'default'
       fake.update(camera, 'CCD_EXPOSURE', { state: 'Busy' })
@@ -123,7 +122,7 @@ describe('a camera that misbehaves', () => {
     expect(operation).toMatchObject({ kind: 'uncertain' })
     expect(operation.message).toMatch(/connection lost/)
 
-    await cria.waitFor(state => state.devices[0]!.readings.connected!.status === 'fresh')
+    await until('Cria to be back on indiserver', () => Effect.runSync(cria.service.rig.client.status).kind === 'connected' && sees('CONNECTION'))
 
     expect(exposures()).toBe(1)
   })
@@ -168,7 +167,7 @@ describe('evidence from the driver (review R1-#8, #9, #10)', () => {
 
   it('#9: a routine temperature update is not evidence the setpoint was taken', async () => {
     withSetpoint()
-    await cria.waitFor(noneNotRead)
+    await until('Cria to see CCD_TEMPERATURE', () => sees('CCD_TEMPERATURE'))
     fake.behaviour = (fake, vector) => {
       if (vector.name !== 'CCD_TEMPERATURE') return 'default'
       setTimeout(() => fake.update(camera, 'CCD_TEMPERATURE', { state: 'Idle', values: { CCD_TEMPERATURE_VALUE: 19.9 } }), 50)
@@ -182,7 +181,7 @@ describe('evidence from the driver (review R1-#8, #9, #10)', () => {
 
   it('#9: the driver starting to regulate (Busy) confirms the setpoint', async () => {
     withSetpoint()
-    await cria.waitFor(noneNotRead)
+    await until('Cria to see CCD_TEMPERATURE', () => sees('CCD_TEMPERATURE'))
     fake.behaviour = (fake, vector) => {
       if (vector.name !== 'CCD_TEMPERATURE') return 'default'
       fake.update(camera, 'CCD_TEMPERATURE', { state: 'Busy' })
@@ -195,7 +194,7 @@ describe('evidence from the driver (review R1-#8, #9, #10)', () => {
 
   const withGain = async () => {
     fake.define({ device: camera, name: 'CCD_CONTROLS', kind: 'number', perm: 'rw', state: 'Ok', elements: { Gain: { value: 100, min: 0, max: 700, step: 1 } } })
-    await cria.waitFor(noneNotRead)
+    await until('Cria to see CCD_CONTROLS', () => sees('CCD_CONTROLS'))
   }
 
   it('#10: waits for the driver to echo a number setting', async () => {
@@ -281,12 +280,11 @@ describe("a capture takes only its own frame (review R1-#7)", () => {
 
       try {
         await connectDevices(strict, ['primary'])
-        await strict.waitFor(allReady(['primary']))
         fake.behaviour = mismatched(fake => fake.update(camera, 'CCD_EXPOSURE', { state: 'Ok', values: { CCD_EXPOSURE_VALUE: 0 } }))
         const submitted = await strict.submit('primary', 'capture', { exposureSeconds: 0.2, light: true })
 
         await new Promise(resolve => setTimeout(resolve, 500))
-        expect((await strict.state()).operations.find(operation => operation.id === submitted.body.id)?.state).not.toBe('settled')
+        expect(await strict.operationState(submitted.body.id)).not.toBe('settled')
         await strict.cancel(submitted.body.id)
         expect((await strict.settled(submitted.body.id)).kind).toBe('stopped')
 
@@ -319,7 +317,6 @@ describe('a cancel that arrives during a setting (review R1-#1)', () => {
 
     try {
       await connectDevices(power, ['box'])
-      await power.waitFor(allReady(['box']))
       const submitted = await power.submit('box', 'switch-set', { channelId: 0, value: 0 })
 
       await until('the switch command to reach the driver', () => fake.received.some(xml => xml.startsWith('<newSwitchVector') && xml.includes(`device="${box}"`)), 5000)
@@ -368,11 +365,6 @@ describe('a Pegasus-like power box', () => {
 
     try {
       await connectDevices(power, ['box'])
-      const state = await power.waitFor(allReady(['box']))
-      const powerBox = state.devices[0]!
-
-      expect(powerBox.readings.dewPointC).toMatchObject({ status: 'fresh', value: 8.1 })
-      expect(powerBox.kind === 'box' && powerBox.channels[0]).toMatchObject({ name: { value: '12V' }, on: { value: true }, writable: { value: true } })
 
       expect(await power.run('box', 'switch-set', { channelId: 0, value: 0 })).toMatchObject({ kind: 'confirmed', values: { value: 0 } })
       expect(fake.vector(box, 'POWER_CHANNELS').elements.POWER_CHANNEL_1!.value).toBe(false)

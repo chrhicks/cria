@@ -1,6 +1,6 @@
 # Cria
 
-Cria is the rig-side service between the telescope equipment and Vela. It is a TypeScript service built on Effect, and it runs on Linux on errai, the rig PC. Cria connects to `indiserver` as an INDI client, turns INDI properties into readings, runs one bounded operation at a time per device, and serves Vela over HTTP and SSE as wire protocol 5. It has no dashboard. Vela is the interface.
+Cria is the rig-side service between the telescope equipment and Vela. It is a TypeScript service built on Effect, and it runs on Linux on errai, the rig PC. Cria connects to `indiserver` as an INDI client, reads INDI properties for the commands that need them, runs one bounded operation at a time per device, and serves Vela's commands over HTTP as wire protocol 5. Clients read the rig from the rig stream (NATS, JetStream `RIG_DEV`), not from Cria. It has no dashboard. Vela is the interface.
 
 [SPEC.md](docs/ts/SPEC.md) is the contract and the design. [The architecture](docs/architecture.md) says what Cria and Vela each own. [Runtime](docs/runtime.md) covers errai, and [testing](docs/testing.md) covers the checks.
 

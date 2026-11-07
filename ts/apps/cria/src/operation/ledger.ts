@@ -1,4 +1,4 @@
-import { Effect, Fiber, FiberMap, Option, PubSub, Ref, Scope, Stream } from 'effect'
+import { Effect, Fiber, FiberMap, Option, Ref, Scope } from 'effect'
 import { fromExit, type Ending, type Outcome, type Report } from '@cria/primitives'
 import {
   commands,
@@ -45,8 +45,6 @@ export interface Rules {
 export interface LedgerState {
   readonly operations: ReadonlyMap<OperationId, Stored>
   readonly requests: ReadonlyMap<RequestId, { readonly fingerprint: string; readonly operation: OperationId }>
-  readonly revision: number
-  readonly sequence: number
 }
 
 export type After =
@@ -60,29 +58,19 @@ export interface Step<A> {
 
 export type Transition<A> = readonly [Step<A>, LedgerState]
 
-export interface LedgerSnapshot {
-  readonly sequence: number
-  readonly revision: number
-  readonly operations: ReadonlyArray<Operation>
-  readonly busy: (deviceId: DeviceId) => boolean
-}
-
 const initialProgress: Progress = { phase: 'preparing', elapsedSeconds: null }
 
 const settledKept = 16
-const settledShown = 20
 
 export function initialState(): LedgerState {
   return {
     operations: new Map(),
     requests: new Map(),
-    revision: 0,
-    sequence: 0,
   }
 }
 
 const step = <A>(result: A, after: ReadonlyArray<After> = []): Step<A> => ({ result, after })
-const changed = (state: LedgerState, patch: Partial<LedgerState>): LedgerState => ({ ...state, ...patch, revision: state.revision + 1 })
+const changed = (state: LedgerState, patch: Partial<LedgerState>): LedgerState => ({ ...state, ...patch })
 const put = <K, V>(map: ReadonlyMap<K, V>, key: K, value: V): ReadonlyMap<K, V> => new Map(map).set(key, value)
 
 function known<K, V>(map: ReadonlyMap<K, V>, key: K): V {
@@ -206,22 +194,6 @@ export function cancel(state: LedgerState, id: OperationId): Transition<Operatio
   return [step(operation, operation.state === 'running' && !isHalt(operation) ? [{ kind: 'stop', operation }] : []), state]
 }
 
-export function snapshot(rules: Rules, state: LedgerState): Transition<LedgerSnapshot> {
-  const all = [...state.operations.values()]
-  const hidden = new Set<Operation>(all.filter(operation => operation.state === 'settled').slice(0, -settledShown))
-  const next = { ...state, sequence: state.sequence + 1 }
-
-  return [
-    step({
-      sequence: next.sequence,
-      revision: state.revision,
-      operations: all.filter(operation => !hidden.has(operation)),
-      busy: deviceId => openOn(state, deviceId).length > 0,
-    }),
-    next,
-  ]
-}
-
 function find(state: LedgerState, id: OperationId): Operation | Refusal {
   const operation = state.operations.get(id)
 
@@ -253,8 +225,6 @@ export interface Ledger {
   readonly cancel: (id: OperationId) => Effect.Effect<Operation, Refusal>
   readonly operation: (id: OperationId) => Effect.Effect<Operation, Refusal>
   readonly request: (instanceId: InstanceId, requestId: RequestId) => Effect.Effect<Operation, Refusal>
-  readonly snapshot: Effect.Effect<LedgerSnapshot>
-  readonly revisions: Stream.Stream<number>
 }
 
 export interface LedgerOptions {
@@ -277,20 +247,14 @@ export function makeLedger(options: LedgerOptions): Effect.Effect<Ledger, never,
     const devices = new Map(options.devices.map(device => [device.id, device]))
     const rules: Rules = { instanceId: options.instanceId, commandsEnabled: options.commandsEnabled, history: options.history, devices }
     const state = yield* Ref.make(initialState())
-    const revisions = yield* Effect.acquireRelease(PubSub.sliding<number>(1), PubSub.shutdown)
     const working = yield* FiberMap.make<OperationId>()
 
     const apply = <A>(transition: (current: LedgerState) => Transition<A>): Effect.Effect<A> =>
       Ref.modify(state, current => {
         const [done, next] = transition(current)
 
-        return [{ done, revision: next.revision === current.revision ? undefined : next.revision }, next] as const
-      }).pipe(
-        Effect.tap(({ done, revision }) =>
-          Effect.andThen(Effect.forEach(done.after, perform, { discard: true }), revision === undefined ? Effect.void : PubSub.publish(revisions, revision)),
-        ),
-        Effect.map(({ done }) => done.result),
-      )
+        return [done, next] as const
+      }).pipe(Effect.tap(done => Effect.forEach(done.after, perform, { discard: true })), Effect.map(done => done.result))
 
     const finish = (input: { readonly id: OperationId; readonly outcome: Outcome<OperationResult>; readonly motion?: MotionRecord | undefined }) =>
       Effect.flatMap(
@@ -335,8 +299,6 @@ export function makeLedger(options: LedgerOptions): Effect.Effect<Ledger, never,
       cancel: id => Effect.flatMap(apply(current => cancel(current, id)), answer),
       operation: id => read(current => find(current, id)),
       request: (instanceId, requestId) => read(current => byRequest(rules, current, instanceId, requestId)),
-      snapshot: apply(current => snapshot(rules, current)),
-      revisions: Stream.fromPubSub(revisions),
     }
   })
 }

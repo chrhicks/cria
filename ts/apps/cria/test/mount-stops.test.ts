@@ -4,7 +4,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { FakeIndi, addMount } from '@cria/fake-indi'
 import { moveMount } from './drivers.js'
-import { allReady, connectDevices, startCria, until, type Cria } from './harness.js'
+import { connectDevices, startCria, until, type Cria } from './harness.js'
 
 const mount = 'ZWO AM5'
 let fake: FakeIndi
@@ -17,7 +17,6 @@ beforeEach(async () => {
   fake.behaviour = moveMount()
   cria = await startCria(fake.port, [{ id: 'mount', kind: 'mount', indiDevice: mount }], { acknowledgeMs: 600 })
   await connectDevices(cria, ['mount'])
-  await cria.waitFor(allReady(['mount']))
 })
 
 afterEach(async () => {

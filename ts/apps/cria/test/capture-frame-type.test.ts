@@ -3,7 +3,7 @@ import { Effect, Option } from 'effect'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { FakeIndi, addCamera } from '@cria/fake-indi'
 import { exposeNormally } from './drivers.js'
-import { allReady, connectDevices, startCria, until, type Cria } from './harness.js'
+import { connectDevices, startCria, until, type Cria } from './harness.js'
 
 const camera = 'Fake CCD'
 let fake: FakeIndi
@@ -16,7 +16,6 @@ beforeEach(async () => {
   fake.behaviour = exposeNormally()
   cria = await startCria(fake.port, [{ id: 'primary', kind: 'camera', indiDevice: camera }], { acknowledgeMs: 600 })
   await connectDevices(cria, ['primary'])
-  await cria.waitFor(allReady(['primary']))
 })
 
 afterEach(async () => {
