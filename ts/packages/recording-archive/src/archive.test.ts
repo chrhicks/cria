@@ -63,7 +63,7 @@ async function session(name: string, over: { age?: number } = {}) {
             startedAt,
             settledAt: parsed.at + 5,
             state: 'settled',
-            outcome: { kind: 'confirmed', value: { values: {}, image: { id: `img-${k}`, capturedAt: startedAt + 5, capturedAtSource: 'camera', exposureSeconds: exposure } } },
+            outcome: { kind: 'confirmed', value: { values: {}, image: { id: `img-${k}`, cameraName: 'Synthetic Camera', capturedAt: startedAt + 5, capturedAtSource: 'camera', exposureSeconds: exposure } } },
           },
         }),
       )

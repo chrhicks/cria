@@ -81,7 +81,7 @@ describe('requestIdentity', () => {
 
     expect(Object.keys(requestIdentity).sort()).toEqual(['deviceId', 'instanceId', 'requestId'])
     expect(decode(identity)).toBe(true)
-    expect(Object.keys(identity).map(key => decode({ ...identity, [key]: undefined }))).toEqual([false, false, false, false, false])
+    expect(Object.keys(identity).map(key => decode({ ...identity, [key]: undefined }))).toEqual([false, false, false])
     expect(Result.isSuccess(Schema.decodeUnknownResult(OperationRequest)({ ...identity, kind: 'mount-park', parameters: {} }))).toBe(true)
   })
 })
