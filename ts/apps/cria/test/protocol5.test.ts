@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { makeCriaClient } from '../../../testing/cria-client.js'
 import { FakeIndi, addCamera } from '@cria/fake-indi'
 import { exposeNormally } from './drivers.js'
-import { allReady, startCria, type Cria } from './harness.js'
+import { allReady, connectDevices, startCria, type Cria } from './harness.js'
 
 const camera = 'Fake CCD'
 let fake: FakeIndi
@@ -44,6 +44,7 @@ describe('protocol 5', () => {
 
   it('a capture settles with a confirmed outcome whose image downloads intact, and the device reports it read after it', async () => {
     const client = makeCriaClient(cria.base)
+    await connectDevices(cria, ['primary'])
     const state = await cria.waitFor(allReady(['primary']))
     const device = state.devices[0]!
     const admitted = await client.submit({
@@ -67,6 +68,7 @@ describe('protocol 5', () => {
 
   it('reports a cooling setpoint as commanded, never as a reading', async () => {
     const client = makeCriaClient(cria.base)
+    await connectDevices(cria, ['primary'])
     const state = await cria.waitFor(allReady(['primary']))
     const device = state.devices[0]!
     const admitted = await client.submit({
@@ -90,10 +92,10 @@ describe('protocol 5', () => {
     const small = await startCria(fake.port, [{ id: 'primary', kind: 'camera', indiDevice: camera }], { acknowledgeMs: 600, imageBudgetBytes: 200 })
 
     try {
+      await connectDevices(small, ['primary'])
       await small.waitFor(allReady(['primary']))
       const first = await small.run('primary', 'capture', { exposureSeconds: 0.05, light: true })
 
-      await small.waitFor(allReady(['primary']))
       const second = await small.run('primary', 'capture', { exposureSeconds: 0.05, light: true })
       const id = (url: string) => /\/v2\/images\/([^/]+)\/original/.exec(url)![1]!
 

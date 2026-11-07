@@ -9,7 +9,7 @@ import { FakeIndi, addCamera, connection, type Behaviour } from '@cria/fake-indi
 import { fitsFrame } from '@cria/fits'
 import { exposeNormally } from './drivers.js'
 import { Effect, Option } from 'effect'
-import { allReady, noneNotRead, startCria, until, type Cria } from './harness.js'
+import { allReady, connectDevices, noneNotRead, startCria, until, type Cria } from './harness.js'
 
 const camera = 'Fake CCD'
 let fake: FakeIndi
@@ -21,6 +21,7 @@ beforeEach(async () => {
   addCamera(fake, camera)
   fake.behaviour = exposeNormally()
   cria = await startCria(fake.port, [{ id: 'primary', kind: 'camera', indiDevice: camera }], { acknowledgeMs: 600 })
+  await connectDevices(cria, ['primary'])
   await cria.waitFor(allReady(['primary']))
 })
 
@@ -273,6 +274,7 @@ describe("a capture takes only its own frame (review R1-#7)", () => {
       const strict = await strictCria()
 
       try {
+        await connectDevices(strict, ['primary'])
         await strict.waitFor(allReady(['primary']))
         fake.behaviour = mismatched(fake => fake.update(camera, 'CCD_EXPOSURE', { state: 'Ok', values: { CCD_EXPOSURE_VALUE: 0 } }))
         const submitted = await strict.submit('primary', 'capture', { exposureSeconds: 0.2, light: true })
@@ -310,6 +312,7 @@ describe('a cancel that arrives during a setting (review R1-#1)', () => {
     const power = await startCria(fake.port, [{ id: 'box', kind: 'box', indiDevice: box, channels: [{ name: '12V', property: 'POWER_CHANNELS', element: 'POWER_CHANNEL_1' }] }])
 
     try {
+      await connectDevices(power, ['box'])
       await power.waitFor(allReady(['box']))
       const submitted = await power.submit('box', 'switch-set', { channelId: 0, value: 0 })
 
@@ -358,6 +361,7 @@ describe('a Pegasus-like power box', () => {
     )
 
     try {
+      await connectDevices(power, ['box'])
       const state = await power.waitFor(allReady(['box']))
       const powerBox = state.devices[0]!
 

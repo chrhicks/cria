@@ -28,6 +28,8 @@ Moving Cria from .NET on Windows to TypeScript on Linux did not change the split
 
 Cria never decides what a run does next. Vela never talks to a driver directly on a Cria rig.
 
+Cria never acts on its own: it does not connect a device or set one up unless a `device-connect` operation asks it to. A connected device that is not set up reads `starting` until then. On the rig the supervisor sends that `device-connect`, within about two polls (roughly 10 s); [docs/runtime.md](runtime.md#the-rig-supervisor) has its rules.
+
 Each device takes one command at a time. The Pegasus power box is one device, `box`: its weather readings and its switch channels are together.
 
 ## What changed on Linux

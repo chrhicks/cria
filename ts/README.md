@@ -25,7 +25,7 @@ the primitive map and what building it changed are in
 | `apps/cria/src/wire` | projection into protocol 5, HTTP, SSE | View and wire boundary |
 | `apps/cria/src/rig.ts`, `device.ts`, `ids.ts`, `service.ts`, `main.ts`, `config.ts` | composition | — |
 | `apps/cria/src/refusal.ts` | `Refusal`: a closed error code the HTTP layer maps to a status | Wire boundary |
-| `apps/cria/test` | scenario tests; `drivers.ts` models the rig's INDI drivers on `@cria/fake-indi` | — |
+| `apps/cria/test` | scenario tests; `drivers.ts` models the rig's INDI drivers on `@cria/fake-indi`; `harness.ts` starts Cria and has `connectDevices`, which sends `device-connect` because Cria never connects or sets up a device by itself | — |
 | `testing/indiserver.ts` | runs a real indiserver with simulators for tests | — |
 | `testing/cria-client.ts` | a typed protocol 5 client for tests; decodes every response strictly | — |
 | `testing/replay.test.ts` | the real Cria against `indi-replay` on a recording the simulators made: digests, hour angle, abort, the end, liveness | — |

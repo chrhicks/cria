@@ -208,8 +208,8 @@ and nothing persists, so an exposure error leaves the camera free.
 
 `apps/cria/src/operation/ledger.ts` is the one owner of operations, per rig. It
 holds one immutable state in a `Ref`. Each transition (admit, progress, settle,
-cancel, wait, snapshot, prune) is a pure function that returns the new
-state and the effects to run after it (start an operation, stop one, resolve waiters).
+cancel, snapshot, prune) is a pure function that returns the new
+state and the effects to run after it (start an operation, stop one).
 Each change increments a revision, which the ledger publishes for the event
 stream.
 
@@ -331,14 +331,14 @@ the same tag in their doc comment.
 | `apps/cria/src/operation/workflows.ts` | Workflow bodies | One short body per operation kind over one capability, as a table keyed by kind |
 | `apps/cria/src/operation/ledger.ts` | The ledger | The one owner of operations per rig (see "The ledger"); `onSettled` announces each settled operation once |
 | `apps/cria/src/refusal.ts` | Wire boundary | `Refusal`, a tagged error with a closed `ErrorCode`; the HTTP layer maps it to a status |
-| `apps/cria/src/ids.ts` | Composition | `mint`: new instance, operation and image IDs and the request IDs of device setup |
+| `apps/cria/src/ids.ts` | Composition | `mint`: new instance, operation and image IDs |
 | `packages/fits/src/fits.ts` | Image boundary (`@cria/fits`) | FITS (INDI BLOB) to ASCOM ImageBytes v1, and `fitsFrame`, a FITS test frame |
 | `apps/cria/src/image/store.ts` | Domain storage | The rolling set: budget, `410 image-gone` after a drop |
 | `apps/cria/src/wire/project.ts` | View | Readings and the ledger's facts to protocol 5 values; availability |
 | `apps/cria/src/wire/http.ts` | Wire boundary | Routes, origin refusal, body decoding, error code to status, image download |
 | `apps/cria/src/wire/sse.ts` | Wire boundary | The event stream (see "Event stream") |
 | `apps/cria/src/device.ts` | Composition | What a configured device is made of: its capability and its connection, per kind |
-| `apps/cria/src/rig.ts` | Composition | Builds the INDI client, devices, the ledger and the image store from config; device setup on each connection |
+| `apps/cria/src/rig.ts` | Composition | Builds the INDI client, devices, the ledger and the image store from config; ends a device's setup session when it disconnects or its driver goes away |
 | `apps/cria/src/recording.ts` | Composition | Opens the recorder from `record`, closes it with the rig's scope; a recorder that cannot open is logged |
 | `apps/cria/src/config.ts` | View, composition | The config schema with defaults, decoded once |
 | `apps/cria/src/service.ts` | Composition | One scope for the whole process, served over HTTP |
@@ -597,7 +597,7 @@ Why each step exists:
 
 - **Frames to Cria.** A camera on `UPLOAD_LOCAL` saves frames on the rig's disk
   and sends Cria nothing, so captures were refused. errai's 2600 was on local.
-- **Driver debug.** It's how the mount's raw status replies reach the rig stream, and it doesn't survive a driver restart or a power cut (Chris, 2026-11-05), so Cria sets it on each connection.
+- **Driver debug.** It's how the mount's raw status replies reach the rig stream, and it doesn't survive a driver restart or a power cut (Chris, 2026-11-05), so Cria sets it each time a device is set up.
 - **Site, then time.** The AM5 refuses every goto until its site and time are
   set after it powers on. It answers `:MS#` with `e7#` ("time and site not
   synchronized"). In indi_lx200am5 the `GEOGRAPHIC_COORD` write sends `:Sg` then
@@ -609,18 +609,25 @@ Why each step exists:
   needs the writes. The two INDI writes cleared a real power-on refusal on
   2026-11-03; reporting matching values alone did not.
 
-**When it runs.** Each time a device is connected and has not been set up since
-it connected. A connection ends when the device disconnects, its driver goes away
-(`delProperty` without a name) or the indiserver connection is lost, so a driver
-that comes back is set up again. Setup runs as an ordinary `device-connect`
-operation (`connected: true`, request ID `startup-…`) through the ledger, on a
-device that is already connected, so it connects nothing. That makes it
-single-flight with Vela's operations and shows in the operation list. A device
-with nothing to write gets no operation. A refused submission (the domain busy) sent nothing and is
-tried again. A setup that ran is not run again until the device connects again,
-or someone sends `device-connect` with `connected: true`, which always runs the
-setup steps after connecting With commands
-disabled, setup does not run.
+**When it runs.** Only when someone asks. Cria never sets a device up by
+itself, in the same way that it never connects a device by itself. A device is
+set up by `device-connect` with `connected: true`, which connects the device if
+it is not connected and then runs the setup steps, in one operation that goes
+through the ledger like any other. That makes it single-flight with Vela's
+operations and puts it in the operation list. A device with steps whose
+connection has not been set up yet reports availability `starting` until that
+`device-connect` has run. A connection ends when the device disconnects, its
+driver goes away (`delProperty` without a name) or the indiserver connection is
+lost, and the next connection starts as `starting` again. A device with no steps
+(a focuser, a box) is never `starting`. A setup that ran is not run again until
+the connection ends, or someone sends `device-connect` with `connected: true`
+again, which always runs the setup steps. With commands disabled, nothing runs.
+
+On the rig the supervisor is the one that asks: it sends the `device-connect`
+for a device that is `disconnected` or `starting` (docs/runtime.md, rule b),
+within about two polls, roughly 10 s, of the hardware being present and nothing
+being open on the device. Another client of the API (Vela, a test) can send it
+sooner.
 
 **What it reports.** No wire change. The `device-connect` outcome's values carry
 `setup`, one string of what each step did, for example
@@ -1027,10 +1034,10 @@ and `devices` has a default (the values above). `acknowledgeMs` is how long a
 driver has to acknowledge a command. `operationTimeoutMs` is the overrun allowance
 for a motion.
 `initializeTimeoutMs` is how long a cold device may take to connect through `device-connect`.
-A device connects only when `device-connect` asks it to (the
+A device connects, and is set up, only when `device-connect` asks it to (the
 rig supervisor does that on the rig), with the serial `port` written first. A
-failure leaves the device disconnected and says so. Cria never changes power or
-connects equipment implicitly.
+failure leaves the device disconnected and says so. Cria never changes power,
+connects equipment or sets it up on its own.
 
 A box
 channel's `automaticWhileOn` names another channel of the same device under
@@ -1328,10 +1335,14 @@ It holds no `op` lines.
 
 - **Cria restarts.** It gets a new `instanceId`, an empty ledger (operations and request IDs), and an empty image
   folder. INDI drivers keep running and keep their state, so a camera that was
-  exposing reads `exposing` and a capture settles `failed: busy`.
+  exposing reads `exposing` and a capture settles `failed: busy`. Cria remembers
+  nothing about setup, so every connected device with steps reads `starting` until
+  a `device-connect` arrives; the rig supervisor sends it within about two polls
+  (roughly 10 s), and the setup writes happen again.
 - **A driver crashes.** `indiserver` deletes its properties. Cria marks the device
-  unavailable. An operation in flight ends `uncertain: driver-lost`. When the driver is back and the device connected, it
-  is set up again. Run `indiserver -r 0` so indiserver does not restart a crashed
+  unavailable. An operation in flight ends `uncertain: driver-lost`. When the driver is back, the device is
+  `disconnected`, or `starting` if it is connected, until a `device-connect` arrives: the rig
+  supervisor sends it within about two polls (roughly 10 s). Run `indiserver -r 0` so indiserver does not restart a crashed
   driver by itself. Cria never restarts a driver; the outside rig supervisor may,
   in the one narrow case AGENTS.md and docs/runtime.md describe.
 - **`indiserver` goes away.** Every device is unavailable, in-flight work is
@@ -1558,10 +1569,6 @@ Gaps that need a decision:
   of `confirmed`. The mount is stationary either way and the stop was confirmed.
   Vela treats the motion as not done and may repeat it, which is safe because the
   device state is known.
-- **Setup on a device someone disconnects at that moment.** Device setup is a
-  `device-connect` operation, submitted only while the device reads connected.
-  If someone disconnects it in the milliseconds between that reading and the
-  operation's own, the operation connects it again before setting it up.
 - **The request-ID map is never pruned.** Deleting a marker would let an old
   request ID run a second time. It grows by one entry per request for the life of
   the process.

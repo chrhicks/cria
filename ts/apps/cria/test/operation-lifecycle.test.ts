@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { FakeIndi, type Behaviour, addCamera, addMount } from '@cria/fake-indi'
 import { exposeNormally, moveMount } from './drivers.js'
-import { allReady, startCria, until, type Cria } from './harness.js'
+import { allReady, connectDevices, startCria, until, type Cria } from './harness.js'
 
 const mount = 'ZWO AM5'
 const camera = 'Fake CCD'
@@ -36,6 +36,7 @@ describe('one mount', () => {
 
   beforeEach(async () => {
     cria = await startCria(fake.port, [{ id: 'mount', kind: 'mount', indiDevice: mount, motion: { positionReadMs: 250 } }], { acknowledgeMs: 600, operationHistory: 10 })
+    await connectDevices(cria, ['mount'])
     await cria.waitFor(allReady(['mount']))
   })
 
@@ -166,6 +167,7 @@ describe('two devices', () => {
     ])
 
     try {
+      await connectDevices(cria, ['mount', 'camera'])
       await cria.waitFor(allReady(['mount', 'camera']))
       const requestId = crypto.randomUUID()
       const replies = await Promise.all([

@@ -1,7 +1,7 @@
 /**
  * Composition: the one place that shows what is connected to what.
  */
-import { Effect, Schedule, Scope, Stream } from 'effect'
+import { Effect, Scope, Stream } from 'effect'
 import { makeIndiClient, type DeviceEvent, type IndiClient, type IndiDevice, type TrafficTap } from '@cria/indi'
 import type { Recorder } from '@cria/recording'
 import type { InstanceId } from '@cria/wire'
@@ -105,7 +105,6 @@ export function makeRig(config: Config, options: { readonly recording?: Recordin
     for (const device of devices) {
       if (!device.setup.hasSteps) continue
       yield* Effect.forkScoped(Stream.runForEach(device.indi.events, event => (endsSession(event) ? device.setup.endSession : Effect.void)))
-      if (config.commandsEnabled) yield* Effect.forkScoped(keepSetUp(device, ledger, instanceId))
     }
 
     return { instanceId, config, client, devices, ledger, images, recorder }
@@ -117,31 +116,4 @@ function endsSession(event: DeviceEvent): boolean {
   if (event.type === 'connection') return event.status.kind !== 'connected'
 
   return event.type === 'property' && event.property.name === 'CONNECTION' && event.property.state !== 'Busy' && switchElement('CONNECT')(event.property) === false
-}
-
-/** device-connect with `connected: true` connects the device if it is not, then runs its setup steps. */
-function connectAndSetUp(device: RigDevice, ledger: Ledger, instanceId: InstanceId) {
-  return Effect.gen(function* () {
-    const submitted = yield* ledger.submit({
-      instanceId,
-      requestId: mint.setupRequestId(),
-      deviceId: device.config.id,
-      kind: 'device-connect',
-      parameters: { connected: true },
-    })
-
-    return (yield* Effect.orDie(ledger.awaitSettled(submitted.id))).outcome
-  })
-}
-
-function keepSetUp(device: RigDevice, ledger: Ledger, instanceId: InstanceId) {
-  const attempt = Effect.gen(function* () {
-    if (!(yield* device.setup.due)) return
-
-    const outcome = yield* connectAndSetUp(device, ledger, instanceId)
-
-    yield* Effect.logInfo(`${device.indi.name}: setup ${outcome.kind}${'message' in outcome ? `: ${outcome.message}` : ''}`)
-  })
-
-  return Effect.forever(Effect.retry(Effect.andThen(Effect.sleep('250 millis'), attempt), Schedule.forever))
 }

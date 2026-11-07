@@ -329,7 +329,7 @@ describe('rule a: a missing device whose hardware is present gets its driver res
   })
 })
 
-describe('rule b: a defined, disconnected device whose hardware is present gets one device-connect', () => {
+describe('rule b: a disconnected, or connected and not set up, device whose hardware is present gets one device-connect', () => {
   it('posts a device-connect with the identity Cria reported', async () => {
     const { cria, present, poll, build } = current
 
@@ -452,6 +452,146 @@ describe('rule b: a defined, disconnected device whose hardware is present gets 
     await poll(build(), 1)
     expect(cria.posts).toEqual([])
     expect(Object.values(cria.devices).filter(device => device.reason === undefined).length).toBeGreaterThan(0)
+  })
+})
+
+describe('rule b on a starting device', () => {
+  const connectPosts = () => current.cria.posts.map(post => [post.deviceId, post.kind, post.parameters])
+
+  it('posts one device-connect once the hardware has held for two polls', async () => {
+    const { cria, present, poll, build } = current
+
+    cria.devices.mount!.reason = 'starting'
+    present.add('mount')
+    const supervisor = build()
+
+    await poll(supervisor, 1)
+    expect(cria.posts).toEqual([])
+    await poll(supervisor, 1)
+
+    expect(cria.posts).toEqual([
+      {
+        instanceId: '11111111-1111-4111-8111-111111111111',
+        requestId: 'supervisor-uuid-1',
+        deviceId: 'mount',
+        kind: 'device-connect',
+        parameters: { connected: true },
+      },
+    ])
+  })
+
+  it('waits for hardware that is not present yet', async () => {
+    const { cria, present, poll, build } = current
+
+    cria.devices.focuser!.reason = 'starting'
+    const supervisor = build()
+
+    await poll(supervisor, 4)
+    expect(cria.posts).toEqual([])
+
+    present.add('focuser')
+    await poll(supervisor, 2)
+    expect(connectPosts()).toEqual([['focuser', 'device-connect', { connected: true }]])
+  })
+
+  it('does not post while an operation is open on the device, and posts once it has settled', async () => {
+    const { cria, present, poll, build } = current
+
+    cria.devices.mount!.reason = 'starting'
+    present.add('mount')
+    cria.operations.push({ deviceId: 'mount', state: 'running', kind: 'mount-slew' })
+    const supervisor = build()
+
+    await poll(supervisor, 10)
+    expect(cria.posts).toEqual([])
+
+    cria.operations.length = 0
+    await poll(supervisor, 1)
+    expect(cria.posts).toHaveLength(1)
+  })
+
+  it('does not resend while the device-connect it started is open', async () => {
+    const { cria, present, poll, build } = current
+
+    cria.devices.mount!.reason = 'starting'
+    present.add('mount')
+    const supervisor = build()
+
+    await poll(supervisor, 2)
+    cria.operations.push({ deviceId: 'mount', state: 'running', kind: 'device-connect' })
+    await poll(supervisor, 30)
+
+    expect(cria.posts).toHaveLength(1)
+  })
+
+  it('retries after 10 s, then 30 s, then 60 s at most, each with a new request ID', async () => {
+    const { cria, clock, present, build } = current
+
+    cria.devices.mount!.reason = 'starting'
+    present.add('mount')
+    const supervisor = build()
+    const times: number[] = []
+    let seen = 0
+
+    for (let i = 0; i < 80; i += 1) {
+      await supervisor.tick()
+      if (cria.posts.length > seen) times.push(clock.at)
+      seen = cria.posts.length
+      clock.at += 5_000
+    }
+    const gaps = times.slice(1).map((at, index) => (at - times[index]!) / 1000)
+
+    expect(gaps.slice(0, 5)).toEqual([10, 30, 60, 60, 60])
+    expect(new Set(cria.posts.map(post => post.requestId)).size).toBe(cria.posts.length)
+    commandsOnly(cria.posts)
+  })
+
+  it('keeps counting attempts when the device goes from disconnected to starting, and resets once it is ready', async () => {
+    const { cria, present, poll, build } = current
+
+    cria.devices.mount!.reason = 'disconnected'
+    present.add('mount')
+    const supervisor = build()
+
+    await poll(supervisor, 2)
+    expect(cria.posts).toHaveLength(1)
+
+    cria.devices.mount!.reason = 'starting'
+    await poll(supervisor, 2)
+    expect(cria.posts).toHaveLength(2)
+    await poll(supervisor, 5)
+    expect(cria.posts).toHaveLength(2)
+    await poll(supervisor, 1)
+    expect(cria.posts).toHaveLength(3)
+
+    cria.devices.mount!.reason = undefined
+    await poll(supervisor, 1)
+    cria.devices.mount!.reason = 'starting'
+    await poll(supervisor, 1)
+    expect(cria.posts).toHaveLength(4)
+    await poll(supervisor, 2)
+    expect(cria.posts).toHaveLength(5)
+  })
+
+  it('does nothing while commands are disabled', async () => {
+    const { cria, present, poll, build } = current
+
+    cria.commandsEnabled = false
+    cria.devices.mount!.reason = 'starting'
+    present.add('mount')
+    await poll(build(), 6)
+
+    expect(cria.posts).toEqual([])
+  })
+
+  it('leaves a ready device alone, however long it has been present', async () => {
+    const { cria, present, poll, build } = current
+
+    present.add('mount')
+    present.add('primary')
+    await poll(build(), 20)
+
+    expect(cria.posts).toEqual([])
   })
 })
 

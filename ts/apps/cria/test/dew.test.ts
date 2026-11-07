@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { FakeIndi, connection } from '@cria/fake-indi'
 import { addDewHeaters, pegasusDew } from './drivers.js'
-import { allReady, noneNotRead, startCria, until, type Cria } from './harness.js'
+import { allReady, connectDevices, noneNotRead, startCria, until, type Cria } from './harness.js'
 
 const box = 'Fake PPBA'
 const overrideMs = 500
@@ -26,6 +26,7 @@ beforeEach(async () => {
       ],
     },
   ])
+  await connectDevices(cria, ['box'])
   await cria.waitFor(allReady(['box']))
   await cria.waitFor(noneNotRead)
 })

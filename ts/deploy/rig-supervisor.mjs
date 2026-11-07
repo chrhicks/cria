@@ -8,10 +8,11 @@
 //   a. A device is missing from INDI (availability `unavailable`), its hardware
 //      is present, and nothing is open on any device that driver
 //      serves: restart only that driver through indiserver's FIFO.
-//   b. A device is defined but disconnected (availability `disconnected`), its
-//      hardware is present, commands are enabled, and nothing is open
-//      on it: send one device-connect through Cria's HTTP API. Cria writes the
-//      serial port first and runs device setup itself.
+//   b. A device is defined but disconnected (availability `disconnected`), or
+//      connected but not set up (availability `starting`), its hardware is
+//      present, commands are enabled, and nothing is open on it: send one
+//      device-connect through Cria's HTTP API. Cria writes the serial port
+//      first if it has to connect, then runs the device's setup.
 //
 // It never switches power, never moves anything and never exposes. When Cria is
 // unreachable, or commands are disabled, it does nothing. docs/runtime.md says
@@ -136,6 +137,8 @@ export async function writeFifo(path, line) {
 }
 
 const isOpen = operation => operation.state !== 'settled'
+
+const wantsConnect = device => device.availability.reason === 'disconnected' || device.availability.reason === 'starting'
 
 /** Things that make restarting a driver unsafe, found on the devices it serves. */
 function activeOn(devices) {
@@ -293,7 +296,7 @@ export function createSupervisor(dependencies) {
       }
       entry.hardwareStreak = (await dependencies.hardwarePresent(configured)) ? entry.hardwareStreak + 1 : 0
       entry.missingStreak = !linkDown && current.availability.reason === 'unavailable' ? entry.missingStreak + 1 : 0
-      if (current.availability.reason !== 'disconnected') entry.attempts = 0
+      if (!wantsConnect(current)) entry.attempts = 0
     }
 
     // Rule a: a missing device whose hardware is present gets its driver restarted.
@@ -341,12 +344,12 @@ export function createSupervisor(dependencies) {
       await restartDriver(driver, bookkeeping, `${wanting.map(device => device.id).join(', ')} missing from INDI with hardware present`)
     }
 
-    // Rule b: a defined, disconnected device whose hardware is present gets one device-connect.
+    // Rule b: a device that is disconnected, or connected and not set up, gets one device-connect.
     for (const configured of config.devices) {
       const entry = devices.get(configured.id)
       const current = byId.get(configured.id)
 
-      if (!current || current.availability.reason !== 'disconnected') {
+      if (!current || !wantsConnect(current)) {
         clearNote(`connect:${configured.id}`)
         entry.quiet = undefined
         continue
@@ -362,11 +365,11 @@ export function createSupervisor(dependencies) {
         entry.quiet = undefined
       }
       if (entry.hardwareStreak < config.settlePolls) {
-        note(`connect:${configured.id}`, `${configured.id}: disconnected, hardware not present yet`)
+        note(`connect:${configured.id}`, `${configured.id}: ${current.availability.reason}, hardware not present yet`)
         continue
       }
       if (open) {
-        note(`connect:${configured.id}`, `${configured.id}: disconnected, but an operation is open; not connecting`)
+        note(`connect:${configured.id}`, `${configured.id}: ${current.availability.reason}, but an operation is open; not connecting`)
         continue
       }
       if (entry.lastAttemptAt !== undefined && now() - entry.lastAttemptAt < connectWait(entry)) continue

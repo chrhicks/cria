@@ -7,7 +7,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { FakeIndi, addMount, type Behaviour } from '@cria/fake-indi'
 import { moveMount } from './drivers.js'
-import { allReady, startCria, until, type Cria } from './harness.js'
+import { allReady, connectDevices, startCria, until, type Cria } from './harness.js'
 
 const mount = 'ZWO AM5'
 const coordinates = 'EQUATORIAL_EOD_COORD'
@@ -21,6 +21,7 @@ beforeEach(async () => {
   addMount(fake, mount)
   fake.behaviour = homeThatIgnoresAbort()
   cria = await startCria(fake.port, [{ id: 'mount', kind: 'mount', indiDevice: mount, motion: { positionReadMs: 300 } }], { acknowledgeMs: 600 })
+  await connectDevices(cria, ['mount'])
   await cria.waitFor(allReady(['mount']))
 })
 

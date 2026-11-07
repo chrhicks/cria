@@ -1,7 +1,7 @@
 import type { Operation, OperationRequest } from '@cria/wire'
 import { FakeIndi, type Behaviour, addCamera, addMount, connection } from '@cria/fake-indi'
 import { am5, exposeNormally, moveMount } from '../../apps/cria/test/drivers.js'
-import { allReady, startCria, valueOf, type Cria, type DeviceSpec } from '../../apps/cria/test/harness.js'
+import { allReady, connectDevices, startCria, valueOf, type Cria, type DeviceSpec } from '../../apps/cria/test/harness.js'
 import { makeCriaClient, type CriaClient, type Reply } from '../cria-client.js'
 import { failedStep, recordingFetch, type Recorded } from './golden.js'
 
@@ -51,6 +51,7 @@ export interface Scenario {
   readonly name: string
   readonly devices: ReadonlyArray<Kind>
   readonly config?: object
+  readonly connect?: false
   /** Changes the fake before Cria starts, so device setup meets it. */
   readonly fake?: (fake: FakeIndi, behave: Golden['behave']) => void
   readonly run: (g: Golden) => Promise<void>
@@ -118,9 +119,14 @@ export async function runScenario(scenario: Scenario): Promise<Recorded[]> {
   }
 
   try {
-    await cria.waitFor(state =>
-      state.devices.every(device => device.availability.ready || (device.availability.reason === 'commands-disabled' && device.readings.connected.status === 'fresh')),
-    )
+    if (scenario.connect === false) await cria.waitFor(state => state.devices.every(device => device.readings.connected.status === 'fresh'))
+    else {
+      await connectDevices(
+        cria,
+        scenario.devices.filter(kind => kind === 'camera' || kind === 'mount').map(kind => specs[kind].id),
+      )
+      await cria.waitFor(state => state.devices.every(device => device.availability.ready))
+    }
     await scenario.run(g)
   } catch (error) {
     recorded.push({ request: failedStep, status: 0, body: error instanceof Error ? error.message : String(error) })
@@ -415,8 +421,9 @@ export const scenarios: ReadonlyArray<Scenario> = [
     },
   },
   {
-    name: 'mount-slew on an AM5 set up at start: the site, then the time, then the goto',
+    name: 'mount-slew on an AM5 set up by device-connect: the site, then the time, then the goto',
     devices: ['mount'],
+    connect: false,
     config: { devices: [{ ...specs.mount, site }] },
     fake: (fake, behave) => {
       // A tracking mount holds its coordinates after the goto; an untracked one drifts, and the slew reports where it stopped.
@@ -424,9 +431,7 @@ export const scenarios: ReadonlyArray<Scenario> = [
       behave(mount, am5(fake, mount, { slewDegreesPerSecond: 60, publishEveryMs: 100 }).behaviour)
     },
     run: async g => {
-      const setup = (await g.cria.state()).operations.find(operation => operation.kind === 'device-connect')
-
-      await g.wire.operation(setup?.id ?? 'no start-up setup')
+      await runAndSettle(g, 'mount', 'device-connect', { connected: true })
       await runAndSettle(g, 'mount', 'mount-slew', slew)
     },
   },
@@ -519,6 +524,7 @@ export const scenarios: ReadonlyArray<Scenario> = [
   {
     name: 'refused: commands disabled',
     devices: ['camera'],
+    connect: false,
     config: { commandsEnabled: false },
     run: async g => {
       await g.wire.state()

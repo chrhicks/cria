@@ -7,7 +7,7 @@
 import { readFileSync } from 'node:fs'
 import net from 'node:net'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { allReady, noneNotRead, startCria, type Cria, type Device } from './harness.js'
+import { allReady, connectDevices, noneNotRead, startCria, type Cria, type Device } from './harness.js'
 
 const recording = readFileSync(new URL('./fixtures/errai-2026-10-15.xml', import.meta.url), 'utf8')
 const deployConfig = JSON.parse(readFileSync(new URL('../../../deploy/rig.errai.json', import.meta.url), 'utf8'))
@@ -71,6 +71,7 @@ beforeAll(async () => {
   replay = new Replay()
   await replay.start()
   cria = await startCria(replay.port, deployConfig.devices)
+  await connectDevices(cria, deployConfig.devices.map((device: { id: string }) => device.id))
   await cria.waitFor(allReady(deployConfig.devices.map((device: { id: string }) => device.id)))
   const state = await cria.waitFor(noneNotRead)
 

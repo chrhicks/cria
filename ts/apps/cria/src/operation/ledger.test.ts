@@ -1,7 +1,6 @@
-import { Deferred } from 'effect'
-import { DeviceId, InstanceId, OperationId, RequestId, type Command, type Operation } from '@cria/wire'
+import { DeviceId, InstanceId, OperationId, RequestId, type Command } from '@cria/wire'
 import { describe, expect, it } from 'vitest'
-import { admit, cancel, initialState, prune, settle, snapshot, wait, type LedgerState, type Rules, type Submission, type Transition } from './ledger.js'
+import { admit, cancel, initialState, prune, settle, snapshot, type LedgerState, type Rules, type Submission, type Transition } from './ledger.js'
 
 const uuid = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`
 const instanceId = InstanceId.make(uuid(1))
@@ -130,15 +129,6 @@ describe('settling', () => {
 
     expect(ended(once, 1, confirmed)).toEqual([{ result: undefined, after: [] }, once])
     expect(ended(queued, 3, confirmed)).toEqual([{ result: undefined, after: [] }, queued])
-  })
-
-  it('resolves the waiters of the settled operation with its settled view', () => {
-    const waiter = Deferred.makeUnsafe<Extract<Operation, { state: 'settled' }>>()
-    const waiting = stateOf(wait(stateOf(admitted(empty, 1, tracking)), { id: id(1), waiter }))
-    const [step, next] = ended(waiting, 1, confirmed)
-
-    expect(step.after).toEqual([{ kind: 'resolve', waiters: [waiter], operation: next.operations.get(id(1)) }])
-    expect(next.waiters.size).toBe(0)
   })
 })
 
