@@ -19,7 +19,7 @@ export const commands = {
     description: 'Change the camera gain and offset. Give at least one.',
   },
   cooling: { description: 'Switch the camera cooler on or off and set its target temperature in degrees Celsius. Give at least one of the two.' },
-  'focuser-move': { description: 'Move a focuser to an absolute position in steps, inside the travel window you give with minPosition and maxPosition.' },
+  'focuser-move': { description: 'Move a focuser to an absolute position in steps.' },
   'focuser-halt': { description: 'Stop the focuser.' },
   'mount-slew': { description: 'Slew the mount to a right ascension and declination in degrees, in the coordinate system you name.' },
   'mount-tracking': { description: 'Turn mount tracking on or off.' },

@@ -803,84 +803,6 @@ export declare const State: Schema.Struct<{
                 readonly reason: Schema.Literals<readonly ["not-read", "unsupported", "failed"]>;
                 readonly message: Schema.optionalKey<Schema.String>;
             }>]>;
-            readonly pressureHpa: Schema.Union<readonly [Schema.Struct<{
-                readonly status: Schema.Literal<"fresh">;
-                readonly value: Schema.Number;
-                readonly observedAt: Schema.Number;
-            }>, Schema.Struct<{
-                readonly status: Schema.Literal<"stale">;
-                readonly value: Schema.Number;
-                readonly observedAt: Schema.Number;
-            }>, Schema.Struct<{
-                readonly status: Schema.Literal<"unavailable">;
-                readonly reason: Schema.Literals<readonly ["not-read", "unsupported", "failed"]>;
-                readonly message: Schema.optionalKey<Schema.String>;
-            }>]>;
-            readonly skyTemperatureC: Schema.Union<readonly [Schema.Struct<{
-                readonly status: Schema.Literal<"fresh">;
-                readonly value: Schema.Number;
-                readonly observedAt: Schema.Number;
-            }>, Schema.Struct<{
-                readonly status: Schema.Literal<"stale">;
-                readonly value: Schema.Number;
-                readonly observedAt: Schema.Number;
-            }>, Schema.Struct<{
-                readonly status: Schema.Literal<"unavailable">;
-                readonly reason: Schema.Literals<readonly ["not-read", "unsupported", "failed"]>;
-                readonly message: Schema.optionalKey<Schema.String>;
-            }>]>;
-            readonly cloudCoverPercent: Schema.Union<readonly [Schema.Struct<{
-                readonly status: Schema.Literal<"fresh">;
-                readonly value: Schema.Number;
-                readonly observedAt: Schema.Number;
-            }>, Schema.Struct<{
-                readonly status: Schema.Literal<"stale">;
-                readonly value: Schema.Number;
-                readonly observedAt: Schema.Number;
-            }>, Schema.Struct<{
-                readonly status: Schema.Literal<"unavailable">;
-                readonly reason: Schema.Literals<readonly ["not-read", "unsupported", "failed"]>;
-                readonly message: Schema.optionalKey<Schema.String>;
-            }>]>;
-            readonly rainRateMmPerHour: Schema.Union<readonly [Schema.Struct<{
-                readonly status: Schema.Literal<"fresh">;
-                readonly value: Schema.Number;
-                readonly observedAt: Schema.Number;
-            }>, Schema.Struct<{
-                readonly status: Schema.Literal<"stale">;
-                readonly value: Schema.Number;
-                readonly observedAt: Schema.Number;
-            }>, Schema.Struct<{
-                readonly status: Schema.Literal<"unavailable">;
-                readonly reason: Schema.Literals<readonly ["not-read", "unsupported", "failed"]>;
-                readonly message: Schema.optionalKey<Schema.String>;
-            }>]>;
-            readonly windSpeedMps: Schema.Union<readonly [Schema.Struct<{
-                readonly status: Schema.Literal<"fresh">;
-                readonly value: Schema.Number;
-                readonly observedAt: Schema.Number;
-            }>, Schema.Struct<{
-                readonly status: Schema.Literal<"stale">;
-                readonly value: Schema.Number;
-                readonly observedAt: Schema.Number;
-            }>, Schema.Struct<{
-                readonly status: Schema.Literal<"unavailable">;
-                readonly reason: Schema.Literals<readonly ["not-read", "unsupported", "failed"]>;
-                readonly message: Schema.optionalKey<Schema.String>;
-            }>]>;
-            readonly windGustMps: Schema.Union<readonly [Schema.Struct<{
-                readonly status: Schema.Literal<"fresh">;
-                readonly value: Schema.Number;
-                readonly observedAt: Schema.Number;
-            }>, Schema.Struct<{
-                readonly status: Schema.Literal<"stale">;
-                readonly value: Schema.Number;
-                readonly observedAt: Schema.Number;
-            }>, Schema.Struct<{
-                readonly status: Schema.Literal<"unavailable">;
-                readonly reason: Schema.Literals<readonly ["not-read", "unsupported", "failed"]>;
-                readonly message: Schema.optionalKey<Schema.String>;
-            }>]>;
         }>;
     }>, Schema.Struct<{
         readonly id: Schema.brand<Schema.String, "DeviceId">;
@@ -1154,8 +1076,6 @@ export declare const State: Schema.Struct<{
         kind: Schema.Literal<"focuser-move">;
         parameters: Schema.Struct<{
             readonly position: Schema.Number;
-            readonly minPosition: Schema.Number;
-            readonly maxPosition: Schema.Number;
         }>;
         instanceId: Schema.brand<Schema.String, "InstanceId">;
         requestId: Schema.brand<Schema.String, "RequestId">;
@@ -1761,8 +1681,6 @@ export declare const State: Schema.Struct<{
         kind: Schema.Literal<"focuser-move">;
         parameters: Schema.Struct<{
             readonly position: Schema.Number;
-            readonly minPosition: Schema.Number;
-            readonly maxPosition: Schema.Number;
         }>;
         instanceId: Schema.brand<Schema.String, "InstanceId">;
         requestId: Schema.brand<Schema.String, "RequestId">;

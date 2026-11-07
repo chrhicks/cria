@@ -315,7 +315,7 @@ export const scenarios: ReadonlyArray<Scenario> = [
     name: 'focuser-move',
     devices: ['focuser'],
     run: async g => {
-      await runAndSettle(g, 'focuser', 'focuser-move', { position: 1500, minPosition: 1, maxPosition: 40_000 })
+      await runAndSettle(g, 'focuser', 'focuser-move', { position: 1500})
     },
   },
   {
@@ -330,7 +330,7 @@ export const scenarios: ReadonlyArray<Scenario> = [
     devices: ['focuser'],
     run: async g => {
       g.behave(focuser, moveFocuser('never'))
-      const move = await untilUnderWay(g, await submitted(g.submit('focuser', 'focuser-move', { position: 1500, minPosition: 1, maxPosition: 40_000 })))
+      const move = await untilUnderWay(g, await submitted(g.submit('focuser', 'focuser-move', { position: 1500})))
       const halt = await submitted(g.submit('focuser', 'focuser-halt', {}))
 
       await g.recordSettled(halt.id)

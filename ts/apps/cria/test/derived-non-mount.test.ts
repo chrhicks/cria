@@ -29,7 +29,7 @@ async function startFocuser(options: Parameters<typeof addEaf>[2], wrap: (inner:
   await cria.waitFor(noneNotRead)
 }
 
-const move = (position: number) => cria.run('focuser', 'focuser-move', { position, minPosition: 1, maxPosition: 200_000 })
+const move = (position: number) => cria.run('focuser', 'focuser-move', { position})
 
 describe('a focuser move that ends Ok short of the target (derived)', () => {
   it('is uncertain, naming where it stopped; the next move is admitted', async () => {
@@ -40,7 +40,7 @@ describe('a focuser move that ends Ok short of the target (derived)', () => {
     expect(first).toMatchObject({ kind: 'uncertain', reason: 'not-confirmed' })
     expect(first.message).toBe('Focuser stopped at 30800, short of 31000')
 
-    const next = await cria.submit('focuser', 'focuser-move', { position: 30500, minPosition: 1, maxPosition: 200_000 })
+    const next = await cria.submit('focuser', 'focuser-move', { position: 30500})
 
     expect(next.status).toBe(202)
     expect((await cria.settled(next.body.id)).reason).toBe('not-confirmed')
@@ -56,7 +56,7 @@ describe('a focuser that never answers a move (derived)', () => {
     expect(first).toMatchObject({ kind: 'uncertain', reason: 'no-acknowledgement' })
     expect(fake.received.filter(xml => xml.startsWith('<new') && xml.includes('name="ABS_FOCUS_POSITION"')).length).toBe(1)
     expect(fake.received.some(xml => xml.startsWith('<new') && xml.includes('name="FOCUS_ABORT_MOTION"'))).toBe(true)
-    expect((await cria.submit('focuser', 'focuser-move', { position: 30500, minPosition: 1, maxPosition: 200_000 })).status).toBe(202)
+    expect((await cria.submit('focuser', 'focuser-move', { position: 30500})).status).toBe(202)
   })
 })
 

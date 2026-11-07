@@ -13,7 +13,6 @@ export interface CapabilityContext {
   readonly timing: {
     readonly acknowledgeMs: number
     readonly operationTimeoutMs: number
-    readonly readoutAllowanceMs: number
   }
 }
 

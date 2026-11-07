@@ -27,7 +27,7 @@ afterEach(async () => {
 })
 
 const start = async (overrides: object = {}) => {
-  const started = await startCria(fake.port, [{ id: 'primary', kind: 'camera', indiDevice: camera }], { acknowledgeMs: 600, readoutAllowanceMs: 1000, ...overrides })
+  const started = await startCria(fake.port, [{ id: 'primary', kind: 'camera', indiDevice: camera }], { acknowledgeMs: 600, ...overrides })
 
   await started.waitFor(allReady(['primary']))
 
@@ -63,7 +63,7 @@ describe('a bias capture', () => {
     expect(exposureWrites()).toBe(0)
   })
 
-  it('fails without a hold when the frame is not at the minimum and the camera is idle', async () => {
+  it('keeps waiting when the frame is not at the minimum, until the client cancels', async () => {
     fake.behaviour = (fake, vector, values) => {
       if (vector.name !== 'CCD_EXPOSURE') return exposeNormally()(fake, vector, values)
       fake.update(camera, vector.name, { state: 'Busy' })
@@ -75,28 +75,14 @@ describe('a bias capture', () => {
       return 'handled'
     }
 
-    const operation = await cria.run('primary', 'capture', { exposureSeconds: 0.1, light: false, frameType: 'bias' })
+    const submitted = await cria.submit('primary', 'capture', { exposureSeconds: 0.1, light: false, frameType: 'bias' })
 
-    expect(operation).toMatchObject({ kind: 'failed', reason: 'rejected' })
-    expect(operation.message).toMatch(/not this exposure.*EXPTIME 1\.000000E-1.*idle/)
-    expect(operation.image).toBeNull()
+    await new Promise(resolve => setTimeout(resolve, 500))
+    expect((await cria.state()).operations.find(operation => operation.id === submitted.body.id)?.state).not.toBe('settled')
+    await cria.cancel(submitted.body.id)
+    expect((await cria.settled(submitted.body.id)).kind).toBe('stopped')
   })
 
-  it('waits for the minimum plus the readout allowance, not for the requested time', async () => {
-    fake.behaviour = (fake, vector, values) => {
-      if (vector.name !== 'CCD_EXPOSURE') return exposeNormally()(fake, vector, values)
-      fake.update(camera, vector.name, { state: 'Busy' })
-
-      return 'handled'
-    }
-
-    const startedAt = Date.now()
-    const operation = await cria.run('primary', 'capture', { exposureSeconds: 600, light: false, frameType: 'bias' })
-
-    expect([operation.kind, operation.reason]).toEqual(['failed', 'unavailable'])
-    expect(operation.message).toBe('No frame arrived within the 0.000032 s exposure and the 1 s readout allowance')
-    expect(Date.now() - startedAt).toBeLessThan(10_000)
-  }, 20_000)
 })
 
 describe('the other frame types', () => {
@@ -113,14 +99,16 @@ describe('the other frame types', () => {
     expect(exposed).toEqual([0.05])
   })
 
-  it('rejects a dark the driver exposed at the minimum', async () => {
+  it('does not take a dark the driver exposed at the minimum', async () => {
     fake.behaviour = (fake, vector, values) =>
       vector.name === 'CCD_EXPOSURE' ? exposeNormally()(fake, vector, { ...values, CCD_EXPOSURE_VALUE: minimum }) : exposeNormally()(fake, vector, values)
 
-    const operation = await cria.run('primary', 'capture', { exposureSeconds: 0.05, light: false, frameType: 'dark' })
+    const submitted = await cria.submit('primary', 'capture', { exposureSeconds: 0.05, light: false, frameType: 'dark' })
 
-    expect(operation).toMatchObject({ kind: 'failed', reason: 'rejected' })
-    expect(operation.message).toMatch(/EXPTIME 3\.200000E-5/)
+    await new Promise(resolve => setTimeout(resolve, 500))
+    expect((await cria.state()).operations.find(operation => operation.id === submitted.body.id)?.state).not.toBe('settled')
+    await cria.cancel(submitted.body.id)
+    expect((await cria.settled(submitted.body.id)).kind).toBe('stopped')
   })
 })
 

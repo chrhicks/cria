@@ -14,7 +14,7 @@ const operation = {
   deviceId: 'focuser',
   failureDomain: 'zwo-eaf',
   kind: 'focuser-move',
-  parameters: { position: 100, minPosition: 1, maxPosition: 200 },
+  parameters: { position: 100},
   acceptedAt: 1,
   startedAt: 1,
   settledAt: 2,
@@ -31,7 +31,7 @@ describe('protocol 5 contract', () => {
     expect(decodes(Operation, { ...operation, outcome: { kind: 'succeeded', value: { values: {}, image: null } } })).toBe(false)
     expect(decodes(Operation, { ...operation, status: 'succeeded' })).toBe(false)
     expect(decodes(Operation, { ...operation, outcome: { kind: 'uncertain', reason: 'maybe', message: '' } })).toBe(false)
-    expect(decodes(Operation, { ...operation, parameters: { position: 0, minPosition: 1, maxPosition: 2 } })).toBe(false)
+    expect(decodes(Operation, { ...operation, parameters: { position: 0} })).toBe(false)
   })
 
   it('refuses progress fields Cria never varied', () => {

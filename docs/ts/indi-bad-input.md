@@ -60,7 +60,7 @@ All problems together are capped at 20 lines a minute, and the repeat check hold
 
 Describing a problem costs the same however big the element is. Only the first 4096 bytes are read for it (the tag,
 the device and name, the excerpt, the UTF-8 check), and the attribute reader is a single pass, so a tag that never
-ends, or an attribute-like run of junk up to the 8 MB limit, drops the connection at once instead of tying up the
+ends, or an attribute-like run of junk, drops the connection at once instead of tying up the
 event loop. The `bytes` count is still the real size. A device or name that starts after the first 4096 bytes of a
 tag is not named in the log, and the property is not re-requested.
 
@@ -84,7 +84,7 @@ Each row is a test in `bad-input.test.ts`. "Before" is a182aac.
 | Unknown element type (`<bogus/>`, `<defFooVector>`) | Ignored silently | Skipped, logged. `<message>` stays silent |
 | Truncated before its close tag, next element follows | Swallowed the following elements, then a throw and a dropped connection | Connection dropped, logged, elements before it kept |
 | Truncated at the end of the stream | Held in the buffer | Same; nothing is logged |
-| Huge element | Waits to 512 MB, then throw | Dropped, logged, over 8 MB, whether it arrives whole or in small chunks. A BLOB vector keeps 512 MB. A tag or comment that never ends is held to the same 8 MB |
+| Huge element | Waits to 512 MB, then throw | No limit: it is buffered until it closes |
 | Invalid UTF-8 | Replacement characters, no error | Same, in a bad element's device and name too. Marked `not valid UTF-8` in the log when the element is bad |
 | Number with junk text (`12abc`, `nan`) | Throw, connection dropped | Whole vector skipped, property forgotten, logged |
 | Unknown vector `state`, `perm` or light state | Throw, connection dropped | Skipped, property forgotten, logged |
