@@ -1,6 +1,6 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import type { SupervisedDevice } from './config.ts'
+import type { RigDevice } from './config.ts'
 
 export function usbAttached(vidPid: string, sysfs = '/sys/bus/usb/devices'): boolean {
   const [vendor, product] = vidPid.toLowerCase().split(':')
@@ -19,4 +19,4 @@ export function usbAttached(vidPid: string, sysfs = '/sys/bus/usb/devices'): boo
   }
 }
 
-export const hardwarePresent = (device: SupervisedDevice): boolean => (device.usb ? usbAttached(device.usb) : existsSync(device.serial ?? ''))
+export const hardwarePresent = (device: RigDevice): boolean => (device.usb ? usbAttached(device.usb) : existsSync(device.serial ?? ''))

@@ -7,6 +7,7 @@ import net from 'node:net'
 
 export interface RunningIndiServer {
   readonly port: number
+  readonly pid: number
   readonly stop: () => Promise<void>
 }
 
@@ -43,9 +44,9 @@ async function waitForPort(port: number, deadline: number): Promise<void> {
 }
 
 /** `-r 0`: a crashed driver is not restarted, as on the rig. */
-export async function startIndiServer(drivers: ReadonlyArray<string>): Promise<RunningIndiServer> {
+export async function startIndiServer(drivers: ReadonlyArray<string>, options: { readonly fifo?: string } = {}): Promise<RunningIndiServer> {
   const port = await freePort()
-  const child: ChildProcess = spawn('indiserver', ['-r', '0', '-u', `/tmp/cria-test-indiserver-${port}`, '-p', String(port), ...drivers], {
+  const child: ChildProcess = spawn('indiserver', ['-r', '0', '-u', `/tmp/cria-test-indiserver-${port}`, '-p', String(port), ...(options.fifo ? ['-f', options.fifo] : []), ...drivers], {
     stdio: ['ignore', 'ignore', 'pipe'],
   })
   let log = ''
@@ -63,6 +64,7 @@ export async function startIndiServer(drivers: ReadonlyArray<string>): Promise<R
 
   return {
     port,
+    pid: child.pid!,
     stop: () =>
       new Promise(resolve => {
         if (child.exitCode !== null) return resolve()
