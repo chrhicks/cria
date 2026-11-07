@@ -21,6 +21,18 @@ const errorText = (error: unknown) => (error instanceof Error ? error.message : 
 export function createRig(dependencies: RigDependencies): Rig {
   const { config, now, sleep, log, indi } = dependencies
   let memory = emptyMemory(config)
+  let lastFifoWrite = Number.NEGATIVE_INFINITY
+
+  async function fifoLine(line: string) {
+    const wait = lastFifoWrite + config.fifoGapMs - now()
+
+    if (wait > 0) await sleep(wait)
+    try {
+      await dependencies.writeFifo(config.fifo, line)
+    } finally {
+      lastFifoWrite = now()
+    }
+  }
 
   async function perform(action: Action) {
     switch (action.kind) {
@@ -40,9 +52,8 @@ export function createRig(dependencies: RigDependencies): Rig {
       case 'restart-driver':
         log(`rig: ${action.driver}: restarting (${action.why})`)
         try {
-          await dependencies.writeFifo(config.fifo, `stop ${action.driver}`)
-          await sleep(config.stopGapMs)
-          await dependencies.writeFifo(config.fifo, `start ${action.driver}`)
+          await fifoLine(`stop ${action.driver}`)
+          await fifoLine(`start ${action.driver}`)
         } catch (error) {
           log(`rig: ${action.driver}: FIFO write failed: ${errorText(error)}`)
         }
