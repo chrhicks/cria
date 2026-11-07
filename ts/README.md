@@ -4,7 +4,7 @@ Cria rewritten as an INDI client: it connects to `indiserver`, turns INDI
 properties into Readings, runs bounded operations as Runs, and serves Vela over
 wire protocol 5 (`@cria/wire`). The design,
 the primitive map and what building it changed are in
-[docs/ts/SPEC.md](../docs/ts/SPEC.md)..
+[docs/ts/SPEC.md](../docs/ts/SPEC.md).
 
 ## Layout
 
