@@ -27,11 +27,8 @@ export function createRig(dependencies: RigDependencies): Rig {
     const wait = lastFifoWrite + config.fifoGapMs - now()
 
     if (wait > 0) await sleep(wait)
-    try {
-      await dependencies.writeFifo(config.fifo, line)
-    } finally {
-      lastFifoWrite = now()
-    }
+    lastFifoWrite = now()
+    await dependencies.writeFifo(config.fifo, line)
   }
 
   async function perform(action: Action) {
