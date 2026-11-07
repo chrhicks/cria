@@ -2,11 +2,10 @@
   "name": "cria",
   "private": true,
   "type": "module",
-  "description": "Cria on Linux: the INDI tap, the rig stream recorder and viewer, and the rig supervisor",
+  "description": "Cria on Linux: the rig program, the rig stream recorder and viewer",
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run",
-    "golden:update": "GOLDEN_UPDATE=1 vitest run testing/golden",
     "verify": "./verify.sh"
   },
   "dependencies": {

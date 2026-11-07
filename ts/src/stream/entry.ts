@@ -38,7 +38,6 @@ export function makeEntries({ rig, source, run, now }: EntryContext) {
   let systemCount = 0
   let phd2Count = 0
   let clientCount = 0
-  let criaCount = 0
 
   const entry = (kind: string, id: string, at: number, body: unknown): Entry => ({
     v: 1,
@@ -83,12 +82,6 @@ export function makeEntries({ rig, source, run, now }: EntryContext) {
       clientCount += 1
 
       return entry(`client.${kind}`, `client:${run}:${clientCount}`, now(), body)
-    },
-
-    cria(kind: string, body: unknown) {
-      criaCount += 1
-
-      return entry(`cria.${kind}`, `cria:${run}:${criaCount}`, now(), body)
     },
 
     phd2(line: string) {

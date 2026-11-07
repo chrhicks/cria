@@ -13,7 +13,7 @@ const RecorderSettings = Schema.Struct({
   }),
   broker: BrokerLogin,
   wireDevices: Schema.Record(Schema.String, Schema.String).annotate({
-    description: 'INDI device name to the short id used in wire subjects. Cria\'s ids where one fits; Cria splits the power box into two views, and the wire has one device',
+    description: 'INDI device name to the short id used in wire subjects. The ids of the rig file where one fits; the power box is one INDI device on the wire',
   }).pipe(Schema.withDecodingDefaultKey(Effect.succeed(defaultWireDevices))),
   journalExclusions: Schema.Struct({
     identifiers: Schema.Array(Schema.String).annotate({

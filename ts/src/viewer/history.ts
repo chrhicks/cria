@@ -49,23 +49,6 @@ function classifyWire(subject: string, body: unknown): Classified | undefined {
   }
 }
 
-function classifyCria(kind: string, body: unknown): Classified {
-  const text = (name: string) => (isRecord(body) && typeof body[name] === 'string' ? body[name] : '')
-  const device = kind === 'cria.write' ? text('device') : text('deviceId')
-  const operation = kind === 'cria.write' ? text('property') : kind === 'cria.frame' ? 'frame' : text('kind')
-  const refused = kind === 'cria.request' && isRecord(body) && body['result'] === 'refused'
-  const outcome = isRecord(body) && isRecord(body['outcome']) ? body['outcome']['kind'] : undefined
-
-  return {
-    source: 'cria',
-    command: kind === 'cria.request',
-    problem: refused || outcome === 'failed' || outcome === 'uncertain',
-    property: undefined,
-    reading: undefined,
-    group: `${kind}.${device}.${operation}`,
-  }
-}
-
 export function classify(subject: string, text: string): Classified | undefined {
   const entry = decodeEntry(text)
 
@@ -78,7 +61,6 @@ export function classify(subject: string, text: string): Classified | undefined 
     return { source: 'system', command: false, problem: isRecord(body) && Number(body['PRIORITY']) <= 3, property: undefined, reading: undefined, group: undefined }
   }
 
-  if (kind.startsWith('cria.')) return classifyCria(kind, body)
   if (kind.startsWith('client.')) {
     const target = isRecord(body) && typeof body['target'] === 'string' ? `.${body['target']}` : ''
 

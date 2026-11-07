@@ -27,20 +27,15 @@ const allowed: Record<string, Partial<Record<Rule, readonly [count: number, why:
     'try-catch': [3, 'a refused login is logged and tried again, a plain publish the broker refuses is logged and skipped, and an entry the stream has not stored is sent again: whatever publishes must never stop for it'],
     'node-timer': [1, 'the wait before logging in or storing again, cut short when the connection returns or the publisher closes'],
   },
-  'src/connect/stream.ts': {
-    'catch-all': [1, 'stream settings that cannot be read are logged and Cria runs without publishing'],
-    'wall-clock': [1, 'an entry is stamped when Cria made it'],
-  },
   'src/recorder/recorder.ts': {
     'wall-clock': [1, 'an entry with no time of its own is stamped when the client saw it'],
   },
   'src/rig/fifo.ts': { 'try-catch': [1, 'the FIFO handle is closed whether or not the write succeeded'] },
   'src/rig/hardware.ts': { 'try-catch': [2, 'a USB device sysfs cannot be read, or a sysfs that is not there, is a device that is not attached'] },
   'src/rig/supervisor.ts': {
-    'try-catch': [3, 'Cria not answering, a connect that gets no answer and a FIFO that cannot be written are logged and tried again on a later poll: one failure must not stop the supervisor'],
-    'promise-catch': [1, 'a connect answer that is not JSON is reported by its HTTP status'],
+    'try-catch': [2, 'a write INDI refuses and a FIFO that cannot be written are logged and tried again on a later poll: one failure must not stop the rig program'],
   },
-  'src/bin/rig.ts': { 'try-catch': [2, 'a config file that cannot be read exits 2, and a poll that throws is logged and the next poll runs: the supervisor must keep watching'] },
+  'src/bin/rig.ts': { 'try-catch': [2, 'a config file that cannot be read exits 2, and a poll that throws is logged and the next poll runs: the rig program must keep watching'] },
   'src/viewer/viewer.ts': { 'promise-catch': [1, 'a page whose stream fails is logged and closed, and its browser reconnects'] },
 }
 
@@ -78,15 +73,15 @@ describe('source rules', () => {
   it('reports a new site and a stale allowance', () => {
     expect(
       lint({
-        'src/connect/new.ts': 'Effect.ignore(x); try { y() } catch {}; p.catch(() => 0); Date.now(); setTimeout(f, 1)',
+        'src/rig/new.ts': 'Effect.ignore(x); try { y() } catch {}; p.catch(() => 0); Date.now(); setTimeout(f, 1)',
         'src/recorder/recorder.ts': 'const stamp = 0',
       }),
     ).toEqual([
-      'src/connect/new.ts: catch-all found 1, allowed 0',
-      'src/connect/new.ts: try-catch found 1, allowed 0',
-      'src/connect/new.ts: promise-catch found 1, allowed 0',
-      'src/connect/new.ts: wall-clock found 1, allowed 0',
-      'src/connect/new.ts: node-timer found 1, allowed 0',
+      'src/rig/new.ts: catch-all found 1, allowed 0',
+      'src/rig/new.ts: try-catch found 1, allowed 0',
+      'src/rig/new.ts: promise-catch found 1, allowed 0',
+      'src/rig/new.ts: wall-clock found 1, allowed 0',
+      'src/rig/new.ts: node-timer found 1, allowed 0',
       'src/recorder/recorder.ts: wall-clock found 0, allowed 1',
     ])
   })
