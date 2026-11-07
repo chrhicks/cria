@@ -1,13 +1,12 @@
 import { readFileSync } from 'node:fs'
 import { createServer, type ServerResponse } from 'node:http'
-import { DeliverPolicy, jetstream, jetstreamManager, RetentionPolicy, StorageType } from '@nats-io/jetstream'
-import { connect, nanos } from '@nats-io/transport-node'
+import { DeliverPolicy, jetstream, jetstreamManager } from '@nats-io/jetstream'
+import { connect } from '@nats-io/transport-node'
 import { Effect } from 'effect'
-import { brokerSettings } from '../stream/index.ts'
+import { brokerSettings, streamName } from '../stream/index.ts'
 import { ViewerConfig } from './config.ts'
 import { makeHistory, parseQuery, type HistoryQuery } from './history.ts'
 
-const stream = 'RIG_DEV'
 const page = readFileSync(new URL('./viewer.html', import.meta.url))
 
 export async function runViewer(): Promise<void> {
@@ -15,14 +14,6 @@ export async function runViewer(): Promise<void> {
   const broker = await connect({ ...brokerSettings(config.broker), name: 'rig-stream-viewer', maxReconnectAttempts: -1 })
   const manager = await jetstreamManager(broker)
   const client = jetstream(broker)
-
-  await manager.streams.add({
-    name: stream,
-    subjects: ['rig-dev.>'],
-    storage: StorageType.File,
-    retention: RetentionPolicy.Limits,
-    max_age: nanos(config.streamMaxAgeDays * 24 * 3600 * 1000),
-  })
 
   const progressEvery = 100000
   const openPages = new Set<ServerResponse>()
@@ -45,8 +36,8 @@ export async function runViewer(): Promise<void> {
   }
 
   async function follow(response: ServerResponse, query: HistoryQuery, lastSeen: number | undefined) {
-    const { state } = await manager.streams.info(stream)
-    const consumer = await client.consumers.get(stream, startOf(query, lastSeen, state.last_seq))
+    const { state } = await manager.streams.info(streamName)
+    const consumer = await client.consumers.get(streamName, startOf(query, lastSeen, state.last_seq))
     const messages = await consumer.consume({ max_messages: config.historyReadBatch })
     const history = makeHistory(query, config.rowsKeptOnPage)
     let reading = lastSeen === undefined
