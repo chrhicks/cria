@@ -40,11 +40,8 @@ main() {
     case $unit in indiserver | phd2) ;; *) usage ;; esac
   done
 
-  local before after
-  before=$(git -C "$checkout" rev-parse HEAD)
   git -C "$checkout" fetch --quiet origin
   git -C "$checkout" checkout --quiet --detach "$commit"
-  after=$(git -C "$checkout" rev-parse HEAD)
   echo "install: $machine at $(git -C "$checkout" rev-parse --short HEAD)"
 
   (cd "$checkout/ts" && pnpm install --frozen-lockfile --prod)
@@ -67,15 +64,9 @@ main() {
   for unit in "${restart[@]}"; do
     systemctl --user restart "$unit"
   done
-  for unit in "${units[@]}"; do
-    case " ${programs[*]} ${restart[*]} " in *" $unit "*) continue ;; esac
-    git -C "$checkout" diff --quiet "$before" "$after" -- "ts/deploy/$unit.service" || echo "install: $unit.service changed; it runs the old unit until you restart it (--restart $unit)"
-  done
   for unit in "${programs[@]}"; do
-    if ! systemctl --user is-active --quiet "$unit" || ! git -C "$checkout" diff --quiet "$before" "$after" -- ts/src ts/package.json ts/pnpm-lock.yaml "ts/deploy/$unit.service"; then
-      systemctl --user restart "$unit"
-      echo "install: restarted $unit"
-    fi
+    systemctl --user restart "$unit"
+    echo "install: restarted $unit"
   done
 }
 

@@ -47,7 +47,7 @@ ssh errai '~/dev/personal/cria-ts/ts/deploy/install.sh errai --commit COMMIT'
 ~/dev/personal/cria-run/ts/deploy/install.sh thuban --commit COMMIT
 ```
 
-It fetches, checks out `COMMIT` detached (default `origin/main`), runs `pnpm install --frozen-lockfile --prod`, links the machine's units from `ts/deploy/` into `~/.config/systemd/user/` (`systemctl --user link`, so an installed unit is always the repo's file), reloads systemd and restarts the programs whose code or unit changed. On thuban it first creates or updates the stream (`src/bin/ensure-stream.ts`, from the viewer's settings file). It never restarts `indiserver` or `phd2` unless you add `--restart indiserver` or `--restart phd2`, it never enables `phd2`, and it never touches a settings file.
+It fetches, checks out `COMMIT` detached (default `origin/main`), runs `pnpm install --frozen-lockfile --prod`, links the machine's units from `ts/deploy/` into `~/.config/systemd/user/` (`systemctl --user link`, so an installed unit is always the repo's file), reloads systemd and restarts the programs (`rig-supervisor` and `rig-stream-client` on errai, the viewer on thuban; they hold no drivers, and a rig program restart only sends the mount's `TIME_UTC` again). On thuban it first creates or updates the stream (`src/bin/ensure-stream.ts`, from the viewer's settings file). It never restarts `indiserver` or `phd2` unless you add `--restart indiserver` or `--restart phd2`, it never enables `phd2`, and it never touches a settings file.
 
 A first install is the same two lines after `git clone` of this repo to the path above. The firewall unit `phd2-guard` is a system unit installed once with sudo ([docs/phd2.md](docs/phd2.md)).
 
