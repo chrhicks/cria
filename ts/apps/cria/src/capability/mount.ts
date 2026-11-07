@@ -17,8 +17,9 @@ import { invalid, liveSnapshot, required, type CapabilityContext } from './conte
 import { numberElement, switchElement, type DeviceSnapshot } from './fields.js'
 import type { DeviceSetup, StepOutcome } from './setup.js'
 import { track, type Note, type Tracking } from './motion-record.js'
+import { makeRotate } from './rotate.js'
 import { angularDelta, beforeCommand, confirmStopped, positionOf, type Command, type Position } from './stopped.js'
-import type { DeviceBody, MotionCommanded, MotionRecord, ParamsOf, ReadingsOf } from '@cria/wire'
+import type { DeviceBody, MotionCommanded, ParamsOf, ReadingsOf } from '@cria/wire'
 
 type CoordinateFrame = ParamsOf<'mount-slew'>['coordinateSystem']
 
@@ -145,17 +146,6 @@ function gotoRefusalHint(outcomes: ReadonlyArray<StepOutcome> | undefined): stri
 export function makeMount(context: CapabilityContext, motion: MountMotionSettings, setup: DeviceSetup): Mount {
   const { device, timing } = context
 
-  const coastSamples = new Map<string, number[]>()
-  const seedCoast = (speed: number) => Math.abs(speed - 3.008) < 0.031 ? 4084 / 3600
-    : Math.abs(speed - 0.2507) < 0.003 ? 54 / 3600 : speed * motion.stopLatencyMs / 1000
-  const expectedCoast = (rate: AxisRate) => {
-    const seed = seedCoast(rate.degreesPerSecond)
-    const samples = [...(coastSamples.get(rate.name) ?? [])].sort((a, b) => a - b)
-    const middle = Math.floor(samples.length / 2)
-    const median = samples.length === 0 ? seed : samples.length % 2 === 0
-      ? (samples[middle - 1]! + samples[middle]!) / 2 : samples[middle]!
-    return Math.max(seed * 0.5, Math.min(seed * 2, median))
-  }
   // Stopped is decided by where the mount is, never by a property's state (see stopped.ts).
   const stopWith = (property: string, values: Values, how: 'halted' | 'aborted', tracking: Tracking, sending: Tracking['sentBy'] = send => send) =>
     Effect.gen(function* () {
@@ -296,8 +286,7 @@ export function makeMount(context: CapabilityContext, motion: MountMotionSetting
   /**
    * Primary-axis motion at one of the rates the mount advertises (review R1-#12).
    * Positive rates move east (increasing RA): an assumption to check by hand in
-   * the first session with Chris present. `rotate` also checks the observed RA
-   * travel and ends uncertain if the mount moves the other way.
+   * the first session with Chris present.
    */
   const axisMotion = (
     rateDegreesPerSecond: number,
@@ -348,16 +337,11 @@ export function makeMount(context: CapabilityContext, motion: MountMotionSetting
       const tracking = yield* track(device, phaseNote, commanded(Math.sign(rateDegreesPerSecond) * rate.degreesPerSecond, command.sentAt), command)
       const halt = Effect.gen(function* () {
         const command = yield* beforeCommand(device)
-        const expectedCoastDegrees = expectedCoast(rate)
         yield* sendOnce(device, 'TELESCOPE_MOTION_WE', { MOTION_EAST: false, MOTION_WEST: false }, timing)
         const position = yield* confirmStopped(device, motion, command, 15_000)
         const coastDegrees = command.before === undefined ? undefined
           : angularDelta(position.ra, command.before.ra) * Math.sign(rateDegreesPerSecond)
-        if (coastDegrees !== undefined) {
-          const samples = coastSamples.get(rate.name) ?? []
-          coastSamples.set(rate.name, [...samples, coastDegrees].slice(-9))
-        }
-        yield* tracking.rested('halted', position, JSON.stringify({ expectedCoastDegrees, coastDegrees, nextCoastDegrees: expectedCoast(rate) }))
+        yield* tracking.rested('halted', position, coastDegrees)
       })
 
       yield* stoppable({
@@ -377,76 +361,19 @@ export function makeMount(context: CapabilityContext, motion: MountMotionSetting
   const moveAxis = (rateDegreesPerSecond: number, durationSeconds: number, note: Note) =>
     axisMotion(rateDegreesPerSecond, () => Effect.sleep(durationSeconds * 1000), (rate, sentAt) => ({ kind: 'axis', sentAt, axis: 'ra', rateDegreesPerSecond: rate }), note)
 
-  const rotate = (rateDegreesPerSecond: number, distanceDegrees: number, note: Note) => Effect.gen(function* () {
-    if (Math.sign(rateDegreesPerSecond) !== Math.sign(distanceDegrees))
-      return yield* invalid('The rate and the distance point in opposite directions')
-    const snapshot = yield* liveSnapshot(context)
-    const mount = yield* idle(snapshot)
-    const rates = yield* required(mount.primaryAxisRates, 'axis rates')
-    const fast = advertisedRate(rates, Math.abs(rateDegreesPerSecond))
-    if (fast === undefined || fast.degreesPerSecond > Math.abs(rateDegreesPerSecond))
-      return yield* invalid('The mount does not offer the requested axis rate without exceeding it')
-    const approach = [...rates].filter(rate => rate.degreesPerSecond >= 0.1).sort((a, b) => a.degreesPerSecond - b.degreesPerSecond)[0]
-    if (approach === undefined) return yield* invalid('The mount offers no approach rate of at least 0.1°/s')
-    const slow = fast.degreesPerSecond <= approach.degreesPerSecond ? fast : approach
-    const origin = (yield* required(mount.rightAscensionHours, 'right ascension')) * 15
-    const originDec = yield* required(mount.declinationDegrees, 'declination')
-    const direction = Math.sign(distanceDegrees)
-    const distance = Math.abs(distanceDegrees)
-    const phases: MotionRecord[] = []
-    let commanded: MotionCommanded | undefined
-    const recordPhase: Note = record => Effect.gen(function* () {
-      commanded ??= { kind: 'rotate', sentAt: record.commanded.sentAt, axis: 'ra', rateDegreesPerSecond, distanceDegrees }
-      if (record.stopped.how !== 'uncertain') phases.push(record)
-      const to = record.observed.to
-      yield* note({
-        ...record,
-        commanded,
-        observed: { ...record.observed, from: { rightAscensionDegrees: origin, declinationDegrees: originDec }, travel: to === null ? null : {
-          rightAscensionDegrees: angularDelta(to.rightAscensionDegrees, origin),
-          declinationDegrees: to.declinationDegrees - originDec,
-        } },
-        stopped: { ...record.stopped, reason: JSON.stringify({ phases, ...(record.stopped.reason === undefined ? {} : { detail: record.stopped.reason }) }) },
-      })
-    })
-    let travelled = 0
-    let end = origin
-    let finalRate = slow.name
-    const runPhase = (rate: AxisRate, remaining: number, fastLeg: boolean) => axisMotion(
-      direction * rate.degreesPerSecond,
-      travel => Effect.gen(function* () {
-        while (true) {
-          const along = (yield* travel) * direction
-          if (along < -1) return yield* new Failed({ reason: 'rejected', message: 'The axis moved opposite to the requested RA travel' })
-          const lead = fastLeg ? expectedCoast(rate) + rate.degreesPerSecond * motion.positionReadMs / 1000 + 0.25 : expectedCoast(rate)
-          if (along >= remaining - lead) return
-          yield* Effect.sleep('50 millis')
-        }
-      }).pipe(
-        Effect.timeoutOption(Math.min(120, remaining / rate.degreesPerSecond * 2 + 2) * 1000),
-        Effect.flatMap(Option.match({ onSome: () => Effect.void,
-          onNone: () => Effect.fail(new Failed({ reason: 'unavailable', message: 'The requested RA travel was not reached in time' })),
-        })),
-      ),
-      (speed, sentAt) => ({ kind: 'rotate', sentAt, axis: 'ra', rateDegreesPerSecond: speed, distanceDegrees: direction * remaining }),
-      recordPhase,
-      phases.length > 0,
-    )
-    const window = expectedCoast(fast) + fast.degreesPerSecond * motion.positionReadMs / 1000 + 0.25
-    if (distance > window && fast.degreesPerSecond > slow.degreesPerSecond) {
-      const result = yield* runPhase(fast, distance, true)
-      travelled = result.travelledDegrees
-      end = result.rightAscensionDegrees
-      finalRate = result.rate
-    }
-    const remaining = distance - travelled * direction
-    if (fast.degreesPerSecond <= approach.degreesPerSecond || remaining >= expectedCoast(slow)) {
-      const result = yield* runPhase(slow, remaining, false)
-      end = result.rightAscensionDegrees
-      finalRate = result.rate
-    }
-    return { rightAscensionDegrees: end, rate: finalRate, travelledDegrees: angularDelta(end, origin) }
-  }).pipe(Effect.scoped)
+  const rotate = makeRotate({
+    prepare: Effect.gen(function* () {
+      const mount = yield* idle(yield* liveSnapshot(context))
+
+      return {
+        rates: yield* required(mount.primaryAxisRates, 'axis rates'),
+        rightAscensionDegrees: (yield* required(mount.rightAscensionHours, 'right ascension')) * 15,
+        declinationDegrees: yield* required(mount.declinationDegrees, 'declination'),
+      }
+    }),
+    axisMotion,
+    motion,
+  })
 
   return {
     observe: Effect.map(context.snapshot, snapshot => ({ kind: 'mount', readings: readings(snapshot) })),
@@ -463,6 +390,6 @@ export function makeMount(context: CapabilityContext, motion: MountMotionSetting
  * The advertised rate within 1% of the request. No rounding to the nearest:
  * a polar-alignment rotate at 8x when 4x was asked is not the same motion.
  */
-function advertisedRate(rates: ReadonlyArray<AxisRate>, degreesPerSecond: number): AxisRate | undefined {
+export function advertisedRate(rates: ReadonlyArray<AxisRate>, degreesPerSecond: number): AxisRate | undefined {
   return rates.find(rate => Math.abs(rate.degreesPerSecond - degreesPerSecond) <= degreesPerSecond * 0.01)
 }

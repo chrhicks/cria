@@ -22,7 +22,7 @@ export const stoppedHows = ['arrived', 'halted', 'aborted', 'uncertain'];
 const restedOnlyIfStopped = Schema.makeFilter((motion) => motion.stopped.how === 'uncertain'
     ? (motion.observed.to === null && motion.observed.travel === null && motion.stopped.at === null) || 'an uncertain stop has no resting position or time'
     : (motion.observed.to !== null && motion.stopped.at !== null) || 'a stop has a resting position and a time');
-export const MotionRecord = Schema.Struct({
+const motionFields = {
     commanded: MotionCommanded,
     observed: Schema.Struct({
         /** The first position received after the command, if any. */
@@ -33,9 +33,13 @@ export const MotionRecord = Schema.Struct({
     }),
     stopped: Schema.Struct({
         how: Schema.Literals(stoppedHows),
-        reason: Schema.optionalKey(Schema.String),
         /** When the one "stopped" rule (readings after the command show the position still) fired, epoch ms. */
         at: Schema.NullOr(Timestamp),
     }),
-}).pipe(Schema.check(restedOnlyIfStopped));
+    /** How far RA travelled after an axis motion was switched off, in the direction of travel. */
+    coastDegrees: Schema.optionalKey(Schema.Number),
+};
+export const MotionLeg = Schema.Struct(motionFields).pipe(Schema.check(restedOnlyIfStopped));
+/** A rotate's record also lists the axis motions it ran, in order, as `legs`. */
+export const MotionRecord = Schema.Struct({ ...motionFields, legs: Schema.optionalKey(Schema.Array(MotionLeg)) }).pipe(Schema.check(restedOnlyIfStopped));
 //# sourceMappingURL=motion.js.map
