@@ -17,10 +17,7 @@ describe('operation parameters (protocol 4 bounds)', () => {
     expect(refusal({ kind: 'capture', parameters: { exposureSeconds: 2, light: true, gain: 100 } })).toBe('Expected no excess property\n  at ["parameters"]["gain"]')
   })
 
-  it('refuses a focuser target outside its travel window, a zero axis rate and an empty camera setting', () => {
-    expect(refusal({ kind: 'focuser-move', parameters: { position: 10, minPosition: 20, maxPosition: 30 } })).toBe(
-      'Target is outside the requested focuser travel window\n  at ["parameters"]',
-    )
+  it('refuses a zero axis rate and an empty camera setting', () => {
     expect(refusal({ kind: 'mount-axis', parameters: { rateDegreesPerSecond: 0, durationSeconds: 1 } })).toBe('must not be zero\n  at ["parameters"]["rateDegreesPerSecond"]')
     expect(refusal({ kind: 'camera-configure', parameters: {} })).toBe('at least one setting is required\n  at ["parameters"]')
   })

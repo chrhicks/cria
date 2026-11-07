@@ -292,7 +292,7 @@ operation has no deadline field, and Vela cannot read the configured values.
 
 | Operation | Bound |
 |---|---|
-| Capture | The exposure plus `readoutAllowanceMs`. With no frame by then Cria aborts, and with the abort confirmed it settles `failed: unavailable`. Frames that were not this exposure settle `failed: rejected` when the camera is then idle, else `uncertain`. |
+| Capture | None. A capture ends on its frame, an Alert, a lost driver or connection, or a cancel. A client that sees the camera has stopped counting cancels it. |
 | Motion (slew, home, focuser move) | `operationTimeoutMs` for the driver to finish the motion, then `failed: unavailable`. |
 | Setting | `acknowledgeMs` for the driver to answer, then up to the confirm deadline (15 s unless the kind sets its own) for the new state; `uncertain` if either passes. |
 | Stop (`mount-stop`, `focuser-halt`) and a Run's stop | `stopWithin`: 20 s for the mount and focuser, 15 s for the camera abort. A stop is confirmed from the position, not from any property's state (see "Stopping the mount"). |
@@ -430,35 +430,9 @@ Behaviour inside the boundary:
   before the exposure, `Never` after), so PHD2's guide frames do not flow through
   Cria. A capture takes only a `CCD1` BLOB that arrives after its own `Busy` and
   whose FITS `EXPTIME` (the commanded time; the camera minimum for a bias, see
-  "Capture frame type"), size and `DATE-OBS` (within 0.5 s) match. If only
-  frames that are not this exposure come, see "A frame that is not this exposure"
-  below.
-- A capture's deadline is the commanded exposure plus `readoutAllowanceMs`. If no frame
-  at all has arrived by then, Cria aborts the exposure, and with the abort
-  confirmed the capture is `failed: unavailable`. A ZWO exposure after a frame the
-  camera rounded never completes (see "Checked on errai"), so this bounds the
-  hang. Without it the wait was the exposure plus `operationTimeoutMs`, 180 s on
-  errai.
-
-#### A frame that is not this exposure
-
-At the deadline, if frames arrived but none matched the request (the driver
-exposed for another time, a stale blob, a different size), Cria reads
-`CCD_EXPOSURE` from the mirror at that moment and aborts as usual.
-
-| `CCD_EXPOSURE` at the deadline | Capture ends | Camera |
-|---|---|---|
-| Not Busy (Idle, Ok or Alert) | `failed: rejected`, the message lists what was seen and says the camera is idle and free | The next capture is accepted at once. The mismatched frame is dropped, never returned or kept. |
-| Busy, or not readable | `uncertain: not-confirmed` | The capture is `uncertain`, so Vela ends the run; the next command is accepted once the camera is idle. |
-
-Why this is not a replay of an unknown outcome: "never blindly replay" covers a
-command whose effect Cria cannot tell. Here the effect is known. The camera is
-idle, nothing is in flight, and no frame of ours exists, so exposing again
-cannot add to anything. Seen on errai (2026-10-26): a bias capture of 0.1 s came
-back as the ZWO driver's minimum exposure, 3.2e-5 s. The camera was fine. The reason is `rejected`,
-the closest existing reason, as for a driver that settles a setting at another
-value, so the wire and the protocol version are unchanged. No frame arriving at
-all stays `failed: unavailable`.
+  "Capture frame type"), size and `DATE-OBS` (within 0.5 s) match. Any
+  other frame is skipped and logged, and the capture keeps waiting.
+- A capture has no deadline of its own. The camera's Alert ends it, and it stays open otherwise, so a hung camera holds the device until a client cancels the operation. The client decides from what it sees on the stream.
 
 ### INDI properties per reading
 
@@ -857,7 +831,7 @@ Readings per kind. Values are named, not ASCOM integers:
 | camera | `activity` `'idle' \| 'exposing'`; `temperatureC`, `setpointC` (unsupported), `coolerOn`, `coolerPowerPercent`; `sensorWidthPixels`, `sensorHeightPixels`, `pixelWidthMicrons`, `pixelHeightMicrons`, `width`, `height`; `bayerPattern` `'mono' \| 'rggb' \| 'grbg' \| 'gbrg' \| 'bggr'`; `canAbortExposure`, `canSetTemperature`, `canGetCoolerPower`; `exposureMinimum`, `exposureMaximum`; `gain`, `gainMinimum`, `gainMaximum`, `offset`, `offsetMinimum`, `offsetMaximum` |
 | mount | `rightAscensionHours`, `declinationDegrees`, `siderealTimeHours`; `slewing`, `tracking`; `trackingRate` `'sidereal' \| 'lunar' \| 'solar'`; `pierSide` `'east' \| 'west' \| 'unknown'`; `coordinateSystem` `'topocentric' \| 'j2000'`; `latitudeDegrees`, `longitudeDegrees` (east positive), `elevationMeters`; `canSlew`, `canSetTracking`, `canFindHome`, `canMovePrimaryAxis`; `primaryAxisRates` `Array<{ name, degreesPerSecond }>` |
 | focuser | `position`, `moving`, `temperatureC`, `absolute`, `minStep`, `maxStep` (the usable window; both ends allowed except `maxStep` at the driver's top; see "The focuser travel window") |
-| weather | `temperatureC`, `humidityPercent`, `dewPointC`, `pressureHpa`, `skyTemperatureC`, `cloudCoverPercent`, `rainRateMmPerHour`, `windSpeedMps`, `windGustMps` |
+| weather | `temperatureC`, `humidityPercent`, `dewPointC` |
 | switch | `channelCount`; per channel `id`, `name`, `writable`, `minimum`, `maximum`, `step`, `on`, `value` |
 
 ### Operation
@@ -890,9 +864,7 @@ fields. Vela matches `state`, then `outcome.kind`.
 The 15 kinds and their parameters are the table in `packages/cria-wire/src/command.ts`.
 Two of their checks matter to Vela:
 
-- `focuser-move` takes `position` with the travel window `minPosition` and
-  `maxPosition`, and the schema refuses a position outside the window. Cria also
-  refuses a target at or past the driver's top, or outside the configured travel
+- `focuser-move` takes `position`. Cria refuses a target at or past the driver's top, or outside the configured travel
   window (`minStep` to `maxStep`), as `failed: invalid`, before sending anything
   (see "The focuser travel window").
 - `mount-slew` takes `coordinateSystem` `'topocentric' | 'j2000'`. Any other
@@ -932,8 +904,7 @@ only when the element is not already on, and confirms the switch before it sends
   before every capture, and expects that same value in the returned frame's
   `EXPTIME`. The request's `exposureSeconds` must still be inside the camera's
   minimum to maximum, or the capture is `failed: invalid` before any exposure,
-  but it is not used for anything else. The deadline is the minimum plus
-  `readoutAllowanceMs`. Every other frame type (`light`, `flat`, `dark`) commands
+  but it is not used for anything else. Every other frame type (`light`, `flat`, `dark`) commands
   and expects the requested time. The `EXPTIME` comparison is unchanged: within
   the larger of 1 ms and 0.5 % of the commanded time. The minimum Cria reads and
   the `EXPTIME` the driver writes (`3.200000E-05`) parse to the same number, so the
@@ -1080,11 +1051,10 @@ stop the process. `ts/deploy/rig.errai.json` is the rig's config:
   "listen": { "host": "127.0.0.1", "port": 4319 },
   "indi": { "host": "127.0.0.1", "port": 7624 },
   "imageDirectory": "/var/lib/cria/images",
-  "imageBudgetBytes": 10737418240,
+  "imageBudgetBytes": 1073741824,
   "commandsEnabled": true,
   "acknowledgeMs": 5000,
   "operationTimeoutMs": 180000,
-  "readoutAllowanceMs": 30000,
   "initializeTimeoutMs": 120000,
   "operationHistory": 1000,
   "devices": [
@@ -1106,10 +1076,7 @@ stop the process. `ts/deploy/rig.errai.json` is the rig's config:
 The example shows three of the rig's six devices. Every key but `imageDirectory`
 and `devices` has a default (the values above). `acknowledgeMs` is how long a
 driver has to acknowledge a command. `operationTimeoutMs` is the overrun allowance
-for a motion. `readoutAllowanceMs` is how
-long after an exposure's duration Cria waits for its frame before aborting it.
-The 30 s default is a guess with room for a full 2600 frame, not a measured
-readout time.
+for a motion.
 `initializeTimeoutMs` is how long a cold device may take to connect through `device-connect`.
 Each device's failure domain is its INDI device, so the Pegasus weather and
 switch share one. A device connects only when `device-connect` asks it to (the

@@ -298,10 +298,9 @@ function setControl(
  * exposure can deliver a main-chip BLOB too, so a frame is ours only if it
  * arrives after our CCD_EXPOSURE went Busy and its FITS header matches the
  * request: EXPTIME, size, and a DATE-OBS no earlier than our dispatch. Other
- * frames are skipped; if only those arrive, at the deadline the capture fails
- * when CCD_EXPOSURE reads not Busy (nothing is in flight), and
- * is uncertain when it is Busy or can't be read. Alert on CCD_EXPOSURE after our
- * start fails the exposure; losing the driver or the connection makes it uncertain.
+ * frames are skipped. Alert on CCD_EXPOSURE after our start fails the exposure;
+ * losing the driver or the connection makes it uncertain. There is no deadline:
+ * a client that sees the camera has stopped counting cancels the operation.
  */
 function frameArrival(
   context: CapabilityContext,
@@ -311,9 +310,7 @@ function frameArrival(
   exposureSeconds: number,
   geometry: { readonly width: number; readonly height: number },
 ): Effect.Effect<Buffer, Failed | Uncertain> {
-  const { device, timing } = context
-  const deadlineMs = exposureSeconds * 1000 + timing.readoutAllowanceMs
-  const skipped: string[] = []
+  const { device } = context
 
   const elapsed = Effect.forever(
     Effect.andThen(Effect.suspend(() => report({ elapsedSeconds: (Date.now() - dispatchedAt) / 1000 })), Effect.sleep('250 millis')),
@@ -336,7 +333,7 @@ function frameArrival(
         const mismatch = started ? notOurFrame(event.blob.data, exposureSeconds, geometry, dispatchedAt) : 'arrived before this exposure started'
 
         if (mismatch === undefined) return event.blob.data
-        skipped.push(mismatch)
+        yield* Effect.logWarning(`${device.name}: skipped a frame that is not this exposure: ${mismatch}`)
       }
 
       if (event.type === 'deleted' && event.name === undefined)
@@ -346,36 +343,11 @@ function frameArrival(
     }
   })
 
-  const idle = Effect.map(context.snapshot, snapshot => {
-    const activity = readings(snapshot).activity
-
-    return activity.status === 'fresh' && activity.value === 'idle'
-  })
-
-  const timedOut = Effect.gen(function* () {
-    if (skipped.length === 0)
-      return new Failed({
-        reason: 'unavailable',
-        message: `No frame arrived within the ${exposureSeconds} s exposure and the ${timing.readoutAllowanceMs / 1000} s readout allowance`,
-      })
-
-    const seen = `Only frames that were not this exposure arrived (${skipped.join('; ')})`
-
-    // A camera that is idle holds no frame of ours and can't produce one: the effect is known,
-    // so repeating the exposure is safe. A Busy or unreadable camera may still deliver, or hold, ours.
-    return (yield* idle)
-      ? new Failed({ reason: 'rejected', message: `${seen}; the camera is idle and free` })
-      : new Uncertain({ reason: 'not-confirmed', message: seen })
-  })
-
   return Effect.scoped(
     Effect.gen(function* () {
       yield* Effect.forkScoped(elapsed)
 
-      return yield* wait.pipe(
-        Effect.timeoutOption(deadlineMs),
-        Effect.flatMap(found => (found._tag === 'Some' ? Effect.succeed(found.value) : Effect.flatMap(timedOut, Effect.fail))),
-      )
+      return yield* wait
     }),
   )
 }

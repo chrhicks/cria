@@ -157,7 +157,6 @@ describe('errai, replayed', () => {
 
   it('reads the PPB Micro: weather, the 12 V master and the dew channels', () => {
     expect([value('weather', 'temperatureC'), value('weather', 'humidityPercent'), value('weather', 'dewPointC')]).toEqual([21.6, 53, 11.6])
-    expect(value('weather', 'pressureHpa')).toBe('unsupported')
 
     const powerBox = devices.switch!
     const fresh = <T>(reading: { status: string; value?: T }) => (reading.status === 'fresh' ? reading.value : reading.status)

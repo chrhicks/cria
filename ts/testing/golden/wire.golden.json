@@ -344,10 +344,6 @@
           "kind": "weather",
           "name": "Fake PPB",
           "readings": {
-            "cloudCoverPercent": {
-              "reason": "unsupported",
-              "status": "unavailable"
-            },
             "connected": {
               "observedAt": "<time>",
               "status": "fresh",
@@ -368,30 +364,10 @@
               "status": "fresh",
               "value": "Fake PPB"
             },
-            "pressureHpa": {
-              "reason": "unsupported",
-              "status": "unavailable"
-            },
-            "rainRateMmPerHour": {
-              "reason": "unsupported",
-              "status": "unavailable"
-            },
-            "skyTemperatureC": {
-              "reason": "unsupported",
-              "status": "unavailable"
-            },
             "temperatureC": {
               "observedAt": "<time>",
               "status": "fresh",
               "value": 11.5
-            },
-            "windGustMps": {
-              "reason": "unsupported",
-              "status": "unavailable"
-            },
-            "windSpeedMps": {
-              "reason": "unsupported",
-              "status": "unavailable"
             }
           }
         },
@@ -918,10 +894,6 @@
           "kind": "weather",
           "name": "Fake PPB",
           "readings": {
-            "cloudCoverPercent": {
-              "reason": "unsupported",
-              "status": "unavailable"
-            },
             "connected": {
               "observedAt": "<time>",
               "status": "fresh",
@@ -942,30 +914,10 @@
               "status": "fresh",
               "value": "Fake PPB"
             },
-            "pressureHpa": {
-              "reason": "unsupported",
-              "status": "unavailable"
-            },
-            "rainRateMmPerHour": {
-              "reason": "unsupported",
-              "status": "unavailable"
-            },
-            "skyTemperatureC": {
-              "reason": "unsupported",
-              "status": "unavailable"
-            },
             "temperatureC": {
               "observedAt": "<time>",
               "status": "fresh",
               "value": 11.5
-            },
-            "windGustMps": {
-              "reason": "unsupported",
-              "status": "unavailable"
-            },
-            "windSpeedMps": {
-              "reason": "unsupported",
-              "status": "unavailable"
             }
           }
         },
@@ -1669,8 +1621,6 @@
       "instanceId": "<instance-1>",
       "kind": "focuser-move",
       "parameters": {
-        "maxPosition": 40000,
-        "minPosition": 1,
         "position": 1500
       },
       "requestId": "<request-1>"
@@ -1684,8 +1634,6 @@
       "instanceId": "<instance-1>",
       "kind": "focuser-move",
       "parameters": {
-        "maxPosition": 40000,
-        "minPosition": 1,
         "position": 1500
       },
       "progress": {
@@ -1719,8 +1667,6 @@
         }
       },
       "parameters": {
-        "maxPosition": 40000,
-        "minPosition": 1,
         "position": 1500
       },
       "requestId": "<request-1>",
@@ -1795,8 +1741,6 @@
       "instanceId": "<instance-1>",
       "kind": "focuser-move",
       "parameters": {
-        "maxPosition": 40000,
-        "minPosition": 1,
         "position": 1500
       },
       "requestId": "<request-1>"
@@ -1810,8 +1754,6 @@
       "instanceId": "<instance-1>",
       "kind": "focuser-move",
       "parameters": {
-        "maxPosition": 40000,
-        "minPosition": 1,
         "position": 1500
       },
       "progress": {
@@ -1891,8 +1833,6 @@
         "kind": "stopped"
       },
       "parameters": {
-        "maxPosition": 40000,
-        "minPosition": 1,
         "position": 1500
       },
       "requestId": "<request-1>",

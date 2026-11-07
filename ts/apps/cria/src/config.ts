@@ -85,8 +85,6 @@ export const ConfigSchema = Schema.Struct({
   acknowledgeMs: Milliseconds(500, 60_000),
   /** Overrun allowance for a motion. */
   operationTimeoutMs: Milliseconds(1000, 600_000),
-  /** How long after an exposure's duration Cria waits for its frame before aborting it. */
-  readoutAllowanceMs: Milliseconds(1000, 600_000),
   /** How long a cold device may take to connect at start (Pegasus took 40-82 s on Windows). */
   initializeTimeoutMs: Milliseconds(1000, 300_000),
   operationHistory: Schema.Number.pipe(Schema.check(Schema.isInt(), Schema.isBetween({ minimum: 10, maximum: 100_000 }))),
@@ -103,11 +101,10 @@ export type Config = Omit<Decoded, 'devices'> & { readonly devices: ReadonlyArra
 export const defaults = {
   listen: { host: '127.0.0.1', port: 4319 },
   indi: { host: '127.0.0.1', port: 7624 },
-  imageBudgetBytes: 10 * 1024 ** 3,
+  imageBudgetBytes: 1024 ** 3,
   commandsEnabled: true,
   acknowledgeMs: 5000,
   operationTimeoutMs: 180_000,
-  readoutAllowanceMs: 30_000,
   initializeTimeoutMs: 120_000,
   operationHistory: 1000,
 }

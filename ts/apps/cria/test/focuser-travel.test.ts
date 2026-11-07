@@ -30,7 +30,7 @@ async function start(options: { position?: number; travel?: { min: number; max: 
 }
 
 const moves = () => fake.received.filter(xml => xml.startsWith('<new') && xml.includes('name="ABS_FOCUS_POSITION"'))
-const move = (position: number) => cria.run('focuser', 'focuser-move', { position, minPosition: 1, maxPosition: 200_000 })
+const move = (position: number) => cria.run('focuser', 'focuser-move', { position})
 const window = async () => {
   const focuser = await cria.device('focuser')
 

@@ -103,8 +103,6 @@ export declare const OperationRequest: Schema.Union<(Schema.Struct<{
     kind: Schema.Literal<"focuser-move">;
     parameters: Schema.Struct<{
         readonly position: Schema.Number;
-        readonly minPosition: Schema.Number;
-        readonly maxPosition: Schema.Number;
     }>;
     instanceId: Schema.brand<Schema.String, "InstanceId">;
     requestId: Schema.brand<Schema.String, "RequestId">;
@@ -285,8 +283,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
     kind: Schema.Literal<"focuser-move">;
     parameters: Schema.Struct<{
         readonly position: Schema.Number;
-        readonly minPosition: Schema.Number;
-        readonly maxPosition: Schema.Number;
     }>;
     instanceId: Schema.brand<Schema.String, "InstanceId">;
     requestId: Schema.brand<Schema.String, "RequestId">;
@@ -897,8 +893,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
     kind: Schema.Literal<"focuser-move">;
     parameters: Schema.Struct<{
         readonly position: Schema.Number;
-        readonly minPosition: Schema.Number;
-        readonly maxPosition: Schema.Number;
     }>;
     instanceId: Schema.brand<Schema.String, "InstanceId">;
     requestId: Schema.brand<Schema.String, "RequestId">;

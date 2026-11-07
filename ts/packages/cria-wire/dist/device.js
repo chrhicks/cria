@@ -84,12 +84,6 @@ export const WeatherReadings = Schema.Struct({
     temperatureC: number,
     humidityPercent: number,
     dewPointC: number,
-    pressureHpa: number,
-    skyTemperatureC: number,
-    cloudCoverPercent: number,
-    rainRateMmPerHour: number,
-    windSpeedMps: number,
-    windGustMps: number,
 });
 export const SwitchReadings = Schema.Struct({ ...common, channelCount: number });
 export const SwitchChannel = Schema.Struct({

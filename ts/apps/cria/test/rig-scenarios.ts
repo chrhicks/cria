@@ -70,7 +70,7 @@ const devices: ReadonlyArray<DeviceSpec> = [
   { id: 'switch', kind: 'switch', indiDevice: names.box, channels },
 ]
 
-const focusMove = { position: 31000, minPosition: 15500, maxPosition: 38000 }
+const focusMove = { position: 31000}
 const ignoring = (device: string, property: string, next: Behaviour): Behaviour => (fake, vector, values) =>
   vector.device === device && vector.name === property ? 'handled' : next(fake, vector, values)
 

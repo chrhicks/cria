@@ -20,57 +20,6 @@ function deliver(wire: Buffer, size: number, framer = new IndiFramer(), keepText
   return { elements: results.flatMap(result => result.elements), stopped: results.find(result => result.stopped)?.stopped, slowest }
 }
 
-describe('a tag that never ends costs work in proportion to the bytes, not their square', () => {
-  const over = 8 * 1024 * 1024 + 1024
-  const filler = (unit: string) => unit.repeat(Math.ceil(over / unit.length))
-  const hostile: Array<[string, string]> = [
-    ['plain text', `<defTextVector device="D" name="N" ${'x'.repeat(over)}`],
-    ['attribute-like text', `<a ${filler('b=" ')}`],
-    ['both quote kinds, none closed', `<a ${filler('b=\' c=" ')}`],
-    ['one enormous word', `<a ${'b'.repeat(over)}`],
-    ['a name with no value, again and again', `<a ${filler('b ')}`],
-    ['equals signs and spaces', `<a b${filler(' = ')}`],
-    ['a comment-like tag that is not a comment', `<!-${filler('-- ')}`],
-    ['an unfinished comment', `<!-- ${filler('-- ')}`],
-    ['dots and dashes in names', `<a ${filler('b.-b-.')}`],
-  ]
-
-  it.each(hostile)('drops the connection for %s, whole or in chunks, within a small time budget', (_, text) => {
-    const wire = Buffer.from(text)
-
-    for (const size of [wire.length, 64 * 1024]) {
-      const began = performance.now()
-      const { elements, stopped } = deliver(wire, size)
-      const took = performance.now() - began
-
-      expect(elements, `chunks of ${size}`).toHaveLength(0)
-      expect(stopped, `chunks of ${size}`).toMatchObject({ scope: 'stream', reason: expect.stringMatching(/larger than 8388608 bytes/) })
-      expect(stopped!.excerpt.length, `chunks of ${size}`).toBeLessThan(1300)
-      expect(took, `chunks of ${size}: ${took.toFixed(0)} ms`).toBeLessThan(2000)
-    }
-  }, 30_000)
-
-  it('takes about four times as long for four times the bytes', () => {
-    const time = (bytes: number) => {
-      const framer = new IndiFramer({ element: bytes - 1, blob: bytes - 1 })
-      const wire = Buffer.from(`<a ${'b.-'.repeat(Math.ceil(bytes / 3))}`)
-      const began = performance.now()
-      const { stopped } = deliver(wire, wire.length, framer)
-
-      expect(stopped).toMatchObject({ scope: 'stream' })
-
-      return performance.now() - began
-    }
-
-    time(1 << 15)
-    const small = time(1 << 15)
-    const large = time(1 << 17)
-
-    // Linear is about 4, quadratic about 16.
-    expect(large, `${small.toFixed(1)} ms then ${large.toFixed(1)} ms`).toBeLessThan(Math.max(small, 5) * 9)
-  })
-})
-
 describe('what is read of a bad element does not depend on how big it is', () => {
   it('names the device and property from the start of a huge element, and cuts no character in two', () => {
     // Pad so that a three-byte character straddles the 4096th byte, whichever way it is cut.
@@ -190,22 +139,4 @@ describe('a stream of valid and malformed input, however it is chunked', () => {
     }
   })
 
-  it('gives the same elements and the same stop for a corpus that ends in a tag that never ends', () => {
-    const limits = { element: 20_000, blob: 40_000 }
-
-    for (const ending of ['<a b=" b=" ' + 'b=" '.repeat(6000), '<defTextVector device="D" ' + 'x'.repeat(30_000), '<!-- ' + 'y'.repeat(30_000), '<!-- > ' + 'y'.repeat(30_000)]) {
-      const wire = Buffer.concat([corpus(9), Buffer.from(ending)])
-      const results = [1, 7, 64 * 1024].map(size => {
-        const { elements, stopped, slowest } = deliver(wire, size, new IndiFramer(limits), true)
-
-        expect(slowest, `chunks of ${size}`).toBeLessThan(250)
-
-        // `bytes` is how much was buffered when the limit was crossed, which is the chunk that crossed it.
-        return { elements: summary(elements), stopped: { ...stopped, bytes: 0 } }
-      })
-
-      expect(results[0]!.stopped, ending.slice(0, 8)).toMatchObject({ scope: 'stream', reason: expect.stringMatching(/larger than 20000 bytes/) })
-      for (const result of results) expect(result).toEqual(results[0])
-    }
-  })
 })

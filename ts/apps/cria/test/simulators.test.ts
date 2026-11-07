@@ -189,9 +189,9 @@ describe('camera', () => {
 
   it('runs one request ID once and refuses the same ID with different content', async () => {
     const requestId = crypto.randomUUID()
-    const first = await cria.submit('focuser', 'focuser-move', { position: 50100, minPosition: 1, maxPosition: 90000 }, requestId)
-    const again = await cria.submit('focuser', 'focuser-move', { position: 50100, minPosition: 1, maxPosition: 90000 }, requestId)
-    const changed = await cria.submit('focuser', 'focuser-move', { position: 50200, minPosition: 1, maxPosition: 90000 }, requestId)
+    const first = await cria.submit('focuser', 'focuser-move', { position: 50100}, requestId)
+    const again = await cria.submit('focuser', 'focuser-move', { position: 50100}, requestId)
+    const changed = await cria.submit('focuser', 'focuser-move', { position: 50200}, requestId)
 
     expect(again.body.id).toBe(first.body.id)
     expect(changed).toMatchObject({ status: 409, body: { error: { code: 'request-conflict' } } })
@@ -203,7 +203,7 @@ describe('camera', () => {
 describe('focuser', () => {
   it('moves to the target and reports the confirmed position', async () => {
     await cria.waitFor(allReady(['focuser']))
-    const operation = await cria.run('focuser', 'focuser-move', { position: 51234, minPosition: 1, maxPosition: 90000 })
+    const operation = await cria.run('focuser', 'focuser-move', { position: 51234})
 
     expect(operation).toMatchObject({ kind: 'confirmed', values: { position: 51234 } })
   })
@@ -213,12 +213,12 @@ describe('focuser', () => {
     const position = await listen('Focuser Simulator', 'ABS_FOCUS_POSITION')
 
     try {
-      const refused = await cria.run('focuser', 'focuser-move', { position: 100000, minPosition: 1, maxPosition: 2_000_000 })
+      const refused = await cria.run('focuser', 'focuser-move', { position: 100000})
 
       expect(refused).toMatchObject({ kind: 'failed', reason: 'invalid', message: 'Focuser target approaches the mechanical limit' })
 
       await cria.waitFor(allReady(['focuser']))
-      expect(await cria.run('focuser', 'focuser-move', { position: 50500, minPosition: 1, maxPosition: 90000 })).toMatchObject({ kind: 'confirmed' })
+      expect(await cria.run('focuser', 'focuser-move', { position: 50500})).toMatchObject({ kind: 'confirmed' })
       expect(position.updates[0]).toBe('Ok 50500')
     } finally {
       position.close()
@@ -258,10 +258,9 @@ describe('mount', () => {
 })
 
 describe('weather', () => {
-  it('reports what the device has and marks the rest unsupported', async () => {
+  it('reports what the device has', async () => {
     const weather = await cria.device('weather')
 
     expect(weather.readings.temperatureC).toMatchObject({ status: 'fresh', value: 15 })
-    expect(weather.readings.pressureHpa).toEqual({ status: 'unavailable', reason: 'unsupported' })
   })
 })

@@ -55,8 +55,6 @@ export declare const commands: Table<{
         readonly halt: false;
         readonly parameters: Schema.Struct<{
             readonly position: Schema.Number;
-            readonly minPosition: Schema.Number;
-            readonly maxPosition: Schema.Number;
         }>;
     };
     readonly 'focuser-halt': {
@@ -155,8 +153,6 @@ export declare const CommandSchema: Schema.Union<(Schema.Struct<{
     readonly kind: Schema.Literal<"focuser-move">;
     readonly parameters: Schema.Struct<{
         readonly position: Schema.Number;
-        readonly minPosition: Schema.Number;
-        readonly maxPosition: Schema.Number;
     }>;
 }> | Schema.Struct<{
     readonly kind: Schema.Literal<"mount-axis">;

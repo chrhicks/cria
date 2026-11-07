@@ -88,12 +88,6 @@ const LT = 0x3c
 const GT = 0x3e
 const SLASH = 0x2f
 
-/**
- * Maximum bytes for one element; protects memory from a runaway stream. Only a BLOB vector is big (a 2600 frame is
- * about 70 MB of base64): a definition or update is a few KB, so an unclosed one is stopped much earlier.
- */
-const maxBlobElementBytes = 512 * 1024 * 1024
-const maxElementBytes = 8 * 1024 * 1024
 const excerptChars = 200
 /** A problem is described from the first `inspectedBytes` of the element, however big it is or how much is buffered. */
 const inspectedBytes = 4096
@@ -111,14 +105,7 @@ export class IndiFramer {
   private headerFrom = 0
   private declarationFrom = 0
   private closing: Buffer | undefined
-  private limit = maxElementBytes
   private stopped: ProtocolProblem | undefined
-
-  private readonly limits: { readonly element: number; readonly blob: number }
-
-  constructor(limits: { readonly element: number; readonly blob: number } = { element: maxElementBytes, blob: maxBlobElementBytes }) {
-    this.limits = limits
-  }
 
   /** The messages in `chunk`. A bad element is skipped; see `frame`. */
   push(chunk: Buffer): IndiMessage[] {
@@ -198,21 +185,18 @@ export class IndiFramer {
 
       if (headerEnd < 0 || headerEnd >= this.length) {
         this.headerFrom = this.length
-        this.within(this.length - open, this.limits.element)
 
         return undefined
       }
 
       this.headerFrom = 0
 
-      this.within(headerEnd + 1 - open, this.limits.element)
       const header = this.buffer.toString('utf8', open + 1, headerEnd)
 
       if (header.startsWith('?') || header.startsWith('!')) {
         const after = this.skipDeclaration(open)
 
         if (after < 0) {
-          this.within(this.length - open, this.limits.element)
 
           return undefined
         }
@@ -232,7 +216,6 @@ export class IndiFramer {
 
       if (!tag) throw new IndiProtocolError(`Malformed INDI element <${header.slice(0, 40)}>`, 'stream')
       this.closing = Buffer.from(`</${tag}>`)
-      this.limit = tag === 'setBLOBVector' ? this.limits.blob : this.limits.element
       this.searchFrom = headerEnd + 1
     }
 
@@ -240,15 +223,12 @@ export class IndiFramer {
 
     if (close < 0 || close + this.closing.length > this.length) {
       this.searchFrom = Math.max(this.start, this.length - this.closing.length)
-      this.within(this.length - this.start, this.limit)
 
       return undefined
     }
 
     const end = close + this.closing.length
 
-    // The same limit as while waiting, so it does not depend on how the bytes were split into chunks.
-    this.within(end - this.start, this.limit)
     const element = this.buffer.subarray(this.start, end)
 
     this.start = end
@@ -257,9 +237,6 @@ export class IndiFramer {
     return element
   }
 
-  private within(bytes: number, limit: number) {
-    if (bytes > limit) throw new IndiProtocolError(`INDI element is larger than ${limit} bytes`, 'stream')
-  }
 
   /** Comments and processing instructions carry nothing for a client. */
   private skipDeclaration(open: number): number {

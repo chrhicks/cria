@@ -33,7 +33,7 @@
  */
 import { readFile } from 'node:fs/promises'
 import { FakeIndi, type Behaviour, type FakeVector, type Limits, type Value } from '@cria/fake-indi'
-import { flattened, withExposure } from '@cria/fits'
+import { flattened, withExposure } from './fits-stamps.js'
 import { realClock, type Clock } from './clock.js'
 import type { Fault, FaultPhase } from './faults.js'
 import { localSiderealHours } from './sidereal.js'

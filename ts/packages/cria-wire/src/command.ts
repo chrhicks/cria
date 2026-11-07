@@ -74,19 +74,7 @@ export const commands = table({
   'focuser-move': {
     device: 'focuser',
     halt: false,
-    parameters: Schema.Struct({
-      position: integer(1, 2_147_483_646),
-      minPosition: integer(1, 2_147_483_646),
-      maxPosition: integer(1, 2_147_483_646),
-    }).pipe(
-      Schema.check(
-        Schema.makeFilter(
-          (move: { position: number; minPosition: number; maxPosition: number }) =>
-            (move.minPosition <= move.maxPosition && move.position >= move.minPosition && move.position <= move.maxPosition) ||
-            'Target is outside the requested focuser travel window',
-        ),
-      ),
-    ),
+    parameters: Schema.Struct({ position: integer(1, 2_147_483_646) }),
   },
   'focuser-halt': { device: 'focuser', halt: true, parameters: empty },
   'mount-slew': {
