@@ -261,7 +261,7 @@ export class IndiFramer {
 export interface FramedElement {
   /** Undefined for an element the client ignores (another client's `new*Vector`, relayed by indiserver) and for a bad one (then `problem` is set). */
   readonly message: IndiMessage | undefined
-  /** Why this element could not be read. It is still in `xml`, byte for byte, for the recording. */
+  /** Why this element could not be read, or, when `message` is set, why one of its elements was left out of it. It is still in `xml`, byte for byte, for the recording. */
   readonly problem?: ProtocolProblem
   /** The element's wire text, kept only when the caller asked for it. */
   readonly xml: string
@@ -272,12 +272,14 @@ function frameElement(element: Buffer, keepText: boolean): FramedElement {
   let problem: ProtocolProblem | undefined
 
   try {
-    message = parseElement(element)
+    const parsed = parseElement(element)
+
+    message = parsed.message
+    if (parsed.dropped[0]) problem = describeProblem(parsed.dropped[0], element)
   } catch (error) {
     if (!(error instanceof IndiProtocolError)) throw error
     problem = describeProblem(error, element)
   }
-
 
   return { message, ...(problem ? { problem } : {}), xml: keepText ? element.toString('utf8') : '' }
 }
@@ -328,14 +330,25 @@ interface Node {
   text: string
 }
 
-function parseElement(bytes: Buffer): IndiMessage | undefined {
+function parseElement(bytes: Buffer): { readonly message: IndiMessage | undefined; readonly dropped: IndiProtocolError[] } {
   const tag = /^<([A-Za-z]\w*)/.exec(bytes.toString('latin1', 0, 64))?.[1] ?? ''
+  const dropped: IndiProtocolError[] = []
 
-  if (tag === 'setBLOBVector') return undefined
+  if (tag === 'setBLOBVector') return { message: undefined, dropped }
 
   const node = parseTree(bytes.toString('utf8'))
 
-  return toMessage(node)
+  return { message: toMessage(node, dropped), dropped }
+}
+
+function namedChildren(node: Node, dropped: IndiProtocolError[]): Node[] {
+  return node.children.filter(child => {
+    const fault = identityFault(child.attributes, 'name')
+
+    if (fault) dropped.push(new IndiProtocolError(fault))
+
+    return fault === undefined
+  })
 }
 
 /** A tiny XML tree parser for INDI's dialect. */
@@ -457,13 +470,13 @@ function decodeEntities(text: string): string {
 const updateKinds = { Number: 'number', Switch: 'switch', Text: 'text', Light: 'light' } as const
 const definitionKinds = { ...updateKinds, BLOB: 'blob' } as const
 
-function toMessage(node: Node): IndiMessage | undefined {
+function toMessage(node: Node, dropped: IndiProtocolError[]): IndiMessage | undefined {
   const a = node.attributes
   const definition = /^def(Number|Switch|Text|Light|BLOB)Vector$/.exec(node.tag)
   const update = /^set(Number|Switch|Text|Light)Vector$/.exec(node.tag)
 
-  if (definition) return { type: 'def', vector: toDefinition(node, definitionKinds[definition[1] as keyof typeof definitionKinds]) }
-  if (update) return { type: 'set', vector: toUpdate(node, updateKinds[update[1] as keyof typeof updateKinds]) }
+  if (definition) return { type: 'def', vector: toDefinition(node, definitionKinds[definition[1] as keyof typeof definitionKinds], dropped) }
+  if (update) return { type: 'set', vector: toUpdate(node, updateKinds[update[1] as keyof typeof updateKinds], dropped) }
 
   switch (node.tag) {
     case 'delProperty':
@@ -479,9 +492,9 @@ function toMessage(node: Node): IndiMessage | undefined {
   }
 }
 
-function toDefinition(node: Node, kind: PropertyKind): VectorDefinition {
+function toDefinition(node: Node, kind: PropertyKind, dropped: IndiProtocolError[]): VectorDefinition {
   const a = node.attributes
-  const elements = node.children.map(child => toElementDefinition(child, kind))
+  const elements = namedChildren(node, dropped).map(child => toElementDefinition(child, kind))
 
   return {
     device: identity(a, 'device'),
@@ -524,9 +537,9 @@ function toElementDefinition(node: Node, kind: PropertyKind): ElementDefinition 
   }
 }
 
-function toUpdate(node: Node, kind: Exclude<PropertyKind, 'blob'>): VectorUpdate {
+function toUpdate(node: Node, kind: Exclude<PropertyKind, 'blob'>, dropped: IndiProtocolError[]): VectorUpdate {
   const a = node.attributes
-  const elements: ElementUpdate[] = node.children.map(child => {
+  const elements: ElementUpdate[] = namedChildren(node, dropped).map(child => {
     const name = identity(child.attributes, 'name')
     const text = child.text.trim()
 
@@ -563,12 +576,20 @@ function toUpdate(node: Node, kind: Exclude<PropertyKind, 'blob'>): VectorUpdate
 
 /** A device or property or element name: without one the value can't be put anywhere, so empty counts as missing. */
 function identity(attributes: Readonly<Record<string, string>>, name: string): string {
+  const fault = identityFault(attributes, name)
+
+  if (fault) throw new IndiProtocolError(fault)
+
+  return attributes[name]!
+}
+
+function identityFault(attributes: Readonly<Record<string, string>>, name: string): string | undefined {
   const value = attributes[name]
 
-  if (value === undefined) throw new IndiProtocolError(`INDI element is missing ${name}`)
-  if (value === '') throw new IndiProtocolError(`INDI element has an empty ${name}`)
+  if (value === undefined) return `INDI element is missing ${name}`
+  if (value === '') return `INDI element has an empty ${name}`
 
-  return value
+  return undefined
 }
 
 /** INDI switches are exactly On or Off; a driver that says anything else is not telling us which. */

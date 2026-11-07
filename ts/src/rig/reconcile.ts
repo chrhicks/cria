@@ -2,7 +2,7 @@ import { nowToken, type RigConfig, type RigDevice, type WantedValue } from './co
 import type { DeviceFacts, IndiSnapshot, PropertyFacts } from './indi-link.ts'
 
 export type Action =
-  | { readonly kind: 'write'; readonly device: string; readonly indiDevice: string; readonly property: string; readonly values: Readonly<Record<string, WantedValue>>; readonly why: string }
+  | { readonly kind: 'write'; readonly device: string; readonly indiDevice: string; readonly property: string; readonly values: Readonly<Record<string, WantedValue>>; readonly why: string; readonly onConnect?: true }
   | { readonly kind: 'restart-driver'; readonly driver: string; readonly why: string }
   | { readonly kind: 'log'; readonly line: string }
 
@@ -11,6 +11,8 @@ interface DeviceMemory {
   missingStreak: number
   wasConnected: boolean
   pendingOnConnect: string[]
+  busy: string[]
+  connectedStreak: number
   reconnectedAt?: number
 }
 
@@ -22,6 +24,7 @@ interface DriverMemory {
 interface WriteMemory {
   attempts: number
   at: number
+  unsent?: true
 }
 
 export interface Memory {
@@ -37,8 +40,16 @@ interface Observation {
   readonly hardware: Readonly<Record<string, boolean>>
 }
 
+const onConnectKey = (device: string, property: string) => `${device}/onConnect/${property}`
+
+export function markUnsent(memory: Memory, action: Extract<Action, { kind: 'write' }>) {
+  const written = memory.writes[onConnectKey(action.device, action.property)]
+
+  if (action.onConnect && written) written.unsent = true
+}
+
 export const emptyMemory = (config: RigConfig): Memory => ({
-  devices: Object.fromEntries(config.devices.map(device => [device.id, { hardwareStreak: 0, missingStreak: 0, wasConnected: false, pendingOnConnect: [] }])),
+  devices: Object.fromEntries(config.devices.map(device => [device.id, { hardwareStreak: 0, missingStreak: 0, wasConnected: false, pendingOnConnect: [], busy: [], connectedStreak: 0 }])),
   drivers: {},
   writes: {},
   said: {},
@@ -94,9 +105,13 @@ export function decide(config: RigConfig, observation: Observation, previous: Me
 
     state.hardwareStreak = observation.hardware[device.id] ? state.hardwareStreak + 1 : 0
     state.missingStreak = !linkDown && !facts ? state.missingStreak + 1 : 0
-    if (connectedNow && !state.wasConnected) state.pendingOnConnect = Object.keys(device.onConnect)
-    if (!connectedNow) state.pendingOnConnect = []
+    if ((connectedNow && !state.wasConnected) || !connectedNow) {
+      for (const property of Object.keys(device.onConnect)) delete memory.writes[onConnectKey(device.id, property)]
+      state.pendingOnConnect = connectedNow ? Object.keys(device.onConnect) : []
+    }
+    state.connectedStreak = connectedNow ? state.connectedStreak + 1 : 0
     state.wasConnected = connectedNow
+    if (!linkDown) state.busy = [...new Set([...(facts?.busy ?? []), ...state.busy.filter(name => !facts?.properties.has(name))])]
   }
 
   const quiet = (device: RigDevice) => {
@@ -158,9 +173,9 @@ export function decide(config: RigConfig, observation: Observation, previous: Me
     }
 
     const blockers = group.flatMap(device => {
-      const answers = dead.includes(device) ? [] : (factsOf(device)?.busy ?? [])
+      const answers = wanting.includes(device) ? [] : memoryOf(device).busy
 
-      return answers.map(name => `${device.id} ${name} is Busy`)
+      return answers.map(name => (factsOf(device)?.properties.has(name) ? `${device.id} ${name} is Busy` : `${device.id} ${name} was Busy and can no longer be read`))
     })
 
     if (blockers.length > 0) {
@@ -179,7 +194,10 @@ export function decide(config: RigConfig, observation: Observation, previous: Me
     bookkeeping.restarts += 1
     bookkeeping.lastRestartAt = now
     restarting.add(driver)
-    for (const device of group) delete memoryOf(device).reconnectedAt
+    for (const device of group) {
+      delete memoryOf(device).reconnectedAt
+      memoryOf(device).busy = []
+    }
     actions.push({
       kind: 'restart-driver',
       driver,
@@ -206,6 +224,11 @@ export function decide(config: RigConfig, observation: Observation, previous: Me
       continue
     }
     clearNote(`hardware:${device.id}`)
+
+    const undefinedProperties = [...new Set([...Object.keys(device.properties), ...Object.keys(device.onConnect)])].filter(property => !facts.properties.has(property))
+
+    if (state.connectedStreak >= config.settlePolls && undefinedProperties.length > 0) note(`undefined:${device.id}`, `rig: ${device.id}: the rig file names ${undefinedProperties.join(', ')}, which ${device.indiDevice} does not define`)
+    else clearNote(`undefined:${device.id}`)
 
     const differing = Object.entries(device.properties).flatMap(([property, wanted]) => {
       const found = facts.properties.get(property)
@@ -246,10 +269,22 @@ export function decide(config: RigConfig, observation: Observation, previous: Me
 
     writeDifferences()
     state.pendingOnConnect = state.pendingOnConnect.filter(property => {
-      if (!facts.properties.has(property)) return true
-      actions.push({ kind: 'write', device: device.id, indiDevice: device.indiDevice, property, values: resolve(device.onConnect[property]!, now), why: 'once per connection' })
+      const found = facts.properties.get(property)
+      const key = onConnectKey(device.id, property)
+      const written = memory.writes[key]
 
-      return false
+      if (!found) return true
+      if (written && !written.unsent && found.state !== 'Alert') {
+        if (found.state === 'Busy') return true
+        delete memory.writes[key]
+
+        return false
+      }
+      if (!writable(key)) return true
+      wrote(key)
+      actions.push({ kind: 'write', device: device.id, indiDevice: device.indiDevice, property, values: resolve(device.onConnect[property]!, now), why: `once per connection (attempt ${attempt(key)})`, onConnect: true })
+
+      return true
     })
   }
 

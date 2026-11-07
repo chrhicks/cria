@@ -1,6 +1,6 @@
 import type { RigConfig, RigDevice } from './config.ts'
 import type { IndiLink } from './indi-link.ts'
-import { decide, emptyMemory, type Action } from './reconcile.ts'
+import { decide, emptyMemory, markUnsent, type Action } from './reconcile.ts'
 
 interface RigDependencies {
   readonly config: RigConfig
@@ -43,6 +43,7 @@ export function createRig(dependencies: RigDependencies): Rig {
           await indi.write(action.indiDevice, action.property, action.values)
         } catch (error) {
           log(`rig: ${action.device}: ${action.property} not sent: ${errorText(error)}`)
+          markUnsent(memory, action)
         }
 
         return

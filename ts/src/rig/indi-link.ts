@@ -66,9 +66,10 @@ export async function openIndiLink(options: {
   readonly devices: ReadonlyArray<string>
   readonly errorGapMs: number
   readonly now: () => number
+  readonly warn: (line: string) => void
 }): Promise<IndiLink> {
   const scope = Effect.runSync(Scope.make())
-  const client = await Effect.runPromise(Scope.provide(makeIndiClient({ host: options.host, port: options.port, warn: () => {} }), scope))
+  const client = await Effect.runPromise(Scope.provide(makeIndiClient({ host: options.host, port: options.port, warn: options.warn }), scope))
   const errorRuns = new Map<string, ErrorRun>()
 
   for (const name of options.devices) {

@@ -16,6 +16,42 @@ export const settings = {
 
 export const nowToken = { value: 'now', description: 'In onConnect, a text value of "now" is written as the current UTC time, YYYY-MM-DDTHH:MM:SS, the form TIME_UTC takes on the wire' } as const
 
+export const refusedProperties = {
+  value: [
+    'EQUATORIAL_EOD_COORD',
+    'EQUATORIAL_COORD',
+    'HORIZONTAL_COORD',
+    'TARGET_EOD_COORD',
+    'TELESCOPE_MOTION_NS',
+    'TELESCOPE_MOTION_WE',
+    'TELESCOPE_TIMED_GUIDE_NS',
+    'TELESCOPE_TIMED_GUIDE_WE',
+    'TELESCOPE_PARK',
+    'TELESCOPE_HOME',
+    'TELESCOPE_TRACK_STATE',
+    'ABS_FOCUS_POSITION',
+    'REL_FOCUS_POSITION',
+    'FOCUS_MOTION',
+    'Goto',
+    'ABS_ROTATOR_ANGLE',
+    'ROTATOR_HOME',
+    'FILTER_SLOT',
+    'DOME_MOTION',
+    'DOME_GOTO',
+    'DOME_PARK',
+    'ABS_DOME_POSITION',
+    'REL_DOME_POSITION',
+    'DOME_SHUTTER',
+    'CCD_EXPOSURE',
+    'GUIDER_EXPOSURE',
+    'CCD_FAST_COUNT',
+    'CCD_VIDEO_STREAM',
+    'RECORD_STREAM',
+  ],
+  description:
+    "Properties the rig program refuses in the rig file because writing one starts a motion or an exposure (AGENTS.md). Source: the Telescope, CCD, Guider, Focuser, Filter Wheel, Rotator and Dome sections of the INDI standard properties document (libindi 2.x's indistandardproperty.h lists only general and connection properties, so it adds none), plus the starters errai's drivers define on top of those, read with indi_getprop on 2026-11-07 from the ZWO AM5, ASI2600MC Pro, ASI220MM Mini, EAF and Pegasus PPBA: Goto (EAF presets), CCD_FAST_COUNT, CCD_VIDEO_STREAM, RECORD_STREAM. Aborts are not listed: they stop a motion or an exposure and never start one.",
+} as const
+
 const numberKeys = ['indiPort', 'pollMs', 'settlePolls', 'fifoGapMs', 'minRestartGapMs', 'deadLinkMs', 'errorGapMs', 'reconnectWaitMs'] as const
 
 export type WantedValue = number | boolean | string
@@ -54,6 +90,7 @@ function parseProperties(device: string, key: string, value: unknown): WantedPro
   const properties: Record<string, Record<string, WantedValue>> = {}
 
   for (const [property, elements] of Object.entries(value)) {
+    if ((refusedProperties.value as ReadonlyArray<string>).includes(property)) fail(`device ${device}: ${key}.${property} starts a motion or an exposure, which the rig program never writes`)
     if (!isObject(elements) || Object.keys(elements).length === 0) fail(`device ${device}: ${key}.${property} must be an object of element values`)
     const parsed: Record<string, WantedValue> = {}
 

@@ -77,6 +77,10 @@ export class FakeIndi {
     this.broadcast(this.setVector(vector))
   }
 
+  raw(xml: string): void {
+    this.broadcast(xml)
+  }
+
   message(device: string, text: string): void {
     this.broadcast(`<message device="${escape(device)}" message="${escape(text)}"/>\n`)
   }

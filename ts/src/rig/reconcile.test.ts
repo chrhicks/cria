@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { parseConfig, type RigConfig, type WantedValue } from './config.ts'
+import { parseConfig, refusedProperties, type RigConfig, type WantedValue } from './config.ts'
 import type { DeviceFacts } from './indi-link.ts'
-import { decide, emptyMemory, holds, type Action, type Memory } from './reconcile.ts'
+import { decide, emptyMemory, holds, markUnsent, type Action, type Memory } from './reconcile.ts'
 
 const site = { LAT: 33.45, LONG: 247.93, ELEV: 331 }
 
@@ -29,6 +29,7 @@ interface Sim {
   connection: 'connected' | 'disconnected' | 'changing'
   properties: Values
   busy: string[]
+  alert?: string[]
   brokenSince?: number
 }
 
@@ -41,7 +42,7 @@ const holdingProperties = (id: string): Values => {
 const factsOf = (sim: Sim, now: number): DeviceFacts => {
   const properties = new Map([
     ['CONNECTION', { state: sim.connection === 'changing' ? 'Busy' : 'Ok', values: { CONNECT: sim.connection === 'connected', DISCONNECT: sim.connection === 'disconnected' } }],
-    ...Object.entries(sim.properties).map(([name, values]) => [name, { state: sim.busy.includes(name) ? 'Busy' : 'Ok', values }] as const),
+    ...Object.entries(sim.properties).map(([name, values]) => [name, { state: sim.busy.includes(name) ? 'Busy' : sim.alert?.includes(name) ? 'Alert' : 'Ok', values }] as const),
     ...sim.busy.filter(name => !(name in sim.properties)).map(name => [name, { state: 'Busy', values: {} }] as const),
   ])
   const erroring = sim.brokenSince !== undefined && sim.connection === 'connected'
@@ -63,6 +64,7 @@ class Bench {
   present = new Set<string>(devices.map(device => device.id))
   actions: Array<{ at: number; action: Action }> = []
   reconnectFixes = false
+  unsendable = new Set<string>()
 
   constructor(overrides: Record<string, unknown> = {}, list: ReadonlyArray<object> = devices) {
     this.config = makeConfig(overrides, list)
@@ -103,7 +105,8 @@ class Bench {
         sim.connection = 'CONNECT' in action.values ? 'connected' : 'disconnected'
         if (sim.connection === 'connected') sim.properties = { ...this.definedOnConnect(action.device), ...sim.properties }
         if (this.reconnectFixes) delete sim.brokenSince
-      } else sim.properties[action.property] = { ...sim.properties[action.property], ...action.values }
+      } else if (this.unsendable.has(action.property)) markUnsent(this.memory, action)
+      else sim.properties[action.property] = { ...sim.properties[action.property], ...action.values }
     }
     if (action.kind === 'restart-driver') {
       for (const device of this.config.devices.filter(candidate => candidate.driver === action.driver)) {
@@ -171,6 +174,8 @@ describe('the rig file', () => {
     [one({ properties: { X: {} } }), 'must be an object of element values'],
     [one({ properties: { X: { Y: null } } }), 'must be a finite number, a boolean or a string'],
     [one({ onConnect: [] }), 'onConnect must be an object'],
+    [one({ properties: { CCD_EXPOSURE: { CCD_EXPOSURE_VALUE: 1 } } }), 'properties.CCD_EXPOSURE starts a motion or an exposure'],
+    [one({ onConnect: { TELESCOPE_PARK: { PARK: true } } }), 'onConnect.TELESCOPE_PARK starts a motion or an exposure'],
     [{ fifo: '/x', devices: [one({}).devices[0], one({}).devices[0]] }, 'listed twice'],
     [{ ...one({}), extra: 1 }, 'unknown key extra'],
     [{ ...one({}), backoffMs: [] }, 'backoffMs must be'],
@@ -353,6 +358,49 @@ describe('the properties a device should have', () => {
     expect(bench.writes('TIME_UTC')).toHaveLength(2)
   })
 
+  it('writes the time again, on the backoff, after a send that failed, and stops once one is sent', () => {
+    const bench = new Bench()
+
+    bench.sim('mount').properties.TIME_UTC = { UTC: '2000-01-01T00:00:00', OFFSET: '0.00' }
+    bench.unsendable.add('TIME_UTC')
+    bench.poll(12)
+    const failed = bench.writes('TIME_UTC').map(write => write.at)
+
+    expect(failed).toEqual([1_005_000, 1_015_000, 1_045_000])
+
+    bench.unsendable.clear()
+    bench.poll(20)
+    expect(bench.writes('TIME_UTC')).toHaveLength(4)
+  })
+
+  it('writes the time again, on the backoff, while the driver answers Alert, and stops when it answers Ok', () => {
+    const bench = new Bench()
+
+    bench.sim('mount').properties.TIME_UTC = { UTC: '2000-01-01T00:00:00', OFFSET: '0.00' }
+    bench.sim('mount').alert = ['TIME_UTC']
+    bench.poll(8)
+    expect(bench.writes('TIME_UTC').map(write => write.at)).toEqual([1_005_000, 1_015_000])
+
+    bench.sim('mount').alert = []
+    bench.poll(20)
+    expect(bench.writes('TIME_UTC')).toHaveLength(2)
+  })
+
+  it('says once, after the device has been connected for the settle polls, which properties the rig file names that it does not define', () => {
+    const bench = new Bench()
+
+    bench.sim('mount').properties.TIME_UTC = { UTC: '2000-01-01T00:00:00', OFFSET: '0.00' }
+    delete bench.sim('mount').properties.GEOGRAPHIC_COORD
+    bench.poll(1)
+    expect(bench.logs().filter(line => line.includes('does not define'))).toEqual([])
+    bench.poll(10)
+    expect(bench.logs().filter(line => line.includes('does not define'))).toEqual(['rig: mount: the rig file names GEOGRAPHIC_COORD, which ZWO AM5 does not define'])
+
+    delete bench.sim('mount').properties.TIME_UTC
+    bench.poll(3)
+    expect(bench.logs().filter(line => line.includes('does not define')).at(-1)).toBe('rig: mount: the rig file names GEOGRAPHIC_COORD, TIME_UTC, which ZWO AM5 does not define')
+  })
+
   it('waits for the time to be defined, and writes it once it is', () => {
     const other = new Bench()
 
@@ -362,6 +410,10 @@ describe('the properties a device should have', () => {
     other.sim('mount').properties.TIME_UTC = { UTC: '2000-01-01T00:00:00', OFFSET: '0.00' }
     other.poll(3)
     expect(other.writes('TIME_UTC')).toHaveLength(1)
+  })
+
+  it.each(refusedProperties.value)('refuses %s in the rig file', name => {
+    expect(() => makeConfig({}, [{ id: 'a', indiDevice: 'A', usb: '03c3:260a', driver: 'indi_x', connected: true, properties: { [name]: { X: 1 } } }])).toThrow('starts a motion or an exposure')
   })
 
   it('never writes a property that starts a motion or an exposure unless the rig file names it', () => {
@@ -416,6 +468,24 @@ describe('a device that is missing from INDI while its hardware is present', () 
     expect(bench.logs().filter(line => line.includes('guide CCD_EXPOSURE is Busy; not restarting'))).toHaveLength(1)
 
     bench.sim('guide').busy = []
+    bench.sim('guide').properties.CCD_EXPOSURE = { CCD_EXPOSURE_VALUE: 0 }
+    bench.poll(1)
+    expect(bench.restarts()).toHaveLength(1)
+  })
+
+  it('does not take a Busy property that can no longer be read for idle', () => {
+    const bench = new Bench()
+
+    bench.missing('primary')
+    bench.sim('guide').busy = ['CCD_EXPOSURE']
+    bench.poll(4)
+    bench.sim('guide').busy = []
+    bench.poll(20)
+
+    expect(bench.restarts()).toEqual([])
+    expect(bench.logs().some(line => line.includes('guide CCD_EXPOSURE was Busy and can no longer be read; not restarting'))).toBe(true)
+
+    bench.sim('guide').properties.CCD_EXPOSURE = { CCD_EXPOSURE_VALUE: 0 }
     bench.poll(1)
     expect(bench.restarts()).toHaveLength(1)
   })

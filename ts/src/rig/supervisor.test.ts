@@ -63,7 +63,7 @@ describe('what the rig program reads from a device in INDI', () => {
 describe('the INDI link against a real indiserver', () => {
   it('sees a defined, disconnected simulator, writes its connection, and nothing for a device indiserver does not have', async () => {
     const server = await startIndiServer(['indi_simulator_focus'])
-    const link = await openIndiLink({ host: '127.0.0.1', port: server.port, devices: ['Focuser Simulator', 'No Such Device'], errorGapMs: 5000, now: Date.now })
+    const link = await openIndiLink({ host: '127.0.0.1', port: server.port, devices: ['Focuser Simulator', 'No Such Device'], errorGapMs: 5000, now: Date.now, warn: () => {} })
 
     try {
       const seen = await until('the simulator', async () => {
@@ -84,7 +84,7 @@ describe('the INDI link against a real indiserver', () => {
 
   it('refuses to write a property the device does not define', async () => {
     const server = await startIndiServer(['indi_simulator_focus'])
-    const link = await openIndiLink({ host: '127.0.0.1', port: server.port, devices: ['Focuser Simulator'], errorGapMs: 5000, now: Date.now })
+    const link = await openIndiLink({ host: '127.0.0.1', port: server.port, devices: ['Focuser Simulator'], errorGapMs: 5000, now: Date.now, warn: () => {} })
 
     try {
       await until('the simulator', async () => (await link.view()).devices.has('Focuser Simulator'))
@@ -132,7 +132,7 @@ describe('the rig program against a real indiserver', () => {
     })
     const logs: string[] = []
 
-    link = await openIndiLink({ host: '127.0.0.1', port: server.port, devices: ['Focuser Simulator', 'GPS Simulator'], errorGapMs: config.errorGapMs, now: Date.now })
+    link = await openIndiLink({ host: '127.0.0.1', port: server.port, devices: ['Focuser Simulator', 'GPS Simulator'], errorGapMs: config.errorGapMs, now: Date.now, warn: () => {} })
     const rig = createRig({ config, now: Date.now, sleep: ms => new Promise(resolve => setTimeout(resolve, ms)), hardwarePresent: () => true, writeFifo, indi: link, log: line => logs.push(line) })
     const connection = async () => (await link!.view()).devices.get('Focuser Simulator')?.connection
     const tickUntil = (what: string, probe: () => Promise<boolean>) =>
@@ -168,7 +168,7 @@ describe('the rig program against a real indiserver', () => {
       devices: [{ id: 'focuser', indiDevice: 'Focuser Simulator', serial: '/dev/null', driver: 'indi_simulator_focus', connected: true }],
     })
 
-    link = await openIndiLink({ host: '127.0.0.1', port: server.port, devices: ['Focuser Simulator'], errorGapMs: config.errorGapMs, now: Date.now })
+    link = await openIndiLink({ host: '127.0.0.1', port: server.port, devices: ['Focuser Simulator'], errorGapMs: config.errorGapMs, now: Date.now, warn: () => {} })
     const rig = createRig({ config, now: Date.now, sleep: ms => new Promise(resolve => setTimeout(resolve, ms)), hardwarePresent: () => true, writeFifo, indi: link, log: () => {} })
 
     await until('the simulator to be started and connected', async () => {
@@ -199,7 +199,7 @@ describe('the rig program against a fake INDI server', () => {
     const logs: string[] = []
     const fifo: string[] = []
 
-    link = await openIndiLink({ host: '127.0.0.1', port: fake.port, devices: config.devices.map(device => device.indiDevice), errorGapMs: config.errorGapMs, now: () => clock.at })
+    link = await openIndiLink({ host: '127.0.0.1', port: fake.port, devices: config.devices.map(device => device.indiDevice), errorGapMs: config.errorGapMs, now: () => clock.at, warn: line => logs.push(line) })
     const rig = createRig({
       config,
       now: () => clock.at,
@@ -274,6 +274,19 @@ describe('the rig program against a fake INDI server', () => {
     expect(logs.join('\n')).not.toMatch(/33\.45|247\.93|331/)
   })
 
+  it('logs the INDI problems the driver sends', async () => {
+    fake = new FakeIndi()
+    await fake.start()
+    fake.define(connection('ZWO AM5'))
+    const { tick, logs } = await start([{ id: 'mount', indiDevice: 'ZWO AM5', serial: '/dev/serial/by-id/am5', driver: 'indi_lx200am5', connected: true }])
+
+    fake.raw('<setNumberVector device="ZWO AM5" name="GEOGRAPHIC_COORD"><oneNumber name="LAT">1x</oneNumber></setNumberVector>\n')
+    await until('the problem to be logged', async () => (logs.some(line => line.includes('INDI protocol error #1: skipped the element')) ? true : undefined))
+    await tick(1)
+
+    expect(logs.filter(line => line.includes('INDI protocol error'))).toHaveLength(1)
+  })
+
   async function settleDefinitions() {
     await until('the definitions to reach the rig program', async () => (await link!.view()).devices.get('ZWO AM5')?.properties.has('TIME_UTC') || undefined)
   }
@@ -306,6 +319,46 @@ describe('the rig program against a fake INDI server', () => {
     await tick(1)
     expect(fifo).toEqual(['stop indi_lx200am5', 'start indi_lx200am5'])
     expect(logs.some(line => line.includes('rig: indi_lx200am5: restarting (mount still failing 60 s after a reconnect; restart 1)'))).toBe(true)
+  })
+})
+
+describe('the rig program when a send fails', () => {
+  it('sends the time again on a later poll, then leaves it alone', async () => {
+    const config = parseConfig({
+      fifo: '/x',
+      devices: [{ id: 'mount', indiDevice: 'ZWO AM5', serial: '/dev/serial/by-id/am5', driver: 'indi_lx200am5', connected: true, onConnect: { TIME_UTC: { UTC: 'now', OFFSET: '0.00' } } }],
+    })
+    const property = (name: string, elements: ReadonlyArray<[string, object]>) => ({ name, state: 'Ok', elements: new Map(elements) }) as unknown as Property
+    const facts = indiFacts([
+      property('CONNECTION', [['CONNECT', { kind: 'switch', on: true }]]),
+      property('DEVICE_PORT', [['PORT', { kind: 'text', value: '/dev/serial/by-id/am5' }]]),
+      property('TIME_UTC', [['UTC', { kind: 'text', value: '2000-01-01T00:00:00' }]]),
+    ])!
+    const sent: string[] = []
+    let failures = 1
+    let at = 0
+    const rig = createRig({
+      config,
+      now: () => at,
+      sleep: async () => {},
+      hardwarePresent: () => true,
+      writeFifo: async () => {},
+      indi: {
+        view: async () => ({ linked: true, devices: new Map([['ZWO AM5', facts]]) }),
+        write: async (_device, name) => {
+          sent.push(name)
+          if (failures-- > 0) throw new Error('socket closed')
+        },
+      },
+      log: () => {},
+    })
+
+    for (let poll = 0; poll < 12; poll += 1) {
+      await rig.tick()
+      at += 5_000
+    }
+
+    expect(sent).toEqual(['TIME_UTC', 'TIME_UTC'])
   })
 })
 
