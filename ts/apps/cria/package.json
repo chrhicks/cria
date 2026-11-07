@@ -16,7 +16,6 @@
     "@cria/fits": "workspace:*",
     "@cria/indi": "workspace:*",
     "@cria/primitives": "workspace:*",
-    "@cria/recording": "workspace:*",
     "@cria/stream": "workspace:*",
     "@cria/wire": "workspace:*",
     "effect": "4.0.3"

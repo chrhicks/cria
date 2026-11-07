@@ -28,13 +28,6 @@ const allowed: Record<string, Partial<Record<Rule, readonly [count: number, why:
   'packages/indi/src/xml.ts': {
     'try-catch': [2, 'an IndiProtocolError from one element or from the framing becomes a problem the client logs, never a throw out of a data handler'],
   },
-  'packages/recording/src/reader.ts': {
-    'try-catch': [2, 'a line that is not JSON, and a manifest that cannot be read, are reported as damage, not thrown'],
-  },
-  'packages/recording/src/recorder.ts': {
-    'try-catch': [4, 'a failed write, a bug building an entry, a failed close and a manifest that cannot be written each stop recording and never reach Cria or the socket'],
-    'wall-clock': [1, 'a recorded line carries its wall-clock time'],
-  },
   'packages/stream/src/publisher.ts': {
     'try-catch': [2, 'a message the broker refuses is logged and skipped, and an unconfirmed one is sent again once it returns: whatever publishes must never stop for it'],
     'promise-catch': [1, 'a broker that refuses the login is logged: Cria still has to run without it'],
@@ -47,7 +40,6 @@ const allowed: Record<string, Partial<Record<Rule, readonly [count: number, why:
     'wall-clock': [1, 'an entry with no time of its own is stamped when the client saw it'],
   },
   'apps/rig-stream/src/viewer.ts': { 'promise-catch': [1, 'a page whose stream fails is logged and closed, and its browser reconnects'] },
-  'apps/cria/src/recording.ts': { 'catch-all': [1, 'a recording that cannot open is logged and Cria runs without it'] },
   'apps/cria/src/capability/commands.ts': { 'catch-all': [1, 'notACommand: BLOB routing, not a physical command'] },
   'apps/cria/src/capability/camera.ts': {
     'try-catch': [1, 'an unreadable FITS header means the frame is not ours, in a plain function'],

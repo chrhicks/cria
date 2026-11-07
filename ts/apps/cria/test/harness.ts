@@ -10,7 +10,6 @@ import { join } from 'node:path'
 import type { Device, Operation, OperationRequest, State } from '@cria/wire'
 import { makeCriaClient, type CriaClient, type Reply } from '../../../testing/cria-client.js'
 import { decodeConfig } from '../src/config.js'
-import type { RecordingOptions } from '../src/recording.js'
 import { startService, type RunningService } from '../src/service.js'
 import type { OpenPublisher } from '../src/stream.js'
 
@@ -74,11 +73,9 @@ export async function startCria(
   indiPort: number,
   devices: ReadonlyArray<DeviceSpec>,
   overrides: object = {},
-  options: { readonly recording?: RecordingOptions; readonly stream?: OpenPublisher } = {},
+  options: { readonly stream?: OpenPublisher } = {},
 ): Promise<Cria> {
   const imageDirectory = await mkdtemp(join(tmpdir(), 'cria-test-images-'))
-  // CRIA_TEST_RECORD=1 runs any scenario with recording on, to show recording changes nothing it asserts.
-  const record = process.env.CRIA_TEST_RECORD ? { record: { dir: await mkdtemp(join(tmpdir(), 'cria-test-recordings-')), reserveGb: 0, queueMb: 64 } } : {}
   const config = decodeConfig({
     listen: { host: '127.0.0.1', port: 0 },
     indi: { host: '127.0.0.1', port: indiPort },
@@ -86,7 +83,6 @@ export async function startCria(
     acknowledgeMs: 2000,
     operationTimeoutMs: 20_000,
     devices,
-    ...record,
     ...overrides,
   })
   const service = await startService(config, options)
@@ -171,7 +167,6 @@ export async function startCria(
     stop: async () => {
       await service.stop()
       await rm(imageDirectory, { recursive: true, force: true })
-      if ('record' in record) await rm(record.record.dir, { recursive: true, force: true })
     },
   }
 }
