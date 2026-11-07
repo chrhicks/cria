@@ -15,8 +15,6 @@ const site = { latitudeDegrees: 33.45, longitudeDegrees: -112.07, elevationMeter
 
 type Kind = DeviceSpec['kind']
 
-const fixedSiderealTime = { device: mount, name: 'TIME_LST', kind: 'number', perm: 'ro', state: 'Ok', elements: { LST: { value: 6.5, max: 24 } } } as const
-
 const specs: Record<Kind, DeviceSpec> = {
   camera: { id: 'camera', kind: 'camera', indiDevice: camera },
   mount: { id: 'mount', kind: 'mount', indiDevice: mount },
@@ -153,7 +151,6 @@ function define(fake: FakeIndi, kind: Kind, behaviours: Map<string, Behaviour>) 
     }
     case 'mount':
       addMount(fake, mount)
-      fake.define(fixedSiderealTime)
       behaviours.set(mount, moveMount({ finishAfterMs: 100 }))
 
       return
@@ -269,17 +266,6 @@ async function runAndSettle(g: Golden, deviceId: string, kind: string, parameter
 
 export const scenarios: ReadonlyArray<Scenario> = [
   {
-    name: 'Vela supplies the mount envelope and accepted fixes',
-    devices: ['mount'],
-    run: async g => {
-      const { instanceId } = await g.cria.state()
-      await g.wire.feedback('mount')
-      await g.wire.envelope('mount', { instanceId, envelope: { keepOut: [{ name: 'normal', side: 'normal', minDeclinationDegrees: -90, maxDeclinationDegrees: 90, westHourAngleDegrees: 20 }], meridianLimitDegrees: 15 } })
-      await g.wire.fix('mount', { instanceId, fix: { capturedAt: 1000, rightAscensionDegrees: 120, declinationDegrees: 30, coordinateSystem: 'j2000', pointingErrorArcmin: null, error: { scaleError: 0.01, hintOffsetDegrees: 0.2 } } })
-      await g.wire.feedback('mount')
-    },
-  },
-  {
     name: 'health',
     devices: ['camera'],
     run: async g => {
@@ -315,28 +301,6 @@ export const scenarios: ReadonlyArray<Scenario> = [
     run: async g => {
       await runAndSettle(g, 'camera', 'capture', { exposureSeconds: 0.1, light: true, frameType: 'flat' })
       await runAndSettle(g, 'camera', 'capture', { exposureSeconds: 0.1, light: false, frameType: 'bias' })
-    },
-  },
-  {
-    name: 'camera-configure',
-    devices: ['camera'],
-    run: async g => {
-      await runAndSettle(g, 'camera', 'camera-configure', { binX: 2, binY: 2, width: 4, height: 3 })
-    },
-  },
-  {
-    name: 'camera-configure, binning only: the applied frame in binned pixels',
-    devices: ['camera'],
-    run: async g => {
-      await runAndSettle(g, 'camera', 'camera-configure', { binX: 2, binY: 2 })
-    },
-  },
-  {
-    name: 'camera-configure refused: a width off the frame grid',
-    devices: ['camera'],
-    config: { devices: [{ ...specs.camera, frameGrid: { width: 4 } }] },
-    run: async g => {
-      await runAndSettle(g, 'camera', 'camera-configure', { width: 3 })
     },
   },
   {
@@ -422,14 +386,6 @@ export const scenarios: ReadonlyArray<Scenario> = [
     devices: ['mount'],
     run: async g => {
       await runAndSettle(g, 'mount', 'mount-home', {})
-    },
-  },
-  {
-    name: 'mount-park, then mount-unpark',
-    devices: ['mount'],
-    run: async g => {
-      await runAndSettle(g, 'mount', 'mount-park', {})
-      await runAndSettle(g, 'mount', 'mount-unpark', {})
     },
   },
   {
@@ -550,7 +506,7 @@ export const scenarios: ReadonlyArray<Scenario> = [
     run: async g => {
       const capture = await untilUnderWay(g, await submitted(g.submit('camera', 'capture', { exposureSeconds: 60, light: true })))
 
-      await g.submit('camera', 'camera-configure', { binX: 2 })
+      await g.submit('camera', 'camera-configure', { gain: 2 })
       await g.cria.cancel(capture.id)
       await g.cria.settled(capture.id)
     },
@@ -614,11 +570,11 @@ export const scenarios: ReadonlyArray<Scenario> = [
     devices: ['camera'],
     run: async g => {
       const requestId = crypto.randomUUID()
-      const first = await submitted(g.submit('camera', 'camera-configure', { binX: 2, binY: 2, width: 4, height: 3 }, { requestId }))
+      const first = await submitted(g.submit('camera', 'camera-configure', { gain: 2 }, { requestId }))
 
       await g.recordSettled(first.id)
-      await g.submit('camera', 'camera-configure', { binX: 2, binY: 2, width: 4, height: 3 }, { requestId })
-      await g.submit('camera', 'camera-configure', { binX: 1, binY: 1, width: 4, height: 3 }, { requestId })
+      await g.submit('camera', 'camera-configure', { gain: 2 }, { requestId })
+      await g.submit('camera', 'camera-configure', { gain: 1 }, { requestId })
       await g.wire.byRequest(first.instanceId, requestId)
     },
   },

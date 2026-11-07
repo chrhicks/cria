@@ -142,7 +142,7 @@ describe('an AM5 site left Alert after a rejected rewrite', () => {
     for (let restart = 0; restart < 2; restart++) {
       cria = await startCria(fake.port, [{ id: 'mount', kind: 'mount', indiDevice: mount, site }], { acknowledgeMs: 600 })
       await cria.waitFor(allReady(['mount']))
-      const startup = (await cria.state()).operations.find(operation => operation.requestId.startsWith('startup-'))
+      const startup = (await cria.state()).operations.find(operation => operation.requestId.startsWith('setup-'))
 
       expect(startup).toMatchObject({ state: 'settled', outcome: { kind: 'failed', message: expect.stringContaining('setup: GEOGRAPHIC_COORD') } })
       expect(sent('GEOGRAPHIC_COORD')).toHaveLength(restart + 1)

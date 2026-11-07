@@ -170,7 +170,7 @@ describe('two failure domains', () => {
       const requestId = crypto.randomUUID()
       const replies = await Promise.all([
         cria.submit('mount', 'mount-tracking', { tracking: true }, requestId),
-        cria.submit('camera', 'camera-configure', { binX: 2, binY: 2, width: 4, height: 3 }, requestId),
+        cria.submit('camera', 'camera-configure', { gain: 2 }, requestId),
       ])
       const admitted = replies.flatMap(reply => (reply.ok ? [reply.body.id] : []))
       const refused = replies.flatMap(reply => (reply.ok ? [] : [reply.body.error.code]))

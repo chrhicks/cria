@@ -10,30 +10,21 @@
   "initializeTimeoutMs": 120000,
   "operationHistory": 1000,
   "devices": [
-    { "id": "primary", "kind": "camera", "indiDevice": "ZWO CCD ASI2600MC Pro", "connect": false, "frameGrid": { "width": 8, "height": 2 } },
-    { "id": "guide", "kind": "camera", "indiDevice": "ZWO CCD ASI220MM Mini", "connect": false, "frameGrid": { "width": 8, "height": 2 } },
-    { "id": "focuser", "kind": "focuser", "indiDevice": "ZWO EAF", "connect": false, "travel": { "min": 15500, "max": 38000 } },
+    { "id": "primary", "kind": "camera", "indiDevice": "ZWO CCD ASI2600MC Pro" },
+    { "id": "guide", "kind": "camera", "indiDevice": "ZWO CCD ASI220MM Mini" },
+    { "id": "focuser", "kind": "focuser", "indiDevice": "ZWO EAF", "travel": { "min": 15500, "max": 38000 } },
     {
       "id": "mount",
       "kind": "mount",
       "indiDevice": "ZWO AM5",
-      "connect": false,
       "driverDebug": true,
       "port": "/dev/serial/by-id/usb-ZWO_Systems_ZWO_Device_123456-if00",
-      "envelope": {
-        "keepOut": [
-          { "name": "west high Dec", "side": "normal", "minDeclinationDegrees": 75, "maxDeclinationDegrees": 90, "westHourAngleDegrees": 40 },
-          { "name": "west middle Dec", "side": "normal", "minDeclinationDegrees": 45, "maxDeclinationDegrees": 75, "westHourAngleDegrees": 20 },
-          { "name": "west low Dec", "side": "normal", "minDeclinationDegrees": -90, "maxDeclinationDegrees": 45, "westHourAngleDegrees": 20 }
-        ]
-      },
       "site": { "latitudeDegrees": 33.45, "longitudeDegrees": -112.07, "elevationMeters": 331 }
     },
     {
       "id": "weather",
       "kind": "weather",
       "indiDevice": "Pegasus PPBA",
-      "connect": false,
       "port": "/dev/serial/by-id/usb-Pegasus_Astro_PPBMicro_revB_PPBMA00000-if00-port0"
     },
     {

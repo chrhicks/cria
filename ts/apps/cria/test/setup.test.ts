@@ -26,7 +26,7 @@ describe('a camera that saves frames locally', () => {
     await cria.waitFor(allReady(['primary']))
 
     const capture = await cria.run('primary', 'capture', { exposureSeconds: 0.05, light: true })
-    const startup = (await cria.state()).operations.find(operation => operation.requestId.startsWith('startup-'))
+    const startup = (await cria.state()).operations.find(operation => operation.requestId.startsWith('setup-'))
 
     expect(capture.kind).toBe('confirmed')
     expect(writes('UPLOAD_MODE')).toHaveLength(1)
@@ -109,7 +109,7 @@ describe('a mount', () => {
 
     expect(writes('GEOGRAPHIC_COORD')).toHaveLength(1)
     expect(writes('TIME_UTC')).toHaveLength(1)
-    const startup = (await cria.state()).operations.find(operation => operation.requestId.startsWith('startup-'))
+    const startup = (await cria.state()).operations.find(operation => operation.requestId.startsWith('setup-'))
     expect(startup).toMatchObject({ state: 'settled', outcome: { kind: 'confirmed' } })
     expect(fake.received.filter(xml => xml.startsWith('<new') && /name="(GEOGRAPHIC_COORD|TIME_UTC)"/.test(xml)).map(xml => xml.includes('GEOGRAPHIC_COORD') ? 'site' : 'time')).toEqual(['site', 'time'])
   })
@@ -120,7 +120,7 @@ describe('a mount', () => {
     const during = (await cria.device('mount')).availability
     await cria.waitFor(allReady(['mount']))
     const device = await cria.device('mount')
-    const startup = (await cria.state()).operations.find(operation => operation.requestId.startsWith('startup-'))
+    const startup = (await cria.state()).operations.find(operation => operation.requestId.startsWith('setup-'))
 
     expect(during).toEqual({ ready: false, reason: 'starting', message: 'Waiting for device setup' })
     expect(startup).toMatchObject({ state: 'settled', outcome: { kind: 'failed', reason: 'unavailable', message: expect.stringContaining(`setup: ${property}`) } })

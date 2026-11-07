@@ -59,12 +59,6 @@ export const commands = table({
     device: 'camera',
     halt: false,
     parameters: Schema.Struct({
-      binX: Schema.optionalKey(integer(1, 1_000_000)),
-      binY: Schema.optionalKey(integer(1, 1_000_000)),
-      startX: Schema.optionalKey(integer(0, 1_000_000)),
-      startY: Schema.optionalKey(integer(0, 1_000_000)),
-      width: Schema.optionalKey(integer(1, 1_000_000)),
-      height: Schema.optionalKey(integer(1, 1_000_000)),
       gain: Schema.optionalKey(integer(0, 1_000_000)),
       offset: Schema.optionalKey(integer(0, 1_000_000)),
     }).pipe(Schema.check(atLeastOne)),
@@ -117,8 +111,6 @@ export const commands = table({
   },
   'mount-home': { device: 'mount', halt: false, parameters: empty },
   'mount-stop': { device: 'mount', halt: true, parameters: empty },
-  'mount-park': { device: 'mount', halt: false, parameters: empty },
-  'mount-unpark': { device: 'mount', halt: false, parameters: empty },
   'switch-set': { device: 'switch', halt: false, parameters: Schema.Struct({ channelId: integer(0, 63), value: between(-1e12, 1e12) }) },
   'device-connect': { device: 'any', halt: false, parameters: Schema.Struct({ connected: Schema.Boolean }) },
 })

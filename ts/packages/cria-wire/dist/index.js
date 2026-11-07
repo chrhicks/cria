@@ -5,5 +5,4 @@ export { MotionAxes, MotionCommanded, MotionRecord, stoppedHows } from './motion
 export { Image, Operation, OperationRequest, OperationResult, Progress, requestIdentity } from './operation.js';
 export { ErrorBody, Health, State, errorCodes, protocolVersion } from './state.js';
 export { Json, Outcome, Reading, Timestamp } from './values.js';
-export { KeepOutBand, MountEnvelope, AcceptedFix, EnvelopeRequest, FixRequest, MountFeedback } from './envelope.js';
 //# sourceMappingURL=index.js.map

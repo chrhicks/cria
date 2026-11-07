@@ -1,4 +1,4 @@
-import { Context, Data, Duration, Effect, Layer, Option, Redacted, Schema, Stream, type Scope } from 'effect'
+import { Context, Data, Duration, Effect, Layer, Option, Schema, Stream, type Scope } from 'effect'
 import { HttpClient, HttpClientRequest, type HttpClientResponse } from 'effect/http'
 import { Device, ErrorBody, Operation, OperationRequest, State, type DeviceId, type ImageId, type InstanceId, type OperationId, type RequestId } from '@cria/wire'
 
@@ -21,7 +21,6 @@ export type CriaError = CriaRefused | CriaLost
 
 export interface CriaTarget {
   readonly origin: URL
-  readonly token: Option.Option<Redacted.Redacted<string>>
   readonly replyTimeout: Duration.Input
 }
 
@@ -55,15 +54,10 @@ export class Cria extends Context.Service<Cria, {
 
 const make = Effect.fnUntraced(function* (target: CriaTarget) {
   const http = yield* HttpClient.HttpClient
-  const withToken = Option.match(target.token, {
-    onNone: () => (request: HttpClientRequest.HttpClientRequest) => request,
-    onSome: token => HttpClientRequest.bearerToken(Redacted.value(token)),
-  })
-
   const url = (path: string) => new URL(path, target.origin).href
-  const get = (path: string) => withToken(HttpClientRequest.get(url(path)))
+  const get = (path: string) => HttpClientRequest.get(url(path))
   const post = (path: string, body?: unknown) => {
-    const request = withToken(HttpClientRequest.post(url(path)))
+    const request = HttpClientRequest.post(url(path))
 
     return body === undefined ? request : HttpClientRequest.bodyJsonUnsafe(request, body)
   }

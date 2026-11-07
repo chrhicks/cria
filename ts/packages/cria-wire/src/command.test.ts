@@ -15,8 +15,8 @@ describe('command table', () => {
   })
 
   it('keys each row schema by its own kind', () => {
-    expect(Schema.decodeUnknownSync(commands['mount-park'].schema)({ kind: 'mount-park', parameters: {} })).toEqual({ kind: 'mount-park', parameters: {} })
-    expect(() => Schema.decodeUnknownSync(commands['mount-park'].schema)({ kind: 'mount-stop', parameters: {} })).toThrow()
+    expect(Schema.decodeUnknownSync(commands['mount-home'].schema)({ kind: 'mount-home', parameters: {} })).toEqual({ kind: 'mount-home', parameters: {} })
+    expect(() => Schema.decodeUnknownSync(commands['mount-home'].schema)({ kind: 'mount-stop', parameters: {} })).toThrow()
   })
 
   it('derives parameter and device body types from the wire schemas', () => {

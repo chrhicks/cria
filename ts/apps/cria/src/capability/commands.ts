@@ -172,28 +172,10 @@ function numbersOf(observed: Property, elements: ReadonlyArray<string>) {
   })
 }
 
-export function settledNumbers(device: IndiDevice, property: string, elements: ReadonlyArray<string>, quietMs: number) {
-  return Effect.gen(function* () {
-    let held = { values: '', since: 0 }
-
-    while (true) {
-      const observed = yield* current(device, property)
-      const now = yield* Clock.currentTimeMillis
-      const values = observed.state === 'Busy' ? 'Busy' : numbersOf(observed, elements).join()
-
-      if (values !== held.values) held = { values, since: now }
-      if (observed.state !== 'Busy' && now - held.since >= quietMs) return observed
-
-      yield* Effect.sleep('50 millis')
-    }
-  })
-}
-
 /**
- * A number setting (binning, frame, gain): write once, then wait for the
+ * A number setting (gain, offset): write once, then wait for the
  * driver's echo of what it applied. INDI drivers echo the value they actually
- * set, and may adjust it (a ZWO camera rounds a subframe width to a multiple
- * of 8). Settled at the requested values, within `tolerance` per element (the
+ * set, and may adjust it. Settled at the requested values, within `tolerance` per element (the
  * driver's own resolution), is confirmed. Settled at new values the driver
  * chose is a known state: `failed: rejected`, naming them. Still showing the
  * old values at the deadline proves nothing either way: uncertain (review

@@ -5,10 +5,10 @@
  * plus readback. Never sees XML; speaks INDI property names only here.
  */
 import { Effect } from 'effect'
-import type { DeviceSubscription, Property } from '@cria/indi'
+import type { DeviceSubscription } from '@cria/indi'
 import { Failed, Reading, Uncertain, stoppable, type Ending, type Report } from '@cria/primitives'
 import { readFitsHeader } from '@cria/fits'
-import { confirmProperty, current, notACommand, numbersApplied, sendOnce, settledNumbers, startMotion, switchConfirmed } from './commands.js'
+import { confirmProperty, notACommand, numbersApplied, sendOnce, startMotion, switchConfirmed } from './commands.js'
 import { invalid, liveSnapshot, required, type CapabilityContext } from './context.js'
 import { firstNumberElement, limitElement, numberElement, switchElement, textElement, type DeviceSnapshot } from './fields.js'
 import type { CaptureFrameType, DeviceBody, Image, ParamsOf, Progress, ReadingsOf } from '@cria/wire'
@@ -22,10 +22,6 @@ export interface CapturedFrame {
   readonly fits: Buffer
   readonly width: number
   readonly height: number
-  readonly binX: number
-  readonly binY: number
-  readonly startX: number
-  readonly startY: number
   readonly color: Image['color']
   readonly dispatchedAt: number
 }
@@ -43,31 +39,8 @@ const command = { alertMeansStale: false }
 const gainProperties = ['CCD_GAIN', 'CCD_CONTROLS']
 const offsetProperties = ['CCD_OFFSET', 'CCD_CONTROLS']
 
-const region = {
-  X: { key: 'startX', axis: 'x' },
-  Y: { key: 'startY', axis: 'y' },
-  WIDTH: { key: 'width', axis: 'x' },
-  HEIGHT: { key: 'height', axis: 'y' },
-} as const
-
-type FrameElement = keyof typeof region
-type RegionKey = (typeof region)[FrameElement]['key']
-type PerAxis = { readonly x: number; readonly y: number }
-
-export type FrameGrid = Partial<Record<RegionKey, number>>
-
-/**
- * How long CCD_FRAME must hold still to count as the driver's final frame:
- * indi_asi_ccd recomputes the frame by itself after a binning change.
- */
-const frameSettleMs = 1000
-
 function readings(snapshot: DeviceSnapshot): ReadingsOf<'camera'> {
   const read = snapshot.reading
-  const binX = read('CCD_BINNING', numberElement('HOR_BIN'))
-  const binY = read('CCD_BINNING', numberElement('VER_BIN'))
-  // INDI's CCD_FRAME is unbinned; ASCOM, and so the wire, reports binned pixels.
-  const binned = (frame: R<number>, bin: R<number>) => Reading.both(frame, bin, (pixels, factor) => Math.floor(pixels / factor))
 
   return {
     connected: snapshot.connected,
@@ -83,14 +56,8 @@ function readings(snapshot: DeviceSnapshot): ReadingsOf<'camera'> {
     sensorHeightPixels: read('CCD_INFO', numberElement('CCD_MAX_Y')),
     pixelWidthMicrons: read('CCD_INFO', numberElement('CCD_PIXEL_SIZE_X')),
     pixelHeightMicrons: read('CCD_INFO', numberElement('CCD_PIXEL_SIZE_Y')),
-    binX,
-    binY,
-    width: binned(read('CCD_FRAME', numberElement('WIDTH')), binX),
-    height: binned(read('CCD_FRAME', numberElement('HEIGHT')), binY),
-    startX: binned(read('CCD_FRAME', numberElement('X')), binX),
-    startY: binned(read('CCD_FRAME', numberElement('Y')), binY),
-    maxBinX: read('CCD_BINNING', limitElement(['HOR_BIN'], 'max')),
-    maxBinY: read('CCD_BINNING', limitElement(['VER_BIN'], 'max')),
+    width: read('CCD_FRAME', numberElement('WIDTH')),
+    height: read('CCD_FRAME', numberElement('HEIGHT')),
     bayerPattern: cfa(snapshot),
     canAbortExposure: read('CCD_EXPOSURE', () => snapshot.property('CCD_ABORT_EXPOSURE') !== undefined, command),
     canSetTemperature: read('CCD_INFO', () => snapshot.property('CCD_TEMPERATURE')?.perm === 'rw'),
@@ -134,7 +101,7 @@ export function shiftPattern(pattern: BayerPattern, dx: number, dy: number): Bay
   return `${a}${b}${c}${d}` as BayerPattern
 }
 
-export function makeCamera(context: CapabilityContext, frameGrid: FrameGrid = {}): Camera {
+export function makeCamera(context: CapabilityContext): Camera {
   const { device, timing } = context
   let lastCommanded: DeviceBody<'camera'>['lastCommandedSetpointC'] = null
 
@@ -155,10 +122,6 @@ export function makeCamera(context: CapabilityContext, frameGrid: FrameGrid = {}
         const geometry = {
           width: yield* required(camera.width, 'image width'),
           height: yield* required(camera.height, 'image height'),
-          binX: yield* required(camera.binX, 'binning'),
-          binY: yield* required(camera.binY, 'binning'),
-          startX: yield* required(camera.startX, 'subframe origin'),
-          startY: yield* required(camera.startY, 'subframe origin'),
         }
         const minimum = yield* required(camera.exposureMinimum, 'minimum exposure')
         const maximum = yield* required(camera.exposureMaximum, 'maximum exposure')
@@ -169,10 +132,10 @@ export function makeCamera(context: CapabilityContext, frameGrid: FrameGrid = {}
         const type = request.frameType ?? (request.light ? 'light' : 'dark')
         // A bias frame has no exposure time: the driver exposes at its minimum whatever is asked.
         const exposureSeconds = type === 'bias' ? minimum : request.exposureSeconds
-        const color = colorAtOrigin(yield* required(camera.bayerPattern, 'sensor colour'), geometry)
+        const color = yield* required(camera.bayerPattern, 'sensor colour')
 
-        if (color !== 'mono' && (request.monochromeOnly || geometry.binX !== 1 || geometry.binY !== 1))
-          return yield* invalid('This consumer needs a mono or unbinned Bayer image')
+        if (color !== 'mono' && request.monochromeOnly)
+          return yield* invalid('This consumer needs a mono image')
 
         yield* uploadsToClient(snapshot)
         yield* frameType(context, snapshot, type)
@@ -212,14 +175,6 @@ export function makeCamera(context: CapabilityContext, frameGrid: FrameGrid = {}
       if ((yield* required(camera.activity, 'camera state')) !== 'idle')
         return yield* new Failed({ reason: 'busy', message: 'Camera settings need an idle camera' })
 
-      const bin = {
-        x: settings.binX ?? (yield* required(camera.binX, 'binning')),
-        y: settings.binY ?? (yield* required(camera.binY, 'binning')),
-      }
-
-      if (bin.x > (yield* required(camera.maxBinX, 'maximum binning')) || bin.y > (yield* required(camera.maxBinY, 'maximum binning')))
-        return yield* invalid('Unsupported binning')
-
       for (const [key, low, high] of [
         ['gain', camera.gainMinimum, camera.gainMaximum],
         ['offset', camera.offsetMinimum, camera.offsetMaximum],
@@ -231,45 +186,14 @@ export function makeCamera(context: CapabilityContext, frameGrid: FrameGrid = {}
           return yield* invalid(`Invalid ${key}`)
       }
 
-      const rebinning = settings.binX !== undefined || settings.binY !== undefined
-      const frame = Object.values(region).some(field => settings[field.key] !== undefined)
-        ? yield* sensorFrame(settings, bin, yield* required(snapshot.reading('CCD_FRAME', property => property), 'subframe'), {
-            x: yield* required(camera.sensorWidthPixels, 'sensor width'),
-            y: yield* required(camera.sensorHeightPixels, 'sensor height'),
-          }, frameGrid)
-        : undefined
-
-      if (rebinning) yield* Effect.uninterruptible(Effect.andThen(numbersApplied(device, 'CCD_BINNING', { HOR_BIN: bin.x, VER_BIN: bin.y }, timing), frameSettled))
-      if (frame) yield* numbersApplied(device, 'CCD_FRAME', frame, timing)
-
       if (settings.gain !== undefined) yield* setControl(context, snapshot, gainProperties, ['GAIN', 'Gain'], settings.gain)
       if (settings.offset !== undefined) yield* setControl(context, snapshot, offsetProperties, ['OFFSET', 'Offset'], settings.offset)
 
       return {
-        ...(rebinning || frame ? yield* appliedGeometry : {}),
         ...(settings.gain === undefined ? {} : { gain: settings.gain }),
         ...(settings.offset === undefined ? {} : { offset: settings.offset }),
       }
     })
-
-  const frameSettled = settledNumbers(device, 'CCD_FRAME', ['X', 'Y', 'WIDTH', 'HEIGHT'], frameSettleMs).pipe(
-    Effect.timeoutOption(timing.operationTimeoutMs),
-    Effect.flatMap(settled =>
-      settled._tag === 'Some'
-        ? Effect.void
-        : Effect.fail(new Uncertain({ reason: 'not-confirmed', message: `CCD_FRAME on ${device.name} did not settle after the binning change` })),
-    ),
-  )
-
-  const appliedGeometry = Effect.gen(function* () {
-    const binning = yield* current(device, 'CCD_BINNING')
-    const frame = yield* current(device, 'CCD_FRAME')
-    const bin = { x: numberElement('HOR_BIN')(binning) ?? Number.NaN, y: numberElement('VER_BIN')(binning) ?? Number.NaN }
-
-    const binned = (element: FrameElement) => Math.floor((numberElement(element)(frame) ?? Number.NaN) / bin[region[element].axis])
-
-    return { binX: bin.x, binY: bin.y, startX: binned('X'), startY: binned('Y'), width: binned('WIDTH'), height: binned('HEIGHT') }
-  })
 
   const cooling = (request: ParamsOf<'cooling'>) =>
     Effect.gen(function* () {
@@ -320,77 +244,6 @@ export function makeCamera(context: CapabilityContext, frameGrid: FrameGrid = {}
     configure,
     cooling,
   }
-}
-
-/**
- * CCD_FRAME is in unbinned sensor pixels. A ZWO camera given a frame off its
- * grid uses a smaller frame while CCD_FRAME shows the one asked for, and its
- * next exposure never completes. So every field sent, asked or kept, must be
- * on the grid: the configured one in binned pixels, and the step the driver
- * advertises in sensor pixels.
- */
-function sensorFrame(
-  settings: ParamsOf<'camera-configure'>,
-  bin: PerAxis,
-  frame: Property,
-  sensorPixels: PerAxis,
-  grid: FrameGrid,
-): Effect.Effect<Record<FrameElement, number>, Failed> {
-  const pixels = (element: FrameElement) => {
-    const { key, axis } = region[element]
-    const definition = frame.elements.get(element)
-
-    if (definition?.kind !== 'number') return Effect.fail(new Failed({ reason: 'unsupported', message: `CCD_FRAME has no ${element}` }))
-
-    const factor = bin[axis]
-    const binned = settings[key] ?? definition.value / factor
-    const step = definition.step > 0 ? definition.step : 1
-    const spacing = lcm(grid[key] ?? 1, step / gcd(step, factor))
-
-    if (binned % spacing === 0) return Effect.succeed(binned * factor)
-
-    const below = Math.floor(binned / spacing) * spacing
-    const nearest = [below, below + spacing].filter(value => value * factor >= definition.min && value * factor <= definition.max)
-
-    return Effect.fail(
-      invalid(
-        `${key} ${binned} binned pixels${settings[key] === undefined ? ` (the current ${key})` : ''}; the camera needs a multiple of ${spacing} binned pixels; ` +
-          (nearest.length > 0 ? `nearest ${nearest.join(' or ')}` : `no ${key} near it fits`),
-      ),
-    )
-  }
-
-  return Effect.gen(function* () {
-    const target = yield* Effect.all({ X: pixels('X'), Y: pixels('Y'), WIDTH: pixels('WIDTH'), HEIGHT: pixels('HEIGHT') })
-
-    for (const [start, size] of [['X', 'WIDTH'], ['Y', 'HEIGHT']] as const) {
-      const { axis } = region[size]
-      const end = target[start] + target[size]
-
-      if (end > sensorPixels[axis])
-        return yield* invalid(
-          `Subframe exceeds the sensor: ${region[start].key} ${target[start] / bin[axis]} + ${region[size].key} ${target[size] / bin[axis]} binned pixels ` +
-            `at bin ${bin[axis]} is ${end} sensor pixels; the sensor has ${sensorPixels[axis]}`,
-        )
-    }
-
-    return target
-  })
-}
-
-function gcd(a: number, b: number): number {
-  return b === 0 ? a : gcd(b, a % b)
-}
-
-function lcm(a: number, b: number): number {
-  return (a / gcd(a, b)) * b
-}
-
-function colorAtOrigin(
-  pattern: Image['color'],
-  geometry: { startX: number; startY: number; binX: number; binY: number },
-): Image['color'] {
-  return pattern === 'mono' ? 'mono' : shiftPattern(pattern, geometry.startX * geometry.binX, geometry.startY * geometry.binY)
 }
 
 function uploadsToClient(snapshot: DeviceSnapshot): Effect.Effect<void, Failed> {

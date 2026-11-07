@@ -15,7 +15,7 @@ Cria runs on errai, the rig's mini PC (Intel N150) on Arch Linux. Three programs
 - `indiserver.service` runs `indiserver -v -r 0 -p 7624 -f %t/indi.fifo indi_asi_ccd indi_asi_focuser indi_lx200am5 indi_pegasus_ppba`, with `Restart=always` and `RestartSec=3`. Its `ExecStartPost` runs `ts/deploy/indi-ready.sh`, which keeps the unit starting until indiserver answers and every driver runs (30 s, else the start fails and systemd retries), then waits up to 15 s more for the drivers to define devices and logs which did. `-r 0` stops indiserver from restarting a crashed driver by itself. `-f` makes indiserver read `start <driver>` and `stop <driver>` lines from a FIFO (`$XDG_RUNTIME_DIR/indi.fifo`), so one driver can be restarted without touching the others.
 - `cria.service` starts after `indiserver.service` (`Wants=`, not `Requires=`, and `PartOf=`, see "Restart the rig software") and runs Cria with `Restart=always` and `TimeoutStopSec=180`. Check its `ExecStart` paths against where Cria is built on errai. Cria does not need indiserver up when it starts: it retries the INDI connection until it succeeds (250 ms, doubling to 5 s), and when indiserver or a driver comes back it sets each device up again ("Device setup" in [SPEC.md](ts/SPEC.md#device-setup)). Restarting `indiserver` therefore does not need a Cria restart. Devices read `unavailable` meanwhile.
 - `rig-supervisor.service` starts after `cria.service` with `Restart=always`, and is also `PartOf=indiserver.service` (see "The rig supervisor" below).
-- `rig.errai.json` is errai's configuration: the six devices with their real INDI names, `connect: false` on each, `commandsEnabled: true`, and images in `/var/lib/cria/images`.
+- `rig.errai.json` is errai's configuration: the six devices with their real INDI names, `commandsEnabled: true`, and images in `/var/lib/cria/images`.
 - `supervisor.example.json` is the supervisor's configuration.
 - `phd2.service`, `phd2-profile.mjs` and `phd2-rpc.mjs` set up PHD2 for guiding (see "PHD2 on errai" below). PHD2 is not part of Cria, and nothing in Cria talks to it yet.
 
@@ -205,7 +205,7 @@ This section records the deploy as it was set up on 2026-10-15, before the units
 
 - Cria runs from the worktree `~/dev/personal/cria-ts`, not from `/opt/cria`.
 - The unit was a user unit, `~/.config/systemd/user/cria.service`, without an `[Install]` section, so it did not start at boot.
-- The configuration is `~/.config/cria/rig.json`. It had `commandsEnabled: false` and `connect: false` on every device, and listens on `127.0.0.1:4319`. Cria reads every device and refuses every operation with `403 commands-disabled`. The supervisor does nothing against such a Cria.
+- The configuration is `~/.config/cria/rig.json`. It had `commandsEnabled: false` and listens on `127.0.0.1:4319`. Cria reads every device and refuses every operation with `403 commands-disabled`. The supervisor does nothing against such a Cria.
 - `indiserver` was started by hand: `indiserver -v indi_asi_ccd indi_asi_focuser indi_lx200am5 indi_pegasus_ppba`.
 
 To check, stop, start and read the logs of a unit:
@@ -221,12 +221,13 @@ journalctl --user -u cria.service
 
 Cria takes one argument, the path to its JSON configuration (`node apps/cria/dist/main.js <config.json>`). `CRIA_CONFIG` is read when the argument is missing. An unknown key or an invalid value stops the process at start. [SPEC.md, "Configuration"](ts/SPEC.md#configuration) lists every key and its default.
 
-Two settings decide whether Cria can change the rig:
+One setting decides whether Cria can change the rig:
 
 - `commandsEnabled: false` makes the deploy read-only. Every operation is refused with `403 commands-disabled`, and every device's `availability` reads `commands-disabled`. That reason takes precedence over the others, so in a read-only deploy the readings show whether a device is stale or disconnected, and `availability` does not.
-- `connect` is per device. With `connect: true`, Cria sends `CONNECT` once at start to a disconnected device, after writing its serial `port`, as a `device-connect` operation. With `connect: false` or no `connect`, Cria sends nothing at start. Cria never switches power or connects a device on its own.
 
-`listen.host` is `127.0.0.1` in both configurations, so only errai itself can reach Cria. Vela runs on another machine, so `listen.host` has to be errai's tailnet address before Vela can connect. When `CRIA_TOKEN` is set in Cria's environment, every route except `/health` needs `Authorization: Bearer <token>`. Cria refuses any request with an `Origin` header, so a browser cannot call it.
+Cria never switches power or connects a device on its own. A device connects only when a `device-connect` operation asks it to, after writing its serial `port`; on the rig the supervisor sends it.
+
+`listen.host` is `127.0.0.1` in both configurations, so only errai itself can reach Cria. Vela runs on another machine, so `listen.host` has to be errai's tailnet address before Vela can connect. Cria refuses any request with an `Origin` header, so a browser cannot call it.
 
 ## Stop and restart
 

@@ -24,7 +24,7 @@ export interface Equipment {
 }
 
 const makers: { readonly [D in DeviceKind]: (context: CapabilityContext, device: DeviceConfig, setup: DeviceSetup) => CapabilityOf[D] } = {
-  camera: (context, device) => makeCamera(context, device.frameGrid),
+  camera: (context, device) => makeCamera(context),
   mount: (context, device, setup) => makeMount(context, { ...mountMotionDefaults, ...device.motion }, setup),
   focuser: (context, device) => makeFocuser(context, device.travel),
   weather: makeWeather,

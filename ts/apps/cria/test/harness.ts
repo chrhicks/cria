@@ -22,12 +22,9 @@ export interface DeviceSpec {
   readonly id: string
   readonly kind: 'camera' | 'mount' | 'focuser' | 'weather' | 'switch'
   readonly indiDevice: string
-  readonly connect?: boolean
   readonly channels?: ReadonlyArray<{ name: string; property: string; element: string; automaticWhileOn?: string }>
-  readonly frameGrid?: { readonly width?: number; readonly height?: number }
   readonly site?: { readonly latitudeDegrees: number; readonly longitudeDegrees: number; readonly elevationMeters: number }
   readonly motion?: { readonly stationaryDegrees?: number; readonly positionReadMs?: number; readonly stopLatencyMs?: number; readonly maxLeadFraction?: number }
-  readonly envelope?: import('@cria/wire').MountEnvelope
   readonly travel?: { readonly min: number; readonly max: number }
 }
 
@@ -77,7 +74,7 @@ export async function startCria(
   indiPort: number,
   devices: ReadonlyArray<DeviceSpec>,
   overrides: object = {},
-  options: { readonly token?: string; readonly recording?: RecordingOptions; readonly stream?: OpenPublisher } = {},
+  options: { readonly recording?: RecordingOptions; readonly stream?: OpenPublisher } = {},
 ): Promise<Cria> {
   const imageDirectory = await mkdtemp(join(tmpdir(), 'cria-test-images-'))
   // CRIA_TEST_RECORD=1 runs any scenario with recording on, to show recording changes nothing it asserts.
@@ -177,6 +174,10 @@ export async function startCria(
       if ('record' in record) await rm(record.record.dir, { recursive: true, force: true })
     },
   }
+}
+
+export async function connectDevices(cria: Cria, ids: ReadonlyArray<string>): Promise<void> {
+  for (const id of ids) await cria.run(id, 'device-connect', { connected: true })
 }
 
 export const noneNotRead = (state: State) => !JSON.stringify(state.devices).includes('"reason":"not-read"')

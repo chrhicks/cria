@@ -16,7 +16,7 @@ export const commands = {
       'Take one exposure on a camera. exposureSeconds is the exposure time in seconds; light says whether the shutter opens; frameType is optional. A confirmed outcome carries the image; fetch the frame with `image`.',
   },
   'camera-configure': {
-    description: 'Change camera readout settings: binning, the subframe (startX, startY, width, height in binned pixels), gain and offset. Give at least one.',
+    description: 'Change the camera gain and offset. Give at least one.',
   },
   cooling: { description: 'Switch the camera cooler on or off and set its target temperature in degrees Celsius. Give at least one of the two.' },
   'focuser-move': { description: 'Move a focuser to an absolute position in steps, inside the travel window you give with minPosition and maxPosition.' },
@@ -27,8 +27,6 @@ export const commands = {
   'mount-rotate': { description: 'Move the mount axis by a signed distance in degrees at a signed rate in degrees per second. It ends when the distance is covered, or when `mount-stop` or `cancel` stops it.' },
   'mount-home': { description: 'Send the mount to its home position.' },
   'mount-stop': { description: 'Stop all mount motion.' },
-  'mount-park': { description: 'Park the mount.' },
-  'mount-unpark': { description: 'Unpark the mount.' },
   'switch-set': { description: 'Set one channel of a switch device (for example power or dew) to a value.' },
   'device-connect': { description: 'Connect a device (connected: true) or disconnect it (connected: false).' },
 } as const satisfies { readonly [K in CommandKind]?: Entry }

@@ -19,7 +19,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { localSiderealHours as criaSiderealHours } from '../apps/cria/src/capability/mount.js'
-import { allReady, startCria, until, valueOf, type Cria, type DeviceSpec } from '../apps/cria/test/harness.js'
+import { allReady, connectDevices, startCria, until, valueOf, type Cria, type DeviceSpec } from '../apps/cria/test/harness.js'
 import { localSiderealHours, loadTape, startReplay, type Replay } from '../packages/indi-replay/src/index.js'
 import { readRecording, verifyRecording } from '../packages/recording/src/index.js'
 import { startIndiServer } from './indiserver.js'
@@ -28,10 +28,10 @@ const root = join(import.meta.dirname, '..')
 // A made-up site. Without one the simulated mount keeps sidereal time by a site of its own, which Cria's mount reading (longitude 0) does not share.
 const site = { latitudeDegrees: 40, longitudeDegrees: -100, elevationMeters: 0 }
 const devices: ReadonlyArray<DeviceSpec> = [
-  { id: 'primary', kind: 'camera', indiDevice: 'CCD Simulator', connect: true },
-  { id: 'mount', kind: 'mount', indiDevice: 'Telescope Simulator', connect: true, site },
+  { id: 'primary', kind: 'camera', indiDevice: 'CCD Simulator' },
+  { id: 'mount', kind: 'mount', indiDevice: 'Telescope Simulator', site },
 ]
-const watching = devices.map(({ site: _site, ...device }) => ({ ...device, connect: false }))
+const watching = devices.map(({ site: _site, ...device }) => device)
 const captures = 6
 const exposureSeconds = 0.5
 const frameStepDegrees = 5
@@ -61,7 +61,9 @@ beforeAll(async () => {
   const cria = await startCria(indi.port, devices, { record: { dir: scratch, reserveGb: 0, queueMb: 256 } })
 
   try {
+    await connectDevices(cria, ['primary', 'mount'])
     await cria.waitFor(allReady(['primary', 'mount']))
+    await cria.waitFor(state => Number(valueOf(state.devices.find(device => device.id === 'mount')!, 'declinationDegrees')) !== 0)
     await cria.run('mount', 'mount-tracking', { tracking: true })
 
     const hourAngle = async () => {
@@ -149,32 +151,6 @@ describe('the real Cria on the replay', () => {
     }
 
     expect(digests).toEqual(recordedDigests)
-  })
-
-  it('shows the hour angle the recording had at each frame', async () => {
-    const { cria, replay } = await run()
-    const tape = await loadTape(folder)
-    // The replay serves the latest longitude the recording held, as Cria reads it.
-    const longitude = tape.events.flatMap(event => {
-      if (event.kind === 'define') return event.vector.name === 'GEOGRAPHIC_COORD' ? [Number(event.vector.elements.LONG!.value)] : []
-
-      return event.kind === 'update' && event.name === 'GEOGRAPHIC_COORD' && event.values.LONG !== undefined ? [Number(event.values.LONG)] : []
-    }).at(-1)!
-    const recordedRa = (t: number) => {
-      const updates = tape.events.filter(event => event.kind === 'update' && event.name === 'EQUATORIAL_EOD_COORD' && event.values.RA !== undefined && event.t <= t)
-
-      return Number((updates.at(-1) as { values: { RA: string } }).values.RA)
-    }
-
-    for (let capture = 0; capture < captures; capture++) {
-      expect((await cria.run('primary', 'capture', { exposureSeconds, light: true })).kind).toBe('confirmed')
-      const mount = await cria.device('mount')
-      const frame = tape.frames[capture]!
-      const expected = criaSiderealHours(frame.at, longitude) - recordedRa(frame.t)
-
-      expect(Number(valueOf(mount, 'siderealTimeHours')) - Number(valueOf(mount, 'rightAscensionHours'))).toBeCloseTo(expected, 6)
-      expect(replay.cursor()).toBe(capture + 1)
-    }
   })
 
   it('computes sidereal time the way Cria does', () => {

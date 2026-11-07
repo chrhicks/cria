@@ -17,7 +17,7 @@ export interface RunningService {
   readonly stop: () => Promise<void>
 }
 
-export async function startService(config: Config, options: { readonly token?: string; readonly recording?: RecordingOptions; readonly stream?: OpenPublisher } = {}): Promise<RunningService> {
+export async function startService(config: Config, options: { readonly recording?: RecordingOptions; readonly stream?: OpenPublisher } = {}): Promise<RunningService> {
   const scope = Effect.runSync(Scope.make())
 
   const program = Effect.gen(function* () {
@@ -25,7 +25,7 @@ export async function startService(config: Config, options: { readonly token?: s
       ...(options.recording ? { recording: options.recording } : {}),
       ...(options.stream ? { stream: options.stream } : {}),
     })
-    const server = makeHttpServer(rig, options)
+    const server = makeHttpServer(rig)
 
     yield* Effect.acquireRelease(
       Effect.callback<void, Error>(resume => {

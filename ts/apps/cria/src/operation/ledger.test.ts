@@ -80,13 +80,13 @@ describe('admission', () => {
     const waiting = stateOf(admitted(slewing, 2, stop))
 
     expect(resultOf(admitted(waiting, 3, tracking))).toMatchObject({ code: 'device-busy', message: 'The device is running another operation' })
-    expect(afterOf(admitted(waiting, 4, { kind: 'camera-configure', parameters: { binX: 2 } }, camera))).toEqual([['start', id(4)]])
+    expect(afterOf(admitted(waiting, 4, { kind: 'camera-configure', parameters: { gain: 2 } }, camera))).toEqual([['start', id(4)]])
   })
 
   it('returns the operation for a repeated request, and refuses the same ID with other content, on any device', () => {
     expect(admitted(slewing, 1, slew)).toEqual([{ result: [...slewing.operations.values()][0], after: [] }, slewing])
     expect(resultOf(admitted(slewing, 1, stop))).toMatchObject({ code: 'request-conflict' })
-    expect(resultOf(admitted(slewing, 1, { kind: 'camera-configure', parameters: { binX: 2 } }, camera))).toMatchObject({ code: 'request-conflict' })
+    expect(resultOf(admitted(slewing, 1, { kind: 'camera-configure', parameters: { gain: 2 } }, camera))).toMatchObject({ code: 'request-conflict' })
   })
 
   it('checks the instance, device, kind and commandsEnabled in that order', () => {

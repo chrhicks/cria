@@ -61,7 +61,6 @@ const allowed: Record<string, Partial<Record<Rule, readonly [count: number, why:
   },
   'apps/rig-stream/src/viewer.ts': { 'promise-catch': [1, 'a page whose stream fails is logged and closed, and its browser reconnects'] },
   'apps/cria/src/recording.ts': { 'catch-all': [1, 'a recording that cannot open is logged and Cria runs without it'] },
-  'apps/cria/src/rig.ts': { 'catch-all': [1, 'a refused start-up connect is logged; it ran nothing'] },
   'apps/cria/src/capability/commands.ts': { 'catch-all': [1, 'notACommand: BLOB routing, not a physical command'] },
   'apps/cria/src/capability/camera.ts': {
     'try-catch': [1, 'an unreadable FITS header means the frame is not ours, in a plain function'],

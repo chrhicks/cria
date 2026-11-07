@@ -8,21 +8,22 @@ import http from 'node:http'
 import net from 'node:net'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { startIndiServer, type RunningIndiServer } from '../../../testing/indiserver.js'
-import { allReady, startCria, until, type Cria, type State } from './harness.js'
+import { allReady, connectDevices, startCria, until, type Cria, type State } from './harness.js'
 
 let indi: RunningIndiServer
 let cria: Cria
 
 const devices = [
-  { id: 'primary', kind: 'camera', indiDevice: 'CCD Simulator', connect: true },
-  { id: 'mount', kind: 'mount', indiDevice: 'Telescope Simulator', connect: true },
-  { id: 'focuser', kind: 'focuser', indiDevice: 'Focuser Simulator', connect: true },
-  { id: 'weather', kind: 'weather', indiDevice: 'Weather Simulator', connect: true },
+  { id: 'primary', kind: 'camera', indiDevice: 'CCD Simulator' },
+  { id: 'mount', kind: 'mount', indiDevice: 'Telescope Simulator' },
+  { id: 'focuser', kind: 'focuser', indiDevice: 'Focuser Simulator' },
+  { id: 'weather', kind: 'weather', indiDevice: 'Weather Simulator' },
 ] as const
 
 beforeAll(async () => {
   indi = await startIndiServer(['indi_simulator_ccd', 'indi_simulator_telescope', 'indi_simulator_focus', 'indi_simulator_weather'])
   cria = await startCria(indi.port, devices)
+  await connectDevices(cria, devices.map(device => device.id))
   await cria.waitFor(allReady(devices.map(device => device.id)))
 })
 

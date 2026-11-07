@@ -50,31 +50,4 @@ describe('state against a real Cria on fake INDI', () => {
       expect(body.devices.map(device => [device.id, device.kind])).toEqual(direct.devices.map(device => [device.id, device.kind]))
     }),
   )
-
-  it.live("passes the real Cria's 401 through unchanged when the server has no token", () =>
-    Effect.gen(function* () {
-      const fake = yield* fakeRig
-      const cria = yield* startRealCria(fake.port, { token: 'a-test-token' })
-      const mcp = yield* startMcp({ CRIA_URL: cria.origin })
-      const result = yield* callState(mcp.url)
-
-      expect(result.structuredContent).toMatchObject({
-        kind: 'refused',
-        status: 401,
-        body: { error: { code: 'unauthorized', message: 'Bearer token required' } },
-      })
-      expect(typeof result.structuredContent.body.instanceId).toBe('string')
-    }),
-  )
-
-  it.live('is accepted by the real Cria when CRIA_TOKEN is set', () =>
-    Effect.gen(function* () {
-      const fake = yield* fakeRig
-      const cria = yield* startRealCria(fake.port, { token: 'a-test-token' })
-      const mcp = yield* startMcp({ CRIA_URL: cria.origin, CRIA_TOKEN: 'a-test-token' })
-      const result = yield* callState(mcp.url)
-
-      expect(result.structuredContent.kind).toBe('answered')
-    }),
-  )
 })

@@ -83,6 +83,8 @@ export function normalize(scenario: string, recorded: ReadonlyArray<Recorded>): 
 
   const visit = (value: unknown, key: string, parent: object, motionObservation = false): unknown => {
     if (Array.isArray(value)) return value.map(item => visit(item, key, parent, motionObservation))
+    if (key === 'siderealTimeHours' && value !== null && typeof value === 'object' && typeof (value as { value?: unknown }).value === 'number')
+      return visit({ ...value, value: '<sidereal>' }, key, parent, motionObservation)
     if (value !== null && typeof value === 'object')
       return Object.fromEntries(
         Object.keys(value)

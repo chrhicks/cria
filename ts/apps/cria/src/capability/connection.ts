@@ -1,7 +1,6 @@
 /**
  * Capability: connection. Connect or disconnect one INDI device with
- * `switchConfirmed`, and the start-up preparation a serial device needs
- * (its port) before connecting.
+ * `switchConfirmed`, setting the serial port a device needs first.
  */
 import { Effect } from 'effect'
 import { Failed, type Uncertain } from '@cria/primitives'
@@ -20,7 +19,6 @@ const activity = [
   'CCD_EXPOSURE',
   'EQUATORIAL_EOD_COORD',
   'EQUATORIAL_COORD',
-  'TELESCOPE_PARK',
   'TELESCOPE_HOME',
   'TELESCOPE_MOTION_WE',
   'TELESCOPE_MOTION_NS',

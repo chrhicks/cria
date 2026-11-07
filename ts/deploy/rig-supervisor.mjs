@@ -157,13 +157,11 @@ function activeOn(devices) {
  *   writeFifo: (path: string, line: string) => Promise<void>,
  *   log: (line: string) => void,
  *   uuid?: () => string,
- *   token?: string,
  * }} dependencies
  */
 export function createSupervisor(dependencies) {
   const { config, now, sleep, log } = dependencies
   const uuid = dependencies.uuid ?? randomUUID
-  const headers = dependencies.token ? { authorization: `Bearer ${dependencies.token}` } : {}
 
   /** @type {Map<string, { hardwareStreak: number, missingStreak: number, attempts: number, lastAttemptAt?: number, quiet?: string }>} */
   const devices = new Map(config.devices.map(device => [device.id, { hardwareStreak: 0, missingStreak: 0, attempts: 0 }]))
@@ -181,7 +179,7 @@ export function createSupervisor(dependencies) {
   const clearNote = subject => said.delete(subject)
 
   const request = (path, init = {}) =>
-    dependencies.fetch(`${config.criaUrl}${path}`, { ...init, headers: { ...headers, ...init.headers }, signal: AbortSignal.timeout(config.requestTimeoutMs) })
+    dependencies.fetch(`${config.criaUrl}${path}`, { ...init, signal: AbortSignal.timeout(config.requestTimeoutMs) })
 
   async function readState() {
     try {
@@ -401,7 +399,6 @@ function main() {
     hardwarePresent,
     writeFifo,
     log: line => console.log(line),
-    ...(process.env.CRIA_TOKEN && { token: process.env.CRIA_TOKEN }),
   })
   let running = true
 

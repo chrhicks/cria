@@ -226,9 +226,9 @@ describe('the command tools against a real Cria on fake INDI', () => {
 
       expect(outcomeOf(yield* settled(tracking.id))?.kind).toBe('uncertain')
 
-      const next = yield* answered('mount-park', yield* withIdentity('mount', 'park-after-uncertain'))
+      const next = yield* answered('mount-home', yield* withIdentity('mount', 'home-after-uncertain'))
 
-      expect(next).toMatchObject({ kind: 'mount-park' })
+      expect(next).toMatchObject({ kind: 'mount-home' })
     }),
   )
 })

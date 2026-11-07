@@ -43,13 +43,10 @@ async function slewThenTerminate() {
     }),
   )
 
-  const env = { ...process.env }
-
-  delete env.CRIA_TOKEN
   const service = spawn(
     process.execPath,
     ['--conditions=@cria/source', '--import', join(root, 'testing', 'source-hook.mjs'), join(root, 'apps', 'cria', 'src', 'main.ts'), config],
-    { stdio: ['ignore', 'ignore', 'pipe'], env },
+    { stdio: ['ignore', 'ignore', 'pipe'] },
   )
   let log = ''
   const exited = new Promise<{ code: number | null; signal: NodeJS.Signals | null }>(resolve => service.once('exit', (code, signal) => resolve({ code, signal })))

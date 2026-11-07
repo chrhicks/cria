@@ -12,9 +12,9 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from
 import { openRecordingFiles, readRecording, verifyRecording, type RecordingFiles } from '@cria/recording'
 import { startIndiServer, type RunningIndiServer } from '../../../testing/indiserver.js'
 import { fitsToImageBytes } from '@cria/fits'
-import { allReady, startCria, until, type Cria } from './harness.js'
+import { allReady, connectDevices, startCria, until, type Cria } from './harness.js'
 
-const camera = { id: 'primary', kind: 'camera', indiDevice: 'CCD Simulator', connect: true } as const
+const camera = { id: 'primary', kind: 'camera', indiDevice: 'CCD Simulator' } as const
 const root = join(import.meta.dirname, '..', '..', '..')
 let indi: RunningIndiServer
 let directory: string
@@ -43,6 +43,7 @@ const only = async (dir: string) => join(dir, (await readdir(dir))[0]!)
 
 async function started(record: object, files?: (folder: string) => Promise<RecordingFiles>) {
   cria = await startCria(indi.port, [camera], { record: { dir: directory, ...record } }, { recording: { budgetMs: 200, ...(files ? { files } : {}) } })
+  await connectDevices(cria, ['primary'])
   await cria.waitFor(allReady(['primary']))
 
   return cria
@@ -223,12 +224,8 @@ describe('kill -9 of the whole service', () => {
       }),
     )
 
-    const env = { ...process.env }
-
-    delete env.CRIA_TOKEN
     const service = spawn(process.execPath, ['--conditions=@cria/source', '--import', join(root, 'testing', 'source-hook.mjs'), join(root, 'apps', 'cria', 'src', 'main.ts'), config], {
       stdio: ['ignore', 'ignore', 'pipe'],
-      env,
     })
     let log = ''
 
@@ -238,6 +235,16 @@ describe('kill -9 of the whole service', () => {
     const port = await until('main.ts to print its port', () => /listening on (\d+)/.exec(log)?.[1], 15_000)
     const { makeCriaClient } = await import('../../../testing/cria-client.js')
     const client = makeCriaClient(`http://127.0.0.1:${port}`)
+    const connecting = await client.state()
+
+    await client.submit({
+      instanceId: connecting.instanceId,
+      requestId: crypto.randomUUID(),
+      deviceId: 'primary',
+      kind: 'device-connect',
+      parameters: { connected: true },
+    } as never)
+
     const state = await until('the camera to be ready', async () => {
       const current = await client.state()
 

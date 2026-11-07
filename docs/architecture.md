@@ -13,7 +13,7 @@ Vela's server talks to each rig through one adapter, chosen when the rig is comp
 Browser → Vela server ──HTTP/SSE (protocol 5)──▶ Cria ──INDI over TCP 7624──▶ indiserver ──▶ one process per driver ──▶ devices
 ```
 
-The browser renders what the Vela server projects, including which actions are available. The Cria token stays in Vela's server. Cria refuses any request that carries an `Origin` header, so a browser cannot call it.
+The browser renders what the Vela server projects, including which actions are available. Cria refuses any request that carries an `Origin` header, so a browser cannot call it.
 
 ## Who owns what
 

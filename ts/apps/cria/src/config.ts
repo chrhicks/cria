@@ -4,7 +4,7 @@
  */
 import { readFileSync } from 'node:fs'
 import { Schema } from 'effect'
-import { DeviceId, FailureDomain, MountEnvelope, deviceKinds } from '@cria/wire'
+import { DeviceId, FailureDomain, deviceKinds } from '@cria/wire'
 
 const Name = Schema.String.pipe(Schema.check(Schema.isBetweenLength(1, 256)))
 // Port 0 asks the system for any free port (tests).
@@ -20,7 +20,6 @@ const SwitchChannel = Schema.Struct({
   automaticWhileOn: Schema.optionalKey(Name),
 })
 
-const BinnedPixels = Schema.Number.pipe(Schema.check(Schema.isInt(), Schema.isBetween({ minimum: 1, maximum: 64 })))
 const Between = (minimum: number, maximum: number) => Schema.Number.pipe(Schema.check(Schema.isBetween({ minimum, maximum })))
 
 /** Where the mount stands. Cria writes it to the mount after it connects (capability/setup.ts). */
@@ -58,16 +57,12 @@ const Device = Schema.Struct({
   /** The INDI device name, which is also the name Vela expects. */
   indiDevice: Name,
   /** Send CONNECT once at start if the device is disconnected. */
-  connect: Schema.optionalKey(Schema.Boolean),
   /** Written to DEVICE_PORT before connecting, for serial devices. */
   port: Schema.optionalKey(Name),
   channels: Schema.optionalKey(Schema.Array(SwitchChannel).pipe(Schema.check(Schema.isMaxLength(64)))),
-  /** A camera's subframe alignment in binned pixels, which indi_asi_ccd's CCD_FRAME definition does not give. */
-  frameGrid: Schema.optionalKey(Schema.Struct({ width: Schema.optionalKey(BinnedPixels), height: Schema.optionalKey(BinnedPixels) })),
   site: Schema.optionalKey(Site),
   driverDebug: Schema.optionalKey(Schema.Boolean),
   motion: Schema.optionalKey(MountMotion),
-  envelope: Schema.optionalKey(MountEnvelope),
   travel: Schema.optionalKey(FocuserTravel),
 })
 
@@ -88,7 +83,7 @@ export const ConfigSchema = Schema.Struct({
   commandsEnabled: Schema.Boolean,
   /** How long a driver has to acknowledge a command before it is uncertain. */
   acknowledgeMs: Milliseconds(500, 60_000),
-  /** Overrun allowance for a motion, and for a camera's frame to settle after a binning change. */
+  /** Overrun allowance for a motion. */
   operationTimeoutMs: Milliseconds(1000, 600_000),
   /** How long after an exposure's duration Cria waits for its frame before aborting it. */
   readoutAllowanceMs: Milliseconds(1000, 600_000),
@@ -133,8 +128,8 @@ export function decodeConfig(input: unknown): Config {
   for (const device of config.devices) {
     if (device.kind === 'switch' && !device.channels?.length)
       throw new Error(`Switch ${device.id} needs at least one channel`)
-    if (device.kind !== 'mount' && (device.site !== undefined || device.motion !== undefined || device.envelope !== undefined))
-      throw new Error(`${device.id}: site, motion and envelope apply to a mount only`)
+    if (device.kind !== 'mount' && (device.site !== undefined || device.motion !== undefined))
+      throw new Error(`${device.id}: site and motion apply to a mount only`)
     if (device.travel !== undefined && device.kind !== 'focuser') throw new Error(`${device.id}: travel applies to a focuser only`)
     if (device.travel !== undefined && device.travel.min >= device.travel.max) throw new Error(`${device.id}: travel min must be below max`)
     for (const channel of device.channels ?? []) {

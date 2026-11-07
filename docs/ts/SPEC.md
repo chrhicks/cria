@@ -163,8 +163,8 @@ classifies the driver's first answer, as this table shows.
 | The driver answers `Alert` without having gone `Busy` | `failed: rejected` | INDI drivers refuse a bad request by setting `Alert` at once. An `Alert` already present before the send is not a rejection. |
 | The driver answers `Ok`, `Idle` or `Busy` | acknowledged; `confirm` or `stoppable` continues | The driver accepted the command. Acknowledged is not confirmed. |
 | An axis motion (`TELESCOPE_MOTION_WE`) start gets an `Idle` or `Ok` update, received after the send, that shows the requested switch still Off | `failed: rejected`, "the driver answered Idle and did not start MOTION_EAST (it stayed Off)"; nothing is stopped | The driver answered, and what it answered is that it did not start (errai's AM5 at Home answered in 41 ms, 2026-10-30; nothing moved). An update received before the send never counts, and a routine update that echoes the requested switch On is ignored like any routine update. Only axis motion starts, where a driver always answers Busy. |
-| A motion (slew, focuser move, exposure, park) gets a routine `Ok` update | ignored; keep waiting | Drivers send polled properties again several times a second. Only `Busy`, `Alert` or an update at the target answers a motion. |
-| A number setting settles at a different value than asked (a ZWO width rounded to a multiple of 8) | `failed: rejected`, with the value the driver chose | The device state is known, so this is not uncertainty. A value within half the element's step of the request is the request applied (the PPBA holds 10 % duty as 9.8039 %); the switch channel reports the value the driver holds. |
+| A motion (slew, focuser move, exposure) gets a routine `Ok` update | ignored; keep waiting | Drivers send polled properties again several times a second. Only `Busy`, `Alert` or an update at the target answers a motion. |
+| A number setting settles at a different value than asked (a ZWO gain rounded to the driver's step) | `failed: rejected`, with the value the driver chose | The device state is known, so this is not uncertainty. A value within half the element's step of the request is the request applied (the PPBA holds 10 % duty as 9.8039 %); the switch channel reports the value the driver holds. |
 | No answer before the acknowledgement deadline | `uncertain: no-acknowledgement` | It may be running. Cria never resends it. |
 
 `writeOnce` has no retry parameter, so replay cannot be configured. The send
@@ -293,7 +293,7 @@ operation has no deadline field, and Vela cannot read the configured values.
 | Operation | Bound |
 |---|---|
 | Capture | The exposure plus `readoutAllowanceMs`. With no frame by then Cria aborts, and with the abort confirmed it settles `failed: unavailable`. Frames that were not this exposure settle `failed: rejected` when the camera is then idle, else `uncertain`. |
-| Motion (slew, park, home, focuser move) | `operationTimeoutMs` for the driver to finish the motion, then `failed: unavailable`. |
+| Motion (slew, home, focuser move) | `operationTimeoutMs` for the driver to finish the motion, then `failed: unavailable`. |
 | Setting | `acknowledgeMs` for the driver to answer, then up to the confirm deadline (15 s unless the kind sets its own) for the new state; `uncertain` if either passes. |
 | Stop (`mount-stop`, `focuser-halt`) and a Run's stop | `stopWithin`: 20 s for the mount and focuser, 15 s for the camera abort. A stop is confirmed from the position, not from any property's state (see "Stopping the mount"). |
 | `device-connect` | `initializeTimeoutMs` for the driver to acknowledge the connect and again for the device to read connected, then `uncertain`. Device setup follows under its own writes' bounds. |
@@ -353,14 +353,14 @@ the same tag in their doc comment.
 | `apps/cria/src/operation/workflows.ts` | Workflow bodies | One short body per operation kind over one capability, as a table keyed by kind |
 | `apps/cria/src/operation/ledger.ts` | Run (with history) | The one owner of operations per rig (see "The ledger"); `onSettled` announces each settled operation once |
 | `apps/cria/src/refusal.ts` | Wire boundary | `Refusal`, a tagged error with a closed `ErrorCode`; the HTTP layer maps it to a status |
-| `apps/cria/src/ids.ts` | Composition | `mint`: new instance, operation and image IDs, and start-up request IDs |
+| `apps/cria/src/ids.ts` | Composition | `mint`: new instance, operation and image IDs and the request IDs of device setup |
 | `packages/fits/src/fits.ts` | Image boundary (`@cria/fits`) | FITS (INDI BLOB) to ASCOM ImageBytes v1, and `fitsFrame`, a FITS test frame |
 | `apps/cria/src/image/store.ts` | Domain storage | The rolling set: budget, `410 image-gone` after a drop |
 | `apps/cria/src/wire/project.ts` | View | Readings and the ledger's facts to protocol 5 values; availability |
-| `apps/cria/src/wire/http.ts` | Wire boundary | Routes, token, origin refusal, body decoding, error code to status, image download |
+| `apps/cria/src/wire/http.ts` | Wire boundary | Routes, origin refusal, body decoding, error code to status, image download |
 | `apps/cria/src/wire/sse.ts` | Wire boundary | The event stream (see "Event stream") |
 | `apps/cria/src/device.ts` | Composition | What a configured device is made of: its capability and its connection, per kind |
-| `apps/cria/src/rig.ts` | Composition | Builds the INDI client, devices, the ledger and the image store from config; start-up connect; device setup on each connection |
+| `apps/cria/src/rig.ts` | Composition | Builds the INDI client, devices, the ledger and the image store from config; device setup on each connection |
 | `apps/cria/src/recording.ts` | Composition | Opens the recorder from `record`, closes it with the rig's scope; a recorder that cannot open is logged |
 | `apps/cria/src/config.ts` | View, composition | The config schema with defaults, decoded once; failure domain from the INDI device name |
 | `apps/cria/src/service.ts` | Composition | One scope for the whole process, served over HTTP |
@@ -379,7 +379,7 @@ Tests and test tools:
 | `apps/cria/src/**/*.test.ts` | Unit tests beside the code: ledger transitions, workflow table, units, FITS, image store, event stream |
 | `packages/fake-indi/src` | `@cria/fake-indi`: a small INDI server written from the protocol, independent of `@cria/indi`'s parser; answers from its own state (`server.ts`), with generic camera and mount definitions (`devices.ts`) |
 | `packages/indi-replay/src` | `indi-replay`: a recording served like indiserver (see "Replay"): `tape.ts` loads it, `replay.ts` is the server, `synthesize.ts` makes a recording |
-| `apps/cria/test/drivers.ts` | The rig's drivers modelled on that server: ZWO frames, the EAF, dew heaters, mount motion; `am5` models errai's mount (see "Stopping the mount") |
+| `apps/cria/test/drivers.ts` | The rig's drivers modelled on that server: the EAF, dew heaters, mount motion; `am5` models errai's mount (see "Stopping the mount") |
 | `apps/cria/test/harness.ts` | Starts Cria against an INDI server and drives it over HTTP as Vela does |
 | `apps/cria/test/stopped.test.ts`, `am5-motion.test.ts` | The one rule for "stopped" on bare readings, and on step 16's AM5 fixtures through the real mount code |
 | `apps/cria/test/*.test.ts` | Scenarios: fake-driver failures, mount stops, operation lifecycle, HTTP refusals, protocol 5 end to end, shutdown, real simulators, errai replay |
@@ -472,17 +472,16 @@ real drivers differ, the table lists both, and the first one present wins.
 | camera `coolerOn` | `CCD_COOLER.COOLER_ON` | |
 | camera `setpointC` | none | Always `unavailable: unsupported`. INDI reports the sensor temperature, not the target. See `lastCommandedSetpointC`. |
 | camera `coolerPowerPercent` | `CCD_COOLER_POWER.CCD_COOLER_VALUE` | |
-| camera geometry | `CCD_INFO`, `CCD_BINNING`, `CCD_FRAME` | INDI frames are in unbinned sensor pixels. Cria divides by binning, as ASCOM reports, so `width` and `height` are the size of the image Vela receives. |
+| camera geometry | `CCD_INFO`, `CCD_FRAME` | `width` and `height` are `CCD_FRAME`'s `WIDTH` and `HEIGHT`, read directly. |
 | camera `gain`, `offset` | `CCD_GAIN.GAIN` or `CCD_CONTROLS.Gain`; `CCD_OFFSET.OFFSET` or `CCD_CONTROLS.Offset` | The ZWO driver uses `CCD_CONTROLS` |
-| camera `bayerPattern` | `CCD_CFA` (`CFA_OFFSET_X`, `CFA_OFFSET_Y`, `CFA_TYPE`, all text) | `mono` without `CCD_CFA`; same subframe-offset rule as .NET |
+| camera `bayerPattern` | `CCD_CFA` (`CFA_OFFSET_X`, `CFA_OFFSET_Y`, `CFA_TYPE`, all text) | `mono` without `CCD_CFA`; the CFA offset shifts the pattern |
 | mount RA, Dec | `EQUATORIAL_EOD_COORD.RA/DEC`, else `EQUATORIAL_COORD` | `coordinateSystem` is `topocentric` (JNow) for the first, `j2000` for the second. Cria never converts frames. |
 | mount `slewing` | the coordinates property's state is `Busy` | |
-| mount `tracking`, `parked` | `TELESCOPE_TRACK_STATE.TRACK_ON`, `TELESCOPE_PARK.PARK` | |
+| mount `tracking` | `TELESCOPE_TRACK_STATE.TRACK_ON` | |
 | mount `pierSide` | `TELESCOPE_PIER_SIDE` | `PIER_EAST` is `east`, `PIER_WEST` is `west`, else `unknown` |
 | mount `trackingRate` | `TELESCOPE_TRACK_MODE` | `sidereal`, `lunar`, `solar`; another mode is unavailable |
-| mount rate offsets | `TELESCOPE_TRACK_RATE` | |
 | mount site | `GEOGRAPHIC_COORD.LAT/LONG/ELEV` | INDI longitude is 0 to 360 east. Cria reports -180 to 180, east positive. |
-| mount `siderealTimeHours` | `TIME_LST` if present, else computed | Computed from the system clock and the site longitude |
+| mount `siderealTimeHours` | none | Computed from the system clock and the site longitude |
 | mount `primaryAxisRates` | `TELESCOPE_SLEW_RATE` | Named rates with degrees per second, parsed from the labels |
 | focuser | `ABS_FOCUS_POSITION`, `FOCUS_MAX`, `FOCUS_TEMPERATURE`, `FOCUS_ABORT_MOTION` | `moving` is the position `Busy`; `maxStep` is the smallest of `FOCUS_MAX`, the position's maximum and the travel window's `max`; `minStep` the larger of the position's minimum and the window's `min` (see "The focuser travel window") |
 | weather | `WEATHER_PARAMETERS.WEATHER_TEMPERATURE`, `_HUMIDITY`, `_DEWPOINT`, and the rest | A missing element is `unsupported` |
@@ -490,8 +489,7 @@ real drivers differ, the table lists both, and the first one present wins.
 
 Commands use the same properties: exposure `CCD_EXPOSURE`, abort
 `CCD_ABORT_EXPOSURE`, cooler `CCD_COOLER` and `CCD_TEMPERATURE`, slew
-`ON_COORD_SET=TRACK` then the coordinates, stop `TELESCOPE_ABORT_MOTION`, park
-`TELESCOPE_PARK`, home `TELESCOPE_HOME.GO`, axis motion `TELESCOPE_MOTION_WE` and
+`ON_COORD_SET=TRACK` then the coordinates, stop `TELESCOPE_ABORT_MOTION`, home `TELESCOPE_HOME.GO`, axis motion `TELESCOPE_MOTION_WE` and
 `TELESCOPE_SLEW_RATE`, focuser `ABS_FOCUS_POSITION` and `FOCUS_ABORT_MOTION`,
 connect `CONNECTION`.
 
@@ -507,43 +505,11 @@ INDI conventions Cria depends on:
   already reached (`startMotion(…, { arrived })`). The focuser simulator finishes a
   short move without going `Busy`.
 - **A mount stop is confirmed** when none of `EQUATORIAL_EOD_COORD`,
-  `EQUATORIAL_COORD`, `TELESCOPE_PARK`, `TELESCOPE_HOME`, `TELESCOPE_MOTION_WE` and
+  `EQUATORIAL_COORD`, `TELESCOPE_HOME`, `TELESCOPE_MOTION_WE` and
   `TELESCOPE_MOTION_NS` is `Busy`, and the mount stands still (see "Stopping the
   mount"). The state alone is not enough: the AM5 goes `Idle` at once and coasts.
 - **A cooling setpoint is confirmed** only by `Busy` (regulating) or `Ok` at the
   setpoint, not by a routine temperature update.
-- **A subframe is in binned pixels on the wire.** `camera-configure` takes
-  `startX`, `startY`, `width` and `height` in binned pixels, the unit of the
-  image Vela receives and of the camera's readings. Cria multiplies by the
-  binning to write `CCD_FRAME`, which INDI keeps in sensor pixels. The two units
-  were mixed before: Cria checked the region in binned pixels at the old binning,
-  so `{ binX: 2, binY: 2 }` on the 2600 failed `Subframe exceeds the sensor`.
-  One unit, the one the image has, leaves Vela nothing to convert.
-- **A subframe on the camera's grid, or nothing is sent.** A ZWO camera given a
-  frame off its grid uses a smaller frame, while `CCD_FRAME` soon shows the frame
-  asked for, and the next exposure never completes. So Cria checks every field it
-  will send before sending anything: the fields asked for, and those kept from the
-  current frame, which a new binning can put off the grid. The grid is in binned
-  pixels. It is the camera's configured `frameGrid` (binned pixels), combined with
-  the `CCD_FRAME` element's `step` when the driver defines one. That step is in
-  sensor pixels, so at bin 2 a step of 16 means a multiple of 8 binned pixels. A
-  field off the grid settles `failed: invalid`, naming the nearest binned values
-  on the grid, as in "width 476 binned pixels; the camera needs a multiple of 8
-  binned pixels; nearest 472 or 480". A kept field is named as "(the current
-  width)". A region past the sensor's edge is refused the same way. Cria never
-  moves the region itself. Start offsets have no configured grid, because
-  nothing measured says the cameras need one.
-- **A binning change moves the frame.** indi_asi_ccd recomputes `CCD_FRAME` by
-  itself after a `CCD_BINNING` write. So Cria writes the binning, waits until
-  `CCD_FRAME` is not `Busy` and has held still for 1 s, and only then writes the
-  frame. Without that wait the frame write was judged against the driver's
-  recompute, not against its own answer. A binning-only request writes only
-  `CCD_BINNING` and keeps the physical region. Its `confirmed` values are the
-  geometry the driver then holds, in binned pixels, so a recompute that trims the
-  region (6248 to 6240 wide at bin 2) shows there and is not an error. Every
-  `camera-configure` that touches binning or the region confirms with `binX`,
-  `binY`, `startX`, `startY`, `width` and `height` as applied, plus `gain` and
-  `offset` when asked.
 - **No manual duty under auto dew.** While a switch channel's `automaticWhileOn`
   channel is on, Cria refuses a `switch-set` on it as `failed: invalid` before
   sending, naming the channel to switch off first. The PPBA accepts a manual dew
@@ -554,124 +520,6 @@ INDI conventions Cria depends on:
   "Stopping the mount"), and `mount-axis` and `mount-rotate` report
   `travelledDegrees`, the RA travelled from the start to where the mount stood
   still, east positive.
-
-### Mount envelope
-
-A mount's optional `envelope` config uses the additive protocol 5 `MountEnvelope`
-schema from `@cria/wire`. Without it, motion keeps its existing behavior. Vela replaces it for this run through `POST /v2/devices/:id/envelope` with
-`{ instanceId, envelope }`. `POST /v2/devices/:id/fix` takes `{ instanceId, fix }`.
-Both require a mount and the current instance and return `MountFeedback`.
-`GET /v2/devices/:id/feedback` reads the last envelope and fix, each nullable.
-These routes share v2 authentication and origin restrictions. They update memory
-only, even with commands disabled, and never command hardware.
-
-An accepted fix carries epoch-millisecond `capturedAt`, `rightAscensionDegrees`,
-`declinationDegrees`, `coordinateSystem: "j2000"`, and `error` with the verdict's
-signed fractional `scaleError` and nullable `hintOffsetDegrees`. These are verdict
-measurements, not positional uncertainty. `pointingErrorArcmin` is the mount-claim-to-solve
-angle in arcminutes, null without a mount reading for the frame. Each fix replaces the last. Neither
-survives a restart. The path check reads the current envelope for each move.
-
-`keepOut` is a table of named Dec bands with `side` (`normal` or `flipped`),
-`minDeclinationDegrees`, `maxDeclinationDegrees`, and optional
-`eastHourAngleDegrees` and `westHourAngleDegrees`. HA is degrees from the
-meridian, negative east and positive west. These coordinates carry no site.
-Bands include both Dec boundaries; where bands meet or overlap, both apply.
-Missing HA limits impose no restriction. A gap in the normal Dec bands is
-unmeasured and refused.
-
-The stub allows normal-side HA up to +40 at Dec 75..90, +20 at Dec 45..75,
-and +20 below 45. It has no known east limit. The normal side is counterweight
-down: `PIER_WEST` at negative HA, `PIER_EAST` at positive HA. The other
-combinations are flipped. With no measured flipped bands, that side is allowed
-only within the driver's `MERIDIAN_LIMIT.LIMIT`, read when checking the move.
-An unread or stale limit means zero. At HA zero neither side is flipped.
-
-Before a goto, Cria checks the reported current pose. A move that stays on
-that pier side checks the whole independent-axis HA-by-Dec box through the
-reserved endpoint. A side change uses the start's mechanical frame: the
-other-side target has Dec `180 - targetDec` and HA `targetHA - 180` from west,
-or `targetHA + 180` from east. This HA branch is not the shortest wrapped delta.
-
-During a northern flip, both axes advance by equal angular distances until
-the shorter move finishes. The checked region is that capped path with a
-2-degree margin on each mechanical axis. It contains all 299 coordinate poses
-from 23 recorded flips; the largest measured distance to the model is 0.711
-degrees. This is an empirical synchrony model, not a firmware guarantee. Each
-one-degree interval is enclosed by a rectangle with that margin, so positions
-between interval endpoints are checked too. The interval is geometric, not a
-position-reading or time-sampling period. Southern flip routes are unmeasured
-and refused. Routes that need an HA wrap are also refused.
-
-Every physical box is split at the pole before projection onto the reported
-HA, Dec and actual pier side. Beyond Dec 90, reported Dec is `180 - axisDec`
-and HA shifts by 180 degrees; a southern endpoint reserve folds at Dec -90 in
-the same way. A box that only touches a pole stays in its starting representation.
-Near-pole starts at Dec 89..90 retain the 0.05-degree home HA reporting tolerance
-around either HA -90 or +90. The original reported-pose check still applies.
-
-Each moving axis also reserves travel beyond the target by the current
-pointing margin plus the landing allowance. The landing allowance is the larger
-of recorded goto overshoot rounded up to an arcsecond and the existing
-4,084-arcsecond stop coast. Same-side moves retain the full
-independent box through that endpoint. An axis with no commanded travel has
-0.1 degrees of settlement allowance, matching the goto arrival tolerance;
-this covers small reported-HA changes at two recorded near-pole endpoints.
-Flips add an independent endpoint
-reserve box with the same 2-degree model margin. That box is not clipped to
-the requested target. Reserved travel folds through the pole instead of being
-clamped or discarded. The folded part must pass its actual side's bands, so a
-pole approach can still refuse if the reserve enters an unmeasured region.
-No lower-Dec approach to a near-pole endpoint exists in the recording corpus;
-those approach tests are synthetic, using the projection validated on flips.
-
-A goto lands on the normal, counterweight-down side for its target hour angle,
-including within the driver meridian limit. At absolute HA below 0.5 degrees,
-either reported side remains possible, so both complete paths and reserves
-must pass. All 45 recorded gotos land on the normal side. Their largest
-directional overshoot beyond the requested endpoint is 0.068896 degrees on HA
-and zero on Dec, measured in the start's mechanical frame.
-The separate margin check around the reported start stays in force; a driver
-leaving Busy does not prove that a coast has stopped.
-Unknown pier side or unread coordinates refuse a goto. The envelope needs
-topocentric coordinates; Cria cannot convert J2000 to mount HA.
-
-Before `mount-axis` or `mount-rotate`, Cria checks the start and the full
-requested RA travel on the current pier side, plus 4,084 arcseconds in the
-travel direction. That margin is the rounded-up worst 9x stop travel in the
-AM5 recordings. A path outside the envelope fails with reason `invalid` and
-a message naming the limit. No setting or motion command is sent on refusal.
-Home and park are exempt so they can escape an unsafe pose. Their existing
-availability checks still apply. Stop is always exempt.
-During goto and rate moves, every new position is checked with a margin of
-`pointingErrorArcmin` plus 7.02 arcseconds per degree of physical axis travel
-since the fix exposure. This matches the conservative policy in Vela's rig
-model, based on the AM5 goto landing p90. Without a usable fix, the base is
-15,915.2 arcseconds, the largest recorded abort overshoot. A late solve retains
-travel after its exposure. Travel history is bounded to 4,096 readings; a fix
-older than that history uses the unknown base and all retained travel.
-Direction and travel use successive positions in one pier-side representation.
-Across a known side change, Cria shifts the previous RA by 180 degrees and
-reflects its Dec before taking the short axis deltas. A representation change
-alone adds no travel. With an unknown side, Cria retains unadjusted deltas.
-The motion record still reports the coordinate displacement defined below.
-
-Cria also reserves two seconds at 6.3 degrees/second, rounded up from the
-recorded goto fixture, plus the largest
-stop overshoot in the direction of travel. For a goto, each axis's live lead
-is capped at its remaining mechanical distance to the target plus the landing
-allowance. Rate moves retain the full reaction lead. Missing position readings for two
-seconds trigger a stop. An envelope stop uses the confirmed abort path and
-ends uncertain with the limit and margin in its message. The capped goto lead
-assumes the mount decelerates into its target. A full-speed runaway is still
-subject to the live envelope and reading deadline, but has no fixed
-target-relative stopping bound or guaranteed clearance within the smaller reserve. The motion record
-keeps `how: "aborted"` and adds `stopped.reason` naming the envelope trigger.
-
-Optional `horizon` points (`azimuthDegrees`, `altitudeDegrees`) and
-`meridianLimitDegrees` reserve the wire shape for step 20. Step 19 enforces
-mechanical keep-out and the driver's flipped-side limit only; these reserved
-fields do not yet constrain moves. Protocol 5's existing payloads are unchanged.
 
 ### Stopping the mount
 
@@ -716,9 +564,9 @@ Where it is used:
 
 | Motion | The command | Done when |
 |---|---|---|
-| `mount-stop`, and a cancelled slew, park or home | `TELESCOPE_ABORT_MOTION` | the position has stopped |
+| `mount-stop`, and a cancelled slew or home | `TELESCOPE_ABORT_MOTION` | the position has stopped |
 | `mount-axis` and `mount-rotate` halt | `TELESCOPE_MOTION_WE` both off | the position has stopped |
-| `mount-slew`, `mount-park`, `mount-home` | the motion itself | the property leaves `Busy` (the driver says it is over), then the position has stopped since the motion was sent |
+| `mount-slew`, `mount-home` | the motion itself | the property leaves `Busy` (the driver says it is over), then the position has stopped since the motion was sent |
 
 A slew then compares where it stopped with the target: within 0.1° of it, and it
 is confirmed; elsewhere, `uncertain: not-confirmed`. That tolerance says where the
@@ -737,25 +585,23 @@ The stop is bounded by `stopWithin` (20 s): inside `stoppable` the abort is sent
 again until the position has stopped or the 20 s pass, and `mount-stop` gives up at
 20 s. A stop or abort is the only command that is ever resent: it can only stop
 motion, never start it. Unconfirmed, the outcome is `uncertain: stop-not-confirmed`,
-never `confirmed`. This covers `mount-stop`, cancelling a slew, park, home,
-`mount-axis` or `mount-rotate`, and SIGTERM. A park or home that a client stopped
+never `confirmed`. This covers `mount-stop`, cancelling a slew, home,
+`mount-axis` or `mount-rotate`, and SIGTERM. A home that a client stopped
 and whose property stays `Busy` is stopped when its position has stopped, and the
 mount is `stopped`; one whose position keeps changing stays `uncertain`,
 as does one whose position cannot be read.
 
-Starting a home, slew, park, `mount-axis` or `mount-rotate` is refused as busy
+Starting a home, slew, `mount-axis` or `mount-rotate` is refused as busy
 only when the coordinates are `Busy`.
 
 **A rotate uses a fast leg and a slow approach.** `mount-rotate` keeps its
-request and outcome shape. Before any command, Cria checks the envelope for
-the full requested travel. One operation covers both legs. Cancel, `mount-stop`,
-the live envelope watch and the position freshness deadline apply throughout,
-including the confirmed stop between legs.
+request and outcome shape. One operation covers both legs. Cancel and
+`mount-stop` apply throughout, including the confirmed stop between legs.
 
 For a distance larger than the approach window, the first leg uses the
 requested advertised rate until travel reaches distance minus the window.
-The window is that rate's expected coast plus rate times the measured position
-reading interval plus 0.25°. Cria then halts and confirms the stop with the
+The window is that rate's expected coast plus rate times `positionReadMs`
+plus 0.25°. Cria then halts and confirms the stop with the
 existing position rule. The approach uses the slowest advertised primary-axis
 rate of at least 0.1°/s, in the requested direction, for the remaining distance.
 It leads its stop by that rate's expected coast and confirms the stop again.
@@ -821,7 +667,7 @@ single-flight with Vela's operations and shows in the operation list. A device
 with nothing to write gets no operation. A refused submission (the domain busy) sent nothing and is
 tried again. A setup that ran is not run again until the device connects again,
 or someone sends `device-connect` with `connected: true`, which always runs the
-setup steps after connecting (`connect: true` at start included). With commands
+setup steps after connecting With commands
 disabled, setup does not run.
 
 **What it reports.** No wire change. The `device-connect` outcome's values carry
@@ -913,7 +759,7 @@ signal, and Vela refuses any value but 5.
 
 | Endpoint | Purpose |
 |---|---|
-| `GET /health` | `{ status: 'ok', protocolVersion: 5 }`. No token. |
+| `GET /health` | `{ status: 'ok', protocolVersion: 5 }`. |
 | `GET /v2/state` | One `State` snapshot. |
 | `GET /v2/events` | The event stream (see "Event stream"). |
 | `POST /v2/operations` | `OperationRequest`, answered `202` with the `Operation` (see "Admission"). |
@@ -922,9 +768,7 @@ signal, and Vela refuses any value but 5.
 | `POST /v2/operations/{id}/cancel` | `202` with the `Operation`; `404 not-found` for an unknown ID, `410 result-expired` for a pruned one (see "Halts, stops and cancel"). |
 | `GET /v2/images/{id}/original` | ImageBytes v1 with an exact `content-length` and `ETag` = SHA-256. `410 image-gone` for an image ID Cria no longer holds or never held. `404 not-found` for a path segment that is not an image ID. |
 
-When a token is configured, every route except `/health` needs
-`Authorization: Bearer <token>`. A request with an `Origin` header is refused, so
-a browser cannot call Cria. Request bodies are limited in size.
+A request with an `Origin` header is refused, so a browser cannot call Cria. Request bodies are limited in size.
 
 ### Errors
 
@@ -934,7 +778,6 @@ closed `errorCodes` list, and each code has exactly one HTTP status:
 | Status | Codes |
 |---|---|
 | 400 | `request-error` |
-| 401 | `unauthorized` |
 | 403 | `origin-rejected`, `commands-disabled` |
 | 404 | `not-found` |
 | 409 | `request-conflict`, `instance-changed`, `device-busy` |
@@ -1011,8 +854,8 @@ Readings per kind. Values are named, not ASCOM integers:
 | Kind | Readings |
 |---|---|
 | all | `connected` boolean, `name` string |
-| camera | `activity` `'idle' \| 'exposing'`; `temperatureC`, `setpointC` (unsupported), `coolerOn`, `coolerPowerPercent`; `sensorWidthPixels`, `sensorHeightPixels`, `pixelWidthMicrons`, `pixelHeightMicrons`, `binX`, `binY`, `width`, `height`, `startX`, `startY` (binned), `maxBinX`, `maxBinY`; `bayerPattern` `'mono' \| 'rggb' \| 'grbg' \| 'gbrg' \| 'bggr'`; `canAbortExposure`, `canSetTemperature`, `canGetCoolerPower`; `exposureMinimum`, `exposureMaximum`; `gain`, `gainMinimum`, `gainMaximum`, `offset`, `offsetMinimum`, `offsetMaximum` |
-| mount | `rightAscensionHours`, `declinationDegrees`, `siderealTimeHours`; `slewing`, `tracking`, `parked`; `trackingRate` `'sidereal' \| 'lunar' \| 'solar'`; `rightAscensionRateSecondsPerSiderealSecond`, `declinationRateArcsecondsPerSecond`; `pierSide` `'east' \| 'west' \| 'unknown'`; `coordinateSystem` `'topocentric' \| 'j2000'`; `latitudeDegrees`, `longitudeDegrees` (east positive), `elevationMeters`; `canSlew`, `canSetTracking`, `canFindHome`, `canPark`, `canUnpark`, `canMovePrimaryAxis`; `primaryAxisRates` `Array<{ name, degreesPerSecond }>` |
+| camera | `activity` `'idle' \| 'exposing'`; `temperatureC`, `setpointC` (unsupported), `coolerOn`, `coolerPowerPercent`; `sensorWidthPixels`, `sensorHeightPixels`, `pixelWidthMicrons`, `pixelHeightMicrons`, `width`, `height`; `bayerPattern` `'mono' \| 'rggb' \| 'grbg' \| 'gbrg' \| 'bggr'`; `canAbortExposure`, `canSetTemperature`, `canGetCoolerPower`; `exposureMinimum`, `exposureMaximum`; `gain`, `gainMinimum`, `gainMaximum`, `offset`, `offsetMinimum`, `offsetMaximum` |
+| mount | `rightAscensionHours`, `declinationDegrees`, `siderealTimeHours`; `slewing`, `tracking`; `trackingRate` `'sidereal' \| 'lunar' \| 'solar'`; `pierSide` `'east' \| 'west' \| 'unknown'`; `coordinateSystem` `'topocentric' \| 'j2000'`; `latitudeDegrees`, `longitudeDegrees` (east positive), `elevationMeters`; `canSlew`, `canSetTracking`, `canFindHome`, `canMovePrimaryAxis`; `primaryAxisRates` `Array<{ name, degreesPerSecond }>` |
 | focuser | `position`, `moving`, `temperatureC`, `absolute`, `minStep`, `maxStep` (the usable window; both ends allowed except `maxStep` at the driver's top; see "The focuser travel window") |
 | weather | `temperatureC`, `humidityPercent`, `dewPointC`, `pressureHpa`, `skyTemperatureC`, `cloudCoverPercent`, `rainRateMmPerHour`, `windSpeedMps`, `windGustMps` |
 | switch | `channelCount`; per channel `id`, `name`, `writable`, `minimum`, `maximum`, `step`, `on`, `value` |
@@ -1057,8 +900,7 @@ Two of their checks matter to Vela:
   (`readings.coordinateSystem`) settles `failed: invalid` before the mount moves.
 - `capture` takes `light` (the shutter is open) and an optional `frameType`
   (`'light' | 'flat' | 'dark' | 'bias'`) that says which. See "Capture frame type".
-- `camera-configure` takes its region in binned pixels and confirms with the
-  geometry the driver holds (see "A subframe is in binned pixels on the wire").
+- `camera-configure` takes `gain` and `offset`, and confirms with the values asked for.
 
 #### Capture frame type
 
@@ -1111,7 +953,7 @@ only when the element is not already on, and confirms the switch before it sends
   camera minimum from `readings.exposureMinimum`.
 
 `Image` has `id`, `operationId`, `instanceId`, `deviceId`, `cameraName`,
-`width`, `height`, `binX`, `binY`, `startX`, `startY`,
+`width`, `height`,
 `exposureSeconds`, `color`, `capturedAt`, `capturedAtSource`
 (`'camera' | 'server-estimate'`), `retainedAt`, `sha256`, and
 `original: { mediaType: 'application/imagebytes', bytes, url }`.
@@ -1125,8 +967,8 @@ with RA wrapped to [-180, 180). Missing observations are null. This is displacem
 between readings, not a sum of the path or a claim of movement before the first reading.
 `stopped.how` is `arrived`, `halted`, `aborted`, or `uncertain`. `stopped.at` records when
 the step 17 stopped rule fired. An unconfirmed stop has null final position, travel and
-time. Refused commands and a park that was already parked have no motion record.
-Limit stops will be added with the envelope work. Peak rate is not computed here.
+time. Refused commands have no motion record.
+Peak rate is not computed here.
 
 This is additive within protocol 5. Vela's pinned runtime decoder accepts unknown
 operation fields. Its strict golden check requires the updated pin and golden copy.
@@ -1246,9 +1088,8 @@ stop the process. `ts/deploy/rig.errai.json` is the rig's config:
   "initializeTimeoutMs": 120000,
   "operationHistory": 1000,
   "devices": [
-    { "id": "primary", "kind": "camera", "indiDevice": "ZWO CCD ASI2600MC Pro", "connect": false,
-      "frameGrid": { "width": 8, "height": 2 } },
-    { "id": "mount", "kind": "mount", "indiDevice": "ZWO AM5", "connect": false,
+    { "id": "primary", "kind": "camera", "indiDevice": "ZWO CCD ASI2600MC Pro" },
+    { "id": "mount", "kind": "mount", "indiDevice": "ZWO AM5",
       "port": "/dev/serial/by-id/usb-ZWO_Systems_ZWO_Device_123456-if00",
       "site": { "latitudeDegrees": 33.45, "longitudeDegrees": -112.07, "elevationMeters": 331 } },
     { "id": "switch", "kind": "switch", "indiDevice": "Pegasus PPBA",
@@ -1265,19 +1106,18 @@ stop the process. `ts/deploy/rig.errai.json` is the rig's config:
 The example shows three of the rig's six devices. Every key but `imageDirectory`
 and `devices` has a default (the values above). `acknowledgeMs` is how long a
 driver has to acknowledge a command. `operationTimeoutMs` is the overrun allowance
-for a motion, and for a camera's frame to settle after a binning change. `readoutAllowanceMs` is how
+for a motion. `readoutAllowanceMs` is how
 long after an exposure's duration Cria waits for its frame before aborting it.
 The 30 s default is a guess with room for a full 2600 frame, not a measured
 readout time.
-`initializeTimeoutMs` is how long a cold device may take to connect at start.
+`initializeTimeoutMs` is how long a cold device may take to connect through `device-connect`.
 Each device's failure domain is its INDI device, so the Pegasus weather and
-switch share one. `connect: true` sends `CONNECT` once at start if the device is
-disconnected, as a `device-connect` operation (request ID `startup-…`) with the
-serial `port` written first. A failure leaves the device disconnected and says so.
-Cria never changes power or connects equipment implicitly.
+switch share one. A device connects only when `device-connect` asks it to (the
+rig supervisor does that on the rig), with the serial `port` written first. A
+failure leaves the device disconnected and says so. Cria never changes power or
+connects equipment implicitly.
 
-`frameGrid` gives a camera's subframe grid in binned pixels (`width`, `height`),
-which indi_asi_ccd's `CCD_FRAME` definition does not give (`step="0"`). A switch
+A switch
 channel's `automaticWhileOn` names another channel of the same device under
 which the driver sets this one by itself. Cria refuses a config
 whose `automaticWhileOn` names no other channel.
@@ -1290,7 +1130,7 @@ how a mount stops (see "Stopping the mount"); every key is optional, with the
 AM5's values as defaults: `stationaryDegrees` 0.02, `positionReadMs` 1500,
 `stopLatencyMs` 900 (the coast seed for rates without a profile).
 `maxLeadFraction` is accepted for older configurations but does not apply to
-the two-phase rotate. Cria refuses `site`, `motion` or `envelope` on a device that is not a mount.
+the two-phase rotate. Cria refuses `site` or `motion` on a device that is not a mount.
 
 `record` turns on recording of INDI traffic (see "Recording"): `dir`, `reserveGb`
 and `queueMb`, all three required when it is present.
@@ -1509,7 +1349,7 @@ real time, not scaled.
   holds is treated as the driver's answer to a `getProperties`: it changes only
   values that differ.
 - Writes that would move hardware get `Alert` "not in this recording" and are
-  not echoed: a mount goto, park, home and axis motion, a focuser move, and an
+  not echoed: a mount goto, home and axis motion, a focuser move, and an
   exposure on any camera but the one replayed. A stop or abort
   (`TELESCOPE_ABORT_MOTION`, `FOCUS_ABORT_MOTION`, `CCD_ABORT_EXPOSURE`) is
   confirmed: the motion properties that were `Busy` go `Idle` and the request
@@ -1546,9 +1386,10 @@ list.
 **Sidereal time.** If the recording's mount has no `TIME_LST`, replay defines one
 before any client connects and updates it with each frame, from the frame's
 recorded time and the recorded `GEOGRAPHIC_COORD` longitude. A site Cria writes
-is echoed but does not change it, so the hour angle follows the recording, not
-the clock or Cria's configured site. `testing/replay.test.ts` checks the formula
-against Cria's own.
+is echoed but does not change it. Cria does not read `TIME_LST`: it computes
+sidereal time from the clock and the site longitude, so the hour angle it reports
+follows the clock, not the recording. `testing/replay.test.ts` checks the replay's
+formula against Cria's own.
 
 **Faults** start at a source frame and last real time (`--faults`, or the
 `faults` option): `blank` (frames arrive with every pixel equal), `set` (a
@@ -1583,8 +1424,8 @@ It holds no `op` lines.
 - **SIGTERM.** Closing the process scope interrupts every Run. Their `stoppable`
   steps abort exposures and stop the mount and focuser before the process exits,
   and a mount's stop waits until it stands still (at most 20 s).
-  `deploy/cria.service` allows 180 s (`TimeoutStopSec`), because a start-up
-  connect can run uninterruptibly for `initializeTimeoutMs`.
+  `deploy/cria.service` allows 180 s (`TimeoutStopSec`), because a
+  `device-connect` can run uninterruptibly for `initializeTimeoutMs`.
 
 ## Image path
 
@@ -1632,7 +1473,7 @@ effect, because indiserver writes to each client in turn.
 5. **Fake INDI server.** For cases simulators cannot produce: a driver that never
    acknowledges, one that answers `Alert`, a stop that never confirms, a
    connection dropped mid-exposure, a driver that disappears, a switch device,
-   indi_asi_ccd's frame, binning, echo and hang (`zwoFrames`), the PPBA's
+   the PPBA's
    dew duty under auto dew (`pegasusDew`), and the AM5 (`am5`): gotos refused
    until the site and time are written, a position published once a second and
    only when it changes, a stop acknowledged at once while the mount keeps going
@@ -1640,7 +1481,7 @@ effect, because indiserver writes to each client in turn.
    EAF (`addEaf`): `FOCUS_MAX` 100000 against a position range of 0 to 60000,
    and `Alert` on a target outside that range.
    The fake answers from its own state, not from Cria's script. Here too: the
-   HTTP refusals the typed client cannot send (token, origin, route, body), and
+   HTTP refusals the typed client cannot send (origin, route, body), and
    SIGTERM to the real `main.ts` during a slew, which must abort the mount and
    wait until it stands still before the process exits.
 6. **Real INDI simulators** (`indiserver` with `indi_simulator_ccd`, `_telescope`,
@@ -1721,16 +1562,14 @@ Measured with commands on the rig, with Chris present, on 2026-10-15:
   3116 (6232) was first applied as 6224, so Cria reported `failed: rejected` "the
   driver applied WIDTH=6224", while the property read 6232 afterwards. 3120 was
   confirmed. The definition says none of this. `WIDTH` has `step="0"`.
-  `deploy/rig.errai.json` sets `frameGrid` to `{ "width": 8, "height": 2 }` for
-  both ZWO cameras.
 - **`CCD_FRAME` cannot be trusted to show the frame the camera uses.** After a
   frame off the grid, the driver publishes the rounded frame, then the one asked
   for, and keeps using the rounded one. A binned width of 3124 at bin 2 on the
   2600 was confirmed. The fake reproduces that confirmation through the echo
   (inferred, not seen on the rig). The binning change had already rounded the
   frame to 6240, so the rounded report looked unchanged to Cria, and the echo
-  read as the driver's answer. Cria therefore checks the grid before sending and
-  does not rely on the readback to catch a rounded frame.
+  read as the driver's answer. Cria no longer writes binning or the frame, so it
+  does not meet any of this.
 - **Correction.** This section first said the 2600 wants a width that is a
   multiple of 8 sensor pixels, from `WIDTH=3124` at bin 2 leaving the frame at
   6240. That frame is 1562 binned pixels, off the binned grid too, so it never
@@ -1776,7 +1615,7 @@ Gaps that need a decision:
 2. **The AM5's clock is not set.** Resolved: device setup writes the site and the
    system clock's UTC after the mount connects (see "Device setup").
 3. **No pier side.** Both `TELESCOPE_PIER_SIDE` switches are Off at the pole, so
-   Cria reports `unknown`. Check again after unparking and slewing.
+   Cria reports `unknown`. Check again after slewing.
 4. **EAF travel disagrees with itself.** Resolved: `FOCUS_MAX` is 100000, but
    `ABS_FOCUS_POSITION` allows at most 60000, and the tube is safe only from
    15500 to 38000 (Chris, 2026-10-15). Cria reports the smaller limits and
@@ -1792,9 +1631,8 @@ Gaps that need a decision:
 8. **Not exposed by Cria yet:** the 2600's fan speed and anti-dew heater
    (`CCD_CONTROLS.FanSpeedAdjust`, `.AntiDewHeater`), the PPB's power sensors and
    adjustable output, and guide pulses.
-9. **The AM5 has no `TIME_LST`, no `TELESCOPE_TRACK_RATE`, and no at-home
-   indicator.** Sidereal time is computed, and the RA and Dec rate offsets read
-   unsupported.
+9. **The AM5 has no `TIME_LST` and no at-home indicator.** Cria computes
+   sidereal time from the system clock and the site longitude.
 
 ## Rules and known limits
 
@@ -1821,8 +1659,8 @@ Gaps that need a decision:
 
 1. **Setpoint readback.** Resolved: `setpointC` stays an unsupported reading, and
    `lastCommandedSetpointC` reports the last setpoint the driver acknowledged.
-2. **Sidereal time.** If the AM5 driver has no `TIME_LST` (it does not, see gap 9),
-   Cria computes it from the system clock (chrony) and the site longitude. Is a
+2. **Sidereal time.** Cria always computes it from the system clock (chrony) and the
+   site longitude, and the AM5 driver has no `TIME_LST` (see gap 9). Is a
    computed value good enough for polar alignment, or must it come from the mount?
 3. **Axis motion rates.** Resolved for safety: Cria accepts only a rate the mount
    advertises (within 1 %) and reports the rate it used. Open: polar alignment's

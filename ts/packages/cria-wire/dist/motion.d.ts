@@ -28,7 +28,7 @@ export declare const MotionCommanded: Schema.Union<readonly [Schema.Struct<{
     readonly distanceDegrees: Schema.Number;
 }>, Schema.Struct<{
     readonly sentAt: Schema.Number;
-    readonly kind: Schema.Literals<readonly ["home", "park", "stop"]>;
+    readonly kind: Schema.Literals<readonly ["home", "stop"]>;
 }>]>;
 export type MotionCommanded = typeof MotionCommanded.Type;
 /**
@@ -57,7 +57,7 @@ export declare const MotionRecord: Schema.Struct<{
         readonly distanceDegrees: Schema.Number;
     }>, Schema.Struct<{
         readonly sentAt: Schema.Number;
-        readonly kind: Schema.Literals<readonly ["home", "park", "stop"]>;
+        readonly kind: Schema.Literals<readonly ["home", "stop"]>;
     }>]>;
     readonly observed: Schema.Struct<{
         /** The first position received after the command, if any. */
