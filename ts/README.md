@@ -11,7 +11,7 @@ legacy ([docs/legacy-windows.md](../docs/legacy-windows.md)).
 
 | Path | What | Primitive layer |
 | --- | --- | --- |
-| `packages/primitives` | Outcome, Reading, writeOnce, confirm, stoppable, retryReads, Run, `quarantineOf` | Types and disciplines; depends only on `effect`, built to move to Vela |
+| `packages/primitives` | Outcome, Reading, writeOnce, confirm, stoppable, Run | Types and disciplines; depends only on `effect`, built to move to Vela |
 | `packages/indi` | XML framing, property mirror, `IndiClient` / `IndiDevice` | INDI boundary (no primitive) |
 | `packages/indi-replay` | `indi-replay`: serves a recording over TCP like indiserver, for running the real Cria against a recorded night; `synthesizeTape` | — |
 | `packages/recording` | `@cria/recording`: the recording format, the recorder behind the INDI client's tap, the reader and `verifyRecording` | Recording (off unless `record` is configured) |
@@ -19,14 +19,14 @@ legacy ([docs/legacy-windows.md](../docs/legacy-windows.md)).
 | `packages/recording-archive` | `cria-archive`: copies a finished recording from errai to thuban, keeps the frames Vela saved and the autofocus samples, packs it as tar + zstd, checks the pack replays, then deletes errai's copy with `--apply` (docs/runtime.md, "Archiving recordings to thuban") | — |
 | `packages/cria-wire` | `@cria/wire`: the protocol 5 schemas and the 15-kind command table, shared with Vela | View |
 | `apps/cria/src/capability` | camera, mount, focuser, weather, power, connection | Capabilities |
-| `apps/cria/src/operation` | workflow bodies; the ledger, one owner of operations per rig with one Run per failure domain | Workflows, Run, Quarantine |
+| `apps/cria/src/operation` | workflow bodies; the ledger, one owner of operations per rig with one Run per failure domain | Workflows, Run |
 | `packages/fits` | `@cria/fits`: FITS header, FITS → ImageBytes, test frames | Image boundary |
 | `packages/fake-indi` | `@cria/fake-indi`: a small INDI server written from the protocol, independent of `@cria/indi`'s parser; `fixtures/am5/` and `playMotion` replay AM5 motions cut from errai's recordings (docs/testing.md, "AM5 motion fixtures") | — |
 | `apps/cria/src/image` | the rolling image store | Image boundary |
 | `apps/cria/src/wire` | projection into protocol 5, HTTP, SSE | View and wire boundary |
 | `apps/cria/src/rig.ts`, `device.ts`, `ids.ts`, `service.ts`, `main.ts`, `config.ts` | composition | — |
 | `apps/cria/src/refusal.ts` | `Refusal`: a closed error code the HTTP layer maps to a status | Wire boundary |
-| `apps/cria-mcp` | `cria-mcp`: a thin MCP server that turns Cria's routes into agent tools, over Streamable HTTP on loopback; the read tools `state`, `operation`, `wait`, `request` and `image`, the write tools `cancel` and `recover`, and one tool per command kind in `src/exposure.ts`, the one hand-written table. A command tool returns at Cria's 202 and never waits, retries or resends; a lost answer is `lost`, and the agent asks `request` before sending again. `CRIA_URL`, `CRIA_MCP_PORT`, `CRIA_MCP_IMAGE_DIR` (absolute; created if missing; holds only the downloaded `<imageId>.imagebytes` files, which are deleted after seven days), optional `CRIA_TOKEN`, `CRIA_REPLY_TIMEOUT` (default 10 s) and `CRIA_MCP_DOWNLOAD_TIMEOUT` (one image download, default 5 minutes) | — |
+| `apps/cria-mcp` | `cria-mcp`: a thin MCP server that turns Cria's routes into agent tools, over Streamable HTTP on loopback; the read tools `state`, `operation`, `wait`, `request` and `image`, the write tool `cancel`, and one tool per command kind in `src/exposure.ts`, the one hand-written table. A command tool returns at Cria's 202 and never waits, retries or resends; a lost answer is `lost`, and the agent asks `request` before sending again. `CRIA_URL`, `CRIA_MCP_PORT`, `CRIA_MCP_IMAGE_DIR` (absolute; created if missing; holds only the downloaded `<imageId>.imagebytes` files, which are deleted after seven days), optional `CRIA_TOKEN`, `CRIA_REPLY_TIMEOUT` (default 10 s) and `CRIA_MCP_DOWNLOAD_TIMEOUT` (one image download, default 5 minutes) | — |
 | `apps/cria/test` | scenario tests; `drivers.ts` models the rig's INDI drivers on `@cria/fake-indi` | — |
 | `testing/indiserver.ts` | runs a real indiserver with simulators for tests | — |
 | `testing/cria-client.ts` | a typed protocol 5 client for tests; decodes every response strictly | — |
@@ -85,7 +85,7 @@ the file.
 `pnpm golden` (about 15 s; `pnpm test` runs it after the unit suite) drives a fixed list of scenarios through the typed
 client against Cria on the fake INDI server: every operation kind, the
 admission and lookup refusals, cancel, stop pre-emption, an unacknowledged
-command and its recovery, image download. It records each response, replaces IDs, times
+command, image download. It records each response, replaces IDs, times
 and durations with placeholders, and compares the result with
 `testing/golden/wire.golden.json`. On a mismatch it prints what changed per
 scenario and step and exits 1:
@@ -100,20 +100,3 @@ scenario "mount-slew", step 1 (POST /v2/operations):
 intentional change to the wire (a protocol change Vela agreed to), and commit
 the golden with that change so the diff shows exactly what Vela will see. A
 refactor that needs it has changed behaviour.
-
-## Before trying it on the rig
-
-Device and property names were checked against errai on 2026-10-15 (see "Checked
-on errai" in [docs/ts/SPEC.md](../docs/ts/SPEC.md)); `deploy/rig.errai.json` has
-the real names and sends nothing at start (`connect: false`). Still needed:
-
-1. Decisions on the gaps found there, at least: the 2600's `UPLOAD_MODE` is local
-   (Cria refuses its captures until it is client), and the AM5's clock reads 2000
-   (gotos would point wrong).
-2. Vela on protocol 5 ([docs/ts/vela-migration.md](../docs/ts/vela-migration.md)), and Vela's
-   `cria.json`: each `expectedName` becomes the INDI device name.
-3. `listen.host` in the config: errai's tailnet address.
-4. The full review of the command paths (in progress).
-5. First session with Chris present: readings only, then one short dark capture,
-   a small focuser move, tracking on/off, and a cancelled slew. Check by eye that
-   a positive axis rate moves the mount east (increasing RA); Cria assumes it.

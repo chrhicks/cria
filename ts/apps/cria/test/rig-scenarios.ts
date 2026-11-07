@@ -35,7 +35,7 @@ export interface Scenario {
   /** What Vela should then show. */
   readonly expect: string
   /** What the scenario's own driver does to the command, for `fake-rig list` and the test. */
-  readonly outcome: { readonly device: string; readonly kind: Ending['kind']; readonly reason: string | null; readonly held: boolean; readonly message?: string }
+  readonly outcome: { readonly device: string; readonly kind: Ending['kind']; readonly reason: string | null; readonly message?: string }
   readonly mountOptions?: Am5Options
   /** The mount's declination before the first command (default 40). */
   readonly declination?: number
@@ -91,8 +91,8 @@ export const scenarios: ReadonlyArray<Scenario> = [
     source: 'derived',
     episode: 'No recorded camera failure (1,462 exposures all answered). Derived: the driver never answers an exposure.',
     tryThis: 'Start a capture on the primary camera.',
-    expect: 'The capture ends uncertain (no acknowledgement) and Vela shows the warning on the camera; the camera is not held and the next capture is accepted.',
-    outcome: { device: 'primary', kind: 'uncertain', reason: 'no-acknowledgement', held: false },
+    expect: 'The capture ends uncertain (no acknowledgement) and Vela shows the warning on the camera; the next capture is accepted.',
+    outcome: { device: 'primary', kind: 'uncertain', reason: 'no-acknowledgement' },
     wrap: next => ignoring(names.primary, 'CCD_EXPOSURE', next),
     drive: ({ cria }) => cria.run('primary', 'capture', { exposureSeconds: 1, light: true }),
   },
@@ -101,8 +101,8 @@ export const scenarios: ReadonlyArray<Scenario> = [
     source: 'derived',
     episode: 'No recorded focuser failure (63 moves all arrived). Derived: the move ends Ok 150 steps short of the target.',
     tryThis: 'Move the focuser to 31000 (or run an autofocus).',
-    expect: 'The move ends uncertain (not confirmed: "stopped at 31150, short of 31000"), the focuser warning shows, the focuser is not held.',
-    outcome: { device: 'focuser', kind: 'uncertain', reason: 'not-confirmed', held: false, message: 'Focuser stopped at 31150, short of 31000' },
+    expect: 'The move ends uncertain (not confirmed: "stopped at 31150, short of 31000"), the focuser warning shows, and the next move is accepted.',
+    outcome: { device: 'focuser', kind: 'uncertain', reason: 'not-confirmed', message: 'Focuser stopped at 31150, short of 31000' },
     eaf: { stopsShortBy: 150 },
     drive: ({ cria }) => cria.run('focuser', 'focuser-move', focusMove),
   },
@@ -111,8 +111,8 @@ export const scenarios: ReadonlyArray<Scenario> = [
     source: 'derived',
     episode: 'No recorded focuser failure. Derived: the driver never answers a move.',
     tryThis: 'Move the focuser to 31000.',
-    expect: 'The move ends uncertain (no acknowledgement) after Cria has sent an abort; the warning shows; the focuser is not held.',
-    outcome: { device: 'focuser', kind: 'uncertain', reason: 'no-acknowledgement', held: false },
+    expect: 'The move ends uncertain (no acknowledgement) after Cria has sent an abort; the warning shows; the next move is accepted.',
+    outcome: { device: 'focuser', kind: 'uncertain', reason: 'no-acknowledgement' },
     wrap: next => ignoring(names.focuser, 'ABS_FOCUS_POSITION', next),
     drive: ({ cria }) => cria.run('focuser', 'focuser-move', focusMove),
   },
@@ -121,8 +121,8 @@ export const scenarios: ReadonlyArray<Scenario> = [
     source: 'derived',
     episode: 'No recorded switch failure. Derived: the box acknowledges the write and keeps the old value (the recorded relative is the Pegasus dew duty being set back to 0 under auto dew).',
     tryThis: 'Switch the 12 V ports off (switch channel 0).',
-    expect: 'After 15 s the command ends uncertain (the driver still shows the old value), the switch warning shows, the switch is not held.',
-    outcome: { device: 'switch', kind: 'uncertain', reason: 'not-confirmed', held: false },
+    expect: 'After 15 s the command ends uncertain (the driver still shows the old value), the switch warning shows, and the next write is accepted.',
+    outcome: { device: 'switch', kind: 'uncertain', reason: 'not-confirmed' },
     wrap: next => (fake, vector, values) => (vector.name === 'POWER_CHANNELS' ? appliesNothing('POWER_CHANNELS')(fake, vector, values) : next(fake, vector, values)),
     drive: ({ cria }) => cria.run('switch', 'switch-set', { channelId: 0, value: 0 }),
   },
@@ -131,8 +131,8 @@ export const scenarios: ReadonlyArray<Scenario> = [
     source: 'derived',
     episode: 'No recorded weather failure; weather has no command but connect. Derived: the box never answers a connect.',
     tryThis: 'Connect the weather device.',
-    expect: 'The connect ends uncertain (no acknowledgement; the wait is 8 s here, 120 s on errai), the weather warning shows, the device is not held.',
-    outcome: { device: 'weather', kind: 'uncertain', reason: 'no-acknowledgement', held: false },
+    expect: 'The connect ends uncertain (no acknowledgement; the wait is 8 s here, 120 s on errai), the weather warning shows.',
+    outcome: { device: 'weather', kind: 'uncertain', reason: 'no-acknowledgement' },
     boxDisconnected: true,
     config: { initializeTimeoutMs: 8000 },
     wrap: next => ignoring(names.box, 'CONNECTION', next),
@@ -143,8 +143,8 @@ export const scenarios: ReadonlyArray<Scenario> = [
     source: 'recorded',
     episode: 'ZWO ASI220MM Mini, 2026-10-27: PHD2 looped 2 s exposures (1,027 frames) that Cria never asked for.',
     tryThis: 'Look at the guide camera while you capture on the primary camera.',
-    expect: 'A frame arrives on the guide camera every 2.75 s without a command; Cria ignores them, the primary capture confirms with its own image, nothing is held and no warning shows.',
-    outcome: { device: 'primary', kind: 'confirmed', reason: null, held: false },
+    expect: 'A frame arrives on the guide camera every 2.75 s without a command; Cria ignores them, the primary capture confirms with its own image, and no warning shows.',
+    outcome: { device: 'primary', kind: 'confirmed', reason: null },
     alongside: fake => void guideLoop(fake, names.guide),
     drive: ({ cria }) => cria.run('primary', 'capture', { exposureSeconds: 1, light: true }),
   },
@@ -153,8 +153,8 @@ export const scenarios: ReadonlyArray<Scenario> = [
     source: 'recorded',
     episode: 'ZWO AM5, 2026-10-26 and 2026-10-27: a stop during Home; the driver acknowledges the abort and leaves TELESCOPE_HOME Busy.',
     tryThis: 'Send the mount Home, then stop it a second later.',
-    expect: 'The home ends stopped once the mount stands still (about 2 s after the abort); the mount is not held.',
-    outcome: { device: 'mount', kind: 'stopped', reason: null, held: false },
+    expect: 'The home ends stopped once the mount stands still (about 2 s after the abort).',
+    outcome: { device: 'mount', kind: 'stopped', reason: null },
     drive: homeThenStop,
   },
   {
@@ -162,8 +162,8 @@ export const scenarios: ReadonlyArray<Scenario> = [
     source: 'recorded',
     episode: 'ZWO AM5, 2026-10-29 evening: power cut mid axis motion; serial errors every second, the stop answered Alert.',
     tryThis: 'Rotate the mount (mount-rotate, a few degrees at 9x). One second after the motion starts the fake mount loses power.',
-    expect: 'The rotate ends uncertain (stop not confirmed) after the stop has been sent repeatedly (five times on the night), and the mount is held until you clear it.',
-    outcome: { device: 'mount', kind: 'uncertain', reason: 'stop-not-confirmed', held: true },
+    expect: 'The rotate ends uncertain (stop not confirmed) after the stop has been sent repeatedly (five times on the night), and the next command is accepted.',
+    outcome: { device: 'mount', kind: 'uncertain', reason: 'stop-not-confirmed' },
     wrap: (next, rig) => {
       let armed = true
 
@@ -183,8 +183,8 @@ export const scenarios: ReadonlyArray<Scenario> = [
     source: 'recorded',
     episode: 'ZWO AM5, 2026-10-30 evening: at Home (Dec 90) an axis motion was answered Idle after 41 ms, never Busy.',
     tryThis: 'Rotate the mount (the fake mount starts at Home).',
-    expect: 'The rotate fails at once (rejected: "the driver answered Idle and did not start MOTION_EAST"); nothing was started, so nothing is stopped and the mount is not held. (Before that rule it ended uncertain after 5 s and held the mount.)',
-    outcome: { device: 'mount', kind: 'failed', reason: 'rejected', held: false },
+    expect: 'The rotate fails at once (rejected: "the driver answered Idle and did not start MOTION_EAST"); nothing was started, so nothing is stopped. (Before that rule it ended uncertain after 5 s.)',
+    outcome: { device: 'mount', kind: 'failed', reason: 'rejected' },
     mountOptions: { rotateIdleAtPole: true },
     declination: 90,
     drive: ({ cria }) => cria.run('mount', 'mount-rotate', { rateDegreesPerSecond: 720 * (15.041067 / 3600), distanceDegrees: 10 }),

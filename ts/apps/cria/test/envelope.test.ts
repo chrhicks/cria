@@ -47,7 +47,7 @@ describe('the configured stub before any command is sent', () => {
     await start(0, dec, 'east')
     const result = await slew(ha, dec)
 
-    expect(result).toMatchObject({ kind: 'failed', reason: 'invalid', quarantined: false })
+    expect(result).toMatchObject({ kind: 'failed', reason: 'invalid' })
     expect(result.message).toContain('west HA limit')
     expect(commands()).toEqual([])
   })
@@ -170,7 +170,7 @@ describe('gotos from the AM5 north-pole home', () => {
     fake.received.length = 0
     const result = await slew(0, 50)
 
-    expect(result).toMatchObject({ kind: 'failed', reason: 'invalid', quarantined: false })
+    expect(result).toMatchObject({ kind: 'failed', reason: 'invalid' })
     expect(result.message).toContain('Envelope')
     expect(commands()).toEqual([])
   })

@@ -35,8 +35,8 @@ update arrived. So skipping is made safe in the client, not left to liveness:
   property are named exactly as normal parsing names them (UTF-8, entities decoded), so the forgotten property is the
   one the mirror holds. What a command in flight then does is what the capability does with that `deleted` event, not
   one rule for all: an exposure that loses `CCD_EXPOSURE` before the camera has acknowledged it ends `uncertain`
-  (`driver-lost`) and the camera stays held. Lost after the camera went Busy, the exposure keeps waiting for its
-  frame; if none arrives it fails `unavailable` once the abort is confirmed, without quarantine (the camera is known
+  (`driver-lost`). Lost after the camera went Busy, the exposure keeps waiting for its
+  frame; if none arrives it fails `unavailable` once the abort is confirmed (the camera is known
   to be idle).
 - The driver is asked for the property again (`getProperties` for that device and name) each time a line is logged,
   so at most once a minute per distinct problem. A good answer restores the property. A driver that always sends the

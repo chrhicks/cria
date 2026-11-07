@@ -149,9 +149,6 @@
           "kind": "camera",
           "lastCommandedSetpointC": null,
           "name": "Fake CCD",
-          "quarantine": {
-            "held": false
-          },
           "readings": {
             "activity": {
               "observedAt": "<time>",
@@ -310,9 +307,6 @@
           "id": "mount",
           "kind": "mount",
           "name": "ZWO AM5",
-          "quarantine": {
-            "held": false
-          },
           "readings": {
             "canFindHome": {
               "observedAt": "<time>",
@@ -477,9 +471,6 @@
           "id": "focuser",
           "kind": "focuser",
           "name": "Fake Focuser",
-          "quarantine": {
-            "held": false
-          },
           "readings": {
             "absolute": {
               "observedAt": "<time>",
@@ -531,9 +522,6 @@
           "id": "weather",
           "kind": "weather",
           "name": "Fake PPB",
-          "quarantine": {
-            "held": false
-          },
           "readings": {
             "cloudCoverPercent": {
               "reason": "unsupported",
@@ -723,9 +711,6 @@
           "id": "switch",
           "kind": "switch",
           "name": "Fake PPB",
-          "quarantine": {
-            "held": false
-          },
           "readings": {
             "channelCount": {
               "observedAt": "<time>",
@@ -770,7 +755,6 @@
           "parameters": {
             "connected": true
           },
-          "recovery": null,
           "requestId": "startup-<request-1>",
           "settledAt": "<time>",
           "startedAt": "<time>",
@@ -799,9 +783,6 @@
           "kind": "camera",
           "lastCommandedSetpointC": null,
           "name": "Fake CCD",
-          "quarantine": {
-            "held": false
-          },
           "readings": {
             "activity": {
               "observedAt": "<time>",
@@ -960,9 +941,6 @@
           "id": "mount",
           "kind": "mount",
           "name": "ZWO AM5",
-          "quarantine": {
-            "held": false
-          },
           "readings": {
             "canFindHome": {
               "observedAt": "<time>",
@@ -1127,9 +1105,6 @@
           "id": "focuser",
           "kind": "focuser",
           "name": "Fake Focuser",
-          "quarantine": {
-            "held": false
-          },
           "readings": {
             "absolute": {
               "observedAt": "<time>",
@@ -1181,9 +1156,6 @@
           "id": "weather",
           "kind": "weather",
           "name": "Fake PPB",
-          "quarantine": {
-            "held": false
-          },
           "readings": {
             "cloudCoverPercent": {
               "reason": "unsupported",
@@ -1373,9 +1345,6 @@
           "id": "switch",
           "kind": "switch",
           "name": "Fake PPB",
-          "quarantine": {
-            "held": false
-          },
           "readings": {
             "channelCount": {
               "observedAt": "<time>",
@@ -1420,7 +1389,6 @@
           "parameters": {
             "connected": true
           },
-          "recovery": null,
           "requestId": "startup-<request-1>",
           "settledAt": "<time>",
           "startedAt": "<time>",
@@ -1519,7 +1487,6 @@
         "exposureSeconds": 0.1,
         "light": true
       },
-      "recovery": null,
       "requestId": "<request-1>",
       "settledAt": "<time>",
       "startedAt": "<time>",
@@ -1630,7 +1597,6 @@
         "frameType": "flat",
         "light": true
       },
-      "recovery": null,
       "requestId": "<request-1>",
       "settledAt": "<time>",
       "startedAt": "<time>",
@@ -1728,7 +1694,6 @@
         "frameType": "bias",
         "light": false
       },
-      "recovery": null,
       "requestId": "<request-2>",
       "settledAt": "<time>",
       "startedAt": "<time>",
@@ -1812,7 +1777,6 @@
         "height": 3,
         "width": 4
       },
-      "recovery": null,
       "requestId": "<request-1>",
       "settledAt": "<time>",
       "startedAt": "<time>",
@@ -1890,7 +1854,6 @@
         "binX": 2,
         "binY": 2
       },
-      "recovery": null,
       "requestId": "<request-1>",
       "settledAt": "<time>",
       "startedAt": "<time>",
@@ -1956,7 +1919,6 @@
       "parameters": {
         "width": 3
       },
-      "recovery": null,
       "requestId": "<request-1>",
       "settledAt": "<time>",
       "startedAt": "<time>",
@@ -2026,7 +1988,6 @@
       "parameters": {
         "setpointC": -10
       },
-      "recovery": null,
       "requestId": "<request-1>",
       "settledAt": "<time>",
       "startedAt": "<time>",
@@ -2054,9 +2015,6 @@
             "value": -10
           },
           "name": "Fake CCD",
-          "quarantine": {
-            "held": false
-          },
           "readings": {
             "activity": {
               "observedAt": "<time>",
@@ -2231,7 +2189,6 @@
           "parameters": {
             "setpointC": -10
           },
-          "recovery": null,
           "requestId": "<request-1>",
           "settledAt": "<time>",
           "startedAt": "<time>",
@@ -2311,7 +2268,6 @@
         "minPosition": 1,
         "position": 1500
       },
-      "recovery": null,
       "requestId": "<request-1>",
       "settledAt": "<time>",
       "startedAt": "<time>",
@@ -2375,7 +2331,6 @@
         }
       },
       "parameters": {},
-      "recovery": null,
       "requestId": "<request-1>",
       "settledAt": "<time>",
       "startedAt": "<time>",
@@ -2475,7 +2430,6 @@
         }
       },
       "parameters": {},
-      "recovery": null,
       "requestId": "<request-2>",
       "settledAt": "<time>",
       "startedAt": "<time>",
@@ -2504,7 +2458,6 @@
         "minPosition": 1,
         "position": 1500
       },
-      "recovery": null,
       "requestId": "<request-1>",
       "settledAt": "<time>",
       "startedAt": "<time>",
@@ -2609,7 +2562,6 @@
         "declinationDegrees": 10,
         "rightAscensionDegrees": 120
       },
-      "recovery": null,
       "requestId": "<request-1>",
       "settledAt": "<time>",
       "startedAt": "<time>",
@@ -2679,7 +2631,6 @@
       "parameters": {
         "tracking": true
       },
-      "recovery": null,
       "requestId": "<request-1>",
       "settledAt": "<time>",
       "startedAt": "<time>",
@@ -2781,7 +2732,6 @@
         "durationSeconds": 0.2,
         "rateDegreesPerSecond": 0.008356148333333334
       },
-      "recovery": null,
       "requestId": "<request-1>",
       "settledAt": "<time>",
       "startedAt": "<time>",
@@ -2850,7 +2800,6 @@
         "durationSeconds": 0.2,
         "rateDegreesPerSecond": 0.05
       },
-      "recovery": null,
       "requestId": "<request-1>",
       "settledAt": "<time>",
       "startedAt": "<time>",
@@ -2953,7 +2902,6 @@
         "distanceDegrees": 1,
         "rateDegreesPerSecond": 0.25068445
       },
-      "recovery": null,
       "requestId": "<request-1>",
       "settledAt": "<time>",
       "startedAt": "<time>",
@@ -3056,7 +3004,6 @@
         "distanceDegrees": 1,
         "rateDegreesPerSecond": 6.0164268000000005
       },
-      "recovery": null,
       "requestId": "<request-1>",
       "settledAt": "<time>",
       "startedAt": "<time>",
@@ -3142,7 +3089,6 @@
         }
       },
       "parameters": {},
-      "recovery": null,
       "requestId": "<request-1>",
       "settledAt": "<time>",
       "startedAt": "<time>",
@@ -3228,7 +3174,6 @@
         }
       },
       "parameters": {},
-      "recovery": null,
       "requestId": "<request-1>",
       "settledAt": "<time>",
       "startedAt": "<time>",
@@ -3290,7 +3235,6 @@
         }
       },
       "parameters": {},
-      "recovery": null,
       "requestId": "<request-2>",
       "settledAt": "<time>",
       "startedAt": "<time>",
@@ -3376,7 +3320,6 @@
         }
       },
       "parameters": {},
-      "recovery": null,
       "requestId": "<request-1>",
       "settledAt": "<time>",
       "startedAt": "<time>",
@@ -3462,7 +3405,6 @@
         }
       },
       "parameters": {},
-      "recovery": null,
       "requestId": "<request-2>",
       "settledAt": "<time>",
       "startedAt": "<time>",
@@ -3584,7 +3526,6 @@
         }
       },
       "parameters": {},
-      "recovery": null,
       "requestId": "<request-2>",
       "settledAt": "<time>",
       "startedAt": "<time>",
@@ -3641,7 +3582,6 @@
         "declinationDegrees": 10,
         "rightAscensionDegrees": 120
       },
-      "recovery": null,
       "requestId": "<request-1>",
       "settledAt": "<time>",
       "startedAt": "<time>",
@@ -3713,7 +3653,6 @@
         "declinationDegrees": 10,
         "rightAscensionDegrees": 120
       },
-      "recovery": null,
       "requestId": "<request-1>",
       "settledAt": "<time>",
       "startedAt": "<time>",
@@ -3747,7 +3686,6 @@
       "parameters": {
         "connected": true
       },
-      "recovery": null,
       "requestId": "startup-<request-1>",
       "settledAt": "<time>",
       "startedAt": "<time>",
@@ -3852,7 +3790,6 @@
         "declinationDegrees": 10,
         "rightAscensionDegrees": 120
       },
-      "recovery": null,
       "requestId": "<request-2>",
       "settledAt": "<time>",
       "startedAt": "<time>",
@@ -3974,7 +3911,6 @@
         }
       },
       "parameters": {},
-      "recovery": null,
       "requestId": "<request-2>",
       "settledAt": "<time>",
       "startedAt": "<time>",
@@ -4031,7 +3967,6 @@
         "declinationDegrees": 10,
         "rightAscensionDegrees": 120
       },
-      "recovery": null,
       "requestId": "<request-1>",
       "settledAt": "<time>",
       "startedAt": "<time>",
@@ -4185,7 +4120,6 @@
         "declinationDegrees": 10,
         "rightAscensionDegrees": 120
       },
-      "recovery": null,
       "requestId": "<request-1>",
       "settledAt": "<time>",
       "startedAt": "<time>",
@@ -4238,7 +4172,6 @@
         }
       },
       "parameters": {},
-      "recovery": null,
       "requestId": "<request-2>",
       "settledAt": "<time>",
       "startedAt": "<time>",
@@ -4291,295 +4224,10 @@
         }
       },
       "parameters": {},
-      "recovery": null,
       "requestId": "<request-3>",
       "settledAt": "<time>",
       "startedAt": "<time>",
       "state": "settled"
-    }
-  },
-  {
-    "scenario": "recover refused while a mount-stop runs",
-    "step": 1,
-    "request": "POST /v2/operations",
-    "sent": {
-      "bindingId": "<binding-1>",
-      "deviceId": "mount",
-      "expectedName": "ZWO AM5",
-      "instanceId": "<instance-1>",
-      "kind": "mount-stop",
-      "parameters": {},
-      "requestId": "<request-1>"
-    },
-    "status": 202,
-    "body": {
-      "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
-      "deviceId": "mount",
-      "expectedName": "ZWO AM5",
-      "failureDomain": "zwo-am5",
-      "id": "<operation-1>",
-      "instanceId": "<instance-1>",
-      "kind": "mount-stop",
-      "parameters": {},
-      "progress": {
-        "elapsedSeconds": null,
-        "phase": "preparing"
-      },
-      "requestId": "<request-1>",
-      "startedAt": "<time>",
-      "state": "running"
-    }
-  },
-  {
-    "scenario": "recover refused while a mount-stop runs",
-    "step": 2,
-    "request": "POST /v2/devices/mount/recover",
-    "sent": {
-      "bindingId": "<binding-1>",
-      "externalRecoveryConfirmed": true,
-      "instanceId": "<instance-1>",
-      "note": "checked"
-    },
-    "status": 409,
-    "body": {
-      "error": {
-        "code": "device-busy",
-        "message": "An operation is still open on this device; recover it once that settles"
-      },
-      "instanceId": "<instance-1>"
-    }
-  },
-  {
-    "scenario": "recover refused while a mount-stop runs",
-    "step": 3,
-    "request": "GET /v2/operations/<operation-1>",
-    "status": 200,
-    "body": {
-      "acceptedAt": "<time>",
-      "bindingId": "<binding-1>",
-      "deviceId": "mount",
-      "expectedName": "ZWO AM5",
-      "failureDomain": "zwo-am5",
-      "id": "<operation-1>",
-      "instanceId": "<instance-1>",
-      "kind": "mount-stop",
-      "motion": {
-        "commanded": {
-          "kind": "stop",
-          "sentAt": "<time>"
-        },
-        "observed": {
-          "from": {
-            "declinationDegrees": "<angle>",
-            "rightAscensionDegrees": "<angle>"
-          },
-          "to": {
-            "declinationDegrees": "<angle>",
-            "rightAscensionDegrees": "<angle>"
-          },
-          "travel": {
-            "declinationDegrees": "<angle>",
-            "rightAscensionDegrees": "<angle>"
-          }
-        },
-        "stopped": {
-          "at": "<time>",
-          "how": "aborted"
-        }
-      },
-      "outcome": {
-        "kind": "confirmed",
-        "value": {
-          "image": null,
-          "values": {}
-        }
-      },
-      "parameters": {},
-      "recovery": null,
-      "requestId": "<request-1>",
-      "settledAt": "<time>",
-      "startedAt": "<time>",
-      "state": "settled"
-    }
-  },
-  {
-    "scenario": "recover refused while a mount-stop runs",
-    "step": 4,
-    "request": "POST /v2/devices/mount/recover",
-    "sent": {
-      "bindingId": "<binding-1>",
-      "externalRecoveryConfirmed": true,
-      "instanceId": "<instance-1>",
-      "note": "checked"
-    },
-    "status": 200,
-    "body": {
-      "availability": {
-        "ready": true
-      },
-      "bindingId": "<binding-2>",
-      "failureDomain": "zwo-am5",
-      "id": "mount",
-      "kind": "mount",
-      "name": "ZWO AM5",
-      "quarantine": {
-        "held": false
-      },
-      "readings": {
-        "canFindHome": {
-          "observedAt": "<time>",
-          "status": "stale",
-          "value": true
-        },
-        "canMovePrimaryAxis": {
-          "observedAt": "<time>",
-          "status": "stale",
-          "value": true
-        },
-        "canPark": {
-          "observedAt": "<time>",
-          "status": "stale",
-          "value": true
-        },
-        "canSetTracking": {
-          "observedAt": "<time>",
-          "status": "stale",
-          "value": true
-        },
-        "canSlew": {
-          "observedAt": "<time>",
-          "status": "stale",
-          "value": true
-        },
-        "canUnpark": {
-          "observedAt": "<time>",
-          "status": "stale",
-          "value": true
-        },
-        "connected": {
-          "observedAt": "<time>",
-          "status": "fresh",
-          "value": true
-        },
-        "coordinateSystem": {
-          "observedAt": "<time>",
-          "status": "stale",
-          "value": "topocentric"
-        },
-        "declinationDegrees": {
-          "observedAt": "<time>",
-          "status": "fresh",
-          "value": 40
-        },
-        "declinationRateArcsecondsPerSecond": {
-          "reason": "not-read",
-          "status": "unavailable"
-        },
-        "elevationMeters": {
-          "observedAt": "<time>",
-          "status": "fresh",
-          "value": 331
-        },
-        "latitudeDegrees": {
-          "observedAt": "<time>",
-          "status": "fresh",
-          "value": 33.45
-        },
-        "longitudeDegrees": {
-          "observedAt": "<time>",
-          "status": "fresh",
-          "value": -112.07
-        },
-        "name": {
-          "observedAt": "<time>",
-          "status": "fresh",
-          "value": "ZWO AM5"
-        },
-        "parked": {
-          "observedAt": "<time>",
-          "status": "fresh",
-          "value": false
-        },
-        "pierSide": {
-          "reason": "not-read",
-          "status": "unavailable"
-        },
-        "primaryAxisRates": {
-          "observedAt": "<time>",
-          "status": "fresh",
-          "value": [
-            {
-              "degreesPerSecond": 0.0010445185416666667,
-              "name": "1x"
-            },
-            {
-              "degreesPerSecond": 0.0020890370833333335,
-              "name": "2x"
-            },
-            {
-              "degreesPerSecond": 0.004178074166666667,
-              "name": "3x"
-            },
-            {
-              "degreesPerSecond": 0.008356148333333334,
-              "name": "4x"
-            },
-            {
-              "degreesPerSecond": 0.016712296666666668,
-              "name": "5x"
-            },
-            {
-              "degreesPerSecond": 0.033424593333333336,
-              "name": "6x"
-            },
-            {
-              "degreesPerSecond": 0.08356148333333334,
-              "name": "7x"
-            },
-            {
-              "degreesPerSecond": 0.25068445,
-              "name": "8x"
-            },
-            {
-              "degreesPerSecond": 3.0082134000000003,
-              "name": "9x"
-            },
-            {
-              "degreesPerSecond": 6.0164268000000005,
-              "name": "10x"
-            }
-          ]
-        },
-        "rightAscensionHours": {
-          "observedAt": "<time>",
-          "status": "fresh",
-          "value": 2
-        },
-        "rightAscensionRateSecondsPerSiderealSecond": {
-          "reason": "not-read",
-          "status": "unavailable"
-        },
-        "siderealTimeHours": {
-          "observedAt": "<time>",
-          "status": "fresh",
-          "value": 6.5
-        },
-        "slewing": {
-          "observedAt": "<time>",
-          "status": "fresh",
-          "value": false
-        },
-        "tracking": {
-          "observedAt": "<time>",
-          "status": "fresh",
-          "value": false
-        },
-        "trackingRate": {
-          "reason": "not-read",
-          "status": "unavailable"
-        }
-      }
     }
   },
   {
@@ -4648,7 +4296,6 @@
         "channelId": 0,
         "value": 0
       },
-      "recovery": null,
       "requestId": "<request-1>",
       "settledAt": "<time>",
       "startedAt": "<time>",
@@ -4721,7 +4368,6 @@
         "channelId": 1,
         "value": 40
       },
-      "recovery": null,
       "requestId": "<request-2>",
       "settledAt": "<time>",
       "startedAt": "<time>",
@@ -4790,7 +4436,6 @@
         "channelId": 1,
         "value": 40
       },
-      "recovery": null,
       "requestId": "<request-1>",
       "settledAt": "<time>",
       "startedAt": "<time>",
@@ -4860,7 +4505,6 @@
       "parameters": {
         "connected": false
       },
-      "recovery": null,
       "requestId": "<request-1>",
       "settledAt": "<time>",
       "startedAt": "<time>",
@@ -4930,7 +4574,6 @@
       "parameters": {
         "connected": true
       },
-      "recovery": null,
       "requestId": "<request-2>",
       "settledAt": "<time>",
       "startedAt": "<time>",
@@ -5024,7 +4667,6 @@
         "exposureSeconds": 60,
         "light": true
       },
-      "recovery": null,
       "requestId": "<request-1>",
       "settledAt": "<time>",
       "startedAt": "<time>",
@@ -5052,7 +4694,6 @@
         "exposureSeconds": 60,
         "light": true
       },
-      "recovery": null,
       "requestId": "<request-1>",
       "settledAt": "<time>",
       "startedAt": "<time>",
@@ -5167,9 +4808,6 @@
           "kind": "camera",
           "lastCommandedSetpointC": null,
           "name": "Fake CCD",
-          "quarantine": {
-            "held": false
-          },
           "readings": {
             "activity": {
               "observedAt": "<time>",
@@ -5628,7 +5266,7 @@
     }
   },
   {
-    "scenario": "refused: unknown operation, request and device",
+    "scenario": "refused: unknown operation and request",
     "step": 1,
     "request": "GET /v2/operations/<id-1>",
     "status": 404,
@@ -5641,7 +5279,7 @@
     }
   },
   {
-    "scenario": "refused: unknown operation, request and device",
+    "scenario": "refused: unknown operation and request",
     "step": 2,
     "request": "POST /v2/operations/<id-2>/cancel",
     "status": 404,
@@ -5654,7 +5292,7 @@
     }
   },
   {
-    "scenario": "refused: unknown operation, request and device",
+    "scenario": "refused: unknown operation and request",
     "step": 3,
     "request": "GET /v2/requests/<instance-1>/never-sent",
     "status": 404,
@@ -5662,25 +5300,6 @@
       "error": {
         "code": "not-found",
         "message": "No such request"
-      },
-      "instanceId": "<instance-1>"
-    }
-  },
-  {
-    "scenario": "refused: unknown operation, request and device",
-    "step": 4,
-    "request": "POST /v2/devices/nowhere/recover",
-    "sent": {
-      "bindingId": "<binding-1>",
-      "externalRecoveryConfirmed": true,
-      "instanceId": "<instance-1>",
-      "note": "checked"
-    },
-    "status": 404,
-    "body": {
-      "error": {
-        "code": "not-found",
-        "message": "No device nowhere"
       },
       "instanceId": "<instance-1>"
     }
@@ -5762,7 +5381,6 @@
         "height": 3,
         "width": 4
       },
-      "recovery": null,
       "requestId": "<request-1>",
       "settledAt": "<time>",
       "startedAt": "<time>",
@@ -5817,7 +5435,6 @@
         "height": 3,
         "width": 4
       },
-      "recovery": null,
       "requestId": "<request-1>",
       "settledAt": "<time>",
       "startedAt": "<time>",
@@ -5885,7 +5502,6 @@
         "height": 3,
         "width": 4
       },
-      "recovery": null,
       "requestId": "<request-1>",
       "settledAt": "<time>",
       "startedAt": "<time>",
@@ -5958,7 +5574,6 @@
         "channelId": 1,
         "value": 1
       },
-      "recovery": null,
       "requestId": "<request-1>",
       "settledAt": "<time>",
       "startedAt": "<time>",
@@ -6104,7 +5719,6 @@
         "exposureSeconds": 0.05,
         "light": true
       },
-      "recovery": null,
       "requestId": "<request-1>",
       "settledAt": "<time>",
       "startedAt": "<time>",
@@ -6199,7 +5813,6 @@
         "exposureSeconds": 0.05,
         "light": false
       },
-      "recovery": null,
       "requestId": "<request-2>",
       "settledAt": "<time>",
       "startedAt": "<time>",
@@ -6246,7 +5859,7 @@
     }
   },
   {
-    "scenario": "no acknowledgement: uncertain, the camera is not held, the next capture runs, a recovery is still accepted",
+    "scenario": "no acknowledgement: uncertain, the next capture runs",
     "step": 1,
     "request": "POST /v2/operations",
     "sent": {
@@ -6285,7 +5898,7 @@
     }
   },
   {
-    "scenario": "no acknowledgement: uncertain, the camera is not held, the next capture runs, a recovery is still accepted",
+    "scenario": "no acknowledgement: uncertain, the next capture runs",
     "step": 2,
     "request": "GET /v2/operations/<operation-1>",
     "status": 200,
@@ -6307,7 +5920,6 @@
         "exposureSeconds": 1,
         "light": true
       },
-      "recovery": null,
       "requestId": "<request-1>",
       "settledAt": "<time>",
       "startedAt": "<time>",
@@ -6315,7 +5927,7 @@
     }
   },
   {
-    "scenario": "no acknowledgement: uncertain, the camera is not held, the next capture runs, a recovery is still accepted",
+    "scenario": "no acknowledgement: uncertain, the next capture runs",
     "step": 3,
     "request": "GET /v2/state",
     "status": 200,
@@ -6332,9 +5944,6 @@
           "kind": "camera",
           "lastCommandedSetpointC": null,
           "name": "Fake CCD",
-          "quarantine": {
-            "held": false
-          },
           "readings": {
             "activity": {
               "observedAt": "<time>",
@@ -6506,7 +6115,6 @@
             "exposureSeconds": 1,
             "light": true
           },
-          "recovery": null,
           "requestId": "<request-1>",
           "settledAt": "<time>",
           "startedAt": "<time>",
@@ -6518,7 +6126,7 @@
     }
   },
   {
-    "scenario": "no acknowledgement: uncertain, the camera is not held, the next capture runs, a recovery is still accepted",
+    "scenario": "no acknowledgement: uncertain, the next capture runs",
     "step": 4,
     "request": "POST /v2/operations",
     "sent": {
@@ -6557,7 +6165,7 @@
     }
   },
   {
-    "scenario": "no acknowledgement: uncertain, the camera is not held, the next capture runs, a recovery is still accepted",
+    "scenario": "no acknowledgement: uncertain, the next capture runs",
     "step": 5,
     "request": "GET /v2/operations/<operation-2>",
     "status": 200,
@@ -6605,7 +6213,6 @@
         "exposureSeconds": 0.05,
         "light": true
       },
-      "recovery": null,
       "requestId": "<request-2>",
       "settledAt": "<time>",
       "startedAt": "<time>",
@@ -6613,239 +6220,8 @@
     }
   },
   {
-    "scenario": "no acknowledgement: uncertain, the camera is not held, the next capture runs, a recovery is still accepted",
+    "scenario": "no acknowledgement: uncertain, the next capture runs",
     "step": 6,
-    "request": "POST /v2/devices/camera/recover",
-    "sent": {
-      "bindingId": "<binding-2>",
-      "externalRecoveryConfirmed": true,
-      "instanceId": "<instance-1>",
-      "note": "checked"
-    },
-    "status": 409,
-    "body": {
-      "error": {
-        "code": "binding-changed",
-        "message": "The device binding changed"
-      },
-      "instanceId": "<instance-1>"
-    }
-  },
-  {
-    "scenario": "no acknowledgement: uncertain, the camera is not held, the next capture runs, a recovery is still accepted",
-    "step": 7,
-    "request": "POST /v2/devices/camera/recover",
-    "sent": {
-      "bindingId": "<binding-1>",
-      "externalRecoveryConfirmed": true,
-      "instanceId": "<instance-2>",
-      "note": "checked"
-    },
-    "status": 409,
-    "body": {
-      "error": {
-        "code": "instance-changed",
-        "message": "Cria restarted"
-      },
-      "instanceId": "<instance-1>"
-    }
-  },
-  {
-    "scenario": "no acknowledgement: uncertain, the camera is not held, the next capture runs, a recovery is still accepted",
-    "step": 8,
-    "request": "POST /v2/devices/camera/recover",
-    "sent": {
-      "bindingId": "<binding-1>",
-      "externalRecoveryConfirmed": false,
-      "instanceId": "<instance-1>",
-      "note": "checked"
-    },
-    "status": 400,
-    "body": {
-      "error": {
-        "code": "request-error",
-        "message": "Expected true\n  at [\"externalRecoveryConfirmed\"]"
-      },
-      "instanceId": "<instance-1>"
-    }
-  },
-  {
-    "scenario": "no acknowledgement: uncertain, the camera is not held, the next capture runs, a recovery is still accepted",
-    "step": 9,
-    "request": "POST /v2/devices/camera/recover",
-    "sent": {
-      "bindingId": "<binding-1>",
-      "externalRecoveryConfirmed": true,
-      "instanceId": "<instance-1>",
-      "note": "Chris checked the camera: idle"
-    },
-    "status": 200,
-    "body": {
-      "availability": {
-        "ready": true
-      },
-      "bindingId": "<binding-3>",
-      "failureDomain": "fake-ccd",
-      "id": "camera",
-      "kind": "camera",
-      "lastCommandedSetpointC": null,
-      "name": "Fake CCD",
-      "quarantine": {
-        "held": false
-      },
-      "readings": {
-        "activity": {
-          "observedAt": "<time>",
-          "status": "fresh",
-          "value": "idle"
-        },
-        "bayerPattern": {
-          "observedAt": "<time>",
-          "status": "fresh",
-          "value": "grbg"
-        },
-        "binX": {
-          "observedAt": "<time>",
-          "status": "fresh",
-          "value": 1
-        },
-        "binY": {
-          "observedAt": "<time>",
-          "status": "fresh",
-          "value": 1
-        },
-        "canAbortExposure": {
-          "observedAt": "<time>",
-          "status": "fresh",
-          "value": true
-        },
-        "canGetCoolerPower": {
-          "observedAt": "<time>",
-          "status": "fresh",
-          "value": false
-        },
-        "canSetTemperature": {
-          "observedAt": "<time>",
-          "status": "fresh",
-          "value": true
-        },
-        "connected": {
-          "observedAt": "<time>",
-          "status": "fresh",
-          "value": true
-        },
-        "coolerOn": {
-          "reason": "not-read",
-          "status": "unavailable"
-        },
-        "coolerPowerPercent": {
-          "reason": "not-read",
-          "status": "unavailable"
-        },
-        "exposureMaximum": {
-          "observedAt": "<time>",
-          "status": "fresh",
-          "value": 3600
-        },
-        "exposureMinimum": {
-          "observedAt": "<time>",
-          "status": "fresh",
-          "value": 0.001
-        },
-        "gain": {
-          "reason": "not-read",
-          "status": "unavailable"
-        },
-        "gainMaximum": {
-          "reason": "not-read",
-          "status": "unavailable"
-        },
-        "gainMinimum": {
-          "reason": "not-read",
-          "status": "unavailable"
-        },
-        "height": {
-          "observedAt": "<time>",
-          "status": "fresh",
-          "value": 6
-        },
-        "maxBinX": {
-          "observedAt": "<time>",
-          "status": "fresh",
-          "value": 4
-        },
-        "maxBinY": {
-          "observedAt": "<time>",
-          "status": "fresh",
-          "value": 4
-        },
-        "name": {
-          "observedAt": "<time>",
-          "status": "fresh",
-          "value": "Fake CCD"
-        },
-        "offset": {
-          "reason": "not-read",
-          "status": "unavailable"
-        },
-        "offsetMaximum": {
-          "reason": "not-read",
-          "status": "unavailable"
-        },
-        "offsetMinimum": {
-          "reason": "not-read",
-          "status": "unavailable"
-        },
-        "pixelHeightMicrons": {
-          "observedAt": "<time>",
-          "status": "fresh",
-          "value": 3.76
-        },
-        "pixelWidthMicrons": {
-          "observedAt": "<time>",
-          "status": "fresh",
-          "value": 3.76
-        },
-        "sensorHeightPixels": {
-          "observedAt": "<time>",
-          "status": "fresh",
-          "value": 6
-        },
-        "sensorWidthPixels": {
-          "observedAt": "<time>",
-          "status": "fresh",
-          "value": 8
-        },
-        "setpointC": {
-          "reason": "unsupported",
-          "status": "unavailable"
-        },
-        "startX": {
-          "observedAt": "<time>",
-          "status": "fresh",
-          "value": 0
-        },
-        "startY": {
-          "observedAt": "<time>",
-          "status": "fresh",
-          "value": 0
-        },
-        "temperatureC": {
-          "observedAt": "<time>",
-          "status": "fresh",
-          "value": 20
-        },
-        "width": {
-          "observedAt": "<time>",
-          "status": "fresh",
-          "value": 8
-        }
-      }
-    }
-  },
-  {
-    "scenario": "no acknowledgement: uncertain, the camera is not held, the next capture runs, a recovery is still accepted",
-    "step": 10,
     "request": "GET /v2/operations/<operation-1>",
     "status": 200,
     "body": {
@@ -6865,10 +6241,6 @@
       "parameters": {
         "exposureSeconds": 1,
         "light": true
-      },
-      "recovery": {
-        "at": "<time>",
-        "note": "Chris checked the camera: idle"
       },
       "requestId": "<request-1>",
       "settledAt": "<time>",
@@ -6894,9 +6266,6 @@
           "kind": "camera",
           "lastCommandedSetpointC": null,
           "name": "Fake CCD",
-          "quarantine": {
-            "held": false
-          },
           "readings": {
             "activity": {
               "observedAt": "<time>",
@@ -7055,9 +6424,6 @@
           "id": "focuser",
           "kind": "focuser",
           "name": "Fake Focuser",
-          "quarantine": {
-            "held": false
-          },
           "readings": {
             "absolute": {
               "observedAt": "<time>",
@@ -7127,9 +6493,6 @@
           "kind": "camera",
           "lastCommandedSetpointC": null,
           "name": "Fake CCD",
-          "quarantine": {
-            "held": false
-          },
           "readings": {
             "activity": {
               "observedAt": "<time>",
@@ -7288,9 +6651,6 @@
           "id": "focuser",
           "kind": "focuser",
           "name": "Fake Focuser",
-          "quarantine": {
-            "held": false
-          },
           "readings": {
             "absolute": {
               "observedAt": "<time>",
@@ -7359,9 +6719,6 @@
           "kind": "camera",
           "lastCommandedSetpointC": null,
           "name": "Fake CCD",
-          "quarantine": {
-            "held": false
-          },
           "readings": {
             "activity": {
               "observedAt": "<time>",
@@ -7520,9 +6877,6 @@
           "id": "focuser",
           "kind": "focuser",
           "name": "Fake Focuser",
-          "quarantine": {
-            "held": false
-          },
           "readings": {
             "absolute": {
               "observedAt": "<time>",

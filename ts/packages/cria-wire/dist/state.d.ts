@@ -19,15 +19,8 @@ export declare const State: Schema.Struct<{
             readonly ready: Schema.Literal<true>;
         }>, Schema.Struct<{
             readonly ready: Schema.Literal<false>;
-            readonly reason: Schema.Literals<readonly ["commands-disabled", "blocked", "unavailable", "starting", "disconnected", "stale", "busy"]>;
+            readonly reason: Schema.Literals<readonly ["commands-disabled", "unavailable", "starting", "disconnected", "stale", "busy"]>;
             readonly message: Schema.String;
-        }>]>;
-        readonly quarantine: Schema.Union<readonly [Schema.Struct<{
-            readonly held: Schema.Literal<false>;
-        }>, Schema.Struct<{
-            readonly held: Schema.Literal<true>;
-            readonly reason: Schema.String;
-            readonly since: Schema.Number;
         }>]>;
         readonly kind: Schema.Literal<"camera">;
         readonly readings: Schema.Struct<{
@@ -448,15 +441,8 @@ export declare const State: Schema.Struct<{
             readonly ready: Schema.Literal<true>;
         }>, Schema.Struct<{
             readonly ready: Schema.Literal<false>;
-            readonly reason: Schema.Literals<readonly ["commands-disabled", "blocked", "unavailable", "starting", "disconnected", "stale", "busy"]>;
+            readonly reason: Schema.Literals<readonly ["commands-disabled", "unavailable", "starting", "disconnected", "stale", "busy"]>;
             readonly message: Schema.String;
-        }>]>;
-        readonly quarantine: Schema.Union<readonly [Schema.Struct<{
-            readonly held: Schema.Literal<false>;
-        }>, Schema.Struct<{
-            readonly held: Schema.Literal<true>;
-            readonly reason: Schema.String;
-            readonly since: Schema.Number;
         }>]>;
         readonly kind: Schema.Literal<"mount">;
         readonly readings: Schema.Struct<{
@@ -775,15 +761,8 @@ export declare const State: Schema.Struct<{
             readonly ready: Schema.Literal<true>;
         }>, Schema.Struct<{
             readonly ready: Schema.Literal<false>;
-            readonly reason: Schema.Literals<readonly ["commands-disabled", "blocked", "unavailable", "starting", "disconnected", "stale", "busy"]>;
+            readonly reason: Schema.Literals<readonly ["commands-disabled", "unavailable", "starting", "disconnected", "stale", "busy"]>;
             readonly message: Schema.String;
-        }>]>;
-        readonly quarantine: Schema.Union<readonly [Schema.Struct<{
-            readonly held: Schema.Literal<false>;
-        }>, Schema.Struct<{
-            readonly held: Schema.Literal<true>;
-            readonly reason: Schema.String;
-            readonly since: Schema.Number;
         }>]>;
         readonly kind: Schema.Literal<"focuser">;
         readonly readings: Schema.Struct<{
@@ -901,15 +880,8 @@ export declare const State: Schema.Struct<{
             readonly ready: Schema.Literal<true>;
         }>, Schema.Struct<{
             readonly ready: Schema.Literal<false>;
-            readonly reason: Schema.Literals<readonly ["commands-disabled", "blocked", "unavailable", "starting", "disconnected", "stale", "busy"]>;
+            readonly reason: Schema.Literals<readonly ["commands-disabled", "unavailable", "starting", "disconnected", "stale", "busy"]>;
             readonly message: Schema.String;
-        }>]>;
-        readonly quarantine: Schema.Union<readonly [Schema.Struct<{
-            readonly held: Schema.Literal<false>;
-        }>, Schema.Struct<{
-            readonly held: Schema.Literal<true>;
-            readonly reason: Schema.String;
-            readonly since: Schema.Number;
         }>]>;
         readonly kind: Schema.Literal<"weather">;
         readonly readings: Schema.Struct<{
@@ -1066,15 +1038,8 @@ export declare const State: Schema.Struct<{
             readonly ready: Schema.Literal<true>;
         }>, Schema.Struct<{
             readonly ready: Schema.Literal<false>;
-            readonly reason: Schema.Literals<readonly ["commands-disabled", "blocked", "unavailable", "starting", "disconnected", "stale", "busy"]>;
+            readonly reason: Schema.Literals<readonly ["commands-disabled", "unavailable", "starting", "disconnected", "stale", "busy"]>;
             readonly message: Schema.String;
-        }>]>;
-        readonly quarantine: Schema.Union<readonly [Schema.Struct<{
-            readonly held: Schema.Literal<false>;
-        }>, Schema.Struct<{
-            readonly held: Schema.Literal<true>;
-            readonly reason: Schema.String;
-            readonly since: Schema.Number;
         }>]>;
         readonly kind: Schema.Literal<"switch">;
         readonly readings: Schema.Struct<{
@@ -1597,7 +1562,7 @@ export declare const State: Schema.Struct<{
             }>;
         }>, Schema.Struct<{
             readonly kind: Schema.Literal<"failed">;
-            readonly reason: Schema.Literals<readonly ["busy", "blocked", "disconnected", "unsupported", "rejected", "invalid", "unavailable"]>;
+            readonly reason: Schema.Literals<readonly ["busy", "disconnected", "unsupported", "rejected", "invalid", "unavailable"]>;
             readonly message: Schema.String;
         }>, Schema.Struct<{
             readonly kind: Schema.Literal<"stopped">;
@@ -1648,10 +1613,6 @@ export declare const State: Schema.Struct<{
                 readonly reason: Schema.optionalKey<Schema.String>;
                 readonly at: Schema.NullOr<Schema.Number>;
             }>;
-        }>>;
-        recovery: Schema.NullOr<Schema.Struct<{
-            readonly at: Schema.Number;
-            readonly note: Schema.String;
         }>>;
     }> | Schema.Struct<{
         kind: Schema.Literal<"capture">;
@@ -1704,7 +1665,7 @@ export declare const State: Schema.Struct<{
             }>;
         }>, Schema.Struct<{
             readonly kind: Schema.Literal<"failed">;
-            readonly reason: Schema.Literals<readonly ["busy", "blocked", "disconnected", "unsupported", "rejected", "invalid", "unavailable"]>;
+            readonly reason: Schema.Literals<readonly ["busy", "disconnected", "unsupported", "rejected", "invalid", "unavailable"]>;
             readonly message: Schema.String;
         }>, Schema.Struct<{
             readonly kind: Schema.Literal<"stopped">;
@@ -1755,10 +1716,6 @@ export declare const State: Schema.Struct<{
                 readonly reason: Schema.optionalKey<Schema.String>;
                 readonly at: Schema.NullOr<Schema.Number>;
             }>;
-        }>>;
-        recovery: Schema.NullOr<Schema.Struct<{
-            readonly at: Schema.Number;
-            readonly note: Schema.String;
         }>>;
     }> | Schema.Struct<{
         kind: Schema.Literal<"cooling">;
@@ -1809,7 +1766,7 @@ export declare const State: Schema.Struct<{
             }>;
         }>, Schema.Struct<{
             readonly kind: Schema.Literal<"failed">;
-            readonly reason: Schema.Literals<readonly ["busy", "blocked", "disconnected", "unsupported", "rejected", "invalid", "unavailable"]>;
+            readonly reason: Schema.Literals<readonly ["busy", "disconnected", "unsupported", "rejected", "invalid", "unavailable"]>;
             readonly message: Schema.String;
         }>, Schema.Struct<{
             readonly kind: Schema.Literal<"stopped">;
@@ -1860,10 +1817,6 @@ export declare const State: Schema.Struct<{
                 readonly reason: Schema.optionalKey<Schema.String>;
                 readonly at: Schema.NullOr<Schema.Number>;
             }>;
-        }>>;
-        recovery: Schema.NullOr<Schema.Struct<{
-            readonly at: Schema.Number;
-            readonly note: Schema.String;
         }>>;
     }> | Schema.Struct<{
         kind: Schema.Literal<"device-connect">;
@@ -1913,7 +1866,7 @@ export declare const State: Schema.Struct<{
             }>;
         }>, Schema.Struct<{
             readonly kind: Schema.Literal<"failed">;
-            readonly reason: Schema.Literals<readonly ["busy", "blocked", "disconnected", "unsupported", "rejected", "invalid", "unavailable"]>;
+            readonly reason: Schema.Literals<readonly ["busy", "disconnected", "unsupported", "rejected", "invalid", "unavailable"]>;
             readonly message: Schema.String;
         }>, Schema.Struct<{
             readonly kind: Schema.Literal<"stopped">;
@@ -1964,10 +1917,6 @@ export declare const State: Schema.Struct<{
                 readonly reason: Schema.optionalKey<Schema.String>;
                 readonly at: Schema.NullOr<Schema.Number>;
             }>;
-        }>>;
-        recovery: Schema.NullOr<Schema.Struct<{
-            readonly at: Schema.Number;
-            readonly note: Schema.String;
         }>>;
     }> | Schema.Struct<{
         kind: Schema.Literal<"focuser-halt">;
@@ -2015,7 +1964,7 @@ export declare const State: Schema.Struct<{
             }>;
         }>, Schema.Struct<{
             readonly kind: Schema.Literal<"failed">;
-            readonly reason: Schema.Literals<readonly ["busy", "blocked", "disconnected", "unsupported", "rejected", "invalid", "unavailable"]>;
+            readonly reason: Schema.Literals<readonly ["busy", "disconnected", "unsupported", "rejected", "invalid", "unavailable"]>;
             readonly message: Schema.String;
         }>, Schema.Struct<{
             readonly kind: Schema.Literal<"stopped">;
@@ -2066,10 +2015,6 @@ export declare const State: Schema.Struct<{
                 readonly reason: Schema.optionalKey<Schema.String>;
                 readonly at: Schema.NullOr<Schema.Number>;
             }>;
-        }>>;
-        recovery: Schema.NullOr<Schema.Struct<{
-            readonly at: Schema.Number;
-            readonly note: Schema.String;
         }>>;
     }> | Schema.Struct<{
         kind: Schema.Literal<"focuser-move">;
@@ -2121,7 +2066,7 @@ export declare const State: Schema.Struct<{
             }>;
         }>, Schema.Struct<{
             readonly kind: Schema.Literal<"failed">;
-            readonly reason: Schema.Literals<readonly ["busy", "blocked", "disconnected", "unsupported", "rejected", "invalid", "unavailable"]>;
+            readonly reason: Schema.Literals<readonly ["busy", "disconnected", "unsupported", "rejected", "invalid", "unavailable"]>;
             readonly message: Schema.String;
         }>, Schema.Struct<{
             readonly kind: Schema.Literal<"stopped">;
@@ -2172,10 +2117,6 @@ export declare const State: Schema.Struct<{
                 readonly reason: Schema.optionalKey<Schema.String>;
                 readonly at: Schema.NullOr<Schema.Number>;
             }>;
-        }>>;
-        recovery: Schema.NullOr<Schema.Struct<{
-            readonly at: Schema.Number;
-            readonly note: Schema.String;
         }>>;
     }> | Schema.Struct<{
         kind: Schema.Literal<"mount-axis">;
@@ -2226,7 +2167,7 @@ export declare const State: Schema.Struct<{
             }>;
         }>, Schema.Struct<{
             readonly kind: Schema.Literal<"failed">;
-            readonly reason: Schema.Literals<readonly ["busy", "blocked", "disconnected", "unsupported", "rejected", "invalid", "unavailable"]>;
+            readonly reason: Schema.Literals<readonly ["busy", "disconnected", "unsupported", "rejected", "invalid", "unavailable"]>;
             readonly message: Schema.String;
         }>, Schema.Struct<{
             readonly kind: Schema.Literal<"stopped">;
@@ -2277,10 +2218,6 @@ export declare const State: Schema.Struct<{
                 readonly reason: Schema.optionalKey<Schema.String>;
                 readonly at: Schema.NullOr<Schema.Number>;
             }>;
-        }>>;
-        recovery: Schema.NullOr<Schema.Struct<{
-            readonly at: Schema.Number;
-            readonly note: Schema.String;
         }>>;
     }> | Schema.Struct<{
         kind: Schema.Literal<"mount-home">;
@@ -2328,7 +2265,7 @@ export declare const State: Schema.Struct<{
             }>;
         }>, Schema.Struct<{
             readonly kind: Schema.Literal<"failed">;
-            readonly reason: Schema.Literals<readonly ["busy", "blocked", "disconnected", "unsupported", "rejected", "invalid", "unavailable"]>;
+            readonly reason: Schema.Literals<readonly ["busy", "disconnected", "unsupported", "rejected", "invalid", "unavailable"]>;
             readonly message: Schema.String;
         }>, Schema.Struct<{
             readonly kind: Schema.Literal<"stopped">;
@@ -2379,10 +2316,6 @@ export declare const State: Schema.Struct<{
                 readonly reason: Schema.optionalKey<Schema.String>;
                 readonly at: Schema.NullOr<Schema.Number>;
             }>;
-        }>>;
-        recovery: Schema.NullOr<Schema.Struct<{
-            readonly at: Schema.Number;
-            readonly note: Schema.String;
         }>>;
     }> | Schema.Struct<{
         kind: Schema.Literal<"mount-park">;
@@ -2430,7 +2363,7 @@ export declare const State: Schema.Struct<{
             }>;
         }>, Schema.Struct<{
             readonly kind: Schema.Literal<"failed">;
-            readonly reason: Schema.Literals<readonly ["busy", "blocked", "disconnected", "unsupported", "rejected", "invalid", "unavailable"]>;
+            readonly reason: Schema.Literals<readonly ["busy", "disconnected", "unsupported", "rejected", "invalid", "unavailable"]>;
             readonly message: Schema.String;
         }>, Schema.Struct<{
             readonly kind: Schema.Literal<"stopped">;
@@ -2481,10 +2414,6 @@ export declare const State: Schema.Struct<{
                 readonly reason: Schema.optionalKey<Schema.String>;
                 readonly at: Schema.NullOr<Schema.Number>;
             }>;
-        }>>;
-        recovery: Schema.NullOr<Schema.Struct<{
-            readonly at: Schema.Number;
-            readonly note: Schema.String;
         }>>;
     }> | Schema.Struct<{
         kind: Schema.Literal<"mount-rotate">;
@@ -2535,7 +2464,7 @@ export declare const State: Schema.Struct<{
             }>;
         }>, Schema.Struct<{
             readonly kind: Schema.Literal<"failed">;
-            readonly reason: Schema.Literals<readonly ["busy", "blocked", "disconnected", "unsupported", "rejected", "invalid", "unavailable"]>;
+            readonly reason: Schema.Literals<readonly ["busy", "disconnected", "unsupported", "rejected", "invalid", "unavailable"]>;
             readonly message: Schema.String;
         }>, Schema.Struct<{
             readonly kind: Schema.Literal<"stopped">;
@@ -2586,10 +2515,6 @@ export declare const State: Schema.Struct<{
                 readonly reason: Schema.optionalKey<Schema.String>;
                 readonly at: Schema.NullOr<Schema.Number>;
             }>;
-        }>>;
-        recovery: Schema.NullOr<Schema.Struct<{
-            readonly at: Schema.Number;
-            readonly note: Schema.String;
         }>>;
     }> | Schema.Struct<{
         kind: Schema.Literal<"mount-slew">;
@@ -2641,7 +2566,7 @@ export declare const State: Schema.Struct<{
             }>;
         }>, Schema.Struct<{
             readonly kind: Schema.Literal<"failed">;
-            readonly reason: Schema.Literals<readonly ["busy", "blocked", "disconnected", "unsupported", "rejected", "invalid", "unavailable"]>;
+            readonly reason: Schema.Literals<readonly ["busy", "disconnected", "unsupported", "rejected", "invalid", "unavailable"]>;
             readonly message: Schema.String;
         }>, Schema.Struct<{
             readonly kind: Schema.Literal<"stopped">;
@@ -2692,10 +2617,6 @@ export declare const State: Schema.Struct<{
                 readonly reason: Schema.optionalKey<Schema.String>;
                 readonly at: Schema.NullOr<Schema.Number>;
             }>;
-        }>>;
-        recovery: Schema.NullOr<Schema.Struct<{
-            readonly at: Schema.Number;
-            readonly note: Schema.String;
         }>>;
     }> | Schema.Struct<{
         kind: Schema.Literal<"mount-stop">;
@@ -2743,7 +2664,7 @@ export declare const State: Schema.Struct<{
             }>;
         }>, Schema.Struct<{
             readonly kind: Schema.Literal<"failed">;
-            readonly reason: Schema.Literals<readonly ["busy", "blocked", "disconnected", "unsupported", "rejected", "invalid", "unavailable"]>;
+            readonly reason: Schema.Literals<readonly ["busy", "disconnected", "unsupported", "rejected", "invalid", "unavailable"]>;
             readonly message: Schema.String;
         }>, Schema.Struct<{
             readonly kind: Schema.Literal<"stopped">;
@@ -2794,10 +2715,6 @@ export declare const State: Schema.Struct<{
                 readonly reason: Schema.optionalKey<Schema.String>;
                 readonly at: Schema.NullOr<Schema.Number>;
             }>;
-        }>>;
-        recovery: Schema.NullOr<Schema.Struct<{
-            readonly at: Schema.Number;
-            readonly note: Schema.String;
         }>>;
     }> | Schema.Struct<{
         kind: Schema.Literal<"mount-tracking">;
@@ -2847,7 +2764,7 @@ export declare const State: Schema.Struct<{
             }>;
         }>, Schema.Struct<{
             readonly kind: Schema.Literal<"failed">;
-            readonly reason: Schema.Literals<readonly ["busy", "blocked", "disconnected", "unsupported", "rejected", "invalid", "unavailable"]>;
+            readonly reason: Schema.Literals<readonly ["busy", "disconnected", "unsupported", "rejected", "invalid", "unavailable"]>;
             readonly message: Schema.String;
         }>, Schema.Struct<{
             readonly kind: Schema.Literal<"stopped">;
@@ -2898,10 +2815,6 @@ export declare const State: Schema.Struct<{
                 readonly reason: Schema.optionalKey<Schema.String>;
                 readonly at: Schema.NullOr<Schema.Number>;
             }>;
-        }>>;
-        recovery: Schema.NullOr<Schema.Struct<{
-            readonly at: Schema.Number;
-            readonly note: Schema.String;
         }>>;
     }> | Schema.Struct<{
         kind: Schema.Literal<"mount-unpark">;
@@ -2949,7 +2862,7 @@ export declare const State: Schema.Struct<{
             }>;
         }>, Schema.Struct<{
             readonly kind: Schema.Literal<"failed">;
-            readonly reason: Schema.Literals<readonly ["busy", "blocked", "disconnected", "unsupported", "rejected", "invalid", "unavailable"]>;
+            readonly reason: Schema.Literals<readonly ["busy", "disconnected", "unsupported", "rejected", "invalid", "unavailable"]>;
             readonly message: Schema.String;
         }>, Schema.Struct<{
             readonly kind: Schema.Literal<"stopped">;
@@ -3000,10 +2913,6 @@ export declare const State: Schema.Struct<{
                 readonly reason: Schema.optionalKey<Schema.String>;
                 readonly at: Schema.NullOr<Schema.Number>;
             }>;
-        }>>;
-        recovery: Schema.NullOr<Schema.Struct<{
-            readonly at: Schema.Number;
-            readonly note: Schema.String;
         }>>;
     }> | Schema.Struct<{
         kind: Schema.Literal<"switch-set">;
@@ -3054,7 +2963,7 @@ export declare const State: Schema.Struct<{
             }>;
         }>, Schema.Struct<{
             readonly kind: Schema.Literal<"failed">;
-            readonly reason: Schema.Literals<readonly ["busy", "blocked", "disconnected", "unsupported", "rejected", "invalid", "unavailable"]>;
+            readonly reason: Schema.Literals<readonly ["busy", "disconnected", "unsupported", "rejected", "invalid", "unavailable"]>;
             readonly message: Schema.String;
         }>, Schema.Struct<{
             readonly kind: Schema.Literal<"stopped">;
@@ -3106,10 +3015,6 @@ export declare const State: Schema.Struct<{
                 readonly at: Schema.NullOr<Schema.Number>;
             }>;
         }>>;
-        recovery: Schema.NullOr<Schema.Struct<{
-            readonly at: Schema.Number;
-            readonly note: Schema.String;
-        }>>;
     }>)[]>>;
 }>;
 export type State = typeof State.Type;
@@ -3117,21 +3022,14 @@ export declare const Health: Schema.Struct<{
     readonly status: Schema.Literal<"ok">;
     readonly protocolVersion: Schema.Literal<5>;
 }>;
-export declare const errorCodes: readonly ['request-error', 'unauthorized', 'origin-rejected', 'commands-disabled', 'not-found', 'request-conflict', 'instance-changed', 'binding-changed', 'device-blocked', 'device-busy', 'result-expired', 'image-gone', 'request-too-large', 'too-many-subscribers', 'internal-error'];
+export declare const errorCodes: readonly ['request-error', 'unauthorized', 'origin-rejected', 'commands-disabled', 'not-found', 'request-conflict', 'instance-changed', 'binding-changed', 'device-busy', 'result-expired', 'image-gone', 'request-too-large', 'too-many-subscribers', 'internal-error'];
 export type ErrorCode = (typeof errorCodes)[number];
 export declare const ErrorBody: Schema.Struct<{
     readonly error: Schema.Struct<{
-        readonly code: Schema.Literals<readonly ["request-error", "unauthorized", "origin-rejected", "commands-disabled", "not-found", "request-conflict", "instance-changed", "binding-changed", "device-blocked", "device-busy", "result-expired", "image-gone", "request-too-large", "too-many-subscribers", "internal-error"]>;
+        readonly code: Schema.Literals<readonly ["request-error", "unauthorized", "origin-rejected", "commands-disabled", "not-found", "request-conflict", "instance-changed", "binding-changed", "device-busy", "result-expired", "image-gone", "request-too-large", "too-many-subscribers", "internal-error"]>;
         readonly message: Schema.String;
     }>;
     readonly instanceId: Schema.NullOr<Schema.brand<Schema.String, "InstanceId">>;
 }>;
 export type ErrorBody = typeof ErrorBody.Type;
-export declare const RecoveryRequest: Schema.Struct<{
-    readonly instanceId: Schema.brand<Schema.String, "InstanceId">;
-    readonly bindingId: Schema.brand<Schema.String, "BindingId">;
-    readonly externalRecoveryConfirmed: Schema.Literal<true>;
-    readonly note: Schema.String;
-}>;
-export type RecoveryRequest = typeof RecoveryRequest.Type;
 //# sourceMappingURL=state.d.ts.map

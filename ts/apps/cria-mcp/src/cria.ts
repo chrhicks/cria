@@ -1,6 +1,6 @@
 import { Context, Data, Duration, Effect, Layer, Option, Redacted, Schema, Stream, type Scope } from 'effect'
 import { HttpClient, HttpClientRequest, type HttpClientResponse } from 'effect/http'
-import { Device, ErrorBody, Operation, OperationRequest, RecoveryRequest, State, type DeviceId, type ImageId, type InstanceId, type OperationId, type RequestId } from '@cria/wire'
+import { Device, ErrorBody, Operation, OperationRequest, State, type DeviceId, type ImageId, type InstanceId, type OperationId, type RequestId } from '@cria/wire'
 
 const strict = { onExcessProperty: 'error' } as const
 
@@ -41,8 +41,6 @@ export class Cria extends Context.Service<Cria, {
   readonly submit: (request: OperationRequest) => Effect.Effect<Operation, CriaError>
   /** POST /v2/operations/{id}/cancel */
   readonly cancel: (id: OperationId) => Effect.Effect<Operation, CriaError>
-  /** POST /v2/devices/{id}/recover */
-  readonly recover: (id: DeviceId, request: RecoveryRequest) => Effect.Effect<Device, CriaError>
   /** GET /v2/requests/{instanceId}/{requestId} */
   readonly request: (instanceId: InstanceId, requestId: RequestId) => Effect.Effect<Operation, CriaError>
   /**
@@ -144,7 +142,6 @@ const make = Effect.fnUntraced(function* (target: CriaTarget) {
     operation: id => read(`/v2/operations/${id}`, Operation),
     submit,
     cancel: id => send(`/v2/operations/${id}/cancel`, Operation),
-    recover: (id, request) => send(`/v2/devices/${id}/recover`, Device, Schema.encodeSync(RecoveryRequest)(request)),
     request: (instanceId, requestId) => read(`/v2/requests/${instanceId}/${encodeURIComponent(requestId)}`, Operation),
     original,
   })

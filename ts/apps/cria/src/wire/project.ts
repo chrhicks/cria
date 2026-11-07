@@ -16,7 +16,6 @@ type Availability = Device['availability']
 
 interface Facts {
   readonly commandsEnabled: boolean
-  readonly held: DomainFacts['quarantine']
   readonly indiConnected: boolean
   readonly name: Reading.Reading<string>
   readonly connected: Reading.Reading<boolean>
@@ -29,7 +28,6 @@ function availabilityOf(facts: Facts): Availability {
   const not = (reason: Exclude<Availability, { ready: true }>['reason'], message: string): Availability => ({ ready: false, reason, message })
 
   if (!facts.commandsEnabled) return not('commands-disabled', 'Commands are disabled in the Cria configuration')
-  if (facts.held.held) return not('blocked', `Blocked until a person recovers it: ${facts.held.reason}`)
   if (!facts.indiConnected || facts.name.status === 'unavailable') return not('unavailable', 'indiserver or the driver is not available')
   if (facts.connected.status !== 'unavailable' && facts.connected.value === false) return not('disconnected', 'The device is disconnected')
   if (facts.connected.status !== 'fresh' || facts.name.status !== 'fresh') return not('stale', 'The device reports a problem with its connection')
@@ -45,7 +43,6 @@ export function projectDevice(rig: Rig, device: RigDevice, facts: DomainFacts) {
     const body = yield* device.capability.observe
     const availability = availabilityOf({
       commandsEnabled: rig.config.commandsEnabled,
-      held: facts.quarantine,
       indiConnected: indi.kind === 'connected',
       name: body.readings.name,
       connected: body.readings.connected,
@@ -58,7 +55,6 @@ export function projectDevice(rig: Rig, device: RigDevice, facts: DomainFacts) {
       name: device.config.indiDevice,
       bindingId: facts.binding,
       failureDomain: device.failureDomain,
-      quarantine: facts.quarantine,
       availability,
       ...body,
     } satisfies Device

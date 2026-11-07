@@ -47,7 +47,7 @@ async function startHome() {
 }
 
 describe('a client stop during home', () => {
-  it('confirms from still coordinates when the driver leaves TELESCOPE_HOME Busy, and holds nothing', async () => {
+  it('confirms from still coordinates when the driver leaves TELESCOPE_HOME Busy', async () => {
     const home = await startHome()
 
     await cria.cancel(home)
@@ -55,15 +55,14 @@ describe('a client stop during home', () => {
 
     expect(fake.vector(mount, 'TELESCOPE_HOME').state).toBe('Busy')
     expect(fake.vector(mount, coordinates).state).toBe('Idle')
-    expect(operation).toMatchObject({ kind: 'stopped', quarantined: false })
-    expect((await cria.device('mount')).quarantine.held).toBe(false)
+    expect(operation).toMatchObject({ kind: 'stopped' })
 
     const next = await cria.run('mount', 'mount-tracking', { tracking: true })
 
-    expect(next).toMatchObject({ kind: 'confirmed', quarantined: false })
+    expect(next).toMatchObject({ kind: 'confirmed' })
   }, 45_000)
 
-  it('stays uncertain and held when the coordinates keep changing', async () => {
+  it('stays uncertain when the coordinates keep changing', async () => {
     const home = await startHome()
     let ra = 2
 
@@ -71,13 +70,12 @@ describe('a client stop during home', () => {
     await cria.cancel(home)
     const operation = await cria.settled(home, 40_000)
 
-    expect(operation).toMatchObject({ kind: 'uncertain', reason: 'stop-not-confirmed', quarantined: true })
+    expect(operation).toMatchObject({ kind: 'uncertain', reason: 'stop-not-confirmed' })
     expect(operation.operation.motion).toMatchObject({ observed: { to: null, travel: null }, stopped: { how: 'uncertain', at: null } })
     expect(operation.operation.motion!.observed.from).not.toBeNull()
-    expect((await cria.device('mount')).quarantine.held).toBe(true)
   }, 45_000)
 
-  it('stays uncertain and held when the coordinates stop being readable', async () => {
+  it('stays uncertain when the coordinates stop being readable', async () => {
     const home = await startHome()
     const motion = homeThatIgnoresAbort()
 
@@ -91,10 +89,10 @@ describe('a client stop during home', () => {
     await cria.cancel(home)
     const operation = await cria.settled(home, 40_000)
 
-    expect(operation).toMatchObject({ kind: 'uncertain', reason: 'stop-not-confirmed', quarantined: true })
+    expect(operation).toMatchObject({ kind: 'uncertain', reason: 'stop-not-confirmed' })
   }, 45_000)
 
-  it('stays uncertain and held when the abort is never acknowledged', async () => {
+  it('stays uncertain when the abort is never acknowledged', async () => {
     const home = await startHome()
     const motion = homeThatIgnoresAbort()
 
@@ -102,7 +100,7 @@ describe('a client stop during home', () => {
     await cria.cancel(home)
     const operation = await cria.settled(home, 40_000)
 
-    expect(operation).toMatchObject({ kind: 'uncertain', reason: 'stop-not-confirmed', quarantined: true })
+    expect(operation).toMatchObject({ kind: 'uncertain', reason: 'stop-not-confirmed' })
     expect(aborts()).toBeGreaterThan(1)
   }, 45_000)
 })
@@ -113,7 +111,7 @@ describe('a home nobody stops', () => {
 
     const operation = await cria.run('mount', 'mount-home', {})
 
-    expect(operation).toMatchObject({ kind: 'confirmed', quarantined: false })
+    expect(operation).toMatchObject({ kind: 'confirmed' })
     expect(aborts()).toBe(0)
   })
 })

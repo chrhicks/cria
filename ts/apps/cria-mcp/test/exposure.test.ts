@@ -36,12 +36,12 @@ describe('the exposure table', () => {
 })
 
 describe('tools/list', () => {
-  it.live('shows exactly the exposed kinds and the seven routes, each with an object input schema and a description', () =>
+  it.live('shows exactly the exposed kinds and the six routes, each with an object input schema and a description', () =>
     Effect.gen(function* () {
       const tools = yield* listed
 
       expect(Object.keys(tools).sort()).toEqual([...exposedKinds, ...Object.keys(routes)].sort())
-      expect(Object.keys(routes).sort()).toEqual(['cancel', 'image', 'operation', 'recover', 'request', 'state', 'wait'])
+      expect(Object.keys(routes).sort()).toEqual(['cancel', 'image', 'operation', 'request', 'state', 'wait'])
       for (const tool of Object.values(tools)) {
         expect(tool.inputSchema.type, tool.name).toBe('object')
         expect(tool.description.length, tool.name).toBeGreaterThan(0)
@@ -85,7 +85,6 @@ describe('tools/list', () => {
       for (const kind of exposedKinds)
         expect(tools[kind]!.annotations, kind).toEqual({ readOnlyHint: false, destructiveHint: !wire[kind].halt, idempotentHint: false, openWorldHint: false })
       expect(tools.cancel!.annotations).toEqual({ readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false })
-      expect(tools.recover!.annotations).toEqual({ readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false })
       expect(['mount-stop', 'focuser-halt'].map(kind => tools[kind]!.annotations.destructiveHint)).toEqual([false, false])
       for (const name of ['state', 'operation', 'wait', 'request', 'image'])
         expect(tools[name]!.annotations, name).toEqual({ readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false })

@@ -77,7 +77,7 @@ describe('a bias capture', () => {
 
     const operation = await cria.run('primary', 'capture', { exposureSeconds: 0.1, light: false, frameType: 'bias' })
 
-    expect(operation).toMatchObject({ kind: 'failed', reason: 'rejected', quarantined: false })
+    expect(operation).toMatchObject({ kind: 'failed', reason: 'rejected' })
     expect(operation.message).toMatch(/not this exposure.*EXPTIME 1\.000000E-1.*idle/)
     expect(operation.image).toBeNull()
   })
@@ -119,7 +119,7 @@ describe('the other frame types', () => {
 
     const operation = await cria.run('primary', 'capture', { exposureSeconds: 0.05, light: false, frameType: 'dark' })
 
-    expect(operation).toMatchObject({ kind: 'failed', reason: 'rejected', quarantined: false })
+    expect(operation).toMatchObject({ kind: 'failed', reason: 'rejected' })
     expect(operation.message).toMatch(/EXPTIME 3\.200000E-5/)
   })
 })

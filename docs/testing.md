@@ -22,7 +22,7 @@ The suite asserts literal values. Scenario tests wait for a state with a deadlin
 
 | Layer | Files under `ts/` | What it proves |
 | --- | --- | --- |
-| Primitives | `packages/primitives/src/*.test.ts` | `writeOnce`, `confirm`, `stoppable`, `retryReads`, Run and the quarantine fold behave as SPEC says, on Effect's TestClock with no real time |
+| Primitives | `packages/primitives/src/*.test.ts` | `writeOnce`, `confirm`, `stoppable` and Run behave as SPEC says, on Effect's TestClock with no real time |
 | INDI boundary | `packages/indi/src/*.test.ts` | XML framing from recorded traffic split at random byte boundaries, BLOB decoding and `delProperty`, plus one client test against a real `indiserver` |
 | Wire schemas and the ledger | `packages/cria-wire/src/*.test.ts`, `apps/cria/src/operation/*.test.ts` | Every protocol 5 schema on literal inputs, and every ledger transition |
 | Wire and image boundaries | `apps/cria/src/wire/sse.test.ts`, `packages/fits/src/*.test.ts`, `apps/cria/src/image/*.test.ts` | The event stream's cadence, coalescing and subscriber limits, the FITS to ImageBytes conversion, and the rolling image store |
@@ -50,13 +50,13 @@ Every Cria session on errai records its INDI traffic (`~/cria-recordings`). The 
 | --- | --- | --- | --- |
 | A stop during Home: the driver acknowledges the abort, leaves `TELESCOPE_HOME` Busy for good, the mount coasts about 2 s, the coordinates are Idle throughout | recorded, mount, 2026-10-26 and 2026-10-27 (three times) | `moveMount({ ignoreAbortFor })`; `am5` (the home model; `homeStaysBusyAfterAbort` defaults to true) | `home-stop.test.ts`, `recorded-mount.test.ts`: stopped, nothing held |
 | Bias frames: the driver ignores the requested time and exposes for its minimum | recorded, ZWO ASI2600MC Pro, 2026-10-26 | `biasAtMinimum` | `capture-bias.test.ts` |
-| Mount power cut mid axis motion: serial errors once a second, the coordinates Alert and frozen, a stop answered by Alert and `Error stopping W/E motion.` | recorded, mount, 2026-10-29 evening | `am5(...).cutPower()` | `recorded-mount.test.ts`: uncertain `stop-not-confirmed`, mount held, the motion written once |
-| An axis motion at Home (Dec 90) answered Idle after 41 ms, never Busy | recorded, mount, 2026-10-30 evening; once in 92 starts | `am5({ rotateIdleAtPole })` | `recorded-mount.test.ts`: `failed` `rejected` at once (an Idle answer showing the switch Off is a refusal), nothing stopped, mount not held. On the night, before that rule, it ended `uncertain` `no-acknowledgement` after 5 s and held the mount |
-| Another client (PHD2) looping 2 s exposures on the guide camera: frames Cria did not ask for | recorded, ZWO ASI220MM Mini, 2026-10-27 (1,027 frames) | `guideLoop` | `recorded-guide-loop.test.ts`: Cria's own frame is the only image, nothing held. The other client's own write (an inbound `newNumberVector`) is not reproduced; Cria ignores it |
-| A focuser move that ends Ok short of the target | **derived** (63 recorded moves all arrived) | `addEaf({ stopsShortBy })` | `derived-non-mount.test.ts`: uncertain `not-confirmed`, focuser not held |
-| A focuser that never answers a move | **derived** | a behaviour that ignores `ABS_FOCUS_POSITION` | `derived-non-mount.test.ts`: uncertain `no-acknowledgement`, abort sent, not held |
-| A switch write acknowledged Ok and not applied | **derived** (the recorded relative is `pegasusDew`) | `appliesNothing` | `derived-non-mount.test.ts`: uncertain `not-confirmed`, not held |
-| A weather device that never answers a connect (weather's only command) | **derived** | a behaviour that ignores `CONNECTION` | `derived-non-mount.test.ts`: uncertain `no-acknowledgement`, not held |
+| Mount power cut mid axis motion: serial errors once a second, the coordinates Alert and frozen, a stop answered by Alert and `Error stopping W/E motion.` | recorded, mount, 2026-10-29 evening | `am5(...).cutPower()` | `recorded-mount.test.ts`: uncertain `stop-not-confirmed`, the next command admitted, the motion written once |
+| An axis motion at Home (Dec 90) answered Idle after 41 ms, never Busy | recorded, mount, 2026-10-30 evening; once in 92 starts | `am5({ rotateIdleAtPole })` | `recorded-mount.test.ts`: `failed` `rejected` at once (an Idle answer showing the switch Off is a refusal), nothing stopped. On the night, before that rule, it ended `uncertain` `no-acknowledgement` after 5 s |
+| Another client (PHD2) looping 2 s exposures on the guide camera: frames Cria did not ask for | recorded, ZWO ASI220MM Mini, 2026-10-27 (1,027 frames) | `guideLoop` | `recorded-guide-loop.test.ts`: Cria's own frame is the only image. The other client's own write (an inbound `newNumberVector`) is not reproduced; Cria ignores it |
+| A focuser move that ends Ok short of the target | **derived** (63 recorded moves all arrived) | `addEaf({ stopsShortBy })` | `derived-non-mount.test.ts`: uncertain `not-confirmed`, next move admitted |
+| A focuser that never answers a move | **derived** | a behaviour that ignores `ABS_FOCUS_POSITION` | `derived-non-mount.test.ts`: uncertain `no-acknowledgement`, abort sent, next move admitted |
+| A switch write acknowledged Ok and not applied | **derived** (the recorded relative is `pegasusDew`) | `appliesNothing` | `derived-non-mount.test.ts`: uncertain `not-confirmed`, next write admitted |
+| A weather device that never answers a connect (weather's only command) | **derived** | a behaviour that ignores `CONNECTION` | `derived-non-mount.test.ts`: uncertain `no-acknowledgement`, next command admitted |
 
 What the recordings do not hold, so no recorded case exists: a camera exposure with no answer, an Alert on an exposure, a camera abort that left the exposure Busy, a connection drop, a driver crash, a focuser that stopped short, a readback that never matched on a camera, focuser, relay or dew write. Of 1,462 exposures, 63 focuser moves and 22 camera aborts, every one was answered within 1.1 s and arrived.
 
@@ -96,17 +96,17 @@ CRIA_TOKEN=secret pnpm fake-rig serve mount-power-cut           # Cria asks for 
 
 | Scenario | Source | Do in Vela | Vela shows |
 | --- | --- | --- | --- |
-| `camera-silent` | derived | start a capture on the primary camera | `uncertain` (no acknowledgement) on the camera: the warning; camera not held |
-| `focuser-short` | derived | move the focuser to 31000 | `uncertain` (stopped at 31150, short of 31000): the warning; focuser not held |
-| `focuser-silent` | derived | move the focuser to 31000 | `uncertain` (no acknowledgement): the warning; focuser not held |
-| `switch-ignored` | derived | switch channel 0 (12 V ports) off | after 15 s `uncertain` (driver still shows the old value): the warning; switch not held |
-| `weather-silent` | derived | connect the weather device | after 8 s `uncertain` (no acknowledgement): the warning; not held |
+| `camera-silent` | derived | start a capture on the primary camera | `uncertain` (no acknowledgement) on the camera: the warning; the next capture is accepted |
+| `focuser-short` | derived | move the focuser to 31000 | `uncertain` (stopped at 31150, short of 31000): the warning; the next move is accepted |
+| `focuser-silent` | derived | move the focuser to 31000 | `uncertain` (no acknowledgement): the warning; the next move is accepted |
+| `switch-ignored` | derived | switch channel 0 (12 V ports) off | after 15 s `uncertain` (driver still shows the old value): the warning; the next write is accepted |
+| `weather-silent` | derived | connect the weather device | after 8 s `uncertain` (no acknowledgement): the warning |
 | `guide-loop` | recorded | capture on the primary camera while watching the guide camera | the guide camera gets a frame every 2.75 s unasked; the capture confirms; no warning |
-| `mount-home-stop` | recorded | send the mount Home, stop it a second later | `stopped` once the mount is still; not held |
-| `mount-power-cut` | recorded | rotate the mount; power is cut a second after it starts | `uncertain` (stop not confirmed) after repeated stops; **mount held** until Clear hold |
-| `mount-pole-rotate` | recorded | rotate the mount (it starts at Home) | `failed` (rejected: the driver answered Idle and did not start) at once; not held |
+| `mount-home-stop` | recorded | send the mount Home, stop it a second later | `stopped` once the mount is still |
+| `mount-power-cut` | recorded | rotate the mount; power is cut a second after it starts | `uncertain` (stop not confirmed) after repeated stops; the next command is accepted |
+| `mount-pole-rotate` | recorded | rotate the mount (it starts at Home) | `failed` (rejected: the driver answered Idle and did not start) at once |
 
-A camera, focuser, weather or switch device ends `uncertain` and is not held (cria#34); only the mount holds. The first five scenarios are the ones that show the non-mount warning, and all five are derived, because the recordings hold no real failure of those devices (see "Cases from recorded failures").
+A camera, focuser, weather or switch device ends `uncertain` and the next command is accepted. The first five scenarios are the ones that show the non-mount warning, and all five are derived, because the recordings hold no real failure of those devices (see "Cases from recorded failures").
 
 ## Check the wire with the golden
 
@@ -124,7 +124,7 @@ node testing/mutate.mjs apps/cria/src/wire/sse.ts 'sentRevision = snapshotRevisi
 
 ## What the tests do not prove
 
-The tests never command real equipment, so they do not prove how the rig's drivers behave under a command. The errai replay covers only the drivers' definitions. Vela's own client has not been tested against the TypeScript Cria yet. [The Vela migration checklist](ts/vela-migration.md) adds that test.
+The tests never command real equipment, so they do not prove how the rig's drivers behave under a command. The errai replay covers only the drivers' definitions.
 
 ## Legacy .NET tests
 

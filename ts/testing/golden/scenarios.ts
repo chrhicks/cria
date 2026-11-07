@@ -509,24 +509,6 @@ export const scenarios: ReadonlyArray<Scenario> = [
     },
   },
   {
-    name: 'recover refused while a mount-stop runs',
-    devices: ['mount'],
-    run: async g => {
-      g.behave(mount, abortWithoutStopping())
-      g.fake.update(mount, 'EQUATORIAL_EOD_COORD', { state: 'Busy' })
-      const stop = await submitted(g.submit('mount', 'mount-stop', {}))
-
-      await g.until('the stop sending its abort', async () => abortsSent(g) === 1)
-      const state = await g.cria.state()
-      const recovery = { instanceId: state.instanceId, bindingId: state.devices[0]!.bindingId, externalRecoveryConfirmed: true, note: 'checked' }
-
-      await g.wire.recover('mount', recovery)
-      g.fake.update(mount, 'EQUATORIAL_EOD_COORD', { state: 'Alert' })
-      await g.recordSettled(stop.id)
-      await g.wire.recover('mount', recovery)
-    },
-  },
-  {
     name: 'switch-set',
     devices: ['switch'],
     run: async g => {
@@ -629,7 +611,7 @@ export const scenarios: ReadonlyArray<Scenario> = [
     },
   },
   {
-    name: 'refused: unknown operation, request and device',
+    name: 'refused: unknown operation and request',
     devices: ['camera'],
     run: async g => {
       const state = await g.cria.state()
@@ -637,7 +619,6 @@ export const scenarios: ReadonlyArray<Scenario> = [
       await g.wire.operation(crypto.randomUUID())
       await g.wire.cancel(crypto.randomUUID())
       await g.wire.byRequest(state.instanceId, 'never-sent')
-      await g.wire.recover('nowhere', { instanceId: state.instanceId, bindingId: crypto.randomUUID(), externalRecoveryConfirmed: true, note: 'checked' })
     },
   },
   {
@@ -682,7 +663,7 @@ export const scenarios: ReadonlyArray<Scenario> = [
     },
   },
   {
-    name: 'no acknowledgement: uncertain, the camera is not held, the next capture runs, a recovery is still accepted',
+    name: 'no acknowledgement: uncertain, the next capture runs',
     devices: ['camera'],
     run: async g => {
       const normal = exposeNormally()
@@ -695,13 +676,6 @@ export const scenarios: ReadonlyArray<Scenario> = [
       g.behave(camera, normal)
       await g.cria.waitFor(allReady(['camera']))
       await runAndSettle(g, 'camera', 'capture', { exposureSeconds: 0.05, light: true })
-      const state = await g.cria.state()
-      const idle = state.devices[0]!
-
-      await g.wire.recover('camera', { instanceId: state.instanceId, bindingId: crypto.randomUUID(), externalRecoveryConfirmed: true, note: 'checked' })
-      await g.wire.recover('camera', { instanceId: crypto.randomUUID(), bindingId: idle.bindingId, externalRecoveryConfirmed: true, note: 'checked' })
-      await g.wire.recover('camera', { instanceId: state.instanceId, bindingId: idle.bindingId, externalRecoveryConfirmed: false, note: 'checked' })
-      await g.wire.recover('camera', { instanceId: state.instanceId, bindingId: idle.bindingId, externalRecoveryConfirmed: true, note: 'Chris checked the camera: idle' })
       await g.wire.operation(lost.id)
     },
   },

@@ -3,7 +3,7 @@
  *
  * Not a durable log: snapshots coalesce and a reconnect gets a fresh snapshot.
  * A snapshot goes out at least every second and within 250 ms of an operation
- * or recovery change.
+ * change.
  */
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { Effect, Fiber, Stream } from 'effect'

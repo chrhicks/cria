@@ -1,6 +1,6 @@
 import { Effect, Schema } from 'effect'
 import { Tool, Toolkit } from 'effect/ai'
-import { DeviceId, Image as WireImage, InstanceId, OperationId, RecoveryRequest, RequestId } from '@cria/wire'
+import { DeviceId, Image as WireImage, InstanceId, OperationId, RequestId } from '@cria/wire'
 import { Cria } from '../cria.js'
 import { routes } from '../exposure.js'
 import { ImageCache } from '../image-cache.js'
@@ -33,16 +33,7 @@ export const Cancel = change(
   false,
 )
 
-export const Recover = change(
-  Tool.make('recover', {
-    description: routes.recover.description,
-    parameters: Schema.Struct({ deviceId: DeviceId, ...RecoveryRequest.fields }),
-    success: Reply,
-  }),
-  true,
-)
-
-export const RouteToolkit = Toolkit.make(State, Operation, Wait, Request, Image, Cancel, Recover)
+export const RouteToolkit = Toolkit.make(State, Operation, Wait, Request, Image, Cancel)
 
 export const RouteHandlers = RouteToolkit.toLayer(
   Effect.gen(function* () {
@@ -57,7 +48,6 @@ export const RouteHandlers = RouteToolkit.toLayer(
       request: ({ instanceId, requestId }) => toReply(cria.request(instanceId, requestId)),
       image: ({ image }) => toReply(images.fetch(image)),
       cancel: ({ operationId }) => toReply(cria.cancel(operationId)),
-      recover: ({ deviceId, ...request }) => toReply(cria.recover(deviceId, request)),
     })
   }),
 )

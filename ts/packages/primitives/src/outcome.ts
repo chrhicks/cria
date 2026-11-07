@@ -10,7 +10,7 @@
 import { Cause, Data, Effect, Exit } from 'effect'
 
 /** Known not to have taken effect. */
-export const failedReasons = ['busy', 'blocked', 'disconnected', 'unsupported', 'rejected', 'invalid', 'unavailable'] as const
+export const failedReasons = ['busy', 'disconnected', 'unsupported', 'rejected', 'invalid', 'unavailable'] as const
 
 export type FailedReason = (typeof failedReasons)[number]
 

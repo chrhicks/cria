@@ -22,7 +22,6 @@ const operation = {
   settledAt: 2,
   state: 'settled',
   outcome: { kind: 'confirmed', value: { values: { position: 100 }, image: null } },
-  recovery: null,
 }
 
 describe('protocol 5 contract', () => {
@@ -38,7 +37,7 @@ describe('protocol 5 contract', () => {
   })
 
   it('refuses progress fields Cria never varied', () => {
-    const { settledAt: _, outcome: _outcome, recovery: _recovery, ...accepted } = operation
+    const { settledAt: _, outcome: _outcome, ...accepted } = operation
     const running = { ...accepted, state: 'running', progress: { phase: 'exposing', elapsedSeconds: 2 } }
     const earlier = { ...running.progress, acknowledged: true, observation: 'current', message: null }
 
@@ -48,7 +47,7 @@ describe('protocol 5 contract', () => {
   })
 
   it('carries per state only the fields that state has, and only a halt waits', () => {
-    const { startedAt: _, settledAt: _settledAt, outcome: _outcome, recovery: _recovery, ...accepted } = operation
+    const { startedAt: _, settledAt: _settledAt, outcome: _outcome, ...accepted } = operation
     const stop = { ...accepted, deviceId: 'mount', kind: 'mount-stop', parameters: {} }
 
     expect(decodes(Operation, { ...stop, state: 'waiting' })).toBe(true)
@@ -58,15 +57,6 @@ describe('protocol 5 contract', () => {
     expect(decodes(Operation, { ...operation, progress: { phase: 'retaining', elapsedSeconds: null } })).toBe(false)
     expectTypeOf<Extract<Operation, { state: 'waiting' }>['kind']>().toEqualTypeOf<HaltKind>()
     expectTypeOf<'outcome' extends keyof Extract<Operation, { state: 'running' }> ? true : false>().toEqualTypeOf<false>()
-  })
-
-  it('records a recovery only on an uncertain operation', () => {
-    const recovery = { at: 3, note: 'Chris checked the focuser' }
-    const uncertain = { kind: 'uncertain', reason: 'no-acknowledgement', message: 'no answer' }
-
-    expect(decodes(Operation, { ...operation, outcome: uncertain, recovery })).toBe(true)
-    expect(decodes(Operation, { ...operation, outcome: uncertain })).toBe(true)
-    expect(decodes(Operation, { ...operation, recovery })).toBe(false)
   })
 
   it('takes a slew only in a frame a mount reports', () => {
@@ -109,7 +99,6 @@ describe('protocol 5 contract', () => {
       bindingId: id,
       failureDomain: 'zwo-eaf',
       availability: { ready: false, reason: 'busy', message: 'waiting for a reading after the last operation' },
-      quarantine: { held: false },
       readings: {
         connected: { status: 'fresh', value: true, observedAt: 5 },
         name: { status: 'fresh', value: 'ZWO EAF', observedAt: 5 },

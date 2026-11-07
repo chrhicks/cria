@@ -605,7 +605,7 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
         }>;
     }>, Schema.Struct<{
         readonly kind: Schema.Literal<"failed">;
-        readonly reason: Schema.Literals<readonly ["busy", "blocked", "disconnected", "unsupported", "rejected", "invalid", "unavailable"]>;
+        readonly reason: Schema.Literals<readonly ["busy", "disconnected", "unsupported", "rejected", "invalid", "unavailable"]>;
         readonly message: Schema.String;
     }>, Schema.Struct<{
         readonly kind: Schema.Literal<"stopped">;
@@ -657,11 +657,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
             readonly reason: Schema.optionalKey<Schema.String>;
             readonly at: Schema.NullOr<Schema.Number>;
         }>;
-    }>>;
-    /** Set once a person recovered the device this uncertain operation quarantined. */
-    recovery: Schema.NullOr<Schema.Struct<{
-        readonly at: Schema.Number;
-        readonly note: Schema.String;
     }>>;
 }> | Schema.Struct<{
     kind: Schema.Literal<"capture">;
@@ -714,7 +709,7 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
         }>;
     }>, Schema.Struct<{
         readonly kind: Schema.Literal<"failed">;
-        readonly reason: Schema.Literals<readonly ["busy", "blocked", "disconnected", "unsupported", "rejected", "invalid", "unavailable"]>;
+        readonly reason: Schema.Literals<readonly ["busy", "disconnected", "unsupported", "rejected", "invalid", "unavailable"]>;
         readonly message: Schema.String;
     }>, Schema.Struct<{
         readonly kind: Schema.Literal<"stopped">;
@@ -766,11 +761,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
             readonly reason: Schema.optionalKey<Schema.String>;
             readonly at: Schema.NullOr<Schema.Number>;
         }>;
-    }>>;
-    /** Set once a person recovered the device this uncertain operation quarantined. */
-    recovery: Schema.NullOr<Schema.Struct<{
-        readonly at: Schema.Number;
-        readonly note: Schema.String;
     }>>;
 }> | Schema.Struct<{
     kind: Schema.Literal<"cooling">;
@@ -821,7 +811,7 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
         }>;
     }>, Schema.Struct<{
         readonly kind: Schema.Literal<"failed">;
-        readonly reason: Schema.Literals<readonly ["busy", "blocked", "disconnected", "unsupported", "rejected", "invalid", "unavailable"]>;
+        readonly reason: Schema.Literals<readonly ["busy", "disconnected", "unsupported", "rejected", "invalid", "unavailable"]>;
         readonly message: Schema.String;
     }>, Schema.Struct<{
         readonly kind: Schema.Literal<"stopped">;
@@ -873,11 +863,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
             readonly reason: Schema.optionalKey<Schema.String>;
             readonly at: Schema.NullOr<Schema.Number>;
         }>;
-    }>>;
-    /** Set once a person recovered the device this uncertain operation quarantined. */
-    recovery: Schema.NullOr<Schema.Struct<{
-        readonly at: Schema.Number;
-        readonly note: Schema.String;
     }>>;
 }> | Schema.Struct<{
     kind: Schema.Literal<"device-connect">;
@@ -927,7 +912,7 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
         }>;
     }>, Schema.Struct<{
         readonly kind: Schema.Literal<"failed">;
-        readonly reason: Schema.Literals<readonly ["busy", "blocked", "disconnected", "unsupported", "rejected", "invalid", "unavailable"]>;
+        readonly reason: Schema.Literals<readonly ["busy", "disconnected", "unsupported", "rejected", "invalid", "unavailable"]>;
         readonly message: Schema.String;
     }>, Schema.Struct<{
         readonly kind: Schema.Literal<"stopped">;
@@ -979,11 +964,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
             readonly reason: Schema.optionalKey<Schema.String>;
             readonly at: Schema.NullOr<Schema.Number>;
         }>;
-    }>>;
-    /** Set once a person recovered the device this uncertain operation quarantined. */
-    recovery: Schema.NullOr<Schema.Struct<{
-        readonly at: Schema.Number;
-        readonly note: Schema.String;
     }>>;
 }> | Schema.Struct<{
     kind: Schema.Literal<"focuser-halt">;
@@ -1031,7 +1011,7 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
         }>;
     }>, Schema.Struct<{
         readonly kind: Schema.Literal<"failed">;
-        readonly reason: Schema.Literals<readonly ["busy", "blocked", "disconnected", "unsupported", "rejected", "invalid", "unavailable"]>;
+        readonly reason: Schema.Literals<readonly ["busy", "disconnected", "unsupported", "rejected", "invalid", "unavailable"]>;
         readonly message: Schema.String;
     }>, Schema.Struct<{
         readonly kind: Schema.Literal<"stopped">;
@@ -1083,11 +1063,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
             readonly reason: Schema.optionalKey<Schema.String>;
             readonly at: Schema.NullOr<Schema.Number>;
         }>;
-    }>>;
-    /** Set once a person recovered the device this uncertain operation quarantined. */
-    recovery: Schema.NullOr<Schema.Struct<{
-        readonly at: Schema.Number;
-        readonly note: Schema.String;
     }>>;
 }> | Schema.Struct<{
     kind: Schema.Literal<"focuser-move">;
@@ -1139,7 +1114,7 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
         }>;
     }>, Schema.Struct<{
         readonly kind: Schema.Literal<"failed">;
-        readonly reason: Schema.Literals<readonly ["busy", "blocked", "disconnected", "unsupported", "rejected", "invalid", "unavailable"]>;
+        readonly reason: Schema.Literals<readonly ["busy", "disconnected", "unsupported", "rejected", "invalid", "unavailable"]>;
         readonly message: Schema.String;
     }>, Schema.Struct<{
         readonly kind: Schema.Literal<"stopped">;
@@ -1191,11 +1166,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
             readonly reason: Schema.optionalKey<Schema.String>;
             readonly at: Schema.NullOr<Schema.Number>;
         }>;
-    }>>;
-    /** Set once a person recovered the device this uncertain operation quarantined. */
-    recovery: Schema.NullOr<Schema.Struct<{
-        readonly at: Schema.Number;
-        readonly note: Schema.String;
     }>>;
 }> | Schema.Struct<{
     kind: Schema.Literal<"mount-axis">;
@@ -1246,7 +1216,7 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
         }>;
     }>, Schema.Struct<{
         readonly kind: Schema.Literal<"failed">;
-        readonly reason: Schema.Literals<readonly ["busy", "blocked", "disconnected", "unsupported", "rejected", "invalid", "unavailable"]>;
+        readonly reason: Schema.Literals<readonly ["busy", "disconnected", "unsupported", "rejected", "invalid", "unavailable"]>;
         readonly message: Schema.String;
     }>, Schema.Struct<{
         readonly kind: Schema.Literal<"stopped">;
@@ -1298,11 +1268,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
             readonly reason: Schema.optionalKey<Schema.String>;
             readonly at: Schema.NullOr<Schema.Number>;
         }>;
-    }>>;
-    /** Set once a person recovered the device this uncertain operation quarantined. */
-    recovery: Schema.NullOr<Schema.Struct<{
-        readonly at: Schema.Number;
-        readonly note: Schema.String;
     }>>;
 }> | Schema.Struct<{
     kind: Schema.Literal<"mount-home">;
@@ -1350,7 +1315,7 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
         }>;
     }>, Schema.Struct<{
         readonly kind: Schema.Literal<"failed">;
-        readonly reason: Schema.Literals<readonly ["busy", "blocked", "disconnected", "unsupported", "rejected", "invalid", "unavailable"]>;
+        readonly reason: Schema.Literals<readonly ["busy", "disconnected", "unsupported", "rejected", "invalid", "unavailable"]>;
         readonly message: Schema.String;
     }>, Schema.Struct<{
         readonly kind: Schema.Literal<"stopped">;
@@ -1402,11 +1367,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
             readonly reason: Schema.optionalKey<Schema.String>;
             readonly at: Schema.NullOr<Schema.Number>;
         }>;
-    }>>;
-    /** Set once a person recovered the device this uncertain operation quarantined. */
-    recovery: Schema.NullOr<Schema.Struct<{
-        readonly at: Schema.Number;
-        readonly note: Schema.String;
     }>>;
 }> | Schema.Struct<{
     kind: Schema.Literal<"mount-park">;
@@ -1454,7 +1414,7 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
         }>;
     }>, Schema.Struct<{
         readonly kind: Schema.Literal<"failed">;
-        readonly reason: Schema.Literals<readonly ["busy", "blocked", "disconnected", "unsupported", "rejected", "invalid", "unavailable"]>;
+        readonly reason: Schema.Literals<readonly ["busy", "disconnected", "unsupported", "rejected", "invalid", "unavailable"]>;
         readonly message: Schema.String;
     }>, Schema.Struct<{
         readonly kind: Schema.Literal<"stopped">;
@@ -1506,11 +1466,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
             readonly reason: Schema.optionalKey<Schema.String>;
             readonly at: Schema.NullOr<Schema.Number>;
         }>;
-    }>>;
-    /** Set once a person recovered the device this uncertain operation quarantined. */
-    recovery: Schema.NullOr<Schema.Struct<{
-        readonly at: Schema.Number;
-        readonly note: Schema.String;
     }>>;
 }> | Schema.Struct<{
     kind: Schema.Literal<"mount-rotate">;
@@ -1561,7 +1516,7 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
         }>;
     }>, Schema.Struct<{
         readonly kind: Schema.Literal<"failed">;
-        readonly reason: Schema.Literals<readonly ["busy", "blocked", "disconnected", "unsupported", "rejected", "invalid", "unavailable"]>;
+        readonly reason: Schema.Literals<readonly ["busy", "disconnected", "unsupported", "rejected", "invalid", "unavailable"]>;
         readonly message: Schema.String;
     }>, Schema.Struct<{
         readonly kind: Schema.Literal<"stopped">;
@@ -1613,11 +1568,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
             readonly reason: Schema.optionalKey<Schema.String>;
             readonly at: Schema.NullOr<Schema.Number>;
         }>;
-    }>>;
-    /** Set once a person recovered the device this uncertain operation quarantined. */
-    recovery: Schema.NullOr<Schema.Struct<{
-        readonly at: Schema.Number;
-        readonly note: Schema.String;
     }>>;
 }> | Schema.Struct<{
     kind: Schema.Literal<"mount-slew">;
@@ -1669,7 +1619,7 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
         }>;
     }>, Schema.Struct<{
         readonly kind: Schema.Literal<"failed">;
-        readonly reason: Schema.Literals<readonly ["busy", "blocked", "disconnected", "unsupported", "rejected", "invalid", "unavailable"]>;
+        readonly reason: Schema.Literals<readonly ["busy", "disconnected", "unsupported", "rejected", "invalid", "unavailable"]>;
         readonly message: Schema.String;
     }>, Schema.Struct<{
         readonly kind: Schema.Literal<"stopped">;
@@ -1721,11 +1671,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
             readonly reason: Schema.optionalKey<Schema.String>;
             readonly at: Schema.NullOr<Schema.Number>;
         }>;
-    }>>;
-    /** Set once a person recovered the device this uncertain operation quarantined. */
-    recovery: Schema.NullOr<Schema.Struct<{
-        readonly at: Schema.Number;
-        readonly note: Schema.String;
     }>>;
 }> | Schema.Struct<{
     kind: Schema.Literal<"mount-stop">;
@@ -1773,7 +1718,7 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
         }>;
     }>, Schema.Struct<{
         readonly kind: Schema.Literal<"failed">;
-        readonly reason: Schema.Literals<readonly ["busy", "blocked", "disconnected", "unsupported", "rejected", "invalid", "unavailable"]>;
+        readonly reason: Schema.Literals<readonly ["busy", "disconnected", "unsupported", "rejected", "invalid", "unavailable"]>;
         readonly message: Schema.String;
     }>, Schema.Struct<{
         readonly kind: Schema.Literal<"stopped">;
@@ -1825,11 +1770,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
             readonly reason: Schema.optionalKey<Schema.String>;
             readonly at: Schema.NullOr<Schema.Number>;
         }>;
-    }>>;
-    /** Set once a person recovered the device this uncertain operation quarantined. */
-    recovery: Schema.NullOr<Schema.Struct<{
-        readonly at: Schema.Number;
-        readonly note: Schema.String;
     }>>;
 }> | Schema.Struct<{
     kind: Schema.Literal<"mount-tracking">;
@@ -1879,7 +1819,7 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
         }>;
     }>, Schema.Struct<{
         readonly kind: Schema.Literal<"failed">;
-        readonly reason: Schema.Literals<readonly ["busy", "blocked", "disconnected", "unsupported", "rejected", "invalid", "unavailable"]>;
+        readonly reason: Schema.Literals<readonly ["busy", "disconnected", "unsupported", "rejected", "invalid", "unavailable"]>;
         readonly message: Schema.String;
     }>, Schema.Struct<{
         readonly kind: Schema.Literal<"stopped">;
@@ -1931,11 +1871,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
             readonly reason: Schema.optionalKey<Schema.String>;
             readonly at: Schema.NullOr<Schema.Number>;
         }>;
-    }>>;
-    /** Set once a person recovered the device this uncertain operation quarantined. */
-    recovery: Schema.NullOr<Schema.Struct<{
-        readonly at: Schema.Number;
-        readonly note: Schema.String;
     }>>;
 }> | Schema.Struct<{
     kind: Schema.Literal<"mount-unpark">;
@@ -1983,7 +1918,7 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
         }>;
     }>, Schema.Struct<{
         readonly kind: Schema.Literal<"failed">;
-        readonly reason: Schema.Literals<readonly ["busy", "blocked", "disconnected", "unsupported", "rejected", "invalid", "unavailable"]>;
+        readonly reason: Schema.Literals<readonly ["busy", "disconnected", "unsupported", "rejected", "invalid", "unavailable"]>;
         readonly message: Schema.String;
     }>, Schema.Struct<{
         readonly kind: Schema.Literal<"stopped">;
@@ -2035,11 +1970,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
             readonly reason: Schema.optionalKey<Schema.String>;
             readonly at: Schema.NullOr<Schema.Number>;
         }>;
-    }>>;
-    /** Set once a person recovered the device this uncertain operation quarantined. */
-    recovery: Schema.NullOr<Schema.Struct<{
-        readonly at: Schema.Number;
-        readonly note: Schema.String;
     }>>;
 }> | Schema.Struct<{
     kind: Schema.Literal<"switch-set">;
@@ -2090,7 +2020,7 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
         }>;
     }>, Schema.Struct<{
         readonly kind: Schema.Literal<"failed">;
-        readonly reason: Schema.Literals<readonly ["busy", "blocked", "disconnected", "unsupported", "rejected", "invalid", "unavailable"]>;
+        readonly reason: Schema.Literals<readonly ["busy", "disconnected", "unsupported", "rejected", "invalid", "unavailable"]>;
         readonly message: Schema.String;
     }>, Schema.Struct<{
         readonly kind: Schema.Literal<"stopped">;
@@ -2142,11 +2072,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
             readonly reason: Schema.optionalKey<Schema.String>;
             readonly at: Schema.NullOr<Schema.Number>;
         }>;
-    }>>;
-    /** Set once a person recovered the device this uncertain operation quarantined. */
-    recovery: Schema.NullOr<Schema.Struct<{
-        readonly at: Schema.Number;
-        readonly note: Schema.String;
     }>>;
 }>)[]>;
 export type Operation = typeof Operation.Type;

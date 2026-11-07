@@ -2,7 +2,7 @@
  * Scenarios a simulator can't produce on demand, against a fake INDI server:
  * drivers that never answer, refuse, ignore an abort, vanish, or lose the
  * connection, plus a Pegasus-like power box. Each one checks what Vela is
- * told and whether the device is blocked.
+ * told.
  */
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { FakeIndi, addCamera, connection, type Behaviour } from '@cria/fake-indi'
@@ -43,41 +43,21 @@ describe('a camera that misbehaves', () => {
     expect([pixel(0, 0), pixel(3, 0), pixel(0, 2), pixel(7, 5)]).toEqual([0, 3, 20, 57])
   })
 
-  it('never answers an exposure: uncertain, sent once, and the camera is not held: only the mount holds', async () => {
+  it('never answers an exposure: uncertain, and sent once', async () => {
     fake.behaviour = (_fake, vector) => (vector.name === 'CCD_EXPOSURE' ? 'handled' : 'default')
     const operation = await cria.run('primary', 'capture', { exposureSeconds: 1, light: true })
 
-    expect(operation).toMatchObject({ kind: 'uncertain', quarantined: false })
+    expect(operation).toMatchObject({ kind: 'uncertain' })
     expect(exposures()).toBe(1)
-    expect(await cria.device('primary')).toMatchObject({ quarantine: { held: false } })
 
     fake.update(camera, 'CCD_EXPOSURE', { state: 'Idle' })
     fake.behaviour = exposeNormally()
     await cria.waitFor(allReady(['primary']))
     expect((await cria.run('primary', 'capture', { exposureSeconds: 0.05, light: true })).kind).toBe('confirmed')
     expect(exposures()).toBe(2)
-
-    const state = await cria.state()
-    const idle = await cria.device('primary')
-    const wrongBinding = await cria.client.recover('primary', {
-      instanceId: state.instanceId,
-      bindingId: crypto.randomUUID(),
-      externalRecoveryConfirmed: true,
-      note: 'checked',
-    })
-    const recovered = await cria.client.recover('primary', {
-      instanceId: state.instanceId,
-      bindingId: idle.bindingId,
-      externalRecoveryConfirmed: true,
-      note: 'Chris checked the camera: idle',
-    })
-
-    expect(wrongBinding.status).toBe(409)
-    expect(recovered.status).toBe(200)
-    expect(recovered.body.bindingId).not.toBe(idle.bindingId)
   })
 
-  it('refuses an exposure with Alert: failed, not blocked', async () => {
+  it('refuses an exposure with Alert: failed', async () => {
     fake.behaviour = (fake, vector) => {
       if (vector.name !== 'CCD_EXPOSURE') return 'default'
       fake.update(camera, 'CCD_EXPOSURE', { state: 'Alert', message: 'exposure out of range' })
@@ -86,9 +66,8 @@ describe('a camera that misbehaves', () => {
     }
     const operation = await cria.run('primary', 'capture', { exposureSeconds: 1, light: true })
 
-    expect(operation).toMatchObject({ kind: 'failed', state: 'settled', quarantined: false })
+    expect(operation).toMatchObject({ kind: 'failed', state: 'settled' })
     expect(operation.message).toMatch(/exposure out of range/)
-    expect((await cria.device('primary')).quarantine.held).toBe(false)
   })
 
   it('ignores the abort: the cancelled capture is uncertain (stop not confirmed), never "cancelled"', async () => {
@@ -109,11 +88,11 @@ describe('a camera that misbehaves', () => {
     await cria.cancel(submitted.body.id)
     const operation = await cria.settled(submitted.body.id, 30_000)
 
-    expect(operation).toMatchObject({ kind: 'uncertain', quarantined: false })
+    expect(operation).toMatchObject({ kind: 'uncertain' })
     expect(operation.message).toMatch(/stop was not confirmed/)
   }, 40_000)
 
-  it('vanishes mid-exposure (driver crashed): uncertain, not held, readings unavailable', async () => {
+  it('vanishes mid-exposure (driver crashed): uncertain, readings unavailable', async () => {
     fake.behaviour = (fake, vector) => {
       if (vector.name !== 'CCD_EXPOSURE') return 'default'
       fake.update(camera, 'CCD_EXPOSURE', { state: 'Busy' })
@@ -123,7 +102,7 @@ describe('a camera that misbehaves', () => {
     }
     const operation = await cria.run('primary', 'capture', { exposureSeconds: 5, light: true })
 
-    expect(operation).toMatchObject({ kind: 'uncertain', quarantined: false })
+    expect(operation).toMatchObject({ kind: 'uncertain' })
     expect(operation.message).toMatch(/went away/)
     expect((await cria.device('primary')).readings.temperatureC).toEqual({ status: 'unavailable', reason: 'failed', message: 'Fake CCD is not defined by indiserver' })
   })
@@ -138,12 +117,11 @@ describe('a camera that misbehaves', () => {
     }
     const operation = await cria.run('primary', 'capture', { exposureSeconds: 5, light: true })
 
-    expect(operation).toMatchObject({ kind: 'uncertain', quarantined: false })
+    expect(operation).toMatchObject({ kind: 'uncertain' })
     expect(operation.message).toMatch(/connection lost/)
 
-    const reconnected = await cria.waitFor(state => state.devices[0]!.readings.connected!.status === 'fresh')
+    await cria.waitFor(state => state.devices[0]!.readings.connected!.status === 'fresh')
 
-    expect(reconnected.devices[0]!.quarantine.held).toBe(false)
     expect(exposures()).toBe(1)
   })
 
@@ -160,7 +138,7 @@ describe('a camera that misbehaves', () => {
 
     expect(aborts).toHaveLength(1)
     expect(fake.vector(camera, 'CCD_EXPOSURE').state).toBe('Alert')
-    expect(operation).toMatchObject({ kind: 'uncertain', reason: 'connection-lost', message: 'indiserver connection lost during the exposure', quarantined: false })
+    expect(operation).toMatchObject({ kind: 'uncertain', reason: 'connection-lost', message: 'indiserver connection lost during the exposure' })
   })
 
   it('adjusts a requested subframe: failed with what the driver chose, not uncertain', async () => {
@@ -173,7 +151,7 @@ describe('a camera that misbehaves', () => {
     }
     const operation = await cria.run('primary', 'camera-configure', { width: 5 })
 
-    expect(operation).toMatchObject({ kind: 'failed', state: 'settled', quarantined: false })
+    expect(operation).toMatchObject({ kind: 'failed', state: 'settled' })
     expect(operation.message).toMatch(/WIDTH=4/)
   })
 })
@@ -210,7 +188,7 @@ describe('evidence from the driver (review R1-#8, #9, #10)', () => {
     }
     const operation = await cria.run('primary', 'cooling', { setpointC: -10 })
 
-    expect(operation).toMatchObject({ kind: 'uncertain', quarantined: false })
+    expect(operation).toMatchObject({ kind: 'uncertain' })
   })
 
   it('#9: the driver starting to regulate (Busy) confirms the setpoint', async () => {
@@ -249,7 +227,7 @@ describe('evidence from the driver (review R1-#8, #9, #10)', () => {
       return 'handled'
     }
 
-    expect(await cria.run('primary', 'camera-configure', { binX: 2, binY: 2, width: 4, height: 3 })).toMatchObject({ kind: 'uncertain', quarantined: false })
+    expect(await cria.run('primary', 'camera-configure', { binX: 2, binY: 2, width: 4, height: 3 })).toMatchObject({ kind: 'uncertain' })
   }, 30_000)
 })
 
@@ -306,18 +284,18 @@ describe("a capture takes only its own frame (review R1-#7)", () => {
         fake.behaviour = mismatched(fake => fake.update(camera, 'CCD_EXPOSURE', { state: 'Ok', values: { CCD_EXPOSURE_VALUE: 0 } }))
         const operation = await strict.run('primary', 'capture', { exposureSeconds: 0.2, light: true })
 
-        expect(operation).toMatchObject({ kind: 'failed', reason: 'rejected', quarantined: false })
+        expect(operation).toMatchObject({ kind: 'failed', reason: 'rejected' })
         expect(operation.message).toMatch(/not this exposure.*EXPTIME 7.*idle/)
         expect(operation.image).toBeNull()
 
         fake.behaviour = exposeNormally()
-        expect(await strict.run('primary', 'capture', { exposureSeconds: 0.2, light: true })).toMatchObject({ kind: 'confirmed', quarantined: false })
+        expect(await strict.run('primary', 'capture', { exposureSeconds: 0.2, light: true })).toMatchObject({ kind: 'confirmed' })
       } finally {
         await strict.stop()
       }
     })
 
-    it('ends uncertain, not held, when the camera is still Busy at the deadline', async () => {
+    it('ends uncertain when the camera is still Busy at the deadline', async () => {
       const strict = await strictCria()
 
       try {
@@ -325,7 +303,7 @@ describe("a capture takes only its own frame (review R1-#7)", () => {
         fake.behaviour = mismatched(() => undefined)
         const operation = await strict.run('primary', 'capture', { exposureSeconds: 0.2, light: true })
 
-        expect(operation).toMatchObject({ kind: 'uncertain', reason: 'not-confirmed', quarantined: false })
+        expect(operation).toMatchObject({ kind: 'uncertain', reason: 'not-confirmed' })
         expect(operation.message).toMatch(/not this exposure/)
 
         fake.behaviour = exposeNormally()
@@ -335,7 +313,7 @@ describe("a capture takes only its own frame (review R1-#7)", () => {
       }
     })
 
-    it('ends uncertain, not held, when the exposure state cannot be read', async () => {
+    it('ends uncertain when the exposure state cannot be read', async () => {
       const strict = await strictCria()
 
       try {
@@ -345,7 +323,7 @@ describe("a capture takes only its own frame (review R1-#7)", () => {
         fake.behaviour = (fake, vector, values) => (vector.name === 'CCD_ABORT_EXPOSURE' ? 'handled' : gone(fake, vector, values))
         const operation = await strict.run('primary', 'capture', { exposureSeconds: 0.2, light: true })
 
-        expect(operation).toMatchObject({ kind: 'uncertain', quarantined: false })
+        expect(operation).toMatchObject({ kind: 'uncertain' })
         expect(operation.message).toMatch(/not this exposure/)
       } finally {
         await strict.stop()
@@ -381,7 +359,7 @@ describe('a cancel that arrives during a setting (review R1-#1)', () => {
       const operation = await power.settled(submitted.body.id)
 
       expect(fake.vector(box, 'POWER_CHANNELS').elements.POWER_CHANNEL_1!.value).toBe(false)
-      expect(operation).toMatchObject({ kind: 'confirmed', state: 'settled', quarantined: false })
+      expect(operation).toMatchObject({ kind: 'confirmed', state: 'settled' })
     } finally {
       await power.stop()
     }

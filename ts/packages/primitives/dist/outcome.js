@@ -9,7 +9,7 @@
  */
 import { Cause, Data, Effect, Exit } from 'effect';
 /** Known not to have taken effect. */
-export const failedReasons = ['busy', 'blocked', 'disconnected', 'unsupported', 'rejected', 'invalid', 'unavailable'];
+export const failedReasons = ['busy', 'disconnected', 'unsupported', 'rejected', 'invalid', 'unavailable'];
 /** May have taken effect. Stop, tell a person, never resend. */
 export const uncertainReasons = [
     'no-acknowledgement',

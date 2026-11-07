@@ -15,8 +15,6 @@ Browser → Vela server ──HTTP/SSE (protocol 5)──▶ Cria ──INDI ove
 
 The browser renders what the Vela server projects, including which actions are available. The Cria token stays in Vela's server. Cria refuses any request that carries an `Origin` header, so a browser cannot call it.
 
-Vela's client still speaks protocol 4, the wire of the legacy .NET Cria. Protocol 5 has no compatibility layer, so Vela cannot drive the TypeScript Cria until [the Vela migration checklist](ts/vela-migration.md) lands.
-
 ## Who owns what
 
 Moving Cria from .NET on Windows to TypeScript on Linux did not change the split.
@@ -46,7 +44,7 @@ Each layer imports only from the layers below it in this diagram. The INDI bound
 wire boundary    apps/cria/src/wire          HTTP routes, SSE, projection into protocol 5 (@cria/wire)
 workflows, Run   apps/cria/src/operation     the ledger, one Run per failure domain
 capabilities     apps/cria/src/capability    camera, mount, focuser, weather, power, connection
-disciplines      @cria/primitives            writeOnce, confirm, stoppable, retryReads, quarantineOf
+disciplines      @cria/primitives            writeOnce, confirm, stoppable
 types            @cria/primitives            Outcome, Reading
 INDI boundary    @cria/indi                  XML framing, the TCP connection, the property mirror
 ```
@@ -56,16 +54,16 @@ INDI boundary    @cria/indi                  XML framing, the TCP connection, th
 For the details, read these sections of SPEC.md:
 
 - [The layers](ts/SPEC.md#the-layers) and [the module map](ts/SPEC.md#module-map), for what each file is.
-- [Primitives](ts/SPEC.md#primitives), for Outcome, Reading, the disciplines, Run and Quarantine.
-- [The ledger](ts/SPEC.md#the-ledger), for admission, halts, cancel and recovery.
+- [Primitives](ts/SPEC.md#primitives), for Outcome, Reading, the disciplines and Run.
+- [The ledger](ts/SPEC.md#the-ledger), for admission, halts and cancel.
 - [The INDI boundary](ts/SPEC.md#the-indi-boundary), for which INDI property backs each reading.
 - [The wire (protocol 5)](ts/SPEC.md#the-wire-protocol-5), for endpoints, errors and shapes.
 
 ## Unknown outcomes
 
-If Cria cannot tell whether a command took effect, the operation ends `uncertain`. A mount's failure domain is then held until a person recovers it; any other device stays usable, and Vela shows a warning. Neither Cria nor Vela resends the command. A stop or abort is the one exception. Cria may send it again until the device confirms it is stationary, because an abort can only stop motion. A motion or a setting is never sent again.
+If Cria cannot tell whether a command took effect, the operation ends `uncertain`, and the next command is accepted. Neither Cria nor Vela resends the command. A stop or abort is the one exception. Cria may send it again until the device confirms it is stationary, because an abort can only stop motion. A motion or a setting is never sent again.
 
-Vela stops the run and tells Chris. A person checks the equipment before the device is cleared with `POST /v2/devices/{id}/recover`, which also gives the domain a new `bindingId`.
+Whichever client is driving stops on `uncertain` and tells Chris. Cria does not stop it for them.
 
 ## Restarts
 

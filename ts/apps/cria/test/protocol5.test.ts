@@ -38,7 +38,7 @@ describe('protocol 5', () => {
     expect(await client.health()).toEqual({ status: 'ok', protocolVersion: 5 })
     const state = await client.state()
 
-    expect(state.devices[0]).toMatchObject({ kind: 'camera', name: camera, quarantine: { held: false }, lastCommandedSetpointC: null })
+    expect(state.devices[0]).toMatchObject({ kind: 'camera', name: camera, lastCommandedSetpointC: null })
     expect((await client.firstEvent()).instanceId).toBe(state.instanceId)
   })
 

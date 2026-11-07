@@ -110,7 +110,6 @@ describe('settled operations', () => {
     await running.settled(slow.body.id)
 
     const state = await running.state()
-    const withoutRecovery = (operation: object) => ({ ...operation, recovery: undefined })
     const settled = state.operations.filter(operation => operation.state === 'settled')
 
     await until('the recorder to write everything', () => running.service.rig.recorder!.queuedBytes() === 0)
@@ -123,7 +122,7 @@ describe('settled operations', () => {
 
     expect(settled.slice(-2).map(operation => [operation.kind, operation.outcome.kind])).toEqual([['capture', 'confirmed'], ['capture', 'stopped']])
     expect(settled.length).toBeGreaterThanOrEqual(3)
-    expect(recorded.map(withoutRecovery)).toEqual(settled.map(withoutRecovery).map(operation => JSON.parse(JSON.stringify(operation))))
+    expect(recorded).toEqual(settled.map(operation => JSON.parse(JSON.stringify(operation))))
     expect(await verifyRecording(await only(directory))).toMatchObject({ valid: true, ended: true, operations: settled.length })
   })
 })

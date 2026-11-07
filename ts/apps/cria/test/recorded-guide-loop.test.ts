@@ -39,20 +39,20 @@ afterEach(async () => {
 const wrote = (device: string) => fake.received.filter(xml => xml.startsWith('<new') && xml.includes(`device="${device}"`) && xml.includes('name="CCD_EXPOSURE"')).length
 
 describe('another client looping exposures on the guide camera', () => {
-  it('delivers frames Cria did not ask for; Cria takes its own frame on the other camera and holds neither', async () => {
+  it('delivers frames Cria did not ask for; Cria takes its own frame on the other camera ', async () => {
     const loop = guideLoop(fake, guide, { exposureSeconds: 0.4, readoutMs: 100, gapMs: 57 })
 
     await until('two guide frames to arrive', () => loop.frames() >= 2, 10_000)
     const operation = await cria.run('primary', 'capture', { exposureSeconds: 0.3, light: true })
 
-    expect(operation).toMatchObject({ kind: 'confirmed', quarantined: false })
+    expect(operation).toMatchObject({ kind: 'confirmed' })
     await until('two more guide frames to arrive', () => loop.frames() >= 4, 10_000)
 
     const state = await cria.state()
 
-    expect(state.devices.map(device => [device.id, device.quarantine.held, device.availability.ready])).toEqual([
-      ['primary', false, true],
-      ['guide', false, true],
+    expect(state.devices.map(device => [device.id, device.availability.ready])).toEqual([
+      ['primary', true],
+      ['guide', true],
     ])
     // Cria wrote one exposure, on the camera it was asked to use, and none on the guide camera.
     expect([wrote(primary), wrote(guide)]).toEqual([1, 0])

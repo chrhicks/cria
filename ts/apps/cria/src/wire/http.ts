@@ -16,7 +16,6 @@ import {
   InstanceId,
   OperationId,
   OperationRequest,
-  RecoveryRequest,
   RequestId,
   protocolVersion,
   type ErrorBody,
@@ -45,7 +44,6 @@ const statusOf: { readonly [C in ErrorCode]: number } = {
   'request-conflict': 409,
   'instance-changed': 409,
   'binding-changed': 409,
-  'device-blocked': 409,
   'device-busy': 409,
   'result-expired': 410,
   'image-gone': 410,
@@ -108,20 +106,6 @@ export function makeHttpServer(rig: Rig, options: HttpOptions = {}): Server {
       if (!events(request, response)) throw refuse('too-many-subscribers', 'Too many event subscribers')
 
       return 'streamed'
-    }
-
-    if (method === 'POST' && path.length === 4 && path[1] === 'devices' && path[3] === 'recover') {
-      const { instanceId, bindingId, note } = decodeBody(RecoveryRequest, await readJson(request))
-      const noDevice = refuse('not-found', `No device ${path[2]}`)
-      const deviceId = pathId(DeviceId, path[2], noDevice)
-      const device = rig.devices.find(candidate => candidate.config.id === deviceId)
-
-      if (!device) throw noDevice
-
-      return run(
-        Effect.flatMap(rig.ledger.recover(deviceId, { instanceId, bindingId, recovery: { confirmed: true, note } }), facts => projectDevice(rig, device, facts)),
-        body => ({ status: 200, body }),
-      )
     }
 
     if (method === 'POST' && path.length === 2 && path[1] === 'operations')

@@ -24,7 +24,7 @@ export declare function Outcome<S extends Schema.Top>(value: S): Schema.Union<re
     readonly value: S;
 }>, Schema.Struct<{
     readonly kind: Schema.Literal<"failed">;
-    readonly reason: Schema.Literals<readonly ["busy", "blocked", "disconnected", "unsupported", "rejected", "invalid", "unavailable"]>;
+    readonly reason: Schema.Literals<readonly ["busy", "disconnected", "unsupported", "rejected", "invalid", "unavailable"]>;
     readonly message: Schema.String;
 }>, Schema.Struct<{
     readonly kind: Schema.Literal<"stopped">;

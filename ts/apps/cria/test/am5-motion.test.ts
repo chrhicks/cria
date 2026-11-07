@@ -120,7 +120,6 @@ function expectRestedAt(ending: Ending) {
 /** The move ended only once the position had stood still for a window after it last changed. */
 async function settledAfterTheCoast(id: string): Promise<{ readonly ending: Ending; readonly quietFor: number }> {
   const ending = await cria.settled(id, 30_000)
-  expect((await cria.device('mount')).quarantine.held).toBe(false)
   const motion = ending.operation.motion
   const rested = published.at(-1)!
 
@@ -254,7 +253,7 @@ describe('a home that is aborted, whose abort is answered Ok and whose TELESCOPE
     await start(4, [name])
     const { ending, quietFor } = await homeThenCancel()
 
-    expect(ending).toMatchObject({ kind: 'stopped', quarantined: false })
+    expect(ending).toMatchObject({ kind: 'stopped' })
     expect(fake.vector(mount, 'TELESCOPE_HOME').state).toBe('Busy')
     expect(quietFor).toBeGreaterThanOrEqual(windowMs)
     expect(sent('TELESCOPE_ABORT_MOTION')).toEqual(['ABORT=On'])
@@ -265,7 +264,7 @@ describe('a home that is aborted, whose abort is answered Ok and whose TELESCOPE
     onCommand(isAbort, cacheFor(300))
     const { ending, quietFor } = await homeThenCancel()
 
-    expect(ending).toMatchObject({ kind: 'stopped', quarantined: false })
+    expect(ending).toMatchObject({ kind: 'stopped' })
     expect(quietFor).toBeGreaterThanOrEqual(windowMs)
     expect(sent('TELESCOPE_ABORT_MOTION')).toEqual(['ABORT=On'])
   })

@@ -1,6 +1,6 @@
 /**
  * Every scenario of `pnpm fake-rig` (rig-scenarios.ts), run against the real Cria with the commands
- * the scenario names: what Vela is told (kind, reason) and whether the device is held. The same
+ * the scenario names: what Vela is told (kind, reason). The same
  * scenarios are what a person serves to a test Vela, so what `fake-rig list` promises is tested here.
  */
 import { readFileSync } from 'node:fs'
@@ -38,16 +38,14 @@ describe('the fake-rig scenarios', () => {
   })
 
   for (const scenario of scenarios) {
-    it(`${scenario.name} (${scenario.source}): ${scenario.outcome.device} ends ${scenario.outcome.kind}${scenario.outcome.reason ? ` ${scenario.outcome.reason}` : ''}, ${scenario.outcome.held ? 'held' : 'not held'}`, async () => {
+    it(`${scenario.name} (${scenario.source}): ${scenario.outcome.device} ends ${scenario.outcome.kind}${scenario.outcome.reason ? ` ${scenario.outcome.reason}` : ''}`, async () => {
       const rig = await startRig(scenario, { acknowledgeMs: 600 })
 
       stop = rig.stop
       await rig.cria.waitFor(allReady(scenario.boxDisconnected ? ['primary', 'guide', 'focuser', 'mount'] : ['primary', 'guide', 'focuser', 'mount', 'weather', 'switch']))
       const ending = await scenario.drive(rig)
-      const device = await rig.cria.device(scenario.outcome.device)
 
       expect([ending.kind, ending.reason]).toEqual([scenario.outcome.kind, scenario.outcome.reason])
-      expect(device.quarantine.held).toBe(scenario.outcome.held)
       if (scenario.outcome.message !== undefined) expect(ending.message).toBe(scenario.outcome.message)
     }, 90_000)
   }

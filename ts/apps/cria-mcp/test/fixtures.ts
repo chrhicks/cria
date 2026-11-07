@@ -50,7 +50,6 @@ export const confirmed = (image: unknown) => ({
   startedAt: 1_793_361_600_500,
   settledAt: 1_793_361_602_500,
   outcome: { kind: 'confirmed', value: { values: {}, image } },
-  recovery: null,
   ...capture,
 })
 
@@ -60,7 +59,6 @@ export const failed = {
   startedAt: 1_793_361_600_500,
   settledAt: 1_793_361_602_500,
   outcome: { kind: 'failed', reason: 'rejected', message: 'The camera refused the exposure' },
-  recovery: null,
   ...capture,
 }
 
@@ -98,17 +96,16 @@ export const rotating = {
 
 const fresh = (value: unknown) => ({ status: 'fresh', value, observedAt: 1_793_361_600_000 })
 
-/** A switch device, the smallest device body the wire has; `held` says whether Cria holds it. */
-export const switchDevice = (held: boolean) => ({
+/** A switch device, the smallest device body the wire has. */
+export const switchDevice = {
   id: 'power',
   name: 'Fake Switch',
   bindingId: '7a1e5d30-2b4c-4f69-8a0d-3c9b1e5f7a21',
   failureDomain: 'power',
   availability: { ready: true },
-  quarantine: held ? { held: true, reason: 'uncertain', since: 1_793_361_600_000 } : { held: false },
   kind: 'switch',
   readings: { connected: fresh(true), name: fresh('Fake Switch'), channelCount: fresh(0) },
   channels: [],
-})
+}
 
 export const decodesAsDevice = (device: unknown) => Schema.decodeUnknownSync(Device)(device, { onExcessProperty: 'error' })

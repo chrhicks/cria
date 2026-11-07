@@ -50,13 +50,13 @@ Each step waits for the picture to hold for two polls (about 10 s) so a device t
 
 Cria never restarts a driver and never connects a device on its own. Chris asked on 2026-10-16 for an outside process that does exactly that, narrowly, so the rig comes up unattended. `ts/deploy/rig-supervisor.mjs` is that process (Node built-ins only). It is the one exception to the old rule "never restart a driver automatically". It polls Cria's `GET /v2/state` every 5 s and does two things.
 
-**Restart a driver.** A configured device whose availability reads `unavailable` (indiserver or the driver does not define it), whose hardware is present (a USB `vid:pid` in sysfs, or the serial path), gets its driver restarted, if nothing is open and nothing is held on any device that driver serves, and none of them is exposing, slewing or moving. The supervisor writes `stop <driver>`, waits 1 s, then writes `start <driver>` to the FIFO. Both cameras share `indi_asi_ccd`, so restarting it drops the other camera's INDI session too, which is why the check covers every device of the driver. A device on that driver that was connected is disconnected by the restart, and the supervisor connects it again. Repeats back off at 20 s (never more than one restart per driver per 20 s), then 30 s, then 60 s; the count resets when the driver's devices show up.
+**Restart a driver.** A configured device whose availability reads `unavailable` (indiserver or the driver does not define it), whose hardware is present (a USB `vid:pid` in sysfs, or the serial path), gets its driver restarted, if nothing is open on any device that driver serves, and none of them is exposing, slewing or moving. The supervisor writes `stop <driver>`, waits 1 s, then writes `start <driver>` to the FIFO. Both cameras share `indi_asi_ccd`, so restarting it drops the other camera's INDI session too, which is why the check covers every device of the driver. A device on that driver that was connected is disconnected by the restart, and the supervisor connects it again. Repeats back off at 20 s (never more than one restart per driver per 20 s), then 30 s, then 60 s; the count resets when the driver's devices show up.
 
-**Connect a device.** A defined device whose availability reads `disconnected`, whose hardware is present, with commands enabled and nothing open or held on it, gets one `POST /v2/operations` with `device-connect`, `connected: true` and a fresh `supervisor-<uuid>` request ID. A request is never resent. Further attempts wait 10 s, then 30 s, then 60 s while the device stays disconnected. After a refusal that names a hold (`device-blocked`), `commands-disabled` or an open operation (`device-busy`), it waits quietly until that has cleared.
+**Connect a device.** A defined device whose availability reads `disconnected`, whose hardware is present, with commands enabled and nothing open on it, gets one `POST /v2/operations` with `device-connect`, `connected: true` and a fresh `supervisor-<uuid>` request ID. A request is never resent. Further attempts wait 10 s, then 30 s, then 60 s while the device stays disconnected. After a refusal that says `commands-disabled` or an open operation (`device-busy`), it waits quietly until that has cleared.
 
 It does nothing at all while Cria is unreachable (and must see Cria and the hardware agree for two polls after it returns), while commands are disabled, and, for the restart, when every device is unavailable (indiserver is down, not one driver). It never switches power, and never sends motion, exposure or any other command. It logs one line per decision to stdout, so `journalctl --user -u rig-supervisor` shows every action.
 
-**Why these limits.** A restart ends anything in flight on that driver as `uncertain: driver-lost`, which holds a mount (other devices stay usable). The checks above make sure nothing Cria knows about is in flight, and a held mount is left for a person. An exposure started by another INDI client (PHD2 on the guide camera) shows in the readings as `exposing`, which also blocks a restart.
+**Why these limits.** A restart ends anything in flight on that driver as `uncertain: driver-lost`. The checks above make sure nothing Cria knows about is in flight. An exposure started by another INDI client (PHD2 on the guide camera) shows in the readings as `exposing`, which also blocks a restart.
 
 **What it cannot see.** Cria does not clear its copy of a device's properties when its connection to indiserver drops. If `indiserver` itself restarts while a camera is unpowered, that camera should read `stale`, not `unavailable` (read from the code, not seen on the rig), and the supervisor does not touch it (it only acts on `unavailable`). Restart Cria (`systemctl --user restart cria`) after powering it. This does not happen at boot, when Cria starts with an empty copy.
 
@@ -235,12 +235,12 @@ Two settings decide whether Cria can change the rig:
 A restart is a new Cria with nothing carried over:
 
 - It has a new `instanceId`. Anything in flight before the restart is unknown.
-- The operation table is empty. No request IDs, bindings, recoveries or quarantines carry over.
+- The operation table is empty. No request IDs or bindings carry over.
 - The image folder is emptied.
 
 The INDI drivers keep running and keep their state. A camera that was exposing still reads `exposing`, and a new capture on it settles `failed: busy`.
 
-If a driver crashes, `indiserver` deletes its properties and Cria reports the device unavailable (the supervisor restarts the driver if its conditions hold). An operation in flight ends `uncertain: driver-lost` and, on a mount, blocks the device until a person checks the equipment and calls `POST /v2/devices/{id}/recover`. If `indiserver` itself goes away, every device is unavailable and in-flight work ends uncertain. Cria reconnects at a paced interval and resends nothing. [SPEC.md, "Restarts and crashes"](ts/SPEC.md#restarts-and-crashes) has the details.
+If a driver crashes, `indiserver` deletes its properties and Cria reports the device unavailable (the supervisor restarts the driver if its conditions hold). An operation in flight ends `uncertain: driver-lost`. If `indiserver` itself goes away, every device is unavailable and in-flight work ends uncertain. Cria reconnects at a paced interval and resends nothing. [SPEC.md, "Restarts and crashes"](ts/SPEC.md#restarts-and-crashes) has the details.
 
 ## Restart the rig software
 
@@ -250,7 +250,7 @@ If a driver crashes, `indiserver` deletes its properties and Cria reports the de
 2. starts indiserver and its drivers, and waits in `indi-ready.sh` until they are up;
 3. starts Cria, which connects with an empty copy and runs device setup (site and time on the mount), then the supervisor, which connects the devices.
 
-Use this instead of restarting one driver through the FIFO or Cria on its own when a driver stops answering. Why: on 2026-11-03 the AM5, EAF and Pegasus drivers each went stale after about three hours (writes unanswered, readings not refreshed). Restarting them one by one worked, but a restart of indiserver under a running Cria leaves Cria with stale copies ("What it cannot see" above), and an unanswered stop held the mount. Restarting the drivers also restarts `indi_asi_ccd`, so the camera cooler stops until Cria connects the camera again and the cooler is turned back on.
+Use this instead of restarting one driver through the FIFO or Cria on its own when a driver stops answering. Why: on 2026-11-03 the AM5, EAF and Pegasus drivers each went stale after about three hours (writes unanswered, readings not refreshed). Restarting them one by one worked, but a restart of indiserver under a running Cria leaves Cria with stale copies ("What it cannot see" above), and an unanswered stop ended `uncertain`. Restarting the drivers also restarts `indi_asi_ccd`, so the camera cooler stops until Cria connects the camera again and the cooler is turned back on.
 
 An automatic restart of indiserver after a crash (`Restart=always`) is not a stop or restart job, so it should not restart Cria (read from systemd.unit(5), not tested); Cria reconnects as described in "Stop and restart".
 
@@ -351,11 +351,6 @@ pnpm archive --apply 2026-10-24T23-14-00-<instanceId>    # the same, then delete
 **Free space.** Staging holds one full session (20 to 28 GB) and then the pack (about the kept frames, roughly 35 percent smaller than raw FITS). Sessions are processed one after another.
 
 **When it stops.** `needs-review` means nothing was archived and nothing was deleted; read `unmatched` in the status, fix the cause or pass `--allow-unmatched`. `failed` leaves the staging folder for a look; the next run for the same session starts clean. A lock file in staging from a crashed run blocks that session until it is removed. A run that fails at the delete step is finished by running the same command again: the pack is already in the archive, so only step 6 runs.
-
-## Before Cria commands the rig
-
-The checks on errai so far were read-only. [ts/README.md, "Before trying it on the rig"](../ts/README.md#before-trying-it-on-the-rig) lists what has to happen first, and the first session is with Chris present.
-
 
 ## Boot order
 

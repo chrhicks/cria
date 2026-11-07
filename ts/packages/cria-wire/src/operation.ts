@@ -82,21 +82,14 @@ const settled = {
   outcome: Outcome(OperationResult),
   /** Present on a mount motion whose command was sent, whatever its outcome. */
   motion: Schema.optionalKey(MotionRecord),
-  /** Set once a person recovered the device this uncertain operation quarantined. */
-  recovery: Schema.NullOr(Schema.Struct({ at: Timestamp, note: Schema.String })),
 }
-
-const recoveredOnlyIfUncertain = Schema.makeFilter(
-  (operation: { readonly outcome: { readonly kind: string }; readonly recovery: unknown }) =>
-    operation.recovery === null || operation.outcome.kind === 'uncertain' || 'only an uncertain operation is recovered',
-)
 
 export const Operation = Schema.Union([
   ...HaltCommandSchema.members.map(command => struct({ ...accepted, state: Schema.Literal('waiting'), ...command.fields })),
   ...CommandSchema.members.map(command =>
     struct({ ...accepted, state: Schema.Literal('running'), startedAt: Timestamp, progress: Progress, ...command.fields }),
   ),
-  ...CommandSchema.members.map(command => struct({ ...settled, ...command.fields }).pipe(Schema.check(recoveredOnlyIfUncertain))),
+  ...CommandSchema.members.map(command => struct({ ...settled, ...command.fields })),
 ])
 
 export type Operation = typeof Operation.Type
