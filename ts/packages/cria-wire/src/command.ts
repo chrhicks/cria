@@ -59,12 +59,6 @@ export const commands = table({
     device: 'camera',
     halt: false,
     parameters: Schema.Struct({
-      binX: Schema.optionalKey(integer(1, 1_000_000)),
-      binY: Schema.optionalKey(integer(1, 1_000_000)),
-      startX: Schema.optionalKey(integer(0, 1_000_000)),
-      startY: Schema.optionalKey(integer(0, 1_000_000)),
-      width: Schema.optionalKey(integer(1, 1_000_000)),
-      height: Schema.optionalKey(integer(1, 1_000_000)),
       gain: Schema.optionalKey(integer(0, 1_000_000)),
       offset: Schema.optionalKey(integer(0, 1_000_000)),
     }).pipe(Schema.check(atLeastOne)),

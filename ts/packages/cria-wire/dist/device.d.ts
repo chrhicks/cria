@@ -158,32 +158,6 @@ export declare const CameraReadings: Schema.Struct<{
         readonly reason: Schema.Literals<readonly ["not-read", "unsupported", "failed"]>;
         readonly message: Schema.optionalKey<Schema.String>;
     }>]>;
-    readonly binX: Schema.Union<readonly [Schema.Struct<{
-        readonly status: Schema.Literal<"fresh">;
-        readonly value: Schema.Number;
-        readonly observedAt: Schema.Number;
-    }>, Schema.Struct<{
-        readonly status: Schema.Literal<"stale">;
-        readonly value: Schema.Number;
-        readonly observedAt: Schema.Number;
-    }>, Schema.Struct<{
-        readonly status: Schema.Literal<"unavailable">;
-        readonly reason: Schema.Literals<readonly ["not-read", "unsupported", "failed"]>;
-        readonly message: Schema.optionalKey<Schema.String>;
-    }>]>;
-    readonly binY: Schema.Union<readonly [Schema.Struct<{
-        readonly status: Schema.Literal<"fresh">;
-        readonly value: Schema.Number;
-        readonly observedAt: Schema.Number;
-    }>, Schema.Struct<{
-        readonly status: Schema.Literal<"stale">;
-        readonly value: Schema.Number;
-        readonly observedAt: Schema.Number;
-    }>, Schema.Struct<{
-        readonly status: Schema.Literal<"unavailable">;
-        readonly reason: Schema.Literals<readonly ["not-read", "unsupported", "failed"]>;
-        readonly message: Schema.optionalKey<Schema.String>;
-    }>]>;
     readonly width: Schema.Union<readonly [Schema.Struct<{
         readonly status: Schema.Literal<"fresh">;
         readonly value: Schema.Number;
@@ -198,58 +172,6 @@ export declare const CameraReadings: Schema.Struct<{
         readonly message: Schema.optionalKey<Schema.String>;
     }>]>;
     readonly height: Schema.Union<readonly [Schema.Struct<{
-        readonly status: Schema.Literal<"fresh">;
-        readonly value: Schema.Number;
-        readonly observedAt: Schema.Number;
-    }>, Schema.Struct<{
-        readonly status: Schema.Literal<"stale">;
-        readonly value: Schema.Number;
-        readonly observedAt: Schema.Number;
-    }>, Schema.Struct<{
-        readonly status: Schema.Literal<"unavailable">;
-        readonly reason: Schema.Literals<readonly ["not-read", "unsupported", "failed"]>;
-        readonly message: Schema.optionalKey<Schema.String>;
-    }>]>;
-    readonly startX: Schema.Union<readonly [Schema.Struct<{
-        readonly status: Schema.Literal<"fresh">;
-        readonly value: Schema.Number;
-        readonly observedAt: Schema.Number;
-    }>, Schema.Struct<{
-        readonly status: Schema.Literal<"stale">;
-        readonly value: Schema.Number;
-        readonly observedAt: Schema.Number;
-    }>, Schema.Struct<{
-        readonly status: Schema.Literal<"unavailable">;
-        readonly reason: Schema.Literals<readonly ["not-read", "unsupported", "failed"]>;
-        readonly message: Schema.optionalKey<Schema.String>;
-    }>]>;
-    readonly startY: Schema.Union<readonly [Schema.Struct<{
-        readonly status: Schema.Literal<"fresh">;
-        readonly value: Schema.Number;
-        readonly observedAt: Schema.Number;
-    }>, Schema.Struct<{
-        readonly status: Schema.Literal<"stale">;
-        readonly value: Schema.Number;
-        readonly observedAt: Schema.Number;
-    }>, Schema.Struct<{
-        readonly status: Schema.Literal<"unavailable">;
-        readonly reason: Schema.Literals<readonly ["not-read", "unsupported", "failed"]>;
-        readonly message: Schema.optionalKey<Schema.String>;
-    }>]>;
-    readonly maxBinX: Schema.Union<readonly [Schema.Struct<{
-        readonly status: Schema.Literal<"fresh">;
-        readonly value: Schema.Number;
-        readonly observedAt: Schema.Number;
-    }>, Schema.Struct<{
-        readonly status: Schema.Literal<"stale">;
-        readonly value: Schema.Number;
-        readonly observedAt: Schema.Number;
-    }>, Schema.Struct<{
-        readonly status: Schema.Literal<"unavailable">;
-        readonly reason: Schema.Literals<readonly ["not-read", "unsupported", "failed"]>;
-        readonly message: Schema.optionalKey<Schema.String>;
-    }>]>;
-    readonly maxBinY: Schema.Union<readonly [Schema.Struct<{
         readonly status: Schema.Literal<"fresh">;
         readonly value: Schema.Number;
         readonly observedAt: Schema.Number;
@@ -518,32 +440,6 @@ export declare const MountReadings: Schema.Struct<{
     }>, Schema.Struct<{
         readonly status: Schema.Literal<"stale">;
         readonly value: Schema.Literals<readonly ["sidereal", "lunar", "solar"]>;
-        readonly observedAt: Schema.Number;
-    }>, Schema.Struct<{
-        readonly status: Schema.Literal<"unavailable">;
-        readonly reason: Schema.Literals<readonly ["not-read", "unsupported", "failed"]>;
-        readonly message: Schema.optionalKey<Schema.String>;
-    }>]>;
-    readonly rightAscensionRateSecondsPerSiderealSecond: Schema.Union<readonly [Schema.Struct<{
-        readonly status: Schema.Literal<"fresh">;
-        readonly value: Schema.Number;
-        readonly observedAt: Schema.Number;
-    }>, Schema.Struct<{
-        readonly status: Schema.Literal<"stale">;
-        readonly value: Schema.Number;
-        readonly observedAt: Schema.Number;
-    }>, Schema.Struct<{
-        readonly status: Schema.Literal<"unavailable">;
-        readonly reason: Schema.Literals<readonly ["not-read", "unsupported", "failed"]>;
-        readonly message: Schema.optionalKey<Schema.String>;
-    }>]>;
-    readonly declinationRateArcsecondsPerSecond: Schema.Union<readonly [Schema.Struct<{
-        readonly status: Schema.Literal<"fresh">;
-        readonly value: Schema.Number;
-        readonly observedAt: Schema.Number;
-    }>, Schema.Struct<{
-        readonly status: Schema.Literal<"stale">;
-        readonly value: Schema.Number;
         readonly observedAt: Schema.Number;
     }>, Schema.Struct<{
         readonly status: Schema.Literal<"unavailable">;
@@ -1253,32 +1149,6 @@ export declare const Device: Schema.Union<readonly [Schema.Struct<{
             readonly reason: Schema.Literals<readonly ["not-read", "unsupported", "failed"]>;
             readonly message: Schema.optionalKey<Schema.String>;
         }>]>;
-        readonly binX: Schema.Union<readonly [Schema.Struct<{
-            readonly status: Schema.Literal<"fresh">;
-            readonly value: Schema.Number;
-            readonly observedAt: Schema.Number;
-        }>, Schema.Struct<{
-            readonly status: Schema.Literal<"stale">;
-            readonly value: Schema.Number;
-            readonly observedAt: Schema.Number;
-        }>, Schema.Struct<{
-            readonly status: Schema.Literal<"unavailable">;
-            readonly reason: Schema.Literals<readonly ["not-read", "unsupported", "failed"]>;
-            readonly message: Schema.optionalKey<Schema.String>;
-        }>]>;
-        readonly binY: Schema.Union<readonly [Schema.Struct<{
-            readonly status: Schema.Literal<"fresh">;
-            readonly value: Schema.Number;
-            readonly observedAt: Schema.Number;
-        }>, Schema.Struct<{
-            readonly status: Schema.Literal<"stale">;
-            readonly value: Schema.Number;
-            readonly observedAt: Schema.Number;
-        }>, Schema.Struct<{
-            readonly status: Schema.Literal<"unavailable">;
-            readonly reason: Schema.Literals<readonly ["not-read", "unsupported", "failed"]>;
-            readonly message: Schema.optionalKey<Schema.String>;
-        }>]>;
         readonly width: Schema.Union<readonly [Schema.Struct<{
             readonly status: Schema.Literal<"fresh">;
             readonly value: Schema.Number;
@@ -1293,58 +1163,6 @@ export declare const Device: Schema.Union<readonly [Schema.Struct<{
             readonly message: Schema.optionalKey<Schema.String>;
         }>]>;
         readonly height: Schema.Union<readonly [Schema.Struct<{
-            readonly status: Schema.Literal<"fresh">;
-            readonly value: Schema.Number;
-            readonly observedAt: Schema.Number;
-        }>, Schema.Struct<{
-            readonly status: Schema.Literal<"stale">;
-            readonly value: Schema.Number;
-            readonly observedAt: Schema.Number;
-        }>, Schema.Struct<{
-            readonly status: Schema.Literal<"unavailable">;
-            readonly reason: Schema.Literals<readonly ["not-read", "unsupported", "failed"]>;
-            readonly message: Schema.optionalKey<Schema.String>;
-        }>]>;
-        readonly startX: Schema.Union<readonly [Schema.Struct<{
-            readonly status: Schema.Literal<"fresh">;
-            readonly value: Schema.Number;
-            readonly observedAt: Schema.Number;
-        }>, Schema.Struct<{
-            readonly status: Schema.Literal<"stale">;
-            readonly value: Schema.Number;
-            readonly observedAt: Schema.Number;
-        }>, Schema.Struct<{
-            readonly status: Schema.Literal<"unavailable">;
-            readonly reason: Schema.Literals<readonly ["not-read", "unsupported", "failed"]>;
-            readonly message: Schema.optionalKey<Schema.String>;
-        }>]>;
-        readonly startY: Schema.Union<readonly [Schema.Struct<{
-            readonly status: Schema.Literal<"fresh">;
-            readonly value: Schema.Number;
-            readonly observedAt: Schema.Number;
-        }>, Schema.Struct<{
-            readonly status: Schema.Literal<"stale">;
-            readonly value: Schema.Number;
-            readonly observedAt: Schema.Number;
-        }>, Schema.Struct<{
-            readonly status: Schema.Literal<"unavailable">;
-            readonly reason: Schema.Literals<readonly ["not-read", "unsupported", "failed"]>;
-            readonly message: Schema.optionalKey<Schema.String>;
-        }>]>;
-        readonly maxBinX: Schema.Union<readonly [Schema.Struct<{
-            readonly status: Schema.Literal<"fresh">;
-            readonly value: Schema.Number;
-            readonly observedAt: Schema.Number;
-        }>, Schema.Struct<{
-            readonly status: Schema.Literal<"stale">;
-            readonly value: Schema.Number;
-            readonly observedAt: Schema.Number;
-        }>, Schema.Struct<{
-            readonly status: Schema.Literal<"unavailable">;
-            readonly reason: Schema.Literals<readonly ["not-read", "unsupported", "failed"]>;
-            readonly message: Schema.optionalKey<Schema.String>;
-        }>]>;
-        readonly maxBinY: Schema.Union<readonly [Schema.Struct<{
             readonly status: Schema.Literal<"fresh">;
             readonly value: Schema.Number;
             readonly observedAt: Schema.Number;
@@ -1630,32 +1448,6 @@ export declare const Device: Schema.Union<readonly [Schema.Struct<{
         }>, Schema.Struct<{
             readonly status: Schema.Literal<"stale">;
             readonly value: Schema.Literals<readonly ["sidereal", "lunar", "solar"]>;
-            readonly observedAt: Schema.Number;
-        }>, Schema.Struct<{
-            readonly status: Schema.Literal<"unavailable">;
-            readonly reason: Schema.Literals<readonly ["not-read", "unsupported", "failed"]>;
-            readonly message: Schema.optionalKey<Schema.String>;
-        }>]>;
-        readonly rightAscensionRateSecondsPerSiderealSecond: Schema.Union<readonly [Schema.Struct<{
-            readonly status: Schema.Literal<"fresh">;
-            readonly value: Schema.Number;
-            readonly observedAt: Schema.Number;
-        }>, Schema.Struct<{
-            readonly status: Schema.Literal<"stale">;
-            readonly value: Schema.Number;
-            readonly observedAt: Schema.Number;
-        }>, Schema.Struct<{
-            readonly status: Schema.Literal<"unavailable">;
-            readonly reason: Schema.Literals<readonly ["not-read", "unsupported", "failed"]>;
-            readonly message: Schema.optionalKey<Schema.String>;
-        }>]>;
-        readonly declinationRateArcsecondsPerSecond: Schema.Union<readonly [Schema.Struct<{
-            readonly status: Schema.Literal<"fresh">;
-            readonly value: Schema.Number;
-            readonly observedAt: Schema.Number;
-        }>, Schema.Struct<{
-            readonly status: Schema.Literal<"stale">;
-            readonly value: Schema.Number;
             readonly observedAt: Schema.Number;
         }>, Schema.Struct<{
             readonly status: Schema.Literal<"unavailable">;

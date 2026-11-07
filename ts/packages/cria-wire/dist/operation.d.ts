@@ -13,10 +13,6 @@ export declare const Image: Schema.Struct<{
     readonly cameraName: Schema.String;
     readonly width: Schema.Number;
     readonly height: Schema.Number;
-    readonly binX: Schema.Number;
-    readonly binY: Schema.Number;
-    readonly startX: Schema.Number;
-    readonly startY: Schema.Number;
     readonly exposureSeconds: Schema.Number;
     readonly color: Schema.Literals<readonly ["mono", "rggb", "grbg", "gbrg", "bggr"]>;
     readonly capturedAt: Schema.Number;
@@ -40,10 +36,6 @@ export declare const OperationResult: Schema.Struct<{
         readonly cameraName: Schema.String;
         readonly width: Schema.Number;
         readonly height: Schema.Number;
-        readonly binX: Schema.Number;
-        readonly binY: Schema.Number;
-        readonly startX: Schema.Number;
-        readonly startY: Schema.Number;
         readonly exposureSeconds: Schema.Number;
         readonly color: Schema.Literals<readonly ["mono", "rggb", "grbg", "gbrg", "bggr"]>;
         readonly capturedAt: Schema.Number;
@@ -67,12 +59,6 @@ export declare const requestIdentity: {
 export declare const OperationRequest: Schema.Union<(Schema.Struct<{
     kind: Schema.Literal<"camera-configure">;
     parameters: Schema.Struct<{
-        readonly binX: Schema.optionalKey<Schema.Number>;
-        readonly binY: Schema.optionalKey<Schema.Number>;
-        readonly startX: Schema.optionalKey<Schema.Number>;
-        readonly startY: Schema.optionalKey<Schema.Number>;
-        readonly width: Schema.optionalKey<Schema.Number>;
-        readonly height: Schema.optionalKey<Schema.Number>;
         readonly gain: Schema.optionalKey<Schema.Number>;
         readonly offset: Schema.optionalKey<Schema.Number>;
     }>;
@@ -210,12 +196,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
 }> | Schema.Struct<{
     kind: Schema.Literal<"camera-configure">;
     parameters: Schema.Struct<{
-        readonly binX: Schema.optionalKey<Schema.Number>;
-        readonly binY: Schema.optionalKey<Schema.Number>;
-        readonly startX: Schema.optionalKey<Schema.Number>;
-        readonly startY: Schema.optionalKey<Schema.Number>;
-        readonly width: Schema.optionalKey<Schema.Number>;
-        readonly height: Schema.optionalKey<Schema.Number>;
         readonly gain: Schema.optionalKey<Schema.Number>;
         readonly offset: Schema.optionalKey<Schema.Number>;
     }>;
@@ -443,12 +423,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
 }> | Schema.Struct<{
     kind: Schema.Literal<"camera-configure">;
     parameters: Schema.Struct<{
-        readonly binX: Schema.optionalKey<Schema.Number>;
-        readonly binY: Schema.optionalKey<Schema.Number>;
-        readonly startX: Schema.optionalKey<Schema.Number>;
-        readonly startY: Schema.optionalKey<Schema.Number>;
-        readonly width: Schema.optionalKey<Schema.Number>;
-        readonly height: Schema.optionalKey<Schema.Number>;
         readonly gain: Schema.optionalKey<Schema.Number>;
         readonly offset: Schema.optionalKey<Schema.Number>;
     }>;
@@ -473,10 +447,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
                 readonly cameraName: Schema.String;
                 readonly width: Schema.Number;
                 readonly height: Schema.Number;
-                readonly binX: Schema.Number;
-                readonly binY: Schema.Number;
-                readonly startX: Schema.Number;
-                readonly startY: Schema.Number;
                 readonly exposureSeconds: Schema.Number;
                 readonly color: Schema.Literals<readonly ["mono", "rggb", "grbg", "gbrg", "bggr"]>;
                 readonly capturedAt: Schema.Number;
@@ -574,10 +544,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
                 readonly cameraName: Schema.String;
                 readonly width: Schema.Number;
                 readonly height: Schema.Number;
-                readonly binX: Schema.Number;
-                readonly binY: Schema.Number;
-                readonly startX: Schema.Number;
-                readonly startY: Schema.Number;
                 readonly exposureSeconds: Schema.Number;
                 readonly color: Schema.Literals<readonly ["mono", "rggb", "grbg", "gbrg", "bggr"]>;
                 readonly capturedAt: Schema.Number;
@@ -673,10 +639,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
                 readonly cameraName: Schema.String;
                 readonly width: Schema.Number;
                 readonly height: Schema.Number;
-                readonly binX: Schema.Number;
-                readonly binY: Schema.Number;
-                readonly startX: Schema.Number;
-                readonly startY: Schema.Number;
                 readonly exposureSeconds: Schema.Number;
                 readonly color: Schema.Literals<readonly ["mono", "rggb", "grbg", "gbrg", "bggr"]>;
                 readonly capturedAt: Schema.Number;
@@ -771,10 +733,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
                 readonly cameraName: Schema.String;
                 readonly width: Schema.Number;
                 readonly height: Schema.Number;
-                readonly binX: Schema.Number;
-                readonly binY: Schema.Number;
-                readonly startX: Schema.Number;
-                readonly startY: Schema.Number;
                 readonly exposureSeconds: Schema.Number;
                 readonly color: Schema.Literals<readonly ["mono", "rggb", "grbg", "gbrg", "bggr"]>;
                 readonly capturedAt: Schema.Number;
@@ -867,10 +825,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
                 readonly cameraName: Schema.String;
                 readonly width: Schema.Number;
                 readonly height: Schema.Number;
-                readonly binX: Schema.Number;
-                readonly binY: Schema.Number;
-                readonly startX: Schema.Number;
-                readonly startY: Schema.Number;
                 readonly exposureSeconds: Schema.Number;
                 readonly color: Schema.Literals<readonly ["mono", "rggb", "grbg", "gbrg", "bggr"]>;
                 readonly capturedAt: Schema.Number;
@@ -967,10 +921,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
                 readonly cameraName: Schema.String;
                 readonly width: Schema.Number;
                 readonly height: Schema.Number;
-                readonly binX: Schema.Number;
-                readonly binY: Schema.Number;
-                readonly startX: Schema.Number;
-                readonly startY: Schema.Number;
                 readonly exposureSeconds: Schema.Number;
                 readonly color: Schema.Literals<readonly ["mono", "rggb", "grbg", "gbrg", "bggr"]>;
                 readonly capturedAt: Schema.Number;
@@ -1066,10 +1016,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
                 readonly cameraName: Schema.String;
                 readonly width: Schema.Number;
                 readonly height: Schema.Number;
-                readonly binX: Schema.Number;
-                readonly binY: Schema.Number;
-                readonly startX: Schema.Number;
-                readonly startY: Schema.Number;
                 readonly exposureSeconds: Schema.Number;
                 readonly color: Schema.Literals<readonly ["mono", "rggb", "grbg", "gbrg", "bggr"]>;
                 readonly capturedAt: Schema.Number;
@@ -1162,10 +1108,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
                 readonly cameraName: Schema.String;
                 readonly width: Schema.Number;
                 readonly height: Schema.Number;
-                readonly binX: Schema.Number;
-                readonly binY: Schema.Number;
-                readonly startX: Schema.Number;
-                readonly startY: Schema.Number;
                 readonly exposureSeconds: Schema.Number;
                 readonly color: Schema.Literals<readonly ["mono", "rggb", "grbg", "gbrg", "bggr"]>;
                 readonly capturedAt: Schema.Number;
@@ -1261,10 +1203,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
                 readonly cameraName: Schema.String;
                 readonly width: Schema.Number;
                 readonly height: Schema.Number;
-                readonly binX: Schema.Number;
-                readonly binY: Schema.Number;
-                readonly startX: Schema.Number;
-                readonly startY: Schema.Number;
                 readonly exposureSeconds: Schema.Number;
                 readonly color: Schema.Literals<readonly ["mono", "rggb", "grbg", "gbrg", "bggr"]>;
                 readonly capturedAt: Schema.Number;
@@ -1361,10 +1299,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
                 readonly cameraName: Schema.String;
                 readonly width: Schema.Number;
                 readonly height: Schema.Number;
-                readonly binX: Schema.Number;
-                readonly binY: Schema.Number;
-                readonly startX: Schema.Number;
-                readonly startY: Schema.Number;
                 readonly exposureSeconds: Schema.Number;
                 readonly color: Schema.Literals<readonly ["mono", "rggb", "grbg", "gbrg", "bggr"]>;
                 readonly capturedAt: Schema.Number;
@@ -1457,10 +1391,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
                 readonly cameraName: Schema.String;
                 readonly width: Schema.Number;
                 readonly height: Schema.Number;
-                readonly binX: Schema.Number;
-                readonly binY: Schema.Number;
-                readonly startX: Schema.Number;
-                readonly startY: Schema.Number;
                 readonly exposureSeconds: Schema.Number;
                 readonly color: Schema.Literals<readonly ["mono", "rggb", "grbg", "gbrg", "bggr"]>;
                 readonly capturedAt: Schema.Number;
@@ -1555,10 +1485,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
                 readonly cameraName: Schema.String;
                 readonly width: Schema.Number;
                 readonly height: Schema.Number;
-                readonly binX: Schema.Number;
-                readonly binY: Schema.Number;
-                readonly startX: Schema.Number;
-                readonly startY: Schema.Number;
                 readonly exposureSeconds: Schema.Number;
                 readonly color: Schema.Literals<readonly ["mono", "rggb", "grbg", "gbrg", "bggr"]>;
                 readonly capturedAt: Schema.Number;
@@ -1654,10 +1580,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
                 readonly cameraName: Schema.String;
                 readonly width: Schema.Number;
                 readonly height: Schema.Number;
-                readonly binX: Schema.Number;
-                readonly binY: Schema.Number;
-                readonly startX: Schema.Number;
-                readonly startY: Schema.Number;
                 readonly exposureSeconds: Schema.Number;
                 readonly color: Schema.Literals<readonly ["mono", "rggb", "grbg", "gbrg", "bggr"]>;
                 readonly capturedAt: Schema.Number;

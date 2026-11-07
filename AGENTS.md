@@ -16,7 +16,7 @@ The .NET Cria on Windows is legacy. Its own rules are under "Legacy .NET service
 - **Runs are ephemeral.** A Cria restart means a new `instanceId` and an empty operation table, so any operation in flight before it is unknown. There is no journal and no custody obligation to Vela.
 - **Images are a rolling set the service may drop; there is no custody.** Do not add durable operation or image history back.
 - **Verify rig ownership before connecting.** Do not infer the current owner from an old document or trial. Confirm the current owner before Cria connects to errai's `indiserver`. Builds and test runs do not authorize rig changes.
-- **Do not command the real rig without Chris present.** Reads and simulators are fine: reading state, a read-only Cria (`commandsEnabled: false` and `connect: false` on every device), the fake INDI server and the INDI simulators. Anything that moves the mount or focuser, exposes a camera, changes a setting, switches power or connects a device needs Chris in the session.
+- **Do not command the real rig without Chris present.** Reads and simulators are fine: reading state, a read-only Cria (`commandsEnabled: false`), the fake INDI server and the INDI simulators. Anything that moves the mount or focuser, exposes a camera, changes a setting, switches power or connects a device needs Chris in the session.
 - **Run `ts/verify.sh` and check its own exit code.** Run `cd ts && ./verify.sh` before every commit that touches `ts/`, and read the exit code of `verify.sh` itself. Never read it from the end of a pipe. A pipe once reported a failing suite as passing.
 
 ## Repository

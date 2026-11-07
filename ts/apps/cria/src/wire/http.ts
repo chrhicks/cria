@@ -1,17 +1,14 @@
 /**
  * Wire boundary: protocol 5 over HTTP. Routes decode their input once with the
  * @cria/wire schemas, call the ledger, and project the answer (project.ts). The
- * optional bearer token and the refusal of browser origins live here.
+ * refusal of browser origins lives here.
  */
-import { createHash, timingSafeEqual } from 'node:crypto'
 import { open } from 'node:fs/promises'
 import { pipeline } from 'node:stream'
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http'
 import { Effect, Exit, Result, Schema } from 'effect'
 import {
   DeviceId,
-  EnvelopeRequest,
-  FixRequest,
   ImageId,
   InstanceId,
   OperationId,
@@ -28,16 +25,10 @@ import { makeEventStream } from './sse.js'
 
 const maxBodyBytes = 16 * 1024
 
-interface HttpOptions {
-  /** When set, every route except /health requires `Authorization: Bearer <token>`. */
-  readonly token?: string
-}
-
 type Reply = { readonly status: number; readonly body: unknown }
 
 const statusOf: { readonly [C in ErrorCode]: number } = {
   'request-error': 400,
-  unauthorized: 401,
   'origin-rejected': 403,
   'commands-disabled': 403,
   'not-found': 404,
@@ -55,9 +46,8 @@ function errorReply(refusal: Refusal, instanceId: InstanceId): { readonly status
   return { status: statusOf[refusal.code], body: { error: { code: refusal.code, message: refusal.message }, instanceId } }
 }
 
-export function makeHttpServer(rig: Rig, options: HttpOptions = {}): Server {
+export function makeHttpServer(rig: Rig): Server {
   const events = makeEventStream(rig)
-  const tokenDigest = options.token === undefined ? undefined : digest(`Bearer ${options.token}`)
 
   const run = <A>(effect: Effect.Effect<A, Refusal>, toReply: (value: A) => Reply) =>
     Effect.runPromiseExit(effect).then(exit => {
@@ -76,30 +66,11 @@ export function makeHttpServer(rig: Rig, options: HttpOptions = {}): Server {
     if (method === 'GET' && url.pathname === '/health') return { status: 200, body: { status: 'ok', protocolVersion } }
 
     if (request.headers.origin) throw refuse('origin-rejected', 'Browser origins are not accepted')
-    if (tokenDigest && !sameDigest(digest(request.headers.authorization ?? ''), tokenDigest))
-      throw refuse('unauthorized', 'Bearer token required')
 
     if (path[0] !== 'v2') throw refuse('not-found', 'No such route')
 
     if (method === 'GET' && path.length === 2 && path[1] === 'state')
       return run(Effect.flatMap(rig.ledger.snapshot, snapshot => projectState(rig, snapshot)), state => ({ status: 200, body: state }))
-
-    if (path.length === 4 && path[1] === 'devices' && ['envelope', 'fix', 'feedback'].includes(path[3]!)) {
-      const device = rig.devices.find(candidate => candidate.config.id === path[2] && candidate.config.kind === 'mount')
-
-      if (!device) throw refuse('not-found', 'No such mount')
-      if (method === 'GET' && path[3] === 'feedback') return { status: 200, body: device.feedback }
-      if (method === 'POST' && (path[3] === 'envelope' || path[3] === 'fix')) {
-        const body = await readJson(request)
-        const decoded = path[3] === 'envelope' ? decodeBody(EnvelopeRequest, body) : decodeBody(FixRequest, body)
-
-        if (decoded.instanceId !== rig.instanceId) throw refuse('instance-changed', 'Cria restarted')
-        if ('envelope' in decoded) device.feedback.envelope = decoded.envelope
-        else device.feedback.fix = decoded.fix
-
-        return { status: 200, body: device.feedback }
-      }
-    }
 
     if (method === 'GET' && path.length === 2 && path[1] === 'events') {
       if (!events(request, response)) throw refuse('too-many-subscribers', 'Too many event subscribers')
@@ -220,10 +191,3 @@ async function readJson(request: IncomingMessage): Promise<unknown> {
   }
 }
 
-function digest(value: string): Buffer {
-  return createHash('sha256').update(value).digest()
-}
-
-function sameDigest(a: Buffer, b: Buffer): boolean {
-  return a.length === b.length && timingSafeEqual(a, b)
-}

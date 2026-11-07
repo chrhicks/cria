@@ -4,7 +4,7 @@ import { callState, freePort, json, startFakeCria, startMcp, type FakeHandler } 
 
 const instanceId = '6f1b2b0e-5b8c-4a6e-9c3e-0d2f6a1d7c11'
 const emptyState = { protocolVersion: 5, instanceId, sequence: 3, generatedAt: 1_793_361_600_000, commandsEnabled: false, devices: [], operations: [] }
-const refusal = { error: { code: 'unauthorized', message: 'Bearer token required' }, instanceId }
+const refusal = { error: { code: 'not-found', message: 'No such route' }, instanceId }
 
 const against = (handler: FakeHandler, env: Record<string, string> = {}) =>
   Effect.gen(function* () {
@@ -25,7 +25,7 @@ describe('state against a fake Cria', () => {
     }),
   )
 
-  it.live('sends no Origin and no Authorization when no token is set', () =>
+  it.live('sends no Origin and no Authorization', () =>
     Effect.gen(function* () {
       const { cria } = yield* against((_, response) => json(response, 200, emptyState))
       const sent = cria.requests[0]!.headers
@@ -35,21 +35,12 @@ describe('state against a fake Cria', () => {
     }),
   )
 
-  it.live('sends the bearer token when one is set, and never returns it', () =>
-    Effect.gen(function* () {
-      const { cria, result } = yield* against((_, response) => json(response, 200, emptyState), { CRIA_TOKEN: 'a-test-token' })
-
-      expect(cria.requests[0]!.headers.authorization).toBe('Bearer a-test-token')
-      expect(JSON.stringify(result)).not.toContain('a-test-token')
-    }),
-  )
-
   it.live("passes Cria's refusal through with its status and body unchanged", () =>
     Effect.gen(function* () {
-      const { result } = yield* against((_, response) => json(response, 401, refusal))
+      const { result } = yield* against((_, response) => json(response, 404, refusal))
 
       expect(result.isError).toBeFalsy()
-      expect(result.structuredContent).toEqual({ kind: 'refused', status: 401, body: refusal })
+      expect(result.structuredContent).toEqual({ kind: 'refused', status: 404, body: refusal })
     }),
   )
 

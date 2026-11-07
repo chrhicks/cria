@@ -38,12 +38,6 @@ export declare const commands: Table<{
         readonly device: "camera";
         readonly halt: false;
         readonly parameters: Schema.Struct<{
-            readonly binX: Schema.optionalKey<Schema.Number>;
-            readonly binY: Schema.optionalKey<Schema.Number>;
-            readonly startX: Schema.optionalKey<Schema.Number>;
-            readonly startY: Schema.optionalKey<Schema.Number>;
-            readonly width: Schema.optionalKey<Schema.Number>;
-            readonly height: Schema.optionalKey<Schema.Number>;
             readonly gain: Schema.optionalKey<Schema.Number>;
             readonly offset: Schema.optionalKey<Schema.Number>;
         }>;
@@ -132,12 +126,6 @@ type Commands = typeof commands;
 export declare const CommandSchema: Schema.Union<(Schema.Struct<{
     readonly kind: Schema.Literal<"camera-configure">;
     readonly parameters: Schema.Struct<{
-        readonly binX: Schema.optionalKey<Schema.Number>;
-        readonly binY: Schema.optionalKey<Schema.Number>;
-        readonly startX: Schema.optionalKey<Schema.Number>;
-        readonly startY: Schema.optionalKey<Schema.Number>;
-        readonly width: Schema.optionalKey<Schema.Number>;
-        readonly height: Schema.optionalKey<Schema.Number>;
         readonly gain: Schema.optionalKey<Schema.Number>;
         readonly offset: Schema.optionalKey<Schema.Number>;
     }>;

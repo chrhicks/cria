@@ -146,7 +146,6 @@ describe('errai, replayed', () => {
     )
     // Both TELESCOPE_PIER_SIDE switches are Off on the AM5 (at least at the pole): reported as unknown.
     expect(value('mount', 'pierSide')).toBe('unknown')
-    expect(value('mount', 'rightAscensionRateSecondsPerSiderealSecond')).toBe('unsupported')
   })
 
   it('reads the EAF: position, travel, temperature', () => {
@@ -174,17 +173,6 @@ describe('errai, replayed', () => {
     ])
   })
 
-  it.each([
-    [{ width: 3121 }, 'width 3121 binned pixels; the camera needs a multiple of 8 binned pixels; nearest 3120 or 3128'],
-    [{ height: 2087 }, 'height 2087 binned pixels; the camera needs a multiple of 2 binned pixels; nearest 2086 or 2088'],
-  ])('refuses a 2600 region %o off the grid before sending: the driver defines no step, the deploy config does', async (region, message) => {
-    const before = replay.commands.length
-    const operation = await cria.run('primary', 'camera-configure', region)
-
-    expect([operation.kind, operation.reason, operation.message]).toEqual(['failed', 'invalid', message])
-    expect(replay.commands.slice(before)).toEqual([])
-  })
-
   it('refuses a manual dew duty while the PPBA has auto dew on, before sending', async () => {
     const before = replay.commands.length
     const operation = await cria.run('switch', 'switch-set', { channelId: 3, value: 20 })
@@ -208,8 +196,6 @@ describe('errai, replayed', () => {
       ['ZWO CCD ASI2600MC Pro', 'CCD_FRAME_TYPE', 'FRAME_FLAT'],
       ['ZWO CCD ASI2600MC Pro', 'CCD_FRAME_TYPE', 'FRAME_DARK'],
       ['ZWO CCD ASI2600MC Pro', 'CCD_FRAME_TYPE', 'FRAME_BIAS'],
-      ['ZWO CCD ASI2600MC Pro', 'CCD_BINNING', 'HOR_BIN'],
-      ['ZWO CCD ASI2600MC Pro', 'CCD_FRAME', 'WIDTH'],
       ['ZWO CCD ASI2600MC Pro', 'CCD_CONTROLS', 'Gain'],
       ['ZWO CCD ASI2600MC Pro', 'CCD_CONTROLS', 'Offset'],
       ['ZWO CCD ASI2600MC Pro', 'CCD_TEMPERATURE', 'CCD_TEMPERATURE_VALUE'],
@@ -224,8 +210,6 @@ describe('errai, replayed', () => {
       ['ZWO AM5', 'ON_COORD_SET', 'TRACK'],
       ['ZWO AM5', 'TELESCOPE_ABORT_MOTION', 'ABORT'],
       ['ZWO AM5', 'TELESCOPE_TRACK_STATE', 'TRACK_ON'],
-      ['ZWO AM5', 'TELESCOPE_PARK', 'PARK'],
-      ['ZWO AM5', 'TELESCOPE_PARK', 'UNPARK'],
       ['ZWO AM5', 'TELESCOPE_HOME', 'GO'],
       ['ZWO AM5', 'TELESCOPE_MOTION_WE', 'MOTION_EAST'],
       ['ZWO AM5', 'TELESCOPE_MOTION_WE', 'MOTION_WEST'],

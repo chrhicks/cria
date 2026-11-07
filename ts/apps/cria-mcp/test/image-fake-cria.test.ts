@@ -55,16 +55,6 @@ describe('image against a fake Cria', () => {
     }),
   )
 
-  it.live('sends the bearer token when one is set', () =>
-    Effect.gen(function* () {
-      const { cria, mcp } = yield* against(imagebytes(frame), { CRIA_TOKEN: 'a-test-token' })
-      const result = yield* callTool(mcp.url, 'image', { image: imageOf(frame) })
-
-      expect(cria.requests[0]!.headers.authorization).toBe('Bearer a-test-token')
-      expect(JSON.stringify(result)).not.toContain('a-test-token')
-    }),
-  )
-
   it.live("passes Cria's refusal through unchanged and leaves nothing behind", () =>
     Effect.gen(function* () {
       const refusal = { error: { code: 'image-gone', message: 'This image is no longer kept' }, instanceId: null }

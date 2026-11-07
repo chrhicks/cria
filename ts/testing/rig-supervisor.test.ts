@@ -522,32 +522,6 @@ describe('guards', () => {
 
     expect(logs.filter(line => line.includes('not restarting'))).toHaveLength(1)
   })
-
-  it('sends the bearer token when given one', async () => {
-    const seen: Array<string | undefined> = []
-    const probe = createServer((request, response) => {
-      seen.push(request.headers.authorization)
-      response.writeHead(200).end(JSON.stringify({ ...current.cria.state() }))
-    })
-
-    await new Promise<void>(resolve => probe.listen(0, '127.0.0.1', resolve))
-    const supervisor = createSupervisor({
-      config: parseConfig({ criaUrl: `http://127.0.0.1:${(probe.address() as AddressInfo).port}`, fifo: '/x', devices }),
-      now: () => 0,
-      sleep: async () => {},
-      fetch,
-      hardwarePresent: () => false,
-      writeFifo: async () => {},
-      log: () => {},
-      token: 'secret',
-    })
-
-    await supervisor.tick()
-    probe.closeAllConnections()
-    await new Promise<void>(resolve => probe.close(() => resolve()))
-
-    expect(seen).toEqual(['Bearer secret'])
-  })
 })
 
 describe('the FIFO', () => {

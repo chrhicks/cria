@@ -89,7 +89,6 @@ export const startMcp = (env: Record<string, string>): Effect.Effect<McpProcess,
     const imageDirectory = env.CRIA_MCP_IMAGE_DIR ?? join(yield* scratchDirectory('cria-mcp-images-'), 'images')
     const childEnv: NodeJS.ProcessEnv = { ...process.env, CRIA_MCP_PORT: String(port), CRIA_MCP_IMAGE_DIR: imageDirectory, ...env }
 
-    if (!('CRIA_TOKEN' in env)) delete childEnv.CRIA_TOKEN
     const child = yield* Effect.acquireRelease(
       Effect.sync(() =>
         spawn(process.execPath, ['--conditions=@cria/source', '--import', join(tsRoot, 'testing', 'source-hook.mjs'), join(tsRoot, 'apps', 'cria-mcp', 'src', 'main.ts')], {
@@ -211,7 +210,7 @@ export interface RealCria {
  * A real Cria process (apps/cria/src/main.ts) on a fake INDI server. Read-only unless the test
  * asks for commands, which then reach only the fake.
  */
-export const startRealCria = (indiPort: number, options: { readonly token?: string; readonly commandsEnabled?: boolean } = {}): Effect.Effect<RealCria, Error, Scope.Scope> =>
+export const startRealCria = (indiPort: number, options: { readonly commandsEnabled?: boolean } = {}): Effect.Effect<RealCria, Error, Scope.Scope> =>
   Effect.gen(function* () {
     const directory = yield* Effect.acquireRelease(
       Effect.promise(() => mkdtemp(join(tmpdir(), 'cria-mcp-real-'))),
@@ -236,15 +235,10 @@ export const startRealCria = (indiPort: number, options: { readonly token?: stri
       ),
     )
 
-    const env = { ...process.env }
-
-    delete env.CRIA_TOKEN
-    if (options.token !== undefined) env.CRIA_TOKEN = options.token
     const child = yield* Effect.acquireRelease(
       Effect.sync(() =>
         spawn(process.execPath, ['--conditions=@cria/source', '--import', join(tsRoot, 'testing', 'source-hook.mjs'), join(tsRoot, 'apps', 'cria', 'src', 'main.ts'), config], {
           stdio: ['ignore', 'ignore', 'pipe'],
-          env,
         }),
       ),
       child => Effect.sync(() => void child.kill('SIGTERM')),

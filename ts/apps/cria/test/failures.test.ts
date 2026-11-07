@@ -33,7 +33,7 @@ const exposures = () => fake.received.filter(xml => xml.includes('name="CCD_EXPO
 const exposing = () => until('the fake camera to expose', () => fake.vector(camera, 'CCD_EXPOSURE').state === 'Busy', 5000)
 
 describe('a camera that misbehaves', () => {
-  it('converts the FITS frame to column-major ImageBytes with the colour at the subframe origin', async () => {
+  it("converts the FITS frame to column-major ImageBytes with the camera's colour pattern", async () => {
     const operation = await cria.run('primary', 'capture', { exposureSeconds: 0.05, light: true })
 
     expect(operation).toMatchObject({ kind: 'confirmed', image: { width: 8, height: 6, color: 'grbg' } })
@@ -140,20 +140,6 @@ describe('a camera that misbehaves', () => {
     expect(fake.vector(camera, 'CCD_EXPOSURE').state).toBe('Alert')
     expect(operation).toMatchObject({ kind: 'uncertain', reason: 'connection-lost', message: 'indiserver connection lost during the exposure' })
   })
-
-  it('adjusts a requested subframe: failed with what the driver chose, not uncertain', async () => {
-    fake.behaviour = (fake, vector, values) => {
-      if (vector.name !== 'CCD_FRAME') return 'default'
-      fake.apply(vector, values)
-      fake.update(camera, 'CCD_FRAME', { state: 'Ok', values: { WIDTH: 4 } })
-
-      return 'handled'
-    }
-    const operation = await cria.run('primary', 'camera-configure', { width: 5 })
-
-    expect(operation).toMatchObject({ kind: 'failed', state: 'settled' })
-    expect(operation.message).toMatch(/WIDTH=4/)
-  })
 })
 
 describe('evidence from the driver (review R1-#8, #9, #10)', () => {
@@ -204,30 +190,37 @@ describe('evidence from the driver (review R1-#8, #9, #10)', () => {
     expect(await cria.run('primary', 'cooling', { setpointC: -10 })).toMatchObject({ kind: 'confirmed', values: { setpointC: -10 } })
   })
 
+  const withGain = async () => {
+    fake.define({ device: camera, name: 'CCD_CONTROLS', kind: 'number', perm: 'rw', state: 'Ok', elements: { Gain: { value: 100, min: 0, max: 700, step: 1 } } })
+    await cria.waitFor(noneNotRead)
+  }
+
   it('#10: waits for the driver to echo a number setting', async () => {
+    await withGain()
     fake.behaviour = (fake, vector, values) => {
-      if (vector.name !== 'CCD_BINNING') return 'default'
-      fake.update(camera, 'CCD_BINNING', { state: 'Ok' })
+      if (vector.name !== 'CCD_CONTROLS') return 'default'
+      fake.update(camera, 'CCD_CONTROLS', { state: 'Ok' })
       setTimeout(() => {
         fake.apply(vector, values)
-        fake.update(camera, 'CCD_BINNING', { state: 'Ok' })
+        fake.update(camera, 'CCD_CONTROLS', { state: 'Ok' })
       }, 1500)
 
       return 'handled'
     }
 
-    expect(await cria.run('primary', 'camera-configure', { binX: 2, binY: 2, width: 4, height: 3 })).toMatchObject({ kind: 'confirmed' })
+    expect(await cria.run('primary', 'camera-configure', { gain: 200 })).toMatchObject({ kind: 'confirmed' })
   })
 
   it('#10: old values at the deadline are uncertain, not "rejected"', async () => {
+    await withGain()
     fake.behaviour = (fake, vector) => {
-      if (vector.name !== 'CCD_BINNING') return 'default'
-      fake.update(camera, 'CCD_BINNING', { state: 'Ok' })
+      if (vector.name !== 'CCD_CONTROLS') return 'default'
+      fake.update(camera, 'CCD_CONTROLS', { state: 'Ok' })
 
       return 'handled'
     }
 
-    expect(await cria.run('primary', 'camera-configure', { binX: 2, binY: 2, width: 4, height: 3 })).toMatchObject({ kind: 'uncertain' })
+    expect(await cria.run('primary', 'camera-configure', { gain: 200 })).toMatchObject({ kind: 'uncertain' })
   }, 30_000)
 })
 
@@ -417,26 +410,6 @@ describe('a Pegasus-like power box', () => {
       expect(await power.run('switch', 'switch-set', { channelId: 1, value: 40 })).toMatchObject({ kind: 'confirmed' })
     } finally {
       await power.stop()
-    }
-  })
-})
-
-describe('start-up connect (review R1-#11)', () => {
-  it('runs as an operation on the device Run, visible to Vela', async () => {
-    const box = 'Cold PPB'
-
-    fake.define(connection(box, false))
-    const late = await startCria(fake.port, [{ id: 'weather', kind: 'weather', indiDevice: box, connect: true }])
-
-    try {
-      const state = await late.waitFor(current => current.operations.some(operation => operation.state === 'settled' && operation.outcome.kind === 'confirmed'))
-      const operation = state.operations[0] as unknown as { kind: string; requestId: string; deviceId: string }
-
-      expect(operation).toMatchObject({ kind: 'device-connect', deviceId: 'weather' })
-      expect(operation.requestId).toMatch(/^startup-/)
-      expect(fake.vector(box, 'CONNECTION').elements.CONNECT!.value).toBe(true)
-    } finally {
-      await late.stop()
     }
   })
 })

@@ -2,14 +2,12 @@
  * What every capability is built from: one INDI device, a way to take a
  * snapshot of its Readings, and the command deadlines.
  */
-import type { MountFeedback } from '@cria/wire'
 import { Effect } from 'effect'
 import type { IndiDevice } from '@cria/indi'
 import { Failed, Reading } from '@cria/primitives'
 import type { DeviceSnapshot } from './fields.js'
 
 export interface CapabilityContext {
-  readonly feedback: { envelope: MountFeedback['envelope']; fix: MountFeedback['fix'] }
   readonly device: IndiDevice
   readonly snapshot: Effect.Effect<DeviceSnapshot>
   readonly timing: {

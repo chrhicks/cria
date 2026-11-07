@@ -62,8 +62,8 @@ const channels = [
 ]
 
 const devices: ReadonlyArray<DeviceSpec> = [
-  { id: 'primary', kind: 'camera', indiDevice: names.primary, frameGrid: { width: 8, height: 2 } },
-  { id: 'guide', kind: 'camera', indiDevice: names.guide, frameGrid: { width: 8, height: 2 } },
+  { id: 'primary', kind: 'camera', indiDevice: names.primary },
+  { id: 'guide', kind: 'camera', indiDevice: names.guide },
   { id: 'focuser', kind: 'focuser', indiDevice: names.focuser, travel: { min: 15500, max: 38000 } },
   { id: 'mount', kind: 'mount', indiDevice: names.mount, site },
   { id: 'weather', kind: 'weather', indiDevice: names.box },
@@ -197,7 +197,6 @@ export interface RigOptions {
   readonly host?: string
   readonly port?: number
   readonly acknowledgeMs?: number
-  readonly token?: string
 }
 
 /** The fake errai rig with one scenario's fault, and the real Cria on it. Stop with `stopRig`. */
@@ -247,7 +246,6 @@ export async function startRig(scenario: Scenario, options: RigOptions = {}): Pr
       acknowledgeMs: options.acknowledgeMs ?? 5000,
       ...scenario.config,
     },
-    options.token === undefined ? {} : { token: options.token },
   )
   const rig = { fake, mount, cria }
 

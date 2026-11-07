@@ -89,7 +89,6 @@ pnpm install                              # once
 pnpm fake-rig list                        # every scenario, what to do in Vela, what you should see
 pnpm fake-rig serve camera-silent         # Cria on http://127.0.0.1:4320
 pnpm fake-rig serve focuser-short --host 0.0.0.0 --port 4320   # reachable from another machine; use only on a network you trust
-CRIA_TOKEN=secret pnpm fake-rig serve mount-power-cut           # Cria asks for this bearer token
 ```
 
 `serve` prints the scenario, what to try and what to expect, then `listening on http://HOST:PORT`, and runs until you stop it (Ctrl-C). `--acknowledge-ms N` shortens the 5 s a command waits for the driver's answer (the default is errai's). The failure stays: every matching command meets it again, and a restart gives the devices a fresh state and clears a held mount. This Cria speaks wire protocol 5, so the Vela must be one that does (the one that shows the uncertain warning, vela#208).

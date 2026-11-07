@@ -6,8 +6,7 @@
  * `serve` starts a fake errai rig (both cameras, the EAF, the AM5 and the Pegasus box on a fake
  * INDI server) with one recorded or derived failure, and the real Cria on it, listening on
  * <host>:<port> (default 127.0.0.1:4320). A test Vela pointed at that address meets the failure
- * when it sends the command the scenario names. CRIA_TOKEN, when set, is the bearer token Cria
- * asks for. Stops on SIGINT and SIGTERM. Nothing here touches hardware or errai.
+ * when it sends the command the scenario names. Stops on SIGINT and SIGTERM. Nothing here touches hardware or errai.
  */
 import { scenarioNamed, scenarios, startRig } from '../apps/cria/test/rig-scenarios.js'
 
@@ -63,8 +62,7 @@ async function serve(args: ReadonlyArray<string>) {
   const host = named.get('host') ?? '127.0.0.1'
   const port = whole(named, 'port') ?? 4320
   const acknowledgeMs = whole(named, 'acknowledge-ms')
-  const token = process.env.CRIA_TOKEN
-  const rig = await startRig(scenario, { host, port, ...(acknowledgeMs === undefined ? {} : { acknowledgeMs }), ...(token ? { token } : {}) })
+  const rig = await startRig(scenario, { host, port, ...(acknowledgeMs === undefined ? {} : { acknowledgeMs }) })
 
   console.log(`scenario ${scenario.name} (${scenario.source}): ${scenario.episode}`)
   console.log(`try:    ${scenario.tryThis}`)

@@ -20,7 +20,6 @@ export const State = Schema.Struct({
 export const Health = Schema.Struct({ status: Schema.Literal('ok'), protocolVersion: Schema.Literal(protocolVersion) });
 export const errorCodes = [
     'request-error',
-    'unauthorized',
     'origin-rejected',
     'commands-disabled',
     'not-found',

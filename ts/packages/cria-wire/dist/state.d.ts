@@ -166,32 +166,6 @@ export declare const State: Schema.Struct<{
                 readonly reason: Schema.Literals<readonly ["not-read", "unsupported", "failed"]>;
                 readonly message: Schema.optionalKey<Schema.String>;
             }>]>;
-            readonly binX: Schema.Union<readonly [Schema.Struct<{
-                readonly status: Schema.Literal<"fresh">;
-                readonly value: Schema.Number;
-                readonly observedAt: Schema.Number;
-            }>, Schema.Struct<{
-                readonly status: Schema.Literal<"stale">;
-                readonly value: Schema.Number;
-                readonly observedAt: Schema.Number;
-            }>, Schema.Struct<{
-                readonly status: Schema.Literal<"unavailable">;
-                readonly reason: Schema.Literals<readonly ["not-read", "unsupported", "failed"]>;
-                readonly message: Schema.optionalKey<Schema.String>;
-            }>]>;
-            readonly binY: Schema.Union<readonly [Schema.Struct<{
-                readonly status: Schema.Literal<"fresh">;
-                readonly value: Schema.Number;
-                readonly observedAt: Schema.Number;
-            }>, Schema.Struct<{
-                readonly status: Schema.Literal<"stale">;
-                readonly value: Schema.Number;
-                readonly observedAt: Schema.Number;
-            }>, Schema.Struct<{
-                readonly status: Schema.Literal<"unavailable">;
-                readonly reason: Schema.Literals<readonly ["not-read", "unsupported", "failed"]>;
-                readonly message: Schema.optionalKey<Schema.String>;
-            }>]>;
             readonly width: Schema.Union<readonly [Schema.Struct<{
                 readonly status: Schema.Literal<"fresh">;
                 readonly value: Schema.Number;
@@ -206,58 +180,6 @@ export declare const State: Schema.Struct<{
                 readonly message: Schema.optionalKey<Schema.String>;
             }>]>;
             readonly height: Schema.Union<readonly [Schema.Struct<{
-                readonly status: Schema.Literal<"fresh">;
-                readonly value: Schema.Number;
-                readonly observedAt: Schema.Number;
-            }>, Schema.Struct<{
-                readonly status: Schema.Literal<"stale">;
-                readonly value: Schema.Number;
-                readonly observedAt: Schema.Number;
-            }>, Schema.Struct<{
-                readonly status: Schema.Literal<"unavailable">;
-                readonly reason: Schema.Literals<readonly ["not-read", "unsupported", "failed"]>;
-                readonly message: Schema.optionalKey<Schema.String>;
-            }>]>;
-            readonly startX: Schema.Union<readonly [Schema.Struct<{
-                readonly status: Schema.Literal<"fresh">;
-                readonly value: Schema.Number;
-                readonly observedAt: Schema.Number;
-            }>, Schema.Struct<{
-                readonly status: Schema.Literal<"stale">;
-                readonly value: Schema.Number;
-                readonly observedAt: Schema.Number;
-            }>, Schema.Struct<{
-                readonly status: Schema.Literal<"unavailable">;
-                readonly reason: Schema.Literals<readonly ["not-read", "unsupported", "failed"]>;
-                readonly message: Schema.optionalKey<Schema.String>;
-            }>]>;
-            readonly startY: Schema.Union<readonly [Schema.Struct<{
-                readonly status: Schema.Literal<"fresh">;
-                readonly value: Schema.Number;
-                readonly observedAt: Schema.Number;
-            }>, Schema.Struct<{
-                readonly status: Schema.Literal<"stale">;
-                readonly value: Schema.Number;
-                readonly observedAt: Schema.Number;
-            }>, Schema.Struct<{
-                readonly status: Schema.Literal<"unavailable">;
-                readonly reason: Schema.Literals<readonly ["not-read", "unsupported", "failed"]>;
-                readonly message: Schema.optionalKey<Schema.String>;
-            }>]>;
-            readonly maxBinX: Schema.Union<readonly [Schema.Struct<{
-                readonly status: Schema.Literal<"fresh">;
-                readonly value: Schema.Number;
-                readonly observedAt: Schema.Number;
-            }>, Schema.Struct<{
-                readonly status: Schema.Literal<"stale">;
-                readonly value: Schema.Number;
-                readonly observedAt: Schema.Number;
-            }>, Schema.Struct<{
-                readonly status: Schema.Literal<"unavailable">;
-                readonly reason: Schema.Literals<readonly ["not-read", "unsupported", "failed"]>;
-                readonly message: Schema.optionalKey<Schema.String>;
-            }>]>;
-            readonly maxBinY: Schema.Union<readonly [Schema.Struct<{
                 readonly status: Schema.Literal<"fresh">;
                 readonly value: Schema.Number;
                 readonly observedAt: Schema.Number;
@@ -542,32 +464,6 @@ export declare const State: Schema.Struct<{
             }>, Schema.Struct<{
                 readonly status: Schema.Literal<"stale">;
                 readonly value: Schema.Literals<readonly ["sidereal", "lunar", "solar"]>;
-                readonly observedAt: Schema.Number;
-            }>, Schema.Struct<{
-                readonly status: Schema.Literal<"unavailable">;
-                readonly reason: Schema.Literals<readonly ["not-read", "unsupported", "failed"]>;
-                readonly message: Schema.optionalKey<Schema.String>;
-            }>]>;
-            readonly rightAscensionRateSecondsPerSiderealSecond: Schema.Union<readonly [Schema.Struct<{
-                readonly status: Schema.Literal<"fresh">;
-                readonly value: Schema.Number;
-                readonly observedAt: Schema.Number;
-            }>, Schema.Struct<{
-                readonly status: Schema.Literal<"stale">;
-                readonly value: Schema.Number;
-                readonly observedAt: Schema.Number;
-            }>, Schema.Struct<{
-                readonly status: Schema.Literal<"unavailable">;
-                readonly reason: Schema.Literals<readonly ["not-read", "unsupported", "failed"]>;
-                readonly message: Schema.optionalKey<Schema.String>;
-            }>]>;
-            readonly declinationRateArcsecondsPerSecond: Schema.Union<readonly [Schema.Struct<{
-                readonly status: Schema.Literal<"fresh">;
-                readonly value: Schema.Number;
-                readonly observedAt: Schema.Number;
-            }>, Schema.Struct<{
-                readonly status: Schema.Literal<"stale">;
-                readonly value: Schema.Number;
                 readonly observedAt: Schema.Number;
             }>, Schema.Struct<{
                 readonly status: Schema.Literal<"unavailable">;
@@ -1169,12 +1065,6 @@ export declare const State: Schema.Struct<{
     }> | Schema.Struct<{
         kind: Schema.Literal<"camera-configure">;
         parameters: Schema.Struct<{
-            readonly binX: Schema.optionalKey<Schema.Number>;
-            readonly binY: Schema.optionalKey<Schema.Number>;
-            readonly startX: Schema.optionalKey<Schema.Number>;
-            readonly startY: Schema.optionalKey<Schema.Number>;
-            readonly width: Schema.optionalKey<Schema.Number>;
-            readonly height: Schema.optionalKey<Schema.Number>;
             readonly gain: Schema.optionalKey<Schema.Number>;
             readonly offset: Schema.optionalKey<Schema.Number>;
         }>;
@@ -1402,12 +1292,6 @@ export declare const State: Schema.Struct<{
     }> | Schema.Struct<{
         kind: Schema.Literal<"camera-configure">;
         parameters: Schema.Struct<{
-            readonly binX: Schema.optionalKey<Schema.Number>;
-            readonly binY: Schema.optionalKey<Schema.Number>;
-            readonly startX: Schema.optionalKey<Schema.Number>;
-            readonly startY: Schema.optionalKey<Schema.Number>;
-            readonly width: Schema.optionalKey<Schema.Number>;
-            readonly height: Schema.optionalKey<Schema.Number>;
             readonly gain: Schema.optionalKey<Schema.Number>;
             readonly offset: Schema.optionalKey<Schema.Number>;
         }>;
@@ -1432,10 +1316,6 @@ export declare const State: Schema.Struct<{
                     readonly cameraName: Schema.String;
                     readonly width: Schema.Number;
                     readonly height: Schema.Number;
-                    readonly binX: Schema.Number;
-                    readonly binY: Schema.Number;
-                    readonly startX: Schema.Number;
-                    readonly startY: Schema.Number;
                     readonly exposureSeconds: Schema.Number;
                     readonly color: Schema.Literals<readonly ["mono", "rggb", "grbg", "gbrg", "bggr"]>;
                     readonly capturedAt: Schema.Number;
@@ -1532,10 +1412,6 @@ export declare const State: Schema.Struct<{
                     readonly cameraName: Schema.String;
                     readonly width: Schema.Number;
                     readonly height: Schema.Number;
-                    readonly binX: Schema.Number;
-                    readonly binY: Schema.Number;
-                    readonly startX: Schema.Number;
-                    readonly startY: Schema.Number;
                     readonly exposureSeconds: Schema.Number;
                     readonly color: Schema.Literals<readonly ["mono", "rggb", "grbg", "gbrg", "bggr"]>;
                     readonly capturedAt: Schema.Number;
@@ -1630,10 +1506,6 @@ export declare const State: Schema.Struct<{
                     readonly cameraName: Schema.String;
                     readonly width: Schema.Number;
                     readonly height: Schema.Number;
-                    readonly binX: Schema.Number;
-                    readonly binY: Schema.Number;
-                    readonly startX: Schema.Number;
-                    readonly startY: Schema.Number;
                     readonly exposureSeconds: Schema.Number;
                     readonly color: Schema.Literals<readonly ["mono", "rggb", "grbg", "gbrg", "bggr"]>;
                     readonly capturedAt: Schema.Number;
@@ -1727,10 +1599,6 @@ export declare const State: Schema.Struct<{
                     readonly cameraName: Schema.String;
                     readonly width: Schema.Number;
                     readonly height: Schema.Number;
-                    readonly binX: Schema.Number;
-                    readonly binY: Schema.Number;
-                    readonly startX: Schema.Number;
-                    readonly startY: Schema.Number;
                     readonly exposureSeconds: Schema.Number;
                     readonly color: Schema.Literals<readonly ["mono", "rggb", "grbg", "gbrg", "bggr"]>;
                     readonly capturedAt: Schema.Number;
@@ -1822,10 +1690,6 @@ export declare const State: Schema.Struct<{
                     readonly cameraName: Schema.String;
                     readonly width: Schema.Number;
                     readonly height: Schema.Number;
-                    readonly binX: Schema.Number;
-                    readonly binY: Schema.Number;
-                    readonly startX: Schema.Number;
-                    readonly startY: Schema.Number;
                     readonly exposureSeconds: Schema.Number;
                     readonly color: Schema.Literals<readonly ["mono", "rggb", "grbg", "gbrg", "bggr"]>;
                     readonly capturedAt: Schema.Number;
@@ -1921,10 +1785,6 @@ export declare const State: Schema.Struct<{
                     readonly cameraName: Schema.String;
                     readonly width: Schema.Number;
                     readonly height: Schema.Number;
-                    readonly binX: Schema.Number;
-                    readonly binY: Schema.Number;
-                    readonly startX: Schema.Number;
-                    readonly startY: Schema.Number;
                     readonly exposureSeconds: Schema.Number;
                     readonly color: Schema.Literals<readonly ["mono", "rggb", "grbg", "gbrg", "bggr"]>;
                     readonly capturedAt: Schema.Number;
@@ -2019,10 +1879,6 @@ export declare const State: Schema.Struct<{
                     readonly cameraName: Schema.String;
                     readonly width: Schema.Number;
                     readonly height: Schema.Number;
-                    readonly binX: Schema.Number;
-                    readonly binY: Schema.Number;
-                    readonly startX: Schema.Number;
-                    readonly startY: Schema.Number;
                     readonly exposureSeconds: Schema.Number;
                     readonly color: Schema.Literals<readonly ["mono", "rggb", "grbg", "gbrg", "bggr"]>;
                     readonly capturedAt: Schema.Number;
@@ -2114,10 +1970,6 @@ export declare const State: Schema.Struct<{
                     readonly cameraName: Schema.String;
                     readonly width: Schema.Number;
                     readonly height: Schema.Number;
-                    readonly binX: Schema.Number;
-                    readonly binY: Schema.Number;
-                    readonly startX: Schema.Number;
-                    readonly startY: Schema.Number;
                     readonly exposureSeconds: Schema.Number;
                     readonly color: Schema.Literals<readonly ["mono", "rggb", "grbg", "gbrg", "bggr"]>;
                     readonly capturedAt: Schema.Number;
@@ -2212,10 +2064,6 @@ export declare const State: Schema.Struct<{
                     readonly cameraName: Schema.String;
                     readonly width: Schema.Number;
                     readonly height: Schema.Number;
-                    readonly binX: Schema.Number;
-                    readonly binY: Schema.Number;
-                    readonly startX: Schema.Number;
-                    readonly startY: Schema.Number;
                     readonly exposureSeconds: Schema.Number;
                     readonly color: Schema.Literals<readonly ["mono", "rggb", "grbg", "gbrg", "bggr"]>;
                     readonly capturedAt: Schema.Number;
@@ -2311,10 +2159,6 @@ export declare const State: Schema.Struct<{
                     readonly cameraName: Schema.String;
                     readonly width: Schema.Number;
                     readonly height: Schema.Number;
-                    readonly binX: Schema.Number;
-                    readonly binY: Schema.Number;
-                    readonly startX: Schema.Number;
-                    readonly startY: Schema.Number;
                     readonly exposureSeconds: Schema.Number;
                     readonly color: Schema.Literals<readonly ["mono", "rggb", "grbg", "gbrg", "bggr"]>;
                     readonly capturedAt: Schema.Number;
@@ -2406,10 +2250,6 @@ export declare const State: Schema.Struct<{
                     readonly cameraName: Schema.String;
                     readonly width: Schema.Number;
                     readonly height: Schema.Number;
-                    readonly binX: Schema.Number;
-                    readonly binY: Schema.Number;
-                    readonly startX: Schema.Number;
-                    readonly startY: Schema.Number;
                     readonly exposureSeconds: Schema.Number;
                     readonly color: Schema.Literals<readonly ["mono", "rggb", "grbg", "gbrg", "bggr"]>;
                     readonly capturedAt: Schema.Number;
@@ -2503,10 +2343,6 @@ export declare const State: Schema.Struct<{
                     readonly cameraName: Schema.String;
                     readonly width: Schema.Number;
                     readonly height: Schema.Number;
-                    readonly binX: Schema.Number;
-                    readonly binY: Schema.Number;
-                    readonly startX: Schema.Number;
-                    readonly startY: Schema.Number;
                     readonly exposureSeconds: Schema.Number;
                     readonly color: Schema.Literals<readonly ["mono", "rggb", "grbg", "gbrg", "bggr"]>;
                     readonly capturedAt: Schema.Number;
@@ -2601,10 +2437,6 @@ export declare const State: Schema.Struct<{
                     readonly cameraName: Schema.String;
                     readonly width: Schema.Number;
                     readonly height: Schema.Number;
-                    readonly binX: Schema.Number;
-                    readonly binY: Schema.Number;
-                    readonly startX: Schema.Number;
-                    readonly startY: Schema.Number;
                     readonly exposureSeconds: Schema.Number;
                     readonly color: Schema.Literals<readonly ["mono", "rggb", "grbg", "gbrg", "bggr"]>;
                     readonly capturedAt: Schema.Number;
@@ -2679,11 +2511,11 @@ export declare const Health: Schema.Struct<{
     readonly status: Schema.Literal<"ok">;
     readonly protocolVersion: Schema.Literal<5>;
 }>;
-export declare const errorCodes: readonly ['request-error', 'unauthorized', 'origin-rejected', 'commands-disabled', 'not-found', 'request-conflict', 'instance-changed', 'device-busy', 'result-expired', 'image-gone', 'request-too-large', 'too-many-subscribers', 'internal-error'];
+export declare const errorCodes: readonly ['request-error', 'origin-rejected', 'commands-disabled', 'not-found', 'request-conflict', 'instance-changed', 'device-busy', 'result-expired', 'image-gone', 'request-too-large', 'too-many-subscribers', 'internal-error'];
 export type ErrorCode = (typeof errorCodes)[number];
 export declare const ErrorBody: Schema.Struct<{
     readonly error: Schema.Struct<{
-        readonly code: Schema.Literals<readonly ["request-error", "unauthorized", "origin-rejected", "commands-disabled", "not-found", "request-conflict", "instance-changed", "device-busy", "result-expired", "image-gone", "request-too-large", "too-many-subscribers", "internal-error"]>;
+        readonly code: Schema.Literals<readonly ["request-error", "origin-rejected", "commands-disabled", "not-found", "request-conflict", "instance-changed", "device-busy", "result-expired", "image-gone", "request-too-large", "too-many-subscribers", "internal-error"]>;
         readonly message: Schema.String;
     }>;
     readonly instanceId: Schema.NullOr<Schema.brand<Schema.String, "InstanceId">>;

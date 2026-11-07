@@ -41,15 +41,6 @@ describe('a command tool against a fake Cria', () => {
     }),
   )
 
-  it.live('sends a bearer token when one is set', () =>
-    Effect.gen(function* () {
-      const { cria, mcp } = yield* against(accepts, { CRIA_TOKEN: 'a-test-token' })
-
-      yield* callTool(mcp.url, 'mount-rotate', rotateInput)
-      expect(cria.requests[0]!.headers.authorization).toBe('Bearer a-test-token')
-    }),
-  )
-
   it.live('sends an empty parameters object for a kind that takes none, and still answers', () =>
     Effect.gen(function* () {
       const waiting = decodesAsWire({ id: operationId, ...mountId, failureDomain: 'mount', acceptedAt: 1_793_361_600_000, state: 'waiting', kind: 'mount-stop', parameters: {} })
@@ -112,23 +103,19 @@ describe('a command tool against a fake Cria', () => {
     }),
   )
 
-  it.live('does not follow a redirect, and says nothing of the address or the token', () =>
+  it.live('does not follow a redirect, and says nothing of the address', () =>
     Effect.gen(function* () {
       const elsewhere = yield* startFakeCria((_, response) => json(response, 202, rotating))
-      const { cria, mcp } = yield* against(
-        (_, response) => {
-          response.writeHead(307, { location: `${elsewhere.origin}/v2/operations` })
-          response.end()
-        },
-        { CRIA_TOKEN: 'a-secret-token' },
-      )
+      const { cria, mcp } = yield* against((_, response) => {
+        response.writeHead(307, { location: `${elsewhere.origin}/v2/operations` })
+        response.end()
+      })
       const result = yield* callTool(mcp.url, 'mount-rotate', rotateInput)
 
       expect(result.structuredContent).toMatchObject({ kind: 'lost', why: 'transport' })
       expect(elsewhere.requests).toEqual([])
       expect(posts(cria)).toHaveLength(1)
       expect(text(result)).not.toContain(cria.origin)
-      expect(text(result)).not.toContain('a-secret-token')
     }),
   )
 

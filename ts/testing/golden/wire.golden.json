@@ -1,127 +1,5 @@
 [
   {
-    "scenario": "Vela supplies the mount envelope and accepted fixes",
-    "step": 1,
-    "request": "GET /v2/devices/mount/feedback",
-    "status": 200,
-    "body": {
-      "envelope": null,
-      "fix": null
-    }
-  },
-  {
-    "scenario": "Vela supplies the mount envelope and accepted fixes",
-    "step": 2,
-    "request": "POST /v2/devices/mount/envelope",
-    "sent": {
-      "envelope": {
-        "keepOut": [
-          {
-            "maxDeclinationDegrees": 90,
-            "minDeclinationDegrees": -90,
-            "name": "normal",
-            "side": "normal",
-            "westHourAngleDegrees": 20
-          }
-        ],
-        "meridianLimitDegrees": 15
-      },
-      "instanceId": "<instance-1>"
-    },
-    "status": 200,
-    "body": {
-      "envelope": {
-        "keepOut": [
-          {
-            "maxDeclinationDegrees": 90,
-            "minDeclinationDegrees": -90,
-            "name": "normal",
-            "side": "normal",
-            "westHourAngleDegrees": 20
-          }
-        ],
-        "meridianLimitDegrees": 15
-      },
-      "fix": null
-    }
-  },
-  {
-    "scenario": "Vela supplies the mount envelope and accepted fixes",
-    "step": 3,
-    "request": "POST /v2/devices/mount/fix",
-    "sent": {
-      "fix": {
-        "capturedAt": "<time>",
-        "coordinateSystem": "j2000",
-        "declinationDegrees": 30,
-        "error": {
-          "hintOffsetDegrees": 0.2,
-          "scaleError": 0.01
-        },
-        "pointingErrorArcmin": null,
-        "rightAscensionDegrees": 120
-      },
-      "instanceId": "<instance-1>"
-    },
-    "status": 200,
-    "body": {
-      "envelope": {
-        "keepOut": [
-          {
-            "maxDeclinationDegrees": 90,
-            "minDeclinationDegrees": -90,
-            "name": "normal",
-            "side": "normal",
-            "westHourAngleDegrees": 20
-          }
-        ],
-        "meridianLimitDegrees": 15
-      },
-      "fix": {
-        "capturedAt": "<time>",
-        "coordinateSystem": "j2000",
-        "declinationDegrees": 30,
-        "error": {
-          "hintOffsetDegrees": 0.2,
-          "scaleError": 0.01
-        },
-        "pointingErrorArcmin": null,
-        "rightAscensionDegrees": 120
-      }
-    }
-  },
-  {
-    "scenario": "Vela supplies the mount envelope and accepted fixes",
-    "step": 4,
-    "request": "GET /v2/devices/mount/feedback",
-    "status": 200,
-    "body": {
-      "envelope": {
-        "keepOut": [
-          {
-            "maxDeclinationDegrees": 90,
-            "minDeclinationDegrees": -90,
-            "name": "normal",
-            "side": "normal",
-            "westHourAngleDegrees": 20
-          }
-        ],
-        "meridianLimitDegrees": 15
-      },
-      "fix": {
-        "capturedAt": "<time>",
-        "coordinateSystem": "j2000",
-        "declinationDegrees": 30,
-        "error": {
-          "hintOffsetDegrees": 0.2,
-          "scaleError": 0.01
-        },
-        "pointingErrorArcmin": null,
-        "rightAscensionDegrees": 120
-      }
-    }
-  },
-  {
     "scenario": "health",
     "step": 1,
     "request": "GET /health",
@@ -158,16 +36,6 @@
               "observedAt": "<time>",
               "status": "fresh",
               "value": "grbg"
-            },
-            "binX": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": 1
-            },
-            "binY": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": 1
             },
             "canAbortExposure": {
               "observedAt": "<time>",
@@ -224,16 +92,6 @@
               "status": "fresh",
               "value": 6
             },
-            "maxBinX": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": 4
-            },
-            "maxBinY": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": 4
-            },
             "name": {
               "observedAt": "<time>",
               "status": "fresh",
@@ -274,16 +132,6 @@
             "setpointC": {
               "reason": "unsupported",
               "status": "unavailable"
-            },
-            "startX": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": 0
-            },
-            "startY": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": 0
             },
             "temperatureC": {
               "observedAt": "<time>",
@@ -340,10 +188,6 @@
               "observedAt": "<time>",
               "status": "fresh",
               "value": 40
-            },
-            "declinationRateArcsecondsPerSecond": {
-              "reason": "not-read",
-              "status": "unavailable"
             },
             "elevationMeters": {
               "observedAt": "<time>",
@@ -420,14 +264,10 @@
               "status": "fresh",
               "value": 2
             },
-            "rightAscensionRateSecondsPerSiderealSecond": {
-              "reason": "not-read",
-              "status": "unavailable"
-            },
             "siderealTimeHours": {
               "observedAt": "<time>",
               "status": "fresh",
-              "value": 6.5
+              "value": "<sidereal>"
             },
             "slewing": {
               "observedAt": "<time>",
@@ -771,16 +611,6 @@
               "status": "fresh",
               "value": "grbg"
             },
-            "binX": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": 1
-            },
-            "binY": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": 1
-            },
             "canAbortExposure": {
               "observedAt": "<time>",
               "status": "fresh",
@@ -836,16 +666,6 @@
               "status": "fresh",
               "value": 6
             },
-            "maxBinX": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": 4
-            },
-            "maxBinY": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": 4
-            },
             "name": {
               "observedAt": "<time>",
               "status": "fresh",
@@ -886,16 +706,6 @@
             "setpointC": {
               "reason": "unsupported",
               "status": "unavailable"
-            },
-            "startX": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": 0
-            },
-            "startY": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": 0
             },
             "temperatureC": {
               "observedAt": "<time>",
@@ -952,10 +762,6 @@
               "observedAt": "<time>",
               "status": "fresh",
               "value": 40
-            },
-            "declinationRateArcsecondsPerSecond": {
-              "reason": "not-read",
-              "status": "unavailable"
             },
             "elevationMeters": {
               "observedAt": "<time>",
@@ -1032,14 +838,10 @@
               "status": "fresh",
               "value": 2
             },
-            "rightAscensionRateSecondsPerSiderealSecond": {
-              "reason": "not-read",
-              "status": "unavailable"
-            },
             "siderealTimeHours": {
               "observedAt": "<time>",
               "status": "fresh",
-              "value": 6.5
+              "value": "<sidereal>"
             },
             "slewing": {
               "observedAt": "<time>",
@@ -1406,8 +1208,6 @@
         "kind": "confirmed",
         "value": {
           "image": {
-            "binX": 1,
-            "binY": 1,
             "cameraName": "Fake CCD",
             "capturedAt": "<time>",
             "capturedAtSource": "camera",
@@ -1425,8 +1225,6 @@
             },
             "retainedAt": "<time>",
             "sha256": "146f86c57bfa413cc92866d35a539fffafee4212e14f8892afa27133b469255d",
-            "startX": 0,
-            "startY": 0,
             "width": 8
           },
           "values": {}
@@ -1508,8 +1306,6 @@
         "kind": "confirmed",
         "value": {
           "image": {
-            "binX": 1,
-            "binY": 1,
             "cameraName": "Fake CCD",
             "capturedAt": "<time>",
             "capturedAtSource": "camera",
@@ -1527,8 +1323,6 @@
             },
             "retainedAt": "<time>",
             "sha256": "146f86c57bfa413cc92866d35a539fffafee4212e14f8892afa27133b469255d",
-            "startX": 0,
-            "startY": 0,
             "width": 8
           },
           "values": {}
@@ -1598,8 +1392,6 @@
         "kind": "confirmed",
         "value": {
           "image": {
-            "binX": 1,
-            "binY": 1,
             "cameraName": "Fake CCD",
             "capturedAt": "<time>",
             "capturedAtSource": "camera",
@@ -1617,8 +1409,6 @@
             },
             "retainedAt": "<time>",
             "sha256": "146f86c57bfa413cc92866d35a539fffafee4212e14f8892afa27133b469255d",
-            "startX": 0,
-            "startY": 0,
             "width": 8
           },
           "values": {}
@@ -1630,213 +1420,6 @@
         "light": false
       },
       "requestId": "<request-2>",
-      "settledAt": "<time>",
-      "startedAt": "<time>",
-      "state": "settled"
-    }
-  },
-  {
-    "scenario": "camera-configure",
-    "step": 1,
-    "request": "POST /v2/operations",
-    "sent": {
-      "deviceId": "camera",
-      "instanceId": "<instance-1>",
-      "kind": "camera-configure",
-      "parameters": {
-        "binX": 2,
-        "binY": 2,
-        "height": 3,
-        "width": 4
-      },
-      "requestId": "<request-1>"
-    },
-    "status": 202,
-    "body": {
-      "acceptedAt": "<time>",
-      "deviceId": "camera",
-      "failureDomain": "fake-ccd",
-      "id": "<operation-1>",
-      "instanceId": "<instance-1>",
-      "kind": "camera-configure",
-      "parameters": {
-        "binX": 2,
-        "binY": 2,
-        "height": 3,
-        "width": 4
-      },
-      "progress": {
-        "elapsedSeconds": null,
-        "phase": "preparing"
-      },
-      "requestId": "<request-1>",
-      "startedAt": "<time>",
-      "state": "running"
-    }
-  },
-  {
-    "scenario": "camera-configure",
-    "step": 2,
-    "request": "GET /v2/operations/<operation-1>",
-    "status": 200,
-    "body": {
-      "acceptedAt": "<time>",
-      "deviceId": "camera",
-      "failureDomain": "fake-ccd",
-      "id": "<operation-1>",
-      "instanceId": "<instance-1>",
-      "kind": "camera-configure",
-      "outcome": {
-        "kind": "confirmed",
-        "value": {
-          "image": null,
-          "values": {
-            "binX": 2,
-            "binY": 2,
-            "height": 3,
-            "startX": 0,
-            "startY": 0,
-            "width": 4
-          }
-        }
-      },
-      "parameters": {
-        "binX": 2,
-        "binY": 2,
-        "height": 3,
-        "width": 4
-      },
-      "requestId": "<request-1>",
-      "settledAt": "<time>",
-      "startedAt": "<time>",
-      "state": "settled"
-    }
-  },
-  {
-    "scenario": "camera-configure, binning only: the applied frame in binned pixels",
-    "step": 1,
-    "request": "POST /v2/operations",
-    "sent": {
-      "deviceId": "camera",
-      "instanceId": "<instance-1>",
-      "kind": "camera-configure",
-      "parameters": {
-        "binX": 2,
-        "binY": 2
-      },
-      "requestId": "<request-1>"
-    },
-    "status": 202,
-    "body": {
-      "acceptedAt": "<time>",
-      "deviceId": "camera",
-      "failureDomain": "fake-ccd",
-      "id": "<operation-1>",
-      "instanceId": "<instance-1>",
-      "kind": "camera-configure",
-      "parameters": {
-        "binX": 2,
-        "binY": 2
-      },
-      "progress": {
-        "elapsedSeconds": null,
-        "phase": "preparing"
-      },
-      "requestId": "<request-1>",
-      "startedAt": "<time>",
-      "state": "running"
-    }
-  },
-  {
-    "scenario": "camera-configure, binning only: the applied frame in binned pixels",
-    "step": 2,
-    "request": "GET /v2/operations/<operation-1>",
-    "status": 200,
-    "body": {
-      "acceptedAt": "<time>",
-      "deviceId": "camera",
-      "failureDomain": "fake-ccd",
-      "id": "<operation-1>",
-      "instanceId": "<instance-1>",
-      "kind": "camera-configure",
-      "outcome": {
-        "kind": "confirmed",
-        "value": {
-          "image": null,
-          "values": {
-            "binX": 2,
-            "binY": 2,
-            "height": 3,
-            "startX": 0,
-            "startY": 0,
-            "width": 4
-          }
-        }
-      },
-      "parameters": {
-        "binX": 2,
-        "binY": 2
-      },
-      "requestId": "<request-1>",
-      "settledAt": "<time>",
-      "startedAt": "<time>",
-      "state": "settled"
-    }
-  },
-  {
-    "scenario": "camera-configure refused: a width off the frame grid",
-    "step": 1,
-    "request": "POST /v2/operations",
-    "sent": {
-      "deviceId": "camera",
-      "instanceId": "<instance-1>",
-      "kind": "camera-configure",
-      "parameters": {
-        "width": 3
-      },
-      "requestId": "<request-1>"
-    },
-    "status": 202,
-    "body": {
-      "acceptedAt": "<time>",
-      "deviceId": "camera",
-      "failureDomain": "fake-ccd",
-      "id": "<operation-1>",
-      "instanceId": "<instance-1>",
-      "kind": "camera-configure",
-      "parameters": {
-        "width": 3
-      },
-      "progress": {
-        "elapsedSeconds": null,
-        "phase": "preparing"
-      },
-      "requestId": "<request-1>",
-      "startedAt": "<time>",
-      "state": "running"
-    }
-  },
-  {
-    "scenario": "camera-configure refused: a width off the frame grid",
-    "step": 2,
-    "request": "GET /v2/operations/<operation-1>",
-    "status": 200,
-    "body": {
-      "acceptedAt": "<time>",
-      "deviceId": "camera",
-      "failureDomain": "fake-ccd",
-      "id": "<operation-1>",
-      "instanceId": "<instance-1>",
-      "kind": "camera-configure",
-      "outcome": {
-        "kind": "failed",
-        "message": "width 3 binned pixels; the camera needs a multiple of 4 binned pixels; nearest 4",
-        "reason": "invalid"
-      },
-      "parameters": {
-        "width": 3
-      },
-      "requestId": "<request-1>",
       "settledAt": "<time>",
       "startedAt": "<time>",
       "state": "settled"
@@ -1936,16 +1519,6 @@
               "status": "fresh",
               "value": "grbg"
             },
-            "binX": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": 1
-            },
-            "binY": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": 1
-            },
             "canAbortExposure": {
               "observedAt": "<time>",
               "status": "fresh",
@@ -2001,16 +1574,6 @@
               "status": "fresh",
               "value": 6
             },
-            "maxBinX": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": 4
-            },
-            "maxBinY": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": 4
-            },
             "name": {
               "observedAt": "<time>",
               "status": "fresh",
@@ -2051,16 +1614,6 @@
             "setpointC": {
               "reason": "unsupported",
               "status": "unavailable"
-            },
-            "startX": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": 0
-            },
-            "startY": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": 0
             },
             "temperatureC": {
               "observedAt": "<time>",
@@ -4332,7 +3885,7 @@
       "instanceId": "<instance-1>",
       "kind": "camera-configure",
       "parameters": {
-        "binX": 2
+        "gain": 2
       },
       "requestId": "<request-2>"
     },
@@ -4398,16 +3951,6 @@
               "status": "fresh",
               "value": "grbg"
             },
-            "binX": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": 1
-            },
-            "binY": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": 1
-            },
             "canAbortExposure": {
               "observedAt": "<time>",
               "status": "fresh",
@@ -4463,16 +4006,6 @@
               "status": "fresh",
               "value": 6
             },
-            "maxBinX": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": 4
-            },
-            "maxBinY": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": 4
-            },
             "name": {
               "observedAt": "<time>",
               "status": "fresh",
@@ -4513,16 +4046,6 @@
             "setpointC": {
               "reason": "unsupported",
               "status": "unavailable"
-            },
-            "startX": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": 0
-            },
-            "startY": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": 0
             },
             "temperatureC": {
               "observedAt": "<time>",
@@ -4822,10 +4345,7 @@
       "instanceId": "<instance-1>",
       "kind": "camera-configure",
       "parameters": {
-        "binX": 2,
-        "binY": 2,
-        "height": 3,
-        "width": 4
+        "gain": 2
       },
       "requestId": "<request-1>"
     },
@@ -4838,10 +4358,7 @@
       "instanceId": "<instance-1>",
       "kind": "camera-configure",
       "parameters": {
-        "binX": 2,
-        "binY": 2,
-        "height": 3,
-        "width": 4
+        "gain": 2
       },
       "progress": {
         "elapsedSeconds": null,
@@ -4865,24 +4382,12 @@
       "instanceId": "<instance-1>",
       "kind": "camera-configure",
       "outcome": {
-        "kind": "confirmed",
-        "value": {
-          "image": null,
-          "values": {
-            "binX": 2,
-            "binY": 2,
-            "height": 3,
-            "startX": 0,
-            "startY": 0,
-            "width": 4
-          }
-        }
+        "kind": "failed",
+        "message": "gain minimum is not currently known",
+        "reason": "unavailable"
       },
       "parameters": {
-        "binX": 2,
-        "binY": 2,
-        "height": 3,
-        "width": 4
+        "gain": 2
       },
       "requestId": "<request-1>",
       "settledAt": "<time>",
@@ -4899,10 +4404,7 @@
       "instanceId": "<instance-1>",
       "kind": "camera-configure",
       "parameters": {
-        "binX": 2,
-        "binY": 2,
-        "height": 3,
-        "width": 4
+        "gain": 2
       },
       "requestId": "<request-1>"
     },
@@ -4915,24 +4417,12 @@
       "instanceId": "<instance-1>",
       "kind": "camera-configure",
       "outcome": {
-        "kind": "confirmed",
-        "value": {
-          "image": null,
-          "values": {
-            "binX": 2,
-            "binY": 2,
-            "height": 3,
-            "startX": 0,
-            "startY": 0,
-            "width": 4
-          }
-        }
+        "kind": "failed",
+        "message": "gain minimum is not currently known",
+        "reason": "unavailable"
       },
       "parameters": {
-        "binX": 2,
-        "binY": 2,
-        "height": 3,
-        "width": 4
+        "gain": 2
       },
       "requestId": "<request-1>",
       "settledAt": "<time>",
@@ -4949,10 +4439,7 @@
       "instanceId": "<instance-1>",
       "kind": "camera-configure",
       "parameters": {
-        "binX": 1,
-        "binY": 1,
-        "height": 3,
-        "width": 4
+        "gain": 1
       },
       "requestId": "<request-1>"
     },
@@ -4978,24 +4465,12 @@
       "instanceId": "<instance-1>",
       "kind": "camera-configure",
       "outcome": {
-        "kind": "confirmed",
-        "value": {
-          "image": null,
-          "values": {
-            "binX": 2,
-            "binY": 2,
-            "height": 3,
-            "startX": 0,
-            "startY": 0,
-            "width": 4
-          }
-        }
+        "kind": "failed",
+        "message": "gain minimum is not currently known",
+        "reason": "unavailable"
       },
       "parameters": {
-        "binX": 2,
-        "binY": 2,
-        "height": 3,
-        "width": 4
+        "gain": 2
       },
       "requestId": "<request-1>",
       "settledAt": "<time>",
@@ -5169,8 +4644,6 @@
         "kind": "confirmed",
         "value": {
           "image": {
-            "binX": 1,
-            "binY": 1,
             "cameraName": "Fake CCD",
             "capturedAt": "<time>",
             "capturedAtSource": "camera",
@@ -5188,8 +4661,6 @@
             },
             "retainedAt": "<time>",
             "sha256": "146f86c57bfa413cc92866d35a539fffafee4212e14f8892afa27133b469255d",
-            "startX": 0,
-            "startY": 0,
             "width": 8
           },
           "values": {}
@@ -5256,8 +4727,6 @@
         "kind": "confirmed",
         "value": {
           "image": {
-            "binX": 1,
-            "binY": 1,
             "cameraName": "Fake CCD",
             "capturedAt": "<time>",
             "capturedAtSource": "camera",
@@ -5275,8 +4744,6 @@
             },
             "retainedAt": "<time>",
             "sha256": "146f86c57bfa413cc92866d35a539fffafee4212e14f8892afa27133b469255d",
-            "startX": 0,
-            "startY": 0,
             "width": 8
           },
           "values": {}
@@ -5421,16 +4888,6 @@
               "status": "fresh",
               "value": "grbg"
             },
-            "binX": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": 1
-            },
-            "binY": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": 1
-            },
             "canAbortExposure": {
               "observedAt": "<time>",
               "status": "fresh",
@@ -5486,16 +4943,6 @@
               "status": "fresh",
               "value": 6
             },
-            "maxBinX": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": 4
-            },
-            "maxBinY": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": 4
-            },
             "name": {
               "observedAt": "<time>",
               "status": "fresh",
@@ -5536,16 +4983,6 @@
             "setpointC": {
               "reason": "unsupported",
               "status": "unavailable"
-            },
-            "startX": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": 0
-            },
-            "startY": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": 0
             },
             "temperatureC": {
               "observedAt": "<time>",
@@ -5640,8 +5077,6 @@
         "kind": "confirmed",
         "value": {
           "image": {
-            "binX": 1,
-            "binY": 1,
             "cameraName": "Fake CCD",
             "capturedAt": "<time>",
             "capturedAtSource": "camera",
@@ -5659,8 +5094,6 @@
             },
             "retainedAt": "<time>",
             "sha256": "146f86c57bfa413cc92866d35a539fffafee4212e14f8892afa27133b469255d",
-            "startX": 0,
-            "startY": 0,
             "width": 8
           },
           "values": {}
@@ -5731,16 +5164,6 @@
               "status": "fresh",
               "value": "grbg"
             },
-            "binX": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": 1
-            },
-            "binY": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": 1
-            },
             "canAbortExposure": {
               "observedAt": "<time>",
               "status": "fresh",
@@ -5796,16 +5219,6 @@
               "status": "fresh",
               "value": 6
             },
-            "maxBinX": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": 4
-            },
-            "maxBinY": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": 4
-            },
             "name": {
               "observedAt": "<time>",
               "status": "fresh",
@@ -5846,16 +5259,6 @@
             "setpointC": {
               "reason": "unsupported",
               "status": "unavailable"
-            },
-            "startX": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": 0
-            },
-            "startY": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": 0
             },
             "temperatureC": {
               "observedAt": "<time>",
@@ -5956,16 +5359,6 @@
               "status": "fresh",
               "value": "grbg"
             },
-            "binX": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": 1
-            },
-            "binY": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": 1
-            },
             "canAbortExposure": {
               "observedAt": "<time>",
               "status": "fresh",
@@ -6021,16 +5414,6 @@
               "status": "fresh",
               "value": 6
             },
-            "maxBinX": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": 4
-            },
-            "maxBinY": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": 4
-            },
             "name": {
               "observedAt": "<time>",
               "status": "fresh",
@@ -6071,16 +5454,6 @@
             "setpointC": {
               "reason": "unsupported",
               "status": "unavailable"
-            },
-            "startX": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": 0
-            },
-            "startY": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": 0
             },
             "temperatureC": {
               "observedAt": "<time>",
@@ -6180,16 +5553,6 @@
               "status": "fresh",
               "value": "grbg"
             },
-            "binX": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": 1
-            },
-            "binY": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": 1
-            },
             "canAbortExposure": {
               "observedAt": "<time>",
               "status": "fresh",
@@ -6245,16 +5608,6 @@
               "status": "fresh",
               "value": 6
             },
-            "maxBinX": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": 4
-            },
-            "maxBinY": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": 4
-            },
             "name": {
               "observedAt": "<time>",
               "status": "fresh",
@@ -6295,16 +5648,6 @@
             "setpointC": {
               "reason": "unsupported",
               "status": "unavailable"
-            },
-            "startX": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": 0
-            },
-            "startY": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": 0
             },
             "temperatureC": {
               "observedAt": "<time>",

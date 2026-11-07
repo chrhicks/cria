@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Composition: process entry point. `cria <config.json>`; systemd stops it
- * with SIGTERM. CRIA_TOKEN, when set, is the bearer token Vela must send.
+ * with SIGTERM.
  */
 import { loadConfig } from './config.js'
 import { startService } from './service.js'
@@ -13,8 +13,7 @@ if (!path) {
   process.exit(2)
 }
 
-const token = process.env.CRIA_TOKEN
-const service = await startService(loadConfig(path), token ? { token } : {})
+const service = await startService(loadConfig(path))
 
 console.error(`cria: instance ${service.rig.instanceId} listening on ${service.port}`)
 
