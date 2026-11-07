@@ -19,7 +19,7 @@ function files(directory: string): string[] {
 }
 
 describe('committed dist', () => {
-  for (const name of ['primitives', 'cria-wire', 'fits']) {
+  for (const name of ['cria-wire']) {
     it(`${name}: dist/ matches a fresh build of src/`, () => {
       const packageDirectory = join(root, 'packages', name)
       // A sibling directory keeps the source-map paths ("../src/...") identical.

@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "description": "Wire protocol 5 between Cria and Vela: one Effect Schema per shape, imported by both",
+  "description": "Wire protocol 6 between Cria and its clients: health and device-connect, one Effect Schema per shape",
   "exports": {
     ".": {
       "@cria/source": "./src/index.ts",
@@ -20,12 +20,10 @@
     "src",
     "!src/**/*.test.ts"
   ],
-  "peerDependencies": {
-    "@cria/primitives": "*",
+  "devDependencies": {
     "effect": "4.0.3"
   },
-  "devDependencies": {
-    "@cria/primitives": "workspace:*",
+  "peerDependencies": {
     "effect": "4.0.3"
   }
 }

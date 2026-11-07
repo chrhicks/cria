@@ -14,9 +14,6 @@ importers:
       '@cria/fake-indi':
         specifier: workspace:*
         version: link:packages/fake-indi
-      '@cria/fits':
-        specifier: workspace:*
-        version: link:packages/fits
       '@cria/wire':
         specifier: workspace:*
         version: link:packages/cria-wire
@@ -38,15 +35,9 @@ importers:
 
   apps/cria:
     dependencies:
-      '@cria/fits':
-        specifier: workspace:*
-        version: link:../../packages/fits
       '@cria/indi':
         specifier: workspace:*
         version: link:../../packages/indi
-      '@cria/primitives':
-        specifier: workspace:*
-        version: link:../../packages/primitives
       '@cria/stream':
         specifier: workspace:*
         version: link:../../packages/stream
@@ -81,25 +72,14 @@ importers:
 
   packages/cria-wire:
     devDependencies:
-      '@cria/primitives':
-        specifier: workspace:*
-        version: link:../primitives
       effect:
         specifier: 4.0.3
         version: 4.0.3
 
   packages/fake-indi: {}
 
-  packages/fits: {}
-
   packages/indi:
     dependencies:
-      effect:
-        specifier: 4.0.3
-        version: 4.0.3
-
-  packages/primitives:
-    devDependencies:
       effect:
         specifier: 4.0.3
         version: 4.0.3
