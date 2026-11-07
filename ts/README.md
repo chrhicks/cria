@@ -15,7 +15,6 @@ the primitive map and what building it changed are in
 | `packages/indi-replay` | `indi-replay`: serves a recording over TCP like indiserver, for running the real Cria against a recorded night; `synthesizeTape` | — |
 | `packages/recording` | `@cria/recording`: the recording format, the recorder behind the INDI client's tap, the reader and `verifyRecording` | Recording (off unless `record` is configured) |
 | `packages/stream` | `@cria/stream`: what anything adding to the rig stream shares: the entry format |
-| `packages/recording-archive` | `cria-archive`: copies a finished recording from errai to thuban, keeps the frames Vela saved and the autofocus samples, packs it as tar + zstd, checks the pack replays, then deletes errai's copy with `--apply` (docs/runtime.md, "Archiving recordings to thuban") | — |
 | `packages/cria-wire` | `@cria/wire`: the protocol 5 schemas and the 15-kind command table, shared with Vela | View |
 | `apps/cria/src/capability` | camera, mount, focuser, box, connection | Capabilities |
 | `apps/cria/src/operation` | workflow bodies; the ledger, the one owner of operations, one at a time per device | Workflows |

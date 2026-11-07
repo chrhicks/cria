@@ -132,21 +132,6 @@ importers:
         specifier: 4.0.3
         version: 4.0.3
 
-  packages/recording-archive:
-    dependencies:
-      '@cria/fits':
-        specifier: workspace:*
-        version: link:../fits
-      '@cria/indi-replay':
-        specifier: workspace:*
-        version: link:../indi-replay
-      '@cria/recording':
-        specifier: workspace:*
-        version: link:../recording
-      effect:
-        specifier: 4.0.3
-        version: 4.0.3
-
   packages/stream:
     dependencies:
       '@cria/indi':
