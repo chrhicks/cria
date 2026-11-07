@@ -4,28 +4,23 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
-overrides:
-  '@effect/platform-node-shared': 4.0.3
-
 importers:
 
   .:
-    devDependencies:
-      '@cria/fake-indi':
-        specifier: workspace:*
-        version: link:packages/fake-indi
-      '@cria/wire':
-        specifier: workspace:*
-        version: link:packages/cria-wire
-      '@effect/vitest':
-        specifier: 4.0.3
-        version: 4.0.3(effect@4.0.3)(vitest@5.0.4(@types/node@24.19.1)(vite@8.3.4(@types/node@24.19.1)))
-      '@types/node':
-        specifier: 24.19.1
-        version: 24.19.1
+    dependencies:
+      '@nats-io/jetstream':
+        specifier: 3.4.0
+        version: 3.4.0
+      '@nats-io/transport-node':
+        specifier: 3.4.0
+        version: 3.4.0
       effect:
         specifier: 4.0.3
         version: 4.0.3
+    devDependencies:
+      '@types/node':
+        specifier: 24.19.1
+        version: 24.19.1
       typescript:
         specifier: 7.0.2
         version: 7.0.2
@@ -104,12 +99,6 @@ importers:
         version: 4.0.3
 
 packages:
-
-  '@effect/vitest@4.0.3':
-    resolution: {integrity: sha512-jsIkpssf0CFuOeycW2sQZkWx0qzlsRv+JIkzd9qQpoFDcHC9JZFSdIjEBAhsdp20pDy4Y/b2vT/ew7wXZxvEig==}
-    peerDependencies:
-      effect: ^4.0.3
-      vitest: '>=5.0.0 <6.0.0'
 
   '@jridgewell/resolve-uri@3.1.2':
     resolution: {integrity: sha512-bRISgCIjP20/tbWSPWMEi54QVPRZExkuD9lJL+UIxUKtwVJA8wW1Trb1jMs1RFXo1CBTNZ/5hpC9QvmKWdopKw==}
@@ -648,11 +637,6 @@ packages:
     hasBin: true
 
 snapshots:
-
-  '@effect/vitest@4.0.3(effect@4.0.3)(vitest@5.0.4(@types/node@24.19.1)(vite@8.3.4(@types/node@24.19.1)))':
-    dependencies:
-      effect: 4.0.3
-      vitest: 5.0.4(@types/node@24.19.1)(vite@8.3.4(@types/node@24.19.1))
 
   '@jridgewell/resolve-uri@3.1.2': {}
 

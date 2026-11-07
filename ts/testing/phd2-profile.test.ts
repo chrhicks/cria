@@ -2,7 +2,6 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, writeFil
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-// @ts-expect-error plain ESM script with JSDoc types, not part of a TypeScript project
 import { applyProfile, calibration, phd2Running, run } from '../deploy/phd2-profile.mjs'
 
 const golden = readFileSync(join(import.meta.dirname, 'phd2/PHDGuidingV2.golden'), 'utf8')
@@ -135,7 +134,7 @@ describe('run', () => {
 describe('phd2Running', () => {
   it('sees a process called phd2.bin and ignores others', () => {
     const proc = directory()
-    for (const [pid, comm] of [['10', 'node'], ['abc', 'phd2'], ['20', 'xvfb-run']]) {
+    for (const [pid, comm] of [['10', 'node'], ['abc', 'phd2'], ['20', 'xvfb-run']] as const) {
       mkdirSync(join(proc, pid))
       writeFileSync(join(proc, pid, 'comm'), `${comm}\n`)
     }

@@ -1,5 +1,5 @@
 import { Schema } from 'effect'
-import { ConnectResult, Health } from '@cria/wire'
+import { ConnectResult, Health } from '../src/connect/wire.ts'
 
 const strict = { onExcessProperty: 'error' } as const
 
