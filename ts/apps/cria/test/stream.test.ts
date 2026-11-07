@@ -26,6 +26,7 @@ const fakePublisher: OpenPublisher = (broker, onConnected) => {
 
       return Promise.resolve()
     },
+    listen: () => {},
     close: () => Promise.resolve(),
   }
 
