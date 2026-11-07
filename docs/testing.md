@@ -18,7 +18,7 @@ Read the exit code of `./verify.sh` itself. Do not pipe it into `tee` or `tail`.
 
 ## What each layer proves
 
-The suite asserts literal values. Scenario tests wait for a state with a deadline that names what they waited for, never for a fixed time. Cria sets nothing up by itself, so a scenario test that needs a ready device sends `device-connect` with `connected: true` first, with `connectDevices` in `apps/cria/test/harness.ts`; a test about `starting` shows the device waiting until that arrives. `pnpm fake-rig serve` and the golden do the same for the devices they serve. [SPEC.md, "Tests and verification"](ts/SPEC.md#tests-and-verification) describes each layer in full.
+The suite asserts literal values. Scenario tests wait for a state with a deadline that names what they waited for, never for a fixed time. Cria sets nothing up by itself, so a scenario test that needs a ready device sends `device-connect` with `connected: true` first, with `connectDevices` in `apps/cria/test/harness.ts`; a test about `starting` shows the device waiting until that arrives. `pnpm fake-rig serve` and the golden do the same for the devices they serve.
 
 | Layer | Files under `ts/` | What it proves |
 | --- | --- | --- |
