@@ -1,8 +1,8 @@
 /**
  * What Cria itself sends for images (camera.ts: `enableBlobs('Also')` before an exposure, `enableBlobs('Never')`
  * in its finalizer) does the same through the fake INDI server as through a real indiserver. The same Cria
- * client code runs the same two exposures against indi_simulator_ccd and against a FakeIndi camera that
- * delivers images the way indi-replay does, and what the client saw is compared. No equipment.
+ * client code runs the same two exposures against indi_simulator_ccd and against a FakeIndi camera, and what
+ * the client saw is compared. No equipment.
  */
 import { Effect, Option } from 'effect'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'

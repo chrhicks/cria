@@ -21,13 +21,6 @@ const allowed: Record<string, Partial<Record<Rule, readonly [count: number, why:
   'packages/fake-indi/src/play.ts': { 'node-timer': [1, 'the one real timer a played motion waits on; tests pass their own clock'] },
   'packages/fake-indi/src/server.ts': { 'promise-catch': [1, 'a write to a client that closed mid-image must not stop the writes queued behind it'] },
   'packages/fits/src/frame.ts': { 'wall-clock': [1, 'a test frame is stamped with the moment it was made unless the caller says when'] },
-  'packages/indi-replay/src/clock.ts': {
-    'wall-clock': [1, 'the one real clock replay stamps DATE-OBS with; tests pass their own'],
-    'node-timer': [1, 'the one real timer an exposure, a fault and its end wait on; tests pass their own clock'],
-  },
-  'packages/indi-replay/src/main.ts': { 'try-catch': [1, 'the program reports a recording it cannot serve and exits 2'] },
-  'packages/indi-replay/src/replay.ts': { 'try-catch': [1, 'an image that cannot be read ends its exposure in Alert instead of an unhandled rejection in a timer'] },
-  'packages/indi-replay/src/tape.ts': { 'try-catch': [1, 'closes the image file after reading its header'] },
   'packages/indi/src/client.ts': {
     'try-catch': [1, 'a bug in applying a message closes the socket from inside a Node data handler'],
     'wall-clock': [6, 'receive times and connection status times; the reconnect backoff resets after 10 s connected; the receive time of a forgotten property'],

@@ -1,6 +1,0 @@
-export { realClock, type Clock } from './clock.js'
-export { decodeFaults, type Fault, type FaultPhase } from './faults.js'
-export { endOfRecording, notInRecording, startReplay, type Replay, type ReplayEvent, type ReplayOptions } from './replay.js'
-export { localSiderealHours } from './sidereal.js'
-export { starCapacity, synthesizeTape, type SynthSpec } from './synthesize.js'
-export { TapeError, loadTape, type Frame, type ImageFrame, type PrunedImageFrame, type Tape, type TapeEvent } from './tape.js'

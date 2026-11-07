@@ -12,7 +12,6 @@ the primitive map and what building it changed are in
 | --- | --- | --- |
 | `packages/primitives` | Outcome, Reading, writeOnce, confirm, stoppable | Types and disciplines; depends only on `effect`, built to move to Vela |
 | `packages/indi` | XML framing, property mirror, `IndiClient` / `IndiDevice` | INDI boundary (no primitive) |
-| `packages/indi-replay` | `indi-replay`: serves a recording over TCP like indiserver, for running the real Cria against a recorded night; `synthesizeTape` | — |
 | `packages/recording` | `@cria/recording`: the recording format, the recorder behind the INDI client's tap, the reader and `verifyRecording` | Recording (off unless `record` is configured) |
 | `packages/stream` | `@cria/stream`: what anything adding to the rig stream shares: the entry format |
 | `packages/cria-wire` | `@cria/wire`: the protocol 5 schemas and the 15-kind command table, shared with Vela | View |
@@ -27,7 +26,6 @@ the primitive map and what building it changed are in
 | `apps/cria/test` | scenario tests; `drivers.ts` models the rig's INDI drivers on `@cria/fake-indi`; `harness.ts` starts Cria and has `connectDevices`, which sends `device-connect` because Cria never connects or sets up a device by itself | — |
 | `testing/indiserver.ts` | runs a real indiserver with simulators for tests | — |
 | `testing/cria-client.ts` | a typed protocol 5 client for tests; decodes every response strictly | — |
-| `testing/replay.test.ts` | the real Cria against `indi-replay` on a recording the simulators made: digests, hour angle, abort, the end, liveness | — |
 | `testing/recorder-crash.test.ts` | `kill -9` of a real process at each step of the recorder's write order | — |
 | `testing/measure-recording-stall.ts` | not a test: what recording costs the event loop, healthy and on a stalled disk | — |
 | `testing/rig-supervisor.test.ts` | the rig supervisor against a fake Cria, a temp FIFO and a fake clock | — |
@@ -50,7 +48,6 @@ pnpm verify      # build, typecheck, committed dist/, pnpm test: about 2 min
 pnpm test        # every test, then the wire golden, about 90 s; starts its own indiservers on free ports
 pnpm build       # primitives, indi, then the service, into dist/
 pnpm archive SESSION...        # archive a finished recording (dry run unless --apply)
-pnpm replay serve <recording>   # indi-replay from source: a recording served like indiserver (docs/ts/SPEC.md, "Replay")
 pnpm fake-rig list              # recorded and derived failure cases on a fake rig; `serve <case>` runs the real Cria on one (docs/testing.md)
 node apps/cria/dist/main.js deploy/rig.errai.json
 ```
