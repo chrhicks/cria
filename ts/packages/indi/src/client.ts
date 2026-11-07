@@ -204,6 +204,7 @@ export function makeIndiClient(options: IndiClientOptions): Effect.Effect<IndiCl
         const error = yield* session
 
         socket = undefined
+        for (const change of mirror.clear()) publish(toClientEvent(change))
         setStatus({ kind: 'disconnected', since: Date.now(), error })
         if (Date.now() - startedAt > 10_000) delay = 250
         yield* Effect.sleep(delay)

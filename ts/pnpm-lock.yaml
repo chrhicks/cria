@@ -83,6 +83,10 @@ importers:
       effect:
         specifier: 4.0.3
         version: 4.0.3
+    devDependencies:
+      '@cria/fake-indi':
+        specifier: workspace:*
+        version: link:../fake-indi
 
   packages/stream:
     dependencies:
