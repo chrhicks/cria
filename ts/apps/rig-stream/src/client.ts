@@ -62,7 +62,7 @@ await Promise.all([
     Effect.scoped(
       Effect.flatMap(makeIndiClient({ ...config.indi, tap }), indi => {
         broker.listen(refreshSubject, () => {
-          Effect.runPromise(indi.refresh).catch((error: unknown) => console.error(`rig-stream-client: refresh not sent: ${String(error)}`))
+          Effect.runFork(indi.refresh.pipe(Effect.tapError(error => Effect.sync(() => console.error(`rig-stream-client: refresh not sent: ${error.message}`)))))
         })
 
         return Effect.never
