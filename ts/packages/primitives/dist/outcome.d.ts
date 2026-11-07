@@ -62,5 +62,6 @@ export declare const confirmed: <A>(value: A) => Outcome<A>;
 export declare function fromExit<A>(exit: Exit.Exit<A, Ending>): Outcome<A>;
 /** The one sanctioned way to stop an ending from propagating: turn it into a value. */
 export declare function settle<A, R>(effect: Effect.Effect<A, Ending, R>): Effect.Effect<Outcome<A>, never, R>;
+export type Report<P> = (patch: Partial<P>) => Effect.Effect<void>;
 export {};
 //# sourceMappingURL=outcome.d.ts.map

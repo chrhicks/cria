@@ -85,3 +85,5 @@ export function fromExit<A>(exit: Exit.Exit<A, Ending>): Outcome<A> {
 export function settle<A, R>(effect: Effect.Effect<A, Ending, R>): Effect.Effect<Outcome<A>, never, R> {
   return Effect.exit(effect).pipe(Effect.map(fromExit))
 }
+
+export type Report<P> = (patch: Partial<P>) => Effect.Effect<void>

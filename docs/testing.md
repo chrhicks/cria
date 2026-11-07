@@ -22,7 +22,7 @@ The suite asserts literal values. Scenario tests wait for a state with a deadlin
 
 | Layer | Files under `ts/` | What it proves |
 | --- | --- | --- |
-| Primitives | `packages/primitives/src/*.test.ts` | `writeOnce`, `confirm`, `stoppable` and Run behave as SPEC says, on Effect's TestClock with no real time |
+| Primitives | `packages/primitives/src/*.test.ts` | `writeOnce`, `confirm` and `stoppable` behave as SPEC says, on Effect's TestClock with no real time |
 | INDI boundary | `packages/indi/src/*.test.ts` | XML framing from recorded traffic split at random byte boundaries, BLOB decoding and `delProperty`, plus one client test against a real `indiserver` |
 | Wire schemas and the ledger | `packages/cria-wire/src/*.test.ts`, `apps/cria/src/operation/*.test.ts` | Every protocol 5 schema on literal inputs, and every ledger transition |
 | Wire and image boundaries | `apps/cria/src/wire/sse.test.ts`, `packages/fits/src/*.test.ts`, `apps/cria/src/image/*.test.ts` | The event stream's cadence, coalescing and subscriber limits, the FITS to ImageBytes conversion, and the rolling image store |
