@@ -91,10 +91,7 @@ export function normalize(scenario: string, recorded: ReadonlyArray<Recorded>): 
           .sort()
           .map(inner => [inner, visit((value as Record<string, unknown>)[inner], inner, value, motionObservation || (inner === 'observed' && 'commanded' in value && 'stopped' in value))]),
       )
-    if (typeof value === 'string' && (key === 'reason' || key === 'detail') &&
-      (value.startsWith('{"phases":') || value.startsWith('{"expectedCoastDegrees":')))
-      return JSON.stringify(visit(JSON.parse(value), key, parent))
-    if (typeof value === 'number' && ['coastDegrees', 'expectedCoastDegrees', 'nextCoastDegrees'].includes(key)) return '<angle>'
+    if (typeof value === 'number' && key === 'coastDegrees') return '<angle>'
     // Abort endpoints depend on when the stop arrives. Fixture tests check the actual displacement.
     if (motionObservation && typeof value === 'number') return '<angle>'
     if (typeof value === 'number' && times.has(key)) return '<time>'

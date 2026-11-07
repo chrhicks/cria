@@ -2046,6 +2046,7 @@
       "instanceId": "<instance-1>",
       "kind": "mount-axis",
       "motion": {
+        "coastDegrees": "<angle>",
         "commanded": {
           "axis": "ra",
           "kind": "axis",
@@ -2068,8 +2069,7 @@
         },
         "stopped": {
           "at": "<time>",
-          "how": "halted",
-          "reason": "{\"coastDegrees\":\"<angle>\",\"expectedCoastDegrees\":\"<angle>\",\"nextCoastDegrees\":\"<angle>\"}"
+          "how": "halted"
         }
       },
       "outcome": {
@@ -2199,6 +2199,7 @@
       "instanceId": "<instance-1>",
       "kind": "mount-rotate",
       "motion": {
+        "coastDegrees": "<angle>",
         "commanded": {
           "axis": "ra",
           "distanceDegrees": 1,
@@ -2206,6 +2207,36 @@
           "rateDegreesPerSecond": 0.25068445,
           "sentAt": "<time>"
         },
+        "legs": [
+          {
+            "coastDegrees": "<angle>",
+            "commanded": {
+              "axis": "ra",
+              "distanceDegrees": 1,
+              "kind": "rotate",
+              "rateDegreesPerSecond": 0.25068445,
+              "sentAt": "<time>"
+            },
+            "observed": {
+              "from": {
+                "declinationDegrees": "<angle>",
+                "rightAscensionDegrees": "<angle>"
+              },
+              "to": {
+                "declinationDegrees": "<angle>",
+                "rightAscensionDegrees": "<angle>"
+              },
+              "travel": {
+                "declinationDegrees": "<angle>",
+                "rightAscensionDegrees": "<angle>"
+              }
+            },
+            "stopped": {
+              "at": "<time>",
+              "how": "halted"
+            }
+          }
+        ],
         "observed": {
           "from": {
             "declinationDegrees": "<angle>",
@@ -2222,8 +2253,7 @@
         },
         "stopped": {
           "at": "<time>",
-          "how": "halted",
-          "reason": "{\"detail\":\"{\\\"coastDegrees\\\":\\\"<angle>\\\",\\\"expectedCoastDegrees\\\":\\\"<angle>\\\",\\\"nextCoastDegrees\\\":\\\"<angle>\\\"}\",\"phases\":[{\"commanded\":{\"axis\":\"ra\",\"distanceDegrees\":1,\"kind\":\"rotate\",\"rateDegreesPerSecond\":0.25068445,\"sentAt\":\"<time>\"},\"observed\":{\"from\":{\"declinationDegrees\":\"<angle>\",\"rightAscensionDegrees\":\"<angle>\"},\"to\":{\"declinationDegrees\":\"<angle>\",\"rightAscensionDegrees\":\"<angle>\"},\"travel\":{\"declinationDegrees\":\"<angle>\",\"rightAscensionDegrees\":\"<angle>\"}},\"stopped\":{\"at\":\"<time>\",\"how\":\"halted\",\"reason\":\"{\\\"coastDegrees\\\":\\\"<angle>\\\",\\\"expectedCoastDegrees\\\":\\\"<angle>\\\",\\\"nextCoastDegrees\\\":\\\"<angle>\\\"}\"}}]}"
+          "how": "halted"
         }
       },
       "outcome": {
@@ -2293,6 +2323,7 @@
       "instanceId": "<instance-1>",
       "kind": "mount-rotate",
       "motion": {
+        "coastDegrees": "<angle>",
         "commanded": {
           "axis": "ra",
           "distanceDegrees": 1,
@@ -2300,6 +2331,36 @@
           "rateDegreesPerSecond": 6.0164268000000005,
           "sentAt": "<time>"
         },
+        "legs": [
+          {
+            "coastDegrees": "<angle>",
+            "commanded": {
+              "axis": "ra",
+              "distanceDegrees": 1,
+              "kind": "rotate",
+              "rateDegreesPerSecond": 0.25068445,
+              "sentAt": "<time>"
+            },
+            "observed": {
+              "from": {
+                "declinationDegrees": "<angle>",
+                "rightAscensionDegrees": "<angle>"
+              },
+              "to": {
+                "declinationDegrees": "<angle>",
+                "rightAscensionDegrees": "<angle>"
+              },
+              "travel": {
+                "declinationDegrees": "<angle>",
+                "rightAscensionDegrees": "<angle>"
+              }
+            },
+            "stopped": {
+              "at": "<time>",
+              "how": "halted"
+            }
+          }
+        ],
         "observed": {
           "from": {
             "declinationDegrees": "<angle>",
@@ -2316,8 +2377,7 @@
         },
         "stopped": {
           "at": "<time>",
-          "how": "halted",
-          "reason": "{\"detail\":\"{\\\"coastDegrees\\\":\\\"<angle>\\\",\\\"expectedCoastDegrees\\\":\\\"<angle>\\\",\\\"nextCoastDegrees\\\":\\\"<angle>\\\"}\",\"phases\":[{\"commanded\":{\"axis\":\"ra\",\"distanceDegrees\":1,\"kind\":\"rotate\",\"rateDegreesPerSecond\":0.25068445,\"sentAt\":\"<time>\"},\"observed\":{\"from\":{\"declinationDegrees\":\"<angle>\",\"rightAscensionDegrees\":\"<angle>\"},\"to\":{\"declinationDegrees\":\"<angle>\",\"rightAscensionDegrees\":\"<angle>\"},\"travel\":{\"declinationDegrees\":\"<angle>\",\"rightAscensionDegrees\":\"<angle>\"}},\"stopped\":{\"at\":\"<time>\",\"how\":\"halted\",\"reason\":\"{\\\"coastDegrees\\\":\\\"<angle>\\\",\\\"expectedCoastDegrees\\\":\\\"<angle>\\\",\\\"nextCoastDegrees\\\":\\\"<angle>\\\"}\"}}]}"
+          "how": "halted"
         }
       },
       "outcome": {

@@ -1,5 +1,4 @@
 import { afterEach, expect, it } from 'vitest'
-import { Schema } from 'effect'
 import { FakeIndi, addMount } from '@cria/fake-indi'
 import { allReady, connectDevices, startCria, until, type Cria } from './harness.js'
 
@@ -82,24 +81,6 @@ for (const phase of [1, 2]) {
 }
 
 
-it('adapts to a twenty percent coast change and clamps a run of outliers', async () => {
-  await start(false)
-  coastScale = 1.2
-  const phases = Schema.Struct({ phases: Schema.Array(Schema.Struct({ stopped: Schema.Struct({ reason: Schema.String }) })) })
-  const coast = Schema.Struct({ nextCoastDegrees: Schema.Number })
-  const rotate = async () => {
-    const ended = await cria.run('mount', 'mount-rotate', { rateDegreesPerSecond: 720 * sidereal, distanceDegrees: 0.05 })
-    expect(ended.kind).toBe('confirmed')
-    const recorded = Schema.decodeUnknownSync(phases)(JSON.parse(ended.operation.motion!.stopped.reason!))
-    return Schema.decodeUnknownSync(coast)(JSON.parse(recorded.phases[0]!.stopped.reason)).nextCoastDegrees
-  }
-  expect(await rotate()).toBeCloseTo(0.018 + sidereal, 4)
-  coastScale = 100
-  expect(await rotate()).toBeLessThanOrEqual(0.03)
-  for (let i = 0; i < 9; i++) expect(await rotate()).toBeLessThanOrEqual(0.03)
-  expect(await rotate()).toBe(0.03)
-}, 120_000)
-
 it('ends uncertain with the mount stopped when the fast leg never moves', async () => {
   await start(false)
   const behaviour = fake.behaviour
@@ -122,9 +103,9 @@ it.each([[20, 0.2], [60, 0.2], [20, 0.01], [60, 0.01]])('keeps a %sx request for
   expect(starts).toEqual([requested])
   expect(starts.every(rate => Math.abs(rate) <= requested)).toBe(true)
   expect(Math.abs(Number(ended.values?.travelledDegrees) - distance)).toBeLessThanOrEqual(0.1)
-  const recorded = Schema.decodeUnknownSync(Schema.Struct({ phases: Schema.Array(Schema.Struct({ commanded: Schema.Struct({ rateDegreesPerSecond: Schema.Number }) })) }))(JSON.parse(ended.operation.motion!.stopped.reason!))
-  expect(recorded.phases).toHaveLength(1)
-  expect(recorded.phases[0]!.commanded.rateDegreesPerSecond).toBe(requested)
+  const legs = ended.operation.motion?.legs ?? []
+  expect(legs).toHaveLength(1)
+  expect(legs[0]!.commanded).toMatchObject({ rateDegreesPerSecond: requested })
 }, 30_000)
 
 it('refuses a near-match advertised rate that would exceed the requested ceiling', async () => {

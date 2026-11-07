@@ -1239,9 +1239,52 @@ export declare const State: Schema.Struct<{
             }>;
             readonly stopped: Schema.Struct<{
                 readonly how: Schema.Literals<readonly ["arrived", "halted", "aborted", "uncertain"]>;
-                readonly reason: Schema.optionalKey<Schema.String>;
                 readonly at: Schema.NullOr<Schema.Number>;
             }>;
+            readonly coastDegrees: Schema.optionalKey<Schema.Number>;
+            readonly legs: Schema.optionalKey<Schema.$Array<Schema.Struct<{
+                commanded: Schema.Union<readonly [Schema.Struct<{
+                    readonly sentAt: Schema.Number;
+                    readonly kind: Schema.Literal<"slew">;
+                    readonly target: Schema.Struct<{
+                        readonly rightAscensionDegrees: Schema.Number;
+                        readonly declinationDegrees: Schema.Number;
+                    }>;
+                }>, Schema.Struct<{
+                    readonly sentAt: Schema.Number;
+                    readonly axis: Schema.Literal<"ra">;
+                    readonly rateDegreesPerSecond: Schema.Number;
+                    readonly kind: Schema.Literal<"axis">;
+                }>, Schema.Struct<{
+                    readonly sentAt: Schema.Number;
+                    readonly axis: Schema.Literal<"ra">;
+                    readonly rateDegreesPerSecond: Schema.Number;
+                    readonly kind: Schema.Literal<"rotate">;
+                    readonly distanceDegrees: Schema.Number;
+                }>, Schema.Struct<{
+                    readonly sentAt: Schema.Number;
+                    readonly kind: Schema.Literals<readonly ["home", "stop"]>;
+                }>]>;
+                observed: Schema.Struct<{
+                    readonly from: Schema.NullOr<Schema.Struct<{
+                        readonly rightAscensionDegrees: Schema.Number;
+                        readonly declinationDegrees: Schema.Number;
+                    }>>;
+                    readonly to: Schema.NullOr<Schema.Struct<{
+                        readonly rightAscensionDegrees: Schema.Number;
+                        readonly declinationDegrees: Schema.Number;
+                    }>>;
+                    readonly travel: Schema.NullOr<Schema.Struct<{
+                        readonly rightAscensionDegrees: Schema.Number;
+                        readonly declinationDegrees: Schema.Number;
+                    }>>;
+                }>;
+                stopped: Schema.Struct<{
+                    readonly how: Schema.Literals<readonly ["arrived", "halted", "aborted", "uncertain"]>;
+                    readonly at: Schema.NullOr<Schema.Number>;
+                }>;
+                coastDegrees: Schema.optionalKey<Schema.Number>;
+            }>>>;
         }>>;
     }> | Schema.Struct<{
         kind: Schema.Literal<"capture">;
@@ -1334,9 +1377,52 @@ export declare const State: Schema.Struct<{
             }>;
             readonly stopped: Schema.Struct<{
                 readonly how: Schema.Literals<readonly ["arrived", "halted", "aborted", "uncertain"]>;
-                readonly reason: Schema.optionalKey<Schema.String>;
                 readonly at: Schema.NullOr<Schema.Number>;
             }>;
+            readonly coastDegrees: Schema.optionalKey<Schema.Number>;
+            readonly legs: Schema.optionalKey<Schema.$Array<Schema.Struct<{
+                commanded: Schema.Union<readonly [Schema.Struct<{
+                    readonly sentAt: Schema.Number;
+                    readonly kind: Schema.Literal<"slew">;
+                    readonly target: Schema.Struct<{
+                        readonly rightAscensionDegrees: Schema.Number;
+                        readonly declinationDegrees: Schema.Number;
+                    }>;
+                }>, Schema.Struct<{
+                    readonly sentAt: Schema.Number;
+                    readonly axis: Schema.Literal<"ra">;
+                    readonly rateDegreesPerSecond: Schema.Number;
+                    readonly kind: Schema.Literal<"axis">;
+                }>, Schema.Struct<{
+                    readonly sentAt: Schema.Number;
+                    readonly axis: Schema.Literal<"ra">;
+                    readonly rateDegreesPerSecond: Schema.Number;
+                    readonly kind: Schema.Literal<"rotate">;
+                    readonly distanceDegrees: Schema.Number;
+                }>, Schema.Struct<{
+                    readonly sentAt: Schema.Number;
+                    readonly kind: Schema.Literals<readonly ["home", "stop"]>;
+                }>]>;
+                observed: Schema.Struct<{
+                    readonly from: Schema.NullOr<Schema.Struct<{
+                        readonly rightAscensionDegrees: Schema.Number;
+                        readonly declinationDegrees: Schema.Number;
+                    }>>;
+                    readonly to: Schema.NullOr<Schema.Struct<{
+                        readonly rightAscensionDegrees: Schema.Number;
+                        readonly declinationDegrees: Schema.Number;
+                    }>>;
+                    readonly travel: Schema.NullOr<Schema.Struct<{
+                        readonly rightAscensionDegrees: Schema.Number;
+                        readonly declinationDegrees: Schema.Number;
+                    }>>;
+                }>;
+                stopped: Schema.Struct<{
+                    readonly how: Schema.Literals<readonly ["arrived", "halted", "aborted", "uncertain"]>;
+                    readonly at: Schema.NullOr<Schema.Number>;
+                }>;
+                coastDegrees: Schema.optionalKey<Schema.Number>;
+            }>>>;
         }>>;
     }> | Schema.Struct<{
         kind: Schema.Literal<"cooling">;
@@ -1427,9 +1513,52 @@ export declare const State: Schema.Struct<{
             }>;
             readonly stopped: Schema.Struct<{
                 readonly how: Schema.Literals<readonly ["arrived", "halted", "aborted", "uncertain"]>;
-                readonly reason: Schema.optionalKey<Schema.String>;
                 readonly at: Schema.NullOr<Schema.Number>;
             }>;
+            readonly coastDegrees: Schema.optionalKey<Schema.Number>;
+            readonly legs: Schema.optionalKey<Schema.$Array<Schema.Struct<{
+                commanded: Schema.Union<readonly [Schema.Struct<{
+                    readonly sentAt: Schema.Number;
+                    readonly kind: Schema.Literal<"slew">;
+                    readonly target: Schema.Struct<{
+                        readonly rightAscensionDegrees: Schema.Number;
+                        readonly declinationDegrees: Schema.Number;
+                    }>;
+                }>, Schema.Struct<{
+                    readonly sentAt: Schema.Number;
+                    readonly axis: Schema.Literal<"ra">;
+                    readonly rateDegreesPerSecond: Schema.Number;
+                    readonly kind: Schema.Literal<"axis">;
+                }>, Schema.Struct<{
+                    readonly sentAt: Schema.Number;
+                    readonly axis: Schema.Literal<"ra">;
+                    readonly rateDegreesPerSecond: Schema.Number;
+                    readonly kind: Schema.Literal<"rotate">;
+                    readonly distanceDegrees: Schema.Number;
+                }>, Schema.Struct<{
+                    readonly sentAt: Schema.Number;
+                    readonly kind: Schema.Literals<readonly ["home", "stop"]>;
+                }>]>;
+                observed: Schema.Struct<{
+                    readonly from: Schema.NullOr<Schema.Struct<{
+                        readonly rightAscensionDegrees: Schema.Number;
+                        readonly declinationDegrees: Schema.Number;
+                    }>>;
+                    readonly to: Schema.NullOr<Schema.Struct<{
+                        readonly rightAscensionDegrees: Schema.Number;
+                        readonly declinationDegrees: Schema.Number;
+                    }>>;
+                    readonly travel: Schema.NullOr<Schema.Struct<{
+                        readonly rightAscensionDegrees: Schema.Number;
+                        readonly declinationDegrees: Schema.Number;
+                    }>>;
+                }>;
+                stopped: Schema.Struct<{
+                    readonly how: Schema.Literals<readonly ["arrived", "halted", "aborted", "uncertain"]>;
+                    readonly at: Schema.NullOr<Schema.Number>;
+                }>;
+                coastDegrees: Schema.optionalKey<Schema.Number>;
+            }>>>;
         }>>;
     }> | Schema.Struct<{
         kind: Schema.Literal<"device-connect">;
@@ -1519,9 +1648,52 @@ export declare const State: Schema.Struct<{
             }>;
             readonly stopped: Schema.Struct<{
                 readonly how: Schema.Literals<readonly ["arrived", "halted", "aborted", "uncertain"]>;
-                readonly reason: Schema.optionalKey<Schema.String>;
                 readonly at: Schema.NullOr<Schema.Number>;
             }>;
+            readonly coastDegrees: Schema.optionalKey<Schema.Number>;
+            readonly legs: Schema.optionalKey<Schema.$Array<Schema.Struct<{
+                commanded: Schema.Union<readonly [Schema.Struct<{
+                    readonly sentAt: Schema.Number;
+                    readonly kind: Schema.Literal<"slew">;
+                    readonly target: Schema.Struct<{
+                        readonly rightAscensionDegrees: Schema.Number;
+                        readonly declinationDegrees: Schema.Number;
+                    }>;
+                }>, Schema.Struct<{
+                    readonly sentAt: Schema.Number;
+                    readonly axis: Schema.Literal<"ra">;
+                    readonly rateDegreesPerSecond: Schema.Number;
+                    readonly kind: Schema.Literal<"axis">;
+                }>, Schema.Struct<{
+                    readonly sentAt: Schema.Number;
+                    readonly axis: Schema.Literal<"ra">;
+                    readonly rateDegreesPerSecond: Schema.Number;
+                    readonly kind: Schema.Literal<"rotate">;
+                    readonly distanceDegrees: Schema.Number;
+                }>, Schema.Struct<{
+                    readonly sentAt: Schema.Number;
+                    readonly kind: Schema.Literals<readonly ["home", "stop"]>;
+                }>]>;
+                observed: Schema.Struct<{
+                    readonly from: Schema.NullOr<Schema.Struct<{
+                        readonly rightAscensionDegrees: Schema.Number;
+                        readonly declinationDegrees: Schema.Number;
+                    }>>;
+                    readonly to: Schema.NullOr<Schema.Struct<{
+                        readonly rightAscensionDegrees: Schema.Number;
+                        readonly declinationDegrees: Schema.Number;
+                    }>>;
+                    readonly travel: Schema.NullOr<Schema.Struct<{
+                        readonly rightAscensionDegrees: Schema.Number;
+                        readonly declinationDegrees: Schema.Number;
+                    }>>;
+                }>;
+                stopped: Schema.Struct<{
+                    readonly how: Schema.Literals<readonly ["arrived", "halted", "aborted", "uncertain"]>;
+                    readonly at: Schema.NullOr<Schema.Number>;
+                }>;
+                coastDegrees: Schema.optionalKey<Schema.Number>;
+            }>>>;
         }>>;
     }> | Schema.Struct<{
         kind: Schema.Literal<"focuser-halt">;
@@ -1609,9 +1781,52 @@ export declare const State: Schema.Struct<{
             }>;
             readonly stopped: Schema.Struct<{
                 readonly how: Schema.Literals<readonly ["arrived", "halted", "aborted", "uncertain"]>;
-                readonly reason: Schema.optionalKey<Schema.String>;
                 readonly at: Schema.NullOr<Schema.Number>;
             }>;
+            readonly coastDegrees: Schema.optionalKey<Schema.Number>;
+            readonly legs: Schema.optionalKey<Schema.$Array<Schema.Struct<{
+                commanded: Schema.Union<readonly [Schema.Struct<{
+                    readonly sentAt: Schema.Number;
+                    readonly kind: Schema.Literal<"slew">;
+                    readonly target: Schema.Struct<{
+                        readonly rightAscensionDegrees: Schema.Number;
+                        readonly declinationDegrees: Schema.Number;
+                    }>;
+                }>, Schema.Struct<{
+                    readonly sentAt: Schema.Number;
+                    readonly axis: Schema.Literal<"ra">;
+                    readonly rateDegreesPerSecond: Schema.Number;
+                    readonly kind: Schema.Literal<"axis">;
+                }>, Schema.Struct<{
+                    readonly sentAt: Schema.Number;
+                    readonly axis: Schema.Literal<"ra">;
+                    readonly rateDegreesPerSecond: Schema.Number;
+                    readonly kind: Schema.Literal<"rotate">;
+                    readonly distanceDegrees: Schema.Number;
+                }>, Schema.Struct<{
+                    readonly sentAt: Schema.Number;
+                    readonly kind: Schema.Literals<readonly ["home", "stop"]>;
+                }>]>;
+                observed: Schema.Struct<{
+                    readonly from: Schema.NullOr<Schema.Struct<{
+                        readonly rightAscensionDegrees: Schema.Number;
+                        readonly declinationDegrees: Schema.Number;
+                    }>>;
+                    readonly to: Schema.NullOr<Schema.Struct<{
+                        readonly rightAscensionDegrees: Schema.Number;
+                        readonly declinationDegrees: Schema.Number;
+                    }>>;
+                    readonly travel: Schema.NullOr<Schema.Struct<{
+                        readonly rightAscensionDegrees: Schema.Number;
+                        readonly declinationDegrees: Schema.Number;
+                    }>>;
+                }>;
+                stopped: Schema.Struct<{
+                    readonly how: Schema.Literals<readonly ["arrived", "halted", "aborted", "uncertain"]>;
+                    readonly at: Schema.NullOr<Schema.Number>;
+                }>;
+                coastDegrees: Schema.optionalKey<Schema.Number>;
+            }>>>;
         }>>;
     }> | Schema.Struct<{
         kind: Schema.Literal<"focuser-move">;
@@ -1701,9 +1916,52 @@ export declare const State: Schema.Struct<{
             }>;
             readonly stopped: Schema.Struct<{
                 readonly how: Schema.Literals<readonly ["arrived", "halted", "aborted", "uncertain"]>;
-                readonly reason: Schema.optionalKey<Schema.String>;
                 readonly at: Schema.NullOr<Schema.Number>;
             }>;
+            readonly coastDegrees: Schema.optionalKey<Schema.Number>;
+            readonly legs: Schema.optionalKey<Schema.$Array<Schema.Struct<{
+                commanded: Schema.Union<readonly [Schema.Struct<{
+                    readonly sentAt: Schema.Number;
+                    readonly kind: Schema.Literal<"slew">;
+                    readonly target: Schema.Struct<{
+                        readonly rightAscensionDegrees: Schema.Number;
+                        readonly declinationDegrees: Schema.Number;
+                    }>;
+                }>, Schema.Struct<{
+                    readonly sentAt: Schema.Number;
+                    readonly axis: Schema.Literal<"ra">;
+                    readonly rateDegreesPerSecond: Schema.Number;
+                    readonly kind: Schema.Literal<"axis">;
+                }>, Schema.Struct<{
+                    readonly sentAt: Schema.Number;
+                    readonly axis: Schema.Literal<"ra">;
+                    readonly rateDegreesPerSecond: Schema.Number;
+                    readonly kind: Schema.Literal<"rotate">;
+                    readonly distanceDegrees: Schema.Number;
+                }>, Schema.Struct<{
+                    readonly sentAt: Schema.Number;
+                    readonly kind: Schema.Literals<readonly ["home", "stop"]>;
+                }>]>;
+                observed: Schema.Struct<{
+                    readonly from: Schema.NullOr<Schema.Struct<{
+                        readonly rightAscensionDegrees: Schema.Number;
+                        readonly declinationDegrees: Schema.Number;
+                    }>>;
+                    readonly to: Schema.NullOr<Schema.Struct<{
+                        readonly rightAscensionDegrees: Schema.Number;
+                        readonly declinationDegrees: Schema.Number;
+                    }>>;
+                    readonly travel: Schema.NullOr<Schema.Struct<{
+                        readonly rightAscensionDegrees: Schema.Number;
+                        readonly declinationDegrees: Schema.Number;
+                    }>>;
+                }>;
+                stopped: Schema.Struct<{
+                    readonly how: Schema.Literals<readonly ["arrived", "halted", "aborted", "uncertain"]>;
+                    readonly at: Schema.NullOr<Schema.Number>;
+                }>;
+                coastDegrees: Schema.optionalKey<Schema.Number>;
+            }>>>;
         }>>;
     }> | Schema.Struct<{
         kind: Schema.Literal<"mount-axis">;
@@ -1794,9 +2052,52 @@ export declare const State: Schema.Struct<{
             }>;
             readonly stopped: Schema.Struct<{
                 readonly how: Schema.Literals<readonly ["arrived", "halted", "aborted", "uncertain"]>;
-                readonly reason: Schema.optionalKey<Schema.String>;
                 readonly at: Schema.NullOr<Schema.Number>;
             }>;
+            readonly coastDegrees: Schema.optionalKey<Schema.Number>;
+            readonly legs: Schema.optionalKey<Schema.$Array<Schema.Struct<{
+                commanded: Schema.Union<readonly [Schema.Struct<{
+                    readonly sentAt: Schema.Number;
+                    readonly kind: Schema.Literal<"slew">;
+                    readonly target: Schema.Struct<{
+                        readonly rightAscensionDegrees: Schema.Number;
+                        readonly declinationDegrees: Schema.Number;
+                    }>;
+                }>, Schema.Struct<{
+                    readonly sentAt: Schema.Number;
+                    readonly axis: Schema.Literal<"ra">;
+                    readonly rateDegreesPerSecond: Schema.Number;
+                    readonly kind: Schema.Literal<"axis">;
+                }>, Schema.Struct<{
+                    readonly sentAt: Schema.Number;
+                    readonly axis: Schema.Literal<"ra">;
+                    readonly rateDegreesPerSecond: Schema.Number;
+                    readonly kind: Schema.Literal<"rotate">;
+                    readonly distanceDegrees: Schema.Number;
+                }>, Schema.Struct<{
+                    readonly sentAt: Schema.Number;
+                    readonly kind: Schema.Literals<readonly ["home", "stop"]>;
+                }>]>;
+                observed: Schema.Struct<{
+                    readonly from: Schema.NullOr<Schema.Struct<{
+                        readonly rightAscensionDegrees: Schema.Number;
+                        readonly declinationDegrees: Schema.Number;
+                    }>>;
+                    readonly to: Schema.NullOr<Schema.Struct<{
+                        readonly rightAscensionDegrees: Schema.Number;
+                        readonly declinationDegrees: Schema.Number;
+                    }>>;
+                    readonly travel: Schema.NullOr<Schema.Struct<{
+                        readonly rightAscensionDegrees: Schema.Number;
+                        readonly declinationDegrees: Schema.Number;
+                    }>>;
+                }>;
+                stopped: Schema.Struct<{
+                    readonly how: Schema.Literals<readonly ["arrived", "halted", "aborted", "uncertain"]>;
+                    readonly at: Schema.NullOr<Schema.Number>;
+                }>;
+                coastDegrees: Schema.optionalKey<Schema.Number>;
+            }>>>;
         }>>;
     }> | Schema.Struct<{
         kind: Schema.Literal<"mount-home">;
@@ -1884,9 +2185,52 @@ export declare const State: Schema.Struct<{
             }>;
             readonly stopped: Schema.Struct<{
                 readonly how: Schema.Literals<readonly ["arrived", "halted", "aborted", "uncertain"]>;
-                readonly reason: Schema.optionalKey<Schema.String>;
                 readonly at: Schema.NullOr<Schema.Number>;
             }>;
+            readonly coastDegrees: Schema.optionalKey<Schema.Number>;
+            readonly legs: Schema.optionalKey<Schema.$Array<Schema.Struct<{
+                commanded: Schema.Union<readonly [Schema.Struct<{
+                    readonly sentAt: Schema.Number;
+                    readonly kind: Schema.Literal<"slew">;
+                    readonly target: Schema.Struct<{
+                        readonly rightAscensionDegrees: Schema.Number;
+                        readonly declinationDegrees: Schema.Number;
+                    }>;
+                }>, Schema.Struct<{
+                    readonly sentAt: Schema.Number;
+                    readonly axis: Schema.Literal<"ra">;
+                    readonly rateDegreesPerSecond: Schema.Number;
+                    readonly kind: Schema.Literal<"axis">;
+                }>, Schema.Struct<{
+                    readonly sentAt: Schema.Number;
+                    readonly axis: Schema.Literal<"ra">;
+                    readonly rateDegreesPerSecond: Schema.Number;
+                    readonly kind: Schema.Literal<"rotate">;
+                    readonly distanceDegrees: Schema.Number;
+                }>, Schema.Struct<{
+                    readonly sentAt: Schema.Number;
+                    readonly kind: Schema.Literals<readonly ["home", "stop"]>;
+                }>]>;
+                observed: Schema.Struct<{
+                    readonly from: Schema.NullOr<Schema.Struct<{
+                        readonly rightAscensionDegrees: Schema.Number;
+                        readonly declinationDegrees: Schema.Number;
+                    }>>;
+                    readonly to: Schema.NullOr<Schema.Struct<{
+                        readonly rightAscensionDegrees: Schema.Number;
+                        readonly declinationDegrees: Schema.Number;
+                    }>>;
+                    readonly travel: Schema.NullOr<Schema.Struct<{
+                        readonly rightAscensionDegrees: Schema.Number;
+                        readonly declinationDegrees: Schema.Number;
+                    }>>;
+                }>;
+                stopped: Schema.Struct<{
+                    readonly how: Schema.Literals<readonly ["arrived", "halted", "aborted", "uncertain"]>;
+                    readonly at: Schema.NullOr<Schema.Number>;
+                }>;
+                coastDegrees: Schema.optionalKey<Schema.Number>;
+            }>>>;
         }>>;
     }> | Schema.Struct<{
         kind: Schema.Literal<"mount-rotate">;
@@ -1977,9 +2321,52 @@ export declare const State: Schema.Struct<{
             }>;
             readonly stopped: Schema.Struct<{
                 readonly how: Schema.Literals<readonly ["arrived", "halted", "aborted", "uncertain"]>;
-                readonly reason: Schema.optionalKey<Schema.String>;
                 readonly at: Schema.NullOr<Schema.Number>;
             }>;
+            readonly coastDegrees: Schema.optionalKey<Schema.Number>;
+            readonly legs: Schema.optionalKey<Schema.$Array<Schema.Struct<{
+                commanded: Schema.Union<readonly [Schema.Struct<{
+                    readonly sentAt: Schema.Number;
+                    readonly kind: Schema.Literal<"slew">;
+                    readonly target: Schema.Struct<{
+                        readonly rightAscensionDegrees: Schema.Number;
+                        readonly declinationDegrees: Schema.Number;
+                    }>;
+                }>, Schema.Struct<{
+                    readonly sentAt: Schema.Number;
+                    readonly axis: Schema.Literal<"ra">;
+                    readonly rateDegreesPerSecond: Schema.Number;
+                    readonly kind: Schema.Literal<"axis">;
+                }>, Schema.Struct<{
+                    readonly sentAt: Schema.Number;
+                    readonly axis: Schema.Literal<"ra">;
+                    readonly rateDegreesPerSecond: Schema.Number;
+                    readonly kind: Schema.Literal<"rotate">;
+                    readonly distanceDegrees: Schema.Number;
+                }>, Schema.Struct<{
+                    readonly sentAt: Schema.Number;
+                    readonly kind: Schema.Literals<readonly ["home", "stop"]>;
+                }>]>;
+                observed: Schema.Struct<{
+                    readonly from: Schema.NullOr<Schema.Struct<{
+                        readonly rightAscensionDegrees: Schema.Number;
+                        readonly declinationDegrees: Schema.Number;
+                    }>>;
+                    readonly to: Schema.NullOr<Schema.Struct<{
+                        readonly rightAscensionDegrees: Schema.Number;
+                        readonly declinationDegrees: Schema.Number;
+                    }>>;
+                    readonly travel: Schema.NullOr<Schema.Struct<{
+                        readonly rightAscensionDegrees: Schema.Number;
+                        readonly declinationDegrees: Schema.Number;
+                    }>>;
+                }>;
+                stopped: Schema.Struct<{
+                    readonly how: Schema.Literals<readonly ["arrived", "halted", "aborted", "uncertain"]>;
+                    readonly at: Schema.NullOr<Schema.Number>;
+                }>;
+                coastDegrees: Schema.optionalKey<Schema.Number>;
+            }>>>;
         }>>;
     }> | Schema.Struct<{
         kind: Schema.Literal<"mount-slew">;
@@ -2071,9 +2458,52 @@ export declare const State: Schema.Struct<{
             }>;
             readonly stopped: Schema.Struct<{
                 readonly how: Schema.Literals<readonly ["arrived", "halted", "aborted", "uncertain"]>;
-                readonly reason: Schema.optionalKey<Schema.String>;
                 readonly at: Schema.NullOr<Schema.Number>;
             }>;
+            readonly coastDegrees: Schema.optionalKey<Schema.Number>;
+            readonly legs: Schema.optionalKey<Schema.$Array<Schema.Struct<{
+                commanded: Schema.Union<readonly [Schema.Struct<{
+                    readonly sentAt: Schema.Number;
+                    readonly kind: Schema.Literal<"slew">;
+                    readonly target: Schema.Struct<{
+                        readonly rightAscensionDegrees: Schema.Number;
+                        readonly declinationDegrees: Schema.Number;
+                    }>;
+                }>, Schema.Struct<{
+                    readonly sentAt: Schema.Number;
+                    readonly axis: Schema.Literal<"ra">;
+                    readonly rateDegreesPerSecond: Schema.Number;
+                    readonly kind: Schema.Literal<"axis">;
+                }>, Schema.Struct<{
+                    readonly sentAt: Schema.Number;
+                    readonly axis: Schema.Literal<"ra">;
+                    readonly rateDegreesPerSecond: Schema.Number;
+                    readonly kind: Schema.Literal<"rotate">;
+                    readonly distanceDegrees: Schema.Number;
+                }>, Schema.Struct<{
+                    readonly sentAt: Schema.Number;
+                    readonly kind: Schema.Literals<readonly ["home", "stop"]>;
+                }>]>;
+                observed: Schema.Struct<{
+                    readonly from: Schema.NullOr<Schema.Struct<{
+                        readonly rightAscensionDegrees: Schema.Number;
+                        readonly declinationDegrees: Schema.Number;
+                    }>>;
+                    readonly to: Schema.NullOr<Schema.Struct<{
+                        readonly rightAscensionDegrees: Schema.Number;
+                        readonly declinationDegrees: Schema.Number;
+                    }>>;
+                    readonly travel: Schema.NullOr<Schema.Struct<{
+                        readonly rightAscensionDegrees: Schema.Number;
+                        readonly declinationDegrees: Schema.Number;
+                    }>>;
+                }>;
+                stopped: Schema.Struct<{
+                    readonly how: Schema.Literals<readonly ["arrived", "halted", "aborted", "uncertain"]>;
+                    readonly at: Schema.NullOr<Schema.Number>;
+                }>;
+                coastDegrees: Schema.optionalKey<Schema.Number>;
+            }>>>;
         }>>;
     }> | Schema.Struct<{
         kind: Schema.Literal<"mount-stop">;
@@ -2161,9 +2591,52 @@ export declare const State: Schema.Struct<{
             }>;
             readonly stopped: Schema.Struct<{
                 readonly how: Schema.Literals<readonly ["arrived", "halted", "aborted", "uncertain"]>;
-                readonly reason: Schema.optionalKey<Schema.String>;
                 readonly at: Schema.NullOr<Schema.Number>;
             }>;
+            readonly coastDegrees: Schema.optionalKey<Schema.Number>;
+            readonly legs: Schema.optionalKey<Schema.$Array<Schema.Struct<{
+                commanded: Schema.Union<readonly [Schema.Struct<{
+                    readonly sentAt: Schema.Number;
+                    readonly kind: Schema.Literal<"slew">;
+                    readonly target: Schema.Struct<{
+                        readonly rightAscensionDegrees: Schema.Number;
+                        readonly declinationDegrees: Schema.Number;
+                    }>;
+                }>, Schema.Struct<{
+                    readonly sentAt: Schema.Number;
+                    readonly axis: Schema.Literal<"ra">;
+                    readonly rateDegreesPerSecond: Schema.Number;
+                    readonly kind: Schema.Literal<"axis">;
+                }>, Schema.Struct<{
+                    readonly sentAt: Schema.Number;
+                    readonly axis: Schema.Literal<"ra">;
+                    readonly rateDegreesPerSecond: Schema.Number;
+                    readonly kind: Schema.Literal<"rotate">;
+                    readonly distanceDegrees: Schema.Number;
+                }>, Schema.Struct<{
+                    readonly sentAt: Schema.Number;
+                    readonly kind: Schema.Literals<readonly ["home", "stop"]>;
+                }>]>;
+                observed: Schema.Struct<{
+                    readonly from: Schema.NullOr<Schema.Struct<{
+                        readonly rightAscensionDegrees: Schema.Number;
+                        readonly declinationDegrees: Schema.Number;
+                    }>>;
+                    readonly to: Schema.NullOr<Schema.Struct<{
+                        readonly rightAscensionDegrees: Schema.Number;
+                        readonly declinationDegrees: Schema.Number;
+                    }>>;
+                    readonly travel: Schema.NullOr<Schema.Struct<{
+                        readonly rightAscensionDegrees: Schema.Number;
+                        readonly declinationDegrees: Schema.Number;
+                    }>>;
+                }>;
+                stopped: Schema.Struct<{
+                    readonly how: Schema.Literals<readonly ["arrived", "halted", "aborted", "uncertain"]>;
+                    readonly at: Schema.NullOr<Schema.Number>;
+                }>;
+                coastDegrees: Schema.optionalKey<Schema.Number>;
+            }>>>;
         }>>;
     }> | Schema.Struct<{
         kind: Schema.Literal<"mount-tracking">;
@@ -2253,9 +2726,52 @@ export declare const State: Schema.Struct<{
             }>;
             readonly stopped: Schema.Struct<{
                 readonly how: Schema.Literals<readonly ["arrived", "halted", "aborted", "uncertain"]>;
-                readonly reason: Schema.optionalKey<Schema.String>;
                 readonly at: Schema.NullOr<Schema.Number>;
             }>;
+            readonly coastDegrees: Schema.optionalKey<Schema.Number>;
+            readonly legs: Schema.optionalKey<Schema.$Array<Schema.Struct<{
+                commanded: Schema.Union<readonly [Schema.Struct<{
+                    readonly sentAt: Schema.Number;
+                    readonly kind: Schema.Literal<"slew">;
+                    readonly target: Schema.Struct<{
+                        readonly rightAscensionDegrees: Schema.Number;
+                        readonly declinationDegrees: Schema.Number;
+                    }>;
+                }>, Schema.Struct<{
+                    readonly sentAt: Schema.Number;
+                    readonly axis: Schema.Literal<"ra">;
+                    readonly rateDegreesPerSecond: Schema.Number;
+                    readonly kind: Schema.Literal<"axis">;
+                }>, Schema.Struct<{
+                    readonly sentAt: Schema.Number;
+                    readonly axis: Schema.Literal<"ra">;
+                    readonly rateDegreesPerSecond: Schema.Number;
+                    readonly kind: Schema.Literal<"rotate">;
+                    readonly distanceDegrees: Schema.Number;
+                }>, Schema.Struct<{
+                    readonly sentAt: Schema.Number;
+                    readonly kind: Schema.Literals<readonly ["home", "stop"]>;
+                }>]>;
+                observed: Schema.Struct<{
+                    readonly from: Schema.NullOr<Schema.Struct<{
+                        readonly rightAscensionDegrees: Schema.Number;
+                        readonly declinationDegrees: Schema.Number;
+                    }>>;
+                    readonly to: Schema.NullOr<Schema.Struct<{
+                        readonly rightAscensionDegrees: Schema.Number;
+                        readonly declinationDegrees: Schema.Number;
+                    }>>;
+                    readonly travel: Schema.NullOr<Schema.Struct<{
+                        readonly rightAscensionDegrees: Schema.Number;
+                        readonly declinationDegrees: Schema.Number;
+                    }>>;
+                }>;
+                stopped: Schema.Struct<{
+                    readonly how: Schema.Literals<readonly ["arrived", "halted", "aborted", "uncertain"]>;
+                    readonly at: Schema.NullOr<Schema.Number>;
+                }>;
+                coastDegrees: Schema.optionalKey<Schema.Number>;
+            }>>>;
         }>>;
     }> | Schema.Struct<{
         kind: Schema.Literal<"switch-set">;
@@ -2346,9 +2862,52 @@ export declare const State: Schema.Struct<{
             }>;
             readonly stopped: Schema.Struct<{
                 readonly how: Schema.Literals<readonly ["arrived", "halted", "aborted", "uncertain"]>;
-                readonly reason: Schema.optionalKey<Schema.String>;
                 readonly at: Schema.NullOr<Schema.Number>;
             }>;
+            readonly coastDegrees: Schema.optionalKey<Schema.Number>;
+            readonly legs: Schema.optionalKey<Schema.$Array<Schema.Struct<{
+                commanded: Schema.Union<readonly [Schema.Struct<{
+                    readonly sentAt: Schema.Number;
+                    readonly kind: Schema.Literal<"slew">;
+                    readonly target: Schema.Struct<{
+                        readonly rightAscensionDegrees: Schema.Number;
+                        readonly declinationDegrees: Schema.Number;
+                    }>;
+                }>, Schema.Struct<{
+                    readonly sentAt: Schema.Number;
+                    readonly axis: Schema.Literal<"ra">;
+                    readonly rateDegreesPerSecond: Schema.Number;
+                    readonly kind: Schema.Literal<"axis">;
+                }>, Schema.Struct<{
+                    readonly sentAt: Schema.Number;
+                    readonly axis: Schema.Literal<"ra">;
+                    readonly rateDegreesPerSecond: Schema.Number;
+                    readonly kind: Schema.Literal<"rotate">;
+                    readonly distanceDegrees: Schema.Number;
+                }>, Schema.Struct<{
+                    readonly sentAt: Schema.Number;
+                    readonly kind: Schema.Literals<readonly ["home", "stop"]>;
+                }>]>;
+                observed: Schema.Struct<{
+                    readonly from: Schema.NullOr<Schema.Struct<{
+                        readonly rightAscensionDegrees: Schema.Number;
+                        readonly declinationDegrees: Schema.Number;
+                    }>>;
+                    readonly to: Schema.NullOr<Schema.Struct<{
+                        readonly rightAscensionDegrees: Schema.Number;
+                        readonly declinationDegrees: Schema.Number;
+                    }>>;
+                    readonly travel: Schema.NullOr<Schema.Struct<{
+                        readonly rightAscensionDegrees: Schema.Number;
+                        readonly declinationDegrees: Schema.Number;
+                    }>>;
+                }>;
+                stopped: Schema.Struct<{
+                    readonly how: Schema.Literals<readonly ["arrived", "halted", "aborted", "uncertain"]>;
+                    readonly at: Schema.NullOr<Schema.Number>;
+                }>;
+                coastDegrees: Schema.optionalKey<Schema.Number>;
+            }>>>;
         }>>;
     }>)[]>>;
 }>;

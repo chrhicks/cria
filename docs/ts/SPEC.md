@@ -568,13 +568,13 @@ Expected coast starts at 4,084 arcseconds for the step-3 3.008°/s rate and
 `stopLatencyMs` as their seed. After each confirmed axis halt, Cria retains the
 last nine measured coasts for that rate and uses their median, clamped to
 0.5 to 2 times the seed. Estimates live only in this Cria session and reset
-on restart. Until a position interval has been measured, `positionReadMs`
-is the conservative initial interval.
+on restart.
 
 The motion record retains the full request and total observed travel. Rate
 motion travel starts at the position held just before the command. Its
-existing `stopped.reason` string contains JSON with each leg's command,
-travel, stop, measured coast and updated estimate, so no wire schema changes.
+`legs` lists each axis motion it ran, with its command, travel, stop and
+measured `coastDegrees`. Any axis motion records `coastDegrees`. The coast
+estimate lives in `capability/rotate.ts`, beside the rotate it serves.
 The outcome's `travelledDegrees` remains the measured total in either direction.
 
 ### Device setup
