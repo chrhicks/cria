@@ -64,6 +64,7 @@ export interface IndiDevice {
 export interface IndiClient {
   readonly status: Effect.Effect<ConnectionStatus>
   readonly device: (name: string) => IndiDevice
+  readonly refresh: Effect.Effect<void, IndiError>
 }
 
 export interface IndiClientOptions {
@@ -279,6 +280,7 @@ export function makeIndiClient(options: IndiClientOptions): Effect.Effect<IndiCl
     return {
       status: SubscriptionRef.get(status),
       device,
+      refresh: send({ type: 'getProperties' }),
     }
   })
 }

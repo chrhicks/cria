@@ -52,6 +52,20 @@ describe('INDI client against a real indiserver', () => {
       }),
     ))
 
+  it('refresh has indiserver define every property again', () =>
+    withClient(client =>
+      Effect.gen(function* () {
+        const focuser = client.device('Focuser Simulator')
+        const before = yield* waitFor(focuser.property('CONNECTION'))
+
+        yield* Effect.sleep('2 millis')
+        yield* client.refresh
+        const after = yield* waitFor(focuser.property('CONNECTION').pipe(Effect.map(Option.filter(property => property.receivedAt > before.receivedAt))))
+
+        expect(after.name).toBe('CONNECTION')
+      }),
+    ))
+
   it('sends a command once and sees the driver move through Busy to Ok', () =>
     withClient(client =>
       Effect.gen(function* () {

@@ -3,7 +3,7 @@ import { spawnSync } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
 import { hostname } from 'node:os'
 import { makeIndiClient, type TrafficTap } from '@cria/indi'
-import { brokerSettings, makeEntries, openPublisher, wireSubject } from '@cria/stream'
+import { brokerSettings, makeEntries, openPublisher, refreshSubject, wireSubject } from '@cria/stream'
 import { Effect } from 'effect'
 import { ClientConfig } from './config.js'
 import { makeDebugChangeFilter } from './debug-lines.js'
@@ -58,7 +58,17 @@ const tap: TrafficTap = {
 await broker.ready
 
 await Promise.all([
-  Effect.runPromise(Effect.scoped(Effect.andThen(makeIndiClient({ ...config.indi, tap }), Effect.never))),
+  Effect.runPromise(
+    Effect.scoped(
+      Effect.flatMap(makeIndiClient({ ...config.indi, tap }), indi => {
+        broker.listen(refreshSubject, () => {
+          Effect.runFork(indi.refresh.pipe(Effect.tapError(error => Effect.sync(() => console.error(`rig-stream-client: refresh not sent: ${error.message}`)))))
+        })
+
+        return Effect.never
+      }),
+    ),
+  ),
   followJournal(config.journalExclusions, config.journalCursorFile, async line => {
     await broker.publishConfirmed('rig-dev.system', entries.system(line))
   }),

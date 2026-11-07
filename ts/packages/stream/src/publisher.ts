@@ -11,6 +11,7 @@ export interface Publisher {
   readonly ready: Promise<void>
   readonly publish: (subject: string, entry: Entry) => void
   readonly publishConfirmed: (subject: string, entry: Entry) => Promise<void>
+  readonly listen: (subject: string, onMessage: () => void) => void
   readonly close: () => Promise<void>
 }
 
@@ -21,7 +22,7 @@ export interface PublisherOptions {
   readonly onConnected: (connection: number) => void
 }
 
-export type BrokerConnection = Pick<NatsConnection, 'publish' | 'flush' | 'close' | 'getServer'> & {
+export type BrokerConnection = Pick<NatsConnection, 'publish' | 'flush' | 'close' | 'getServer' | 'subscribe'> & {
   readonly status: () => AsyncIterable<Status>
 }
 
@@ -85,6 +86,9 @@ export function openPublisher({ broker, name, log, onConnected }: PublisherOptio
           await nextReconnect()
         }
       }
+    },
+    listen(subject, onMessage) {
+      void ready.then(() => connection?.subscribe(subject, { callback: error => (error ? log(`listening on ${subject} failed: ${String(error)}`) : onMessage()) }))
     },
     async close() {
       closed = true
