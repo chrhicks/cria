@@ -307,11 +307,11 @@ describe('a cancel that arrives during a setting (review R1-#1)', () => {
       return 'handled'
     }
 
-    const power = await startCria(fake.port, [{ id: 'switch', kind: 'switch', indiDevice: box, channels: [{ name: '12V', property: 'POWER_CHANNELS', element: 'POWER_CHANNEL_1' }] }])
+    const power = await startCria(fake.port, [{ id: 'box', kind: 'box', indiDevice: box, channels: [{ name: '12V', property: 'POWER_CHANNELS', element: 'POWER_CHANNEL_1' }] }])
 
     try {
-      await power.waitFor(allReady(['switch']))
-      const submitted = await power.submit('switch', 'switch-set', { channelId: 0, value: 0 })
+      await power.waitFor(allReady(['box']))
+      const submitted = await power.submit('box', 'switch-set', { channelId: 0, value: 0 })
 
       await until('the switch command to reach the driver', () => fake.received.some(xml => xml.startsWith('<newSwitchVector') && xml.includes(`device="${box}"`)), 5000)
       await power.cancel(submitted.body.id)
@@ -344,10 +344,9 @@ describe('a Pegasus-like power box', () => {
     const power = await startCria(
       fake.port,
       [
-        { id: 'weather', kind: 'weather', indiDevice: box },
         {
-          id: 'switch',
-          kind: 'switch',
+          id: 'box',
+          kind: 'box',
           indiDevice: box,
           channels: [
             { name: '12V', property: 'POWER_CHANNELS', element: 'POWER_CHANNEL_1' },
@@ -359,21 +358,20 @@ describe('a Pegasus-like power box', () => {
     )
 
     try {
-      const state = await power.waitFor(allReady(['weather', 'switch']))
-      const [weather, powerBox] = state.devices
+      const state = await power.waitFor(allReady(['box']))
+      const powerBox = state.devices[0]!
 
-      expect(weather!.failureDomain).toBe(powerBox!.failureDomain)
-      expect(weather!.readings.dewPointC).toMatchObject({ status: 'fresh', value: 8.1 })
-      expect(powerBox!.channels[0]).toMatchObject({ name: { value: '12V' }, on: { value: true }, writable: { value: true } })
+      expect(powerBox.readings.dewPointC).toMatchObject({ status: 'fresh', value: 8.1 })
+      expect(powerBox.kind === 'box' && powerBox.channels[0]).toMatchObject({ name: { value: '12V' }, on: { value: true }, writable: { value: true } })
 
-      expect(await power.run('switch', 'switch-set', { channelId: 0, value: 0 })).toMatchObject({ kind: 'confirmed', values: { value: 0 } })
+      expect(await power.run('box', 'switch-set', { channelId: 0, value: 0 })).toMatchObject({ kind: 'confirmed', values: { value: 0 } })
       expect(fake.vector(box, 'POWER_CHANNELS').elements.POWER_CHANNEL_1!.value).toBe(false)
 
       const sentBefore = fake.received.filter(xml => xml.includes('DEW_PWM') && xml.startsWith('<new')).length
 
-      expect(await power.run('switch', 'switch-set', { channelId: 1, value: 12.5 })).toMatchObject({ kind: 'failed' })
+      expect(await power.run('box', 'switch-set', { channelId: 1, value: 12.5 })).toMatchObject({ kind: 'failed' })
       expect(fake.received.filter(xml => xml.includes('DEW_PWM') && xml.startsWith('<new')).length).toBe(sentBefore)
-      expect(await power.run('switch', 'switch-set', { channelId: 1, value: 40 })).toMatchObject({ kind: 'confirmed' })
+      expect(await power.run('box', 'switch-set', { channelId: 1, value: 40 })).toMatchObject({ kind: 'confirmed' })
     } finally {
       await power.stop()
     }

@@ -24,24 +24,25 @@ describe('operation parameters (protocol 4 bounds)', () => {
 })
 
 describe('configuration', () => {
-  const config = (indiDevice: string) =>
-    decodeConfig({ listen: { host: '127.0.0.1', port: 0 }, indi: { host: '127.0.0.1', port: 7624 }, imageDirectory: '/tmp/cria', devices: [{ id: 'power', kind: 'switch', indiDevice, channels: [{ name: 'Port 1', property: 'P', element: 'E' }] }] })
+  const box = (channels?: object[]) =>
+    decodeConfig({ listen: { host: '127.0.0.1', port: 0 }, indi: { host: '127.0.0.1', port: 7624 }, imageDirectory: '/tmp/cria', devices: [{ id: 'box', kind: 'box', indiDevice: 'Pegasus PPBA', ...(channels && { channels }) }] })
 
-  it('names the failure domain after the INDI device, and refuses a name with nothing to slug', () => {
-    expect(config('Pegasus PPBA').devices[0]!.failureDomain).toBe('pegasus-ppba')
-    expect(() => config('***')).toThrow('INDI device "***" has no letters or digits to name its failure domain')
+  it('takes a box with channels and a box with none', () => {
+    expect(box([{ name: 'Port 1', property: 'P', element: 'E' }]).devices[0]!.channels).toHaveLength(1)
+    expect(box().devices[0]!.channels).toBeUndefined()
+    expect(box([]).devices[0]!.kind).toBe('box')
   })
 
   it('refuses a channel set automatically under a channel that is not configured', () => {
-    const power = (automaticWhileOn: string) =>
+    const box = (automaticWhileOn: string) =>
       decodeConfig({
         listen: { host: '127.0.0.1', port: 0 },
         indi: { host: '127.0.0.1', port: 7624 },
         imageDirectory: '/tmp/cria',
         devices: [
           {
-            id: 'power',
-            kind: 'switch',
+            id: 'box',
+            kind: 'box',
             indiDevice: 'Pegasus PPBA',
             channels: [
               { name: 'Dew A duty (%)', property: 'DEW_DUTY_CYCLES', element: 'DEW_CHANNEL_1', automaticWhileOn },
@@ -51,8 +52,8 @@ describe('configuration', () => {
         ],
       })
 
-    expect(power('Auto dew').devices[0]!.channels![0]!.automaticWhileOn).toBe('Auto dew')
-    expect(() => power('Auto Dew')).toThrow('Channel Dew A duty (%) of power: automaticWhileOn names no other channel')
+    expect(box('Auto dew').devices[0]!.channels![0]!.automaticWhileOn).toBe('Auto dew')
+    expect(() => box('Auto Dew')).toThrow('Channel Dew A duty (%) of box: automaticWhileOn names no other channel')
   })
 
   it("checks a mount's site ranges and refuses a site on a device that is not a mount", () => {

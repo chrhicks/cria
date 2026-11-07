@@ -20,7 +20,7 @@ type Settled = Extract<Operation, { readonly state: 'settled' }>
 
 export interface DeviceSpec {
   readonly id: string
-  readonly kind: 'camera' | 'mount' | 'focuser' | 'weather' | 'switch'
+  readonly kind: 'camera' | 'mount' | 'focuser' | 'box'
   readonly indiDevice: string
   readonly channels?: ReadonlyArray<{ name: string; property: string; element: string; automaticWhileOn?: string }>
   readonly site?: { readonly latitudeDegrees: number; readonly longitudeDegrees: number; readonly elevationMeters: number }

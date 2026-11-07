@@ -20,8 +20,7 @@ export {
   FocuserReadings,
   MountReadings,
   SwitchChannel,
-  SwitchReadings,
-  WeatherReadings,
+  BoxReadings,
   availabilityReasons,
   coordinateFrames,
   deviceKinds,
@@ -31,7 +30,6 @@ export {
 } from './device.js'
 export {
   DeviceId,
-  FailureDomain,
   ImageId,
   InstanceId,
   OperationId,

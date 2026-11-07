@@ -72,7 +72,7 @@ It does nothing at all while Cria is unreachable (and must see Cria and the hard
 }
 ```
 
-`id` is a Cria device ID. Each device has exactly one hardware check, `usb` or `serial`, and a `driver` (the INDI executable name) only if it has `usb`. List every device a driver serves with that driver, because the "nothing open" check covers the listed ones. Optional: `fifo` (default `$XDG_RUNTIME_DIR/indi.fifo`, the path `indiserver.service` uses), `pollMs` (5000), `settlePolls` (2), `stopGapMs` (1000), `requestTimeoutMs` (5000). An unknown key stops it with exit 2. List the Pegasus once, as `weather`: `weather` and `switch` are one INDI device. If Cria has `CRIA_TOKEN` set, give the supervisor the same variable.
+`id` is a Cria device ID. Each device has exactly one hardware check, `usb` or `serial`, and a `driver` (the INDI executable name) only if it has `usb`. List every device a driver serves with that driver, because the "nothing open" check covers the listed ones. Optional: `fifo` (default `$XDG_RUNTIME_DIR/indi.fifo`, the path `indiserver.service` uses), `pollMs` (5000), `settlePolls` (2), `stopGapMs` (1000), `requestTimeoutMs` (5000). An unknown key stops it with exit 2. List the Pegasus once, as `box`. If Cria has `CRIA_TOKEN` set, give the supervisor the same variable.
 
 **To turn it off:** `systemctl --user disable --now rig-supervisor`. The rig then behaves as before: drivers and connections change only when a person does it.
 

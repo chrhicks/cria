@@ -12,7 +12,6 @@ const operation = {
   instanceId: id,
   requestId: 'r1',
   deviceId: 'focuser',
-  failureDomain: 'zwo-eaf',
   kind: 'focuser-move',
   parameters: { position: 100},
   acceptedAt: 1,
@@ -78,7 +77,7 @@ describe('protocol 5 contract', () => {
     expect(decodes(State, state)).toBe(true)
     expect(decodes(State, { ...state, instanceId: 'cria' })).toBe(false)
     expect(decodes(ErrorBody, { error: { code: 'not-found', message: 'No such operation' }, instanceId: 'cria' })).toBe(false)
-    expect(decodes(Operation, { ...operation, failureDomain: 'zwo eaf' })).toBe(false)
+    expect(decodes(Operation, { ...operation, deviceId: 'zwo eaf' })).toBe(false)
     expect(decodes(Operation, { ...operation, id: 'op-1' })).toBe(false)
   })
 
@@ -92,7 +91,6 @@ describe('protocol 5 contract', () => {
       id: 'focuser',
       kind: 'focuser',
       name: 'ZWO EAF',
-      failureDomain: 'zwo-eaf',
       availability: { ready: false, reason: 'busy', message: 'waiting for a reading after the last operation' },
       readings: {
         connected: { status: 'fresh', value: true, observedAt: 5 },

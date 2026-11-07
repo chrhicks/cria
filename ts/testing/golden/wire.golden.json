@@ -21,7 +21,6 @@
           "availability": {
             "ready": true
           },
-          "failureDomain": "fake-ccd",
           "id": "camera",
           "kind": "camera",
           "lastCommandedSetpointC": null,
@@ -149,7 +148,6 @@
           "availability": {
             "ready": true
           },
-          "failureDomain": "zwo-am5",
           "id": "mount",
           "kind": "mount",
           "name": "ZWO AM5",
@@ -289,7 +287,6 @@
           "availability": {
             "ready": true
           },
-          "failureDomain": "fake-focuser",
           "id": "focuser",
           "kind": "focuser",
           "name": "Fake Focuser",
@@ -332,42 +329,6 @@
             "temperatureC": {
               "reason": "not-read",
               "status": "unavailable"
-            }
-          }
-        },
-        {
-          "availability": {
-            "ready": true
-          },
-          "failureDomain": "fake-ppb",
-          "id": "weather",
-          "kind": "weather",
-          "name": "Fake PPB",
-          "readings": {
-            "connected": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": true
-            },
-            "dewPointC": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": 8.1
-            },
-            "humidityPercent": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": 80
-            },
-            "name": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": "Fake PPB"
-            },
-            "temperatureC": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": 11.5
             }
           }
         },
@@ -503,9 +464,8 @@
               }
             }
           ],
-          "failureDomain": "fake-ppb",
-          "id": "switch",
-          "kind": "switch",
+          "id": "box",
+          "kind": "box",
           "name": "Fake PPB",
           "readings": {
             "channelCount": {
@@ -518,10 +478,25 @@
               "status": "fresh",
               "value": true
             },
+            "dewPointC": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 8.1
+            },
+            "humidityPercent": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 80
+            },
             "name": {
               "observedAt": "<time>",
               "status": "fresh",
               "value": "Fake PPB"
+            },
+            "temperatureC": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 11.5
             }
           }
         }
@@ -532,7 +507,6 @@
         {
           "acceptedAt": "<time>",
           "deviceId": "mount",
-          "failureDomain": "zwo-am5",
           "id": "<operation-1>",
           "instanceId": "<instance-1>",
           "kind": "device-connect",
@@ -571,7 +545,6 @@
           "availability": {
             "ready": true
           },
-          "failureDomain": "fake-ccd",
           "id": "camera",
           "kind": "camera",
           "lastCommandedSetpointC": null,
@@ -699,7 +672,6 @@
           "availability": {
             "ready": true
           },
-          "failureDomain": "zwo-am5",
           "id": "mount",
           "kind": "mount",
           "name": "ZWO AM5",
@@ -839,7 +811,6 @@
           "availability": {
             "ready": true
           },
-          "failureDomain": "fake-focuser",
           "id": "focuser",
           "kind": "focuser",
           "name": "Fake Focuser",
@@ -882,42 +853,6 @@
             "temperatureC": {
               "reason": "not-read",
               "status": "unavailable"
-            }
-          }
-        },
-        {
-          "availability": {
-            "ready": true
-          },
-          "failureDomain": "fake-ppb",
-          "id": "weather",
-          "kind": "weather",
-          "name": "Fake PPB",
-          "readings": {
-            "connected": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": true
-            },
-            "dewPointC": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": 8.1
-            },
-            "humidityPercent": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": 80
-            },
-            "name": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": "Fake PPB"
-            },
-            "temperatureC": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": 11.5
             }
           }
         },
@@ -1053,9 +988,8 @@
               }
             }
           ],
-          "failureDomain": "fake-ppb",
-          "id": "switch",
-          "kind": "switch",
+          "id": "box",
+          "kind": "box",
           "name": "Fake PPB",
           "readings": {
             "channelCount": {
@@ -1068,10 +1002,25 @@
               "status": "fresh",
               "value": true
             },
+            "dewPointC": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 8.1
+            },
+            "humidityPercent": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 80
+            },
             "name": {
               "observedAt": "<time>",
               "status": "fresh",
               "value": "Fake PPB"
+            },
+            "temperatureC": {
+              "observedAt": "<time>",
+              "status": "fresh",
+              "value": 11.5
             }
           }
         }
@@ -1082,7 +1031,6 @@
         {
           "acceptedAt": "<time>",
           "deviceId": "mount",
-          "failureDomain": "zwo-am5",
           "id": "<operation-1>",
           "instanceId": "<instance-1>",
           "kind": "device-connect",
@@ -1127,7 +1075,6 @@
     "body": {
       "acceptedAt": "<time>",
       "deviceId": "camera",
-      "failureDomain": "fake-ccd",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
       "kind": "capture",
@@ -1152,7 +1099,6 @@
     "body": {
       "acceptedAt": "<time>",
       "deviceId": "camera",
-      "failureDomain": "fake-ccd",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
       "kind": "capture",
@@ -1224,7 +1170,6 @@
     "body": {
       "acceptedAt": "<time>",
       "deviceId": "camera",
-      "failureDomain": "fake-ccd",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
       "kind": "capture",
@@ -1250,7 +1195,6 @@
     "body": {
       "acceptedAt": "<time>",
       "deviceId": "camera",
-      "failureDomain": "fake-ccd",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
       "kind": "capture",
@@ -1310,7 +1254,6 @@
     "body": {
       "acceptedAt": "<time>",
       "deviceId": "camera",
-      "failureDomain": "fake-ccd",
       "id": "<operation-2>",
       "instanceId": "<instance-1>",
       "kind": "capture",
@@ -1336,7 +1279,6 @@
     "body": {
       "acceptedAt": "<time>",
       "deviceId": "camera",
-      "failureDomain": "fake-ccd",
       "id": "<operation-2>",
       "instanceId": "<instance-1>",
       "kind": "capture",
@@ -1394,7 +1336,6 @@
     "body": {
       "acceptedAt": "<time>",
       "deviceId": "camera",
-      "failureDomain": "fake-ccd",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
       "kind": "cooling",
@@ -1418,7 +1359,6 @@
     "body": {
       "acceptedAt": "<time>",
       "deviceId": "camera",
-      "failureDomain": "fake-ccd",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
       "kind": "cooling",
@@ -1452,7 +1392,6 @@
           "availability": {
             "ready": true
           },
-          "failureDomain": "fake-ccd",
           "id": "camera",
           "kind": "camera",
           "lastCommandedSetpointC": {
@@ -1586,7 +1525,6 @@
         {
           "acceptedAt": "<time>",
           "deviceId": "camera",
-          "failureDomain": "fake-ccd",
           "id": "<operation-1>",
           "instanceId": "<instance-1>",
           "kind": "cooling",
@@ -1629,7 +1567,6 @@
     "body": {
       "acceptedAt": "<time>",
       "deviceId": "focuser",
-      "failureDomain": "fake-focuser",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
       "kind": "focuser-move",
@@ -1653,7 +1590,6 @@
     "body": {
       "acceptedAt": "<time>",
       "deviceId": "focuser",
-      "failureDomain": "fake-focuser",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
       "kind": "focuser-move",
@@ -1690,7 +1626,6 @@
     "body": {
       "acceptedAt": "<time>",
       "deviceId": "focuser",
-      "failureDomain": "fake-focuser",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
       "kind": "focuser-halt",
@@ -1712,7 +1647,6 @@
     "body": {
       "acceptedAt": "<time>",
       "deviceId": "focuser",
-      "failureDomain": "fake-focuser",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
       "kind": "focuser-halt",
@@ -1749,7 +1683,6 @@
     "body": {
       "acceptedAt": "<time>",
       "deviceId": "focuser",
-      "failureDomain": "fake-focuser",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
       "kind": "focuser-move",
@@ -1780,7 +1713,6 @@
     "body": {
       "acceptedAt": "<time>",
       "deviceId": "focuser",
-      "failureDomain": "fake-focuser",
       "id": "<operation-2>",
       "instanceId": "<instance-1>",
       "kind": "focuser-halt",
@@ -1797,7 +1729,6 @@
     "body": {
       "acceptedAt": "<time>",
       "deviceId": "focuser",
-      "failureDomain": "fake-focuser",
       "id": "<operation-2>",
       "instanceId": "<instance-1>",
       "kind": "focuser-halt",
@@ -1825,7 +1756,6 @@
     "body": {
       "acceptedAt": "<time>",
       "deviceId": "focuser",
-      "failureDomain": "fake-focuser",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
       "kind": "focuser-move",
@@ -1860,7 +1790,6 @@
     "body": {
       "acceptedAt": "<time>",
       "deviceId": "mount",
-      "failureDomain": "zwo-am5",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
       "kind": "mount-slew",
@@ -1886,7 +1815,6 @@
     "body": {
       "acceptedAt": "<time>",
       "deviceId": "mount",
-      "failureDomain": "zwo-am5",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
       "kind": "mount-slew",
@@ -1956,7 +1884,6 @@
     "body": {
       "acceptedAt": "<time>",
       "deviceId": "mount",
-      "failureDomain": "zwo-am5",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
       "kind": "mount-tracking",
@@ -1980,7 +1907,6 @@
     "body": {
       "acceptedAt": "<time>",
       "deviceId": "mount",
-      "failureDomain": "zwo-am5",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
       "kind": "mount-tracking",
@@ -2020,7 +1946,6 @@
     "body": {
       "acceptedAt": "<time>",
       "deviceId": "mount",
-      "failureDomain": "zwo-am5",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
       "kind": "mount-axis",
@@ -2045,7 +1970,6 @@
     "body": {
       "acceptedAt": "<time>",
       "deviceId": "mount",
-      "failureDomain": "zwo-am5",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
       "kind": "mount-axis",
@@ -2115,7 +2039,6 @@
     "body": {
       "acceptedAt": "<time>",
       "deviceId": "mount",
-      "failureDomain": "zwo-am5",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
       "kind": "mount-axis",
@@ -2140,7 +2063,6 @@
     "body": {
       "acceptedAt": "<time>",
       "deviceId": "mount",
-      "failureDomain": "zwo-am5",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
       "kind": "mount-axis",
@@ -2177,7 +2099,6 @@
     "body": {
       "acceptedAt": "<time>",
       "deviceId": "mount",
-      "failureDomain": "zwo-am5",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
       "kind": "mount-rotate",
@@ -2202,7 +2123,6 @@
     "body": {
       "acceptedAt": "<time>",
       "deviceId": "mount",
-      "failureDomain": "zwo-am5",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
       "kind": "mount-rotate",
@@ -2273,7 +2193,6 @@
     "body": {
       "acceptedAt": "<time>",
       "deviceId": "mount",
-      "failureDomain": "zwo-am5",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
       "kind": "mount-rotate",
@@ -2298,7 +2217,6 @@
     "body": {
       "acceptedAt": "<time>",
       "deviceId": "mount",
-      "failureDomain": "zwo-am5",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
       "kind": "mount-rotate",
@@ -2366,7 +2284,6 @@
     "body": {
       "acceptedAt": "<time>",
       "deviceId": "mount",
-      "failureDomain": "zwo-am5",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
       "kind": "mount-home",
@@ -2388,7 +2305,6 @@
     "body": {
       "acceptedAt": "<time>",
       "deviceId": "mount",
-      "failureDomain": "zwo-am5",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
       "kind": "mount-home",
@@ -2445,7 +2361,6 @@
     "body": {
       "acceptedAt": "<time>",
       "deviceId": "mount",
-      "failureDomain": "zwo-am5",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
       "kind": "mount-stop",
@@ -2467,7 +2382,6 @@
     "body": {
       "acceptedAt": "<time>",
       "deviceId": "mount",
-      "failureDomain": "zwo-am5",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
       "kind": "mount-stop",
@@ -2524,7 +2438,6 @@
     "body": {
       "acceptedAt": "<time>",
       "deviceId": "mount",
-      "failureDomain": "zwo-am5",
       "id": "<operation-2>",
       "instanceId": "<instance-1>",
       "kind": "mount-stop",
@@ -2546,7 +2459,6 @@
     "body": {
       "acceptedAt": "<time>",
       "deviceId": "mount",
-      "failureDomain": "zwo-am5",
       "id": "<operation-2>",
       "instanceId": "<instance-1>",
       "kind": "mount-stop",
@@ -2607,7 +2519,6 @@
     "body": {
       "acceptedAt": "<time>",
       "deviceId": "mount",
-      "failureDomain": "zwo-am5",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
       "kind": "mount-slew",
@@ -2640,7 +2551,6 @@
     "body": {
       "acceptedAt": "<time>",
       "deviceId": "mount",
-      "failureDomain": "zwo-am5",
       "id": "<operation-2>",
       "instanceId": "<instance-1>",
       "kind": "mount-stop",
@@ -2657,7 +2567,6 @@
     "body": {
       "acceptedAt": "<time>",
       "deviceId": "mount",
-      "failureDomain": "zwo-am5",
       "id": "<operation-2>",
       "instanceId": "<instance-1>",
       "kind": "mount-stop",
@@ -2707,7 +2616,6 @@
     "body": {
       "acceptedAt": "<time>",
       "deviceId": "mount",
-      "failureDomain": "zwo-am5",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
       "kind": "mount-slew",
@@ -2772,7 +2680,6 @@
     "body": {
       "acceptedAt": "<time>",
       "deviceId": "mount",
-      "failureDomain": "zwo-am5",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
       "kind": "mount-slew",
@@ -2798,7 +2705,6 @@
     "body": {
       "acceptedAt": "<time>",
       "deviceId": "mount",
-      "failureDomain": "zwo-am5",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
       "kind": "mount-slew",
@@ -2826,7 +2732,6 @@
     "body": {
       "acceptedAt": "<time>",
       "deviceId": "mount",
-      "failureDomain": "zwo-am5",
       "id": "<id-1>",
       "instanceId": "<instance-1>",
       "kind": "device-connect",
@@ -2868,7 +2773,6 @@
     "body": {
       "acceptedAt": "<time>",
       "deviceId": "mount",
-      "failureDomain": "zwo-am5",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
       "kind": "mount-slew",
@@ -2894,7 +2798,6 @@
     "body": {
       "acceptedAt": "<time>",
       "deviceId": "mount",
-      "failureDomain": "zwo-am5",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
       "kind": "mount-slew",
@@ -2966,7 +2869,6 @@
     "body": {
       "acceptedAt": "<time>",
       "deviceId": "mount",
-      "failureDomain": "zwo-am5",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
       "kind": "mount-slew",
@@ -2999,7 +2901,6 @@
     "body": {
       "acceptedAt": "<time>",
       "deviceId": "mount",
-      "failureDomain": "zwo-am5",
       "id": "<operation-2>",
       "instanceId": "<instance-1>",
       "kind": "mount-stop",
@@ -3016,7 +2917,6 @@
     "body": {
       "acceptedAt": "<time>",
       "deviceId": "mount",
-      "failureDomain": "zwo-am5",
       "id": "<operation-2>",
       "instanceId": "<instance-1>",
       "kind": "mount-stop",
@@ -3066,7 +2966,6 @@
     "body": {
       "acceptedAt": "<time>",
       "deviceId": "mount",
-      "failureDomain": "zwo-am5",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
       "kind": "mount-slew",
@@ -3131,7 +3030,6 @@
     "body": {
       "acceptedAt": "<time>",
       "deviceId": "mount",
-      "failureDomain": "zwo-am5",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
       "kind": "mount-slew",
@@ -3164,7 +3062,6 @@
     "body": {
       "acceptedAt": "<time>",
       "deviceId": "mount",
-      "failureDomain": "zwo-am5",
       "id": "<operation-2>",
       "instanceId": "<instance-1>",
       "kind": "mount-stop",
@@ -3188,7 +3085,6 @@
     "body": {
       "acceptedAt": "<time>",
       "deviceId": "mount",
-      "failureDomain": "zwo-am5",
       "id": "<operation-3>",
       "instanceId": "<instance-1>",
       "kind": "mount-stop",
@@ -3205,7 +3101,6 @@
     "body": {
       "acceptedAt": "<time>",
       "deviceId": "mount",
-      "failureDomain": "zwo-am5",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
       "kind": "mount-slew",
@@ -3259,7 +3154,6 @@
     "body": {
       "acceptedAt": "<time>",
       "deviceId": "mount",
-      "failureDomain": "zwo-am5",
       "id": "<operation-2>",
       "instanceId": "<instance-1>",
       "kind": "mount-stop",
@@ -3309,7 +3203,6 @@
     "body": {
       "acceptedAt": "<time>",
       "deviceId": "mount",
-      "failureDomain": "zwo-am5",
       "id": "<operation-3>",
       "instanceId": "<instance-1>",
       "kind": "mount-stop",
@@ -3356,7 +3249,7 @@
     "step": 1,
     "request": "POST /v2/operations",
     "sent": {
-      "deviceId": "switch",
+      "deviceId": "box",
       "instanceId": "<instance-1>",
       "kind": "switch-set",
       "parameters": {
@@ -3368,8 +3261,7 @@
     "status": 202,
     "body": {
       "acceptedAt": "<time>",
-      "deviceId": "switch",
-      "failureDomain": "fake-ppb",
+      "deviceId": "box",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
       "kind": "switch-set",
@@ -3393,8 +3285,7 @@
     "status": 200,
     "body": {
       "acceptedAt": "<time>",
-      "deviceId": "switch",
-      "failureDomain": "fake-ppb",
+      "deviceId": "box",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
       "kind": "switch-set",
@@ -3422,7 +3313,7 @@
     "step": 3,
     "request": "POST /v2/operations",
     "sent": {
-      "deviceId": "switch",
+      "deviceId": "box",
       "instanceId": "<instance-1>",
       "kind": "switch-set",
       "parameters": {
@@ -3434,8 +3325,7 @@
     "status": 202,
     "body": {
       "acceptedAt": "<time>",
-      "deviceId": "switch",
-      "failureDomain": "fake-ppb",
+      "deviceId": "box",
       "id": "<operation-2>",
       "instanceId": "<instance-1>",
       "kind": "switch-set",
@@ -3459,8 +3349,7 @@
     "status": 200,
     "body": {
       "acceptedAt": "<time>",
-      "deviceId": "switch",
-      "failureDomain": "fake-ppb",
+      "deviceId": "box",
       "id": "<operation-2>",
       "instanceId": "<instance-1>",
       "kind": "switch-set",
@@ -3488,7 +3377,7 @@
     "step": 1,
     "request": "POST /v2/operations",
     "sent": {
-      "deviceId": "switch",
+      "deviceId": "box",
       "instanceId": "<instance-1>",
       "kind": "switch-set",
       "parameters": {
@@ -3500,8 +3389,7 @@
     "status": 202,
     "body": {
       "acceptedAt": "<time>",
-      "deviceId": "switch",
-      "failureDomain": "fake-ppb",
+      "deviceId": "box",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
       "kind": "switch-set",
@@ -3525,8 +3413,7 @@
     "status": 200,
     "body": {
       "acceptedAt": "<time>",
-      "deviceId": "switch",
-      "failureDomain": "fake-ppb",
+      "deviceId": "box",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
       "kind": "switch-set",
@@ -3550,7 +3437,7 @@
     "step": 1,
     "request": "POST /v2/operations",
     "sent": {
-      "deviceId": "weather",
+      "deviceId": "box",
       "instanceId": "<instance-1>",
       "kind": "device-connect",
       "parameters": {
@@ -3561,8 +3448,7 @@
     "status": 202,
     "body": {
       "acceptedAt": "<time>",
-      "deviceId": "weather",
-      "failureDomain": "fake-ppb",
+      "deviceId": "box",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
       "kind": "device-connect",
@@ -3585,8 +3471,7 @@
     "status": 200,
     "body": {
       "acceptedAt": "<time>",
-      "deviceId": "weather",
-      "failureDomain": "fake-ppb",
+      "deviceId": "box",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
       "kind": "device-connect",
@@ -3613,7 +3498,7 @@
     "step": 3,
     "request": "POST /v2/operations",
     "sent": {
-      "deviceId": "weather",
+      "deviceId": "box",
       "instanceId": "<instance-1>",
       "kind": "device-connect",
       "parameters": {
@@ -3624,8 +3509,7 @@
     "status": 202,
     "body": {
       "acceptedAt": "<time>",
-      "deviceId": "weather",
-      "failureDomain": "fake-ppb",
+      "deviceId": "box",
       "id": "<operation-2>",
       "instanceId": "<instance-1>",
       "kind": "device-connect",
@@ -3648,8 +3532,7 @@
     "status": 200,
     "body": {
       "acceptedAt": "<time>",
-      "deviceId": "weather",
-      "failureDomain": "fake-ppb",
+      "deviceId": "box",
       "id": "<operation-2>",
       "instanceId": "<instance-1>",
       "kind": "device-connect",
@@ -3689,7 +3572,6 @@
     "body": {
       "acceptedAt": "<time>",
       "deviceId": "camera",
-      "failureDomain": "fake-ccd",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
       "kind": "capture",
@@ -3714,7 +3596,6 @@
     "body": {
       "acceptedAt": "<time>",
       "deviceId": "camera",
-      "failureDomain": "fake-ccd",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
       "kind": "capture",
@@ -3739,7 +3620,6 @@
     "body": {
       "acceptedAt": "<time>",
       "deviceId": "camera",
-      "failureDomain": "fake-ccd",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
       "kind": "capture",
@@ -3764,7 +3644,6 @@
     "body": {
       "acceptedAt": "<time>",
       "deviceId": "camera",
-      "failureDomain": "fake-ccd",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
       "kind": "capture",
@@ -3799,7 +3678,6 @@
     "body": {
       "acceptedAt": "<time>",
       "deviceId": "camera",
-      "failureDomain": "fake-ccd",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
       "kind": "capture",
@@ -3875,7 +3753,6 @@
             "ready": false,
             "reason": "commands-disabled"
           },
-          "failureDomain": "fake-ccd",
           "id": "camera",
           "kind": "camera",
           "lastCommandedSetpointC": null,
@@ -4293,7 +4170,6 @@
     "body": {
       "acceptedAt": "<time>",
       "deviceId": "camera",
-      "failureDomain": "fake-ccd",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
       "kind": "camera-configure",
@@ -4317,7 +4193,6 @@
     "body": {
       "acceptedAt": "<time>",
       "deviceId": "camera",
-      "failureDomain": "fake-ccd",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
       "kind": "camera-configure",
@@ -4352,7 +4227,6 @@
     "body": {
       "acceptedAt": "<time>",
       "deviceId": "camera",
-      "failureDomain": "fake-ccd",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
       "kind": "camera-configure",
@@ -4400,7 +4274,6 @@
     "body": {
       "acceptedAt": "<time>",
       "deviceId": "camera",
-      "failureDomain": "fake-ccd",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
       "kind": "camera-configure",
@@ -4423,7 +4296,7 @@
     "step": 1,
     "request": "POST /v2/operations",
     "sent": {
-      "deviceId": "switch",
+      "deviceId": "box",
       "instanceId": "<instance-1>",
       "kind": "switch-set",
       "parameters": {
@@ -4435,8 +4308,7 @@
     "status": 202,
     "body": {
       "acceptedAt": "<time>",
-      "deviceId": "switch",
-      "failureDomain": "fake-ppb",
+      "deviceId": "box",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
       "kind": "switch-set",
@@ -4460,8 +4332,7 @@
     "status": 200,
     "body": {
       "acceptedAt": "<time>",
-      "deviceId": "switch",
-      "failureDomain": "fake-ppb",
+      "deviceId": "box",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
       "kind": "switch-set",
@@ -4502,7 +4373,7 @@
     "step": 4,
     "request": "POST /v2/operations",
     "sent": {
-      "deviceId": "switch",
+      "deviceId": "box",
       "instanceId": "<instance-1>",
       "kind": "switch-set",
       "parameters": {
@@ -4551,7 +4422,6 @@
     "body": {
       "acceptedAt": "<time>",
       "deviceId": "camera",
-      "failureDomain": "fake-ccd",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
       "kind": "capture",
@@ -4576,7 +4446,6 @@
     "body": {
       "acceptedAt": "<time>",
       "deviceId": "camera",
-      "failureDomain": "fake-ccd",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
       "kind": "capture",
@@ -4634,7 +4503,6 @@
     "body": {
       "acceptedAt": "<time>",
       "deviceId": "camera",
-      "failureDomain": "fake-ccd",
       "id": "<operation-2>",
       "instanceId": "<instance-1>",
       "kind": "capture",
@@ -4659,7 +4527,6 @@
     "body": {
       "acceptedAt": "<time>",
       "deviceId": "camera",
-      "failureDomain": "fake-ccd",
       "id": "<operation-2>",
       "instanceId": "<instance-1>",
       "kind": "capture",
@@ -4756,7 +4623,6 @@
     "body": {
       "acceptedAt": "<time>",
       "deviceId": "camera",
-      "failureDomain": "fake-ccd",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
       "kind": "capture",
@@ -4781,7 +4647,6 @@
     "body": {
       "acceptedAt": "<time>",
       "deviceId": "camera",
-      "failureDomain": "fake-ccd",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
       "kind": "capture",
@@ -4812,7 +4677,6 @@
           "availability": {
             "ready": true
           },
-          "failureDomain": "fake-ccd",
           "id": "camera",
           "kind": "camera",
           "lastCommandedSetpointC": null,
@@ -4943,7 +4807,6 @@
         {
           "acceptedAt": "<time>",
           "deviceId": "camera",
-          "failureDomain": "fake-ccd",
           "id": "<operation-1>",
           "instanceId": "<instance-1>",
           "kind": "capture",
@@ -4984,7 +4847,6 @@
     "body": {
       "acceptedAt": "<time>",
       "deviceId": "camera",
-      "failureDomain": "fake-ccd",
       "id": "<operation-2>",
       "instanceId": "<instance-1>",
       "kind": "capture",
@@ -5009,7 +4871,6 @@
     "body": {
       "acceptedAt": "<time>",
       "deviceId": "camera",
-      "failureDomain": "fake-ccd",
       "id": "<operation-2>",
       "instanceId": "<instance-1>",
       "kind": "capture",
@@ -5057,7 +4918,6 @@
     "body": {
       "acceptedAt": "<time>",
       "deviceId": "camera",
-      "failureDomain": "fake-ccd",
       "id": "<operation-1>",
       "instanceId": "<instance-1>",
       "kind": "capture",
@@ -5088,7 +4948,6 @@
           "availability": {
             "ready": true
           },
-          "failureDomain": "fake-ccd",
           "id": "camera",
           "kind": "camera",
           "lastCommandedSetpointC": null,
@@ -5216,7 +5075,6 @@
           "availability": {
             "ready": true
           },
-          "failureDomain": "fake-focuser",
           "id": "focuser",
           "kind": "focuser",
           "name": "Fake Focuser",
@@ -5283,7 +5141,6 @@
           "availability": {
             "ready": true
           },
-          "failureDomain": "fake-ccd",
           "id": "camera",
           "kind": "camera",
           "lastCommandedSetpointC": null,
@@ -5411,7 +5268,6 @@
           "availability": {
             "ready": true
           },
-          "failureDomain": "fake-focuser",
           "id": "focuser",
           "kind": "focuser",
           "name": "Fake Focuser",
@@ -5477,7 +5333,6 @@
           "availability": {
             "ready": true
           },
-          "failureDomain": "fake-ccd",
           "id": "camera",
           "kind": "camera",
           "lastCommandedSetpointC": null,
@@ -5605,7 +5460,6 @@
           "availability": {
             "ready": true
           },
-          "failureDomain": "fake-focuser",
           "id": "focuser",
           "kind": "focuser",
           "name": "Fake Focuser",

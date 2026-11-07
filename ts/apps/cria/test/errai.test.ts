@@ -155,12 +155,12 @@ describe('errai, replayed', () => {
     expect([value('focuser', 'minStep'), value('focuser', 'maxStep')]).toEqual([15500, 38000])
   })
 
-  it('reads the PPB Micro: weather, the 12 V master and the dew channels', () => {
-    expect([value('weather', 'temperatureC'), value('weather', 'humidityPercent'), value('weather', 'dewPointC')]).toEqual([21.6, 53, 11.6])
+  it('reads the PPB Micro: its weather, the 12 V master and the dew channels', () => {
+    expect([value('box', 'temperatureC'), value('box', 'humidityPercent'), value('box', 'dewPointC')]).toEqual([21.6, 53, 11.6])
 
-    const powerBox = devices.switch!
+    const powerBox = devices.box!
     const fresh = <T>(reading: { status: string; value?: T }) => (reading.status === 'fresh' ? reading.value : reading.status)
-    const channels = powerBox.kind === 'switch' ? powerBox.channels.map(channel => [fresh(channel.name), fresh(channel.value), fresh(channel.writable)]) : []
+    const channels = powerBox.kind === 'box' ? powerBox.channels.map(channel => [fresh(channel.name), fresh(channel.value), fresh(channel.writable)]) : []
 
     expect(channels).toEqual([
       ['12V ports', 1, true],
@@ -174,7 +174,7 @@ describe('errai, replayed', () => {
 
   it('refuses a manual dew duty while the PPBA has auto dew on, before sending', async () => {
     const before = replay.commands.length
-    const operation = await cria.run('switch', 'switch-set', { channelId: 3, value: 20 })
+    const operation = await cria.run('box', 'switch-set', { channelId: 3, value: 20 })
 
     expect([operation.kind, operation.reason, operation.message]).toEqual([
       'failed',

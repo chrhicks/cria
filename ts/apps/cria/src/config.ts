@@ -4,7 +4,7 @@
  */
 import { readFileSync } from 'node:fs'
 import { Schema } from 'effect'
-import { DeviceId, FailureDomain, deviceKinds } from '@cria/wire'
+import { DeviceId, deviceKinds } from '@cria/wire'
 
 const Name = Schema.String.pipe(Schema.check(Schema.isBetweenLength(1, 256)))
 // Port 0 asks the system for any free port (tests).
@@ -56,7 +56,6 @@ const Device = Schema.Struct({
   kind: Schema.Literals(deviceKinds),
   /** The INDI device name, which is also the name Vela expects. */
   indiDevice: Name,
-  /** Send CONNECT once at start if the device is disconnected. */
   /** Written to DEVICE_PORT before connecting, for serial devices. */
   port: Schema.optionalKey(Name),
   channels: Schema.optionalKey(Schema.Array(SwitchChannel).pipe(Schema.check(Schema.isMaxLength(64)))),
@@ -95,7 +94,7 @@ export const ConfigSchema = Schema.Struct({
 
 type Decoded = typeof ConfigSchema.Type
 
-export type DeviceConfig = Decoded['devices'][number] & { readonly failureDomain: FailureDomain }
+export type DeviceConfig = Decoded['devices'][number]
 export type Config = Omit<Decoded, 'devices'> & { readonly devices: ReadonlyArray<DeviceConfig> }
 
 export const defaults = {
@@ -123,8 +122,6 @@ export function decodeConfig(input: unknown): Config {
 
   if (ids.size !== config.devices.length) throw new Error('Device ids must be unique')
   for (const device of config.devices) {
-    if (device.kind === 'switch' && !device.channels?.length)
-      throw new Error(`Switch ${device.id} needs at least one channel`)
     if (device.kind !== 'mount' && (device.site !== undefined || device.motion !== undefined))
       throw new Error(`${device.id}: site and motion apply to a mount only`)
     if (device.travel !== undefined && device.kind !== 'focuser') throw new Error(`${device.id}: travel applies to a focuser only`)
@@ -135,22 +132,10 @@ export function decodeConfig(input: unknown): Config {
     }
   }
 
-  return { ...config, devices: config.devices.map(device => ({ ...device, failureDomain: failureDomainOf(device.indiDevice) })) }
+  return config
 }
 
 export function loadConfig(path: string): Config {
   return decodeConfig(JSON.parse(readFileSync(path, 'utf8')))
 }
 
-/** The failure domain is the INDI device: the Pegasus weather and switch share one. */
-function failureDomainOf(indiDevice: string): FailureDomain {
-  const slug = indiDevice
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '')
-    .slice(0, 64)
-
-  if (!Schema.is(FailureDomain)(slug)) throw new Error(`INDI device ${JSON.stringify(indiDevice)} has no letters or digits to name its failure domain`)
-
-  return slug
-}

@@ -1,7 +1,8 @@
 /**
- * Capability: power (a switch device). Configured channels, each one INDI
- * element: an on/off switch (the PPB Micro's 12 V master) or a number (a dew
- * heater's duty cycle). Setting one is `switchConfirmed` or `numbersApplied`.
+ * Capability: the power box. Its weather readings, from INDI's standard weather
+ * interface, and its configured channels, each one INDI element: an on/off
+ * switch (the PPB Micro's 12 V master) or a number (a dew heater's duty cycle).
+ * Setting one is `switchConfirmed` or `numbersApplied`.
  *
  * Cria does not judge what a channel feeds. Turning the 12 V master off drops
  * the mount, the main camera and everything on its USB hub; that decision is
@@ -24,12 +25,12 @@ export interface ChannelConfig {
   readonly automaticWhileOn?: string
 }
 
-export interface Power {
-  readonly observe: Effect.Effect<DeviceBody<'switch'>>
+export interface Box {
+  readonly observe: Effect.Effect<DeviceBody<'box'>>
   readonly set: (channelId: number, value: number) => Effect.Effect<{ value: number }, Failed | Uncertain>
 }
 
-function channelReadings(snapshot: DeviceSnapshot, channel: ChannelConfig, id: number): DeviceBody<'switch'>['channels'][number] {
+function channelReadings(snapshot: DeviceSnapshot, channel: ChannelConfig, id: number): DeviceBody<'box'>['channels'][number] {
   const element = <T>(extract: (found: ElementDefinition) => T | undefined): R<T> =>
     snapshot.reading(channel.property, property => {
       const found = property.elements.get(channel.element)
@@ -49,14 +50,17 @@ function channelReadings(snapshot: DeviceSnapshot, channel: ChannelConfig, id: n
   }
 }
 
-export function makePower(context: CapabilityContext, channels: ReadonlyArray<ChannelConfig>): Power {
+export function makeBox(context: CapabilityContext, channels: ReadonlyArray<ChannelConfig>): Box {
   const { device, timing } = context
 
-  const observe = (snapshot: DeviceSnapshot): DeviceBody<'switch'> => ({
-    kind: 'switch',
+  const observe = (snapshot: DeviceSnapshot): DeviceBody<'box'> => ({
+    kind: 'box',
     readings: {
       connected: snapshot.connected,
       name: snapshot.name,
+      temperatureC: snapshot.reading('WEATHER_PARAMETERS', numberElement('WEATHER_TEMPERATURE')),
+      humidityPercent: snapshot.reading('WEATHER_PARAMETERS', numberElement('WEATHER_HUMIDITY')),
+      dewPointC: snapshot.reading('WEATHER_PARAMETERS', numberElement('WEATHER_DEWPOINT')),
       channelCount: Reading.map(snapshot.connected, () => channels.length),
     },
     channels: channels.map((channel, id) => channelReadings(snapshot, channel, id)),

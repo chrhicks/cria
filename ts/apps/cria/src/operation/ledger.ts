@@ -6,7 +6,6 @@ import {
   type Command,
   type DeviceId,
   type DeviceKind,
-  type FailureDomain,
   type InstanceId,
   type MotionRecord,
   type Operation,
@@ -34,7 +33,6 @@ export type Submission = Command & {
 export interface Placement {
   readonly id: DeviceId
   readonly kind: DeviceKind
-  readonly failureDomain: FailureDomain
 }
 
 export interface Rules {
@@ -68,7 +66,7 @@ export interface LedgerSnapshot {
   readonly sequence: number
   readonly revision: number
   readonly operations: ReadonlyArray<Operation>
-  readonly busy: (failureDomain: FailureDomain) => boolean
+  readonly busy: (deviceId: DeviceId) => boolean
 }
 
 const initialProgress: Progress = { phase: 'preparing', elapsedSeconds: null }
@@ -98,9 +96,8 @@ function known<K, V>(map: ReadonlyMap<K, V>, key: K): V {
   return value
 }
 
-const openIn = (state: LedgerState, failureDomain: FailureDomain): ReadonlyArray<Open> =>
-  [...state.operations.values()].filter((operation): operation is Open => operation.failureDomain === failureDomain && operation.state !== 'settled')
-
+const openOn = (state: LedgerState, deviceId: DeviceId): ReadonlyArray<Open> =>
+  [...state.operations.values()].filter((operation): operation is Open => operation.deviceId === deviceId && operation.state !== 'settled')
 
 function missing(state: LedgerState, id: OperationId): Refusal {
   const expired = [...state.requests.values()].some(marker => marker.operation === id)
@@ -134,8 +131,8 @@ export function admit(
   if (runsOn !== 'any' && runsOn !== device.kind) return refused(refuse('request-error', `A ${device.kind} cannot run ${submission.kind}`))
   if (!rules.commandsEnabled) return refused(refuse('commands-disabled', 'Commands are disabled'))
 
-  const accepted = { ...submission, id, failureDomain: device.failureDomain, acceptedAt: now }
-  const open = openIn(state, device.failureDomain)
+  const accepted = { ...submission, id, acceptedAt: now }
+  const open = openOn(state, device.id)
   const record = (operation: Open, after: ReadonlyArray<After>): Transition<Operation> => [
     step(operation, after),
     changed(state, {
@@ -188,7 +185,7 @@ export function settle(
 
   if (operation?.state !== 'running') return [step(undefined), state]
   const ended = endedOf(operation, input)
-  const next = openIn(state, operation.failureDomain).find((open): open is Waiting => open.state === 'waiting')
+  const next = openOn(state, operation.deviceId).find((open): open is Waiting => open.state === 'waiting')
   const following: Running | undefined = next && { ...next, state: 'running', startedAt: input.now, progress: initialProgress }
   const operations = put(state.operations, ended.id, ended)
   const settledState = prune(
@@ -242,7 +239,7 @@ export function snapshot(rules: Rules, state: LedgerState): Transition<LedgerSna
       sequence: next.sequence,
       revision: state.revision,
       operations: all.filter(operation => !hidden.has(operation)),
-      busy: failureDomain => openIn(state, failureDomain).length > 0,
+      busy: deviceId => openOn(state, deviceId).length > 0,
     }),
     next,
   ]
@@ -303,12 +300,11 @@ export function makeLedger(options: LedgerOptions): Effect.Effect<Ledger, never,
     const scope = yield* Effect.scope
     const devices = new Map(options.devices.map(device => [device.id, device]))
     const rules: Rules = { instanceId: options.instanceId, commandsEnabled: options.commandsEnabled, history: options.history, devices }
-    const domainIds = [...new Set(options.devices.map(device => device.failureDomain))]
     const state = yield* Ref.make(initialState())
     const motions = new Map<OperationId, MotionRecord>()
     const revisions = yield* Effect.acquireRelease(PubSub.sliding<number>(1), PubSub.shutdown)
     const runs = new Map(
-      yield* Effect.forEach(domainIds, id =>
+      yield* Effect.forEach([...devices.keys()], id =>
         Effect.map(
           makeRun<Running, Progress, OperationResult, OperationId>({
             initial: () => initialProgress,
@@ -358,7 +354,7 @@ export function makeLedger(options: LedgerOptions): Effect.Effect<Ledger, never,
         case 'start': {
           const { operation } = after
 
-          return known(runs, operation.failureDomain)
+          return known(runs, operation.deviceId)
             .start(operation.id, operation)
             .pipe(
               Effect.catchTag('Failed', refused =>
@@ -372,7 +368,7 @@ export function makeLedger(options: LedgerOptions): Effect.Effect<Ledger, never,
             )
         }
         case 'stop':
-          return Effect.asVoid(Effect.forkIn(known(runs, after.operation.failureDomain).stop(after.operation.id), scope))
+          return Effect.asVoid(Effect.forkIn(known(runs, after.operation.deviceId).stop(after.operation.id), scope))
         case 'resolve':
           return Effect.forEach(after.waiters, waiter => Deferred.succeed(waiter, after.operation), { discard: true })
       }

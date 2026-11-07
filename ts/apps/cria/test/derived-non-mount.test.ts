@@ -70,19 +70,19 @@ describe('a power box that acknowledges a switch write and does not apply it (de
     fake.define({ device: box, name: 'POWER_CHANNELS', kind: 'switch', perm: 'rw', rule: 'AnyOfMany', state: 'Ok', elements: { POWER_CHANNEL_1: { value: true } } })
     addDewHeaters(fake, box)
     fake.behaviour = appliesNothing('POWER_CHANNELS')
-    cria = await startCria(fake.port, [{ id: 'switch', kind: 'switch', indiDevice: box, channels: [{ name: '12V', property: 'POWER_CHANNELS', element: 'POWER_CHANNEL_1' }] }], { acknowledgeMs: 600 })
-    await cria.waitFor(allReady(['switch']))
+    cria = await startCria(fake.port, [{ id: 'box', kind: 'box', indiDevice: box, channels: [{ name: '12V', property: 'POWER_CHANNELS', element: 'POWER_CHANNEL_1' }] }], { acknowledgeMs: 600 })
+    await cria.waitFor(allReady(['box']))
 
-    const first = await cria.run('switch', 'switch-set', { channelId: 0, value: 0 })
+    const first = await cria.run('box', 'switch-set', { channelId: 0, value: 0 })
 
     expect(first).toMatchObject({ kind: 'uncertain', reason: 'not-confirmed' })
     expect(fake.vector(box, 'POWER_CHANNELS').elements.POWER_CHANNEL_1!.value).toBe(true)
-    expect((await cria.submit('switch', 'switch-set', { channelId: 0, value: 1 })).status).toBe(202)
+    expect((await cria.submit('box', 'switch-set', { channelId: 0, value: 1 })).status).toBe(202)
   }, 40_000)
 })
 
-describe('a weather device that never answers a connect (derived)', () => {
-  it('is uncertain with no acknowledgement; weather has no command except connect', async () => {
+describe('a power box that never answers a connect (derived)', () => {
+  it('is uncertain with no acknowledgement', async () => {
     const box = 'Pegasus PPBA'
 
     fake = new FakeIndi()
@@ -90,12 +90,12 @@ describe('a weather device that never answers a connect (derived)', () => {
     fake.define(connection(box, false))
     fake.define({ device: box, name: 'WEATHER_PARAMETERS', kind: 'number', perm: 'ro', state: 'Ok', elements: { WEATHER_TEMPERATURE: { value: 11.5, min: -50, max: 70 } } })
     fake.behaviour = (_fake, vector) => (vector.name === 'CONNECTION' ? 'handled' : 'default')
-    cria = await startCria(fake.port, [{ id: 'weather', kind: 'weather', indiDevice: box }], { acknowledgeMs: 600, initializeTimeoutMs: 1500 })
+    cria = await startCria(fake.port, [{ id: 'box', kind: 'box', indiDevice: box }], { acknowledgeMs: 600, initializeTimeoutMs: 1500 })
     await cria.waitFor(state => state.devices[0]!.readings.connected!.status === 'fresh')
 
-    const first = await cria.run('weather', 'device-connect', { connected: true })
+    const first = await cria.run('box', 'device-connect', { connected: true })
 
     expect(first).toMatchObject({ kind: 'uncertain' })
-    expect((await cria.submit('weather', 'device-connect', { connected: true })).status).toBe(202)
+    expect((await cria.submit('box', 'device-connect', { connected: true })).status).toBe(202)
   }, 40_000)
 })

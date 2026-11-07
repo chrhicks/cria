@@ -1,15 +1,15 @@
 import { Deferred } from 'effect'
-import { DeviceId, FailureDomain, InstanceId, OperationId, RequestId, type Command, type Operation } from '@cria/wire'
+import { DeviceId, InstanceId, OperationId, RequestId, type Command, type Operation } from '@cria/wire'
 import { describe, expect, it } from 'vitest'
 import { admit, cancel, initialState, prune, settle, snapshot, wait, type LedgerState, type Rules, type Submission, type Transition } from './ledger.js'
 
 const uuid = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`
 const instanceId = InstanceId.make(uuid(1))
-const mount = { id: DeviceId.make('mount'), kind: 'mount', failureDomain: FailureDomain.make('zwo-am5') } as const
-const camera = { id: DeviceId.make('camera'), kind: 'camera', failureDomain: FailureDomain.make('fake-ccd') } as const
-const focuser = { id: DeviceId.make('focuser'), kind: 'focuser', failureDomain: FailureDomain.make('fake-focuser') } as const
-const relay = { id: DeviceId.make('switch'), kind: 'switch', failureDomain: FailureDomain.make('fake-relay') } as const
-const rules: Rules = { instanceId, commandsEnabled: true, history: 3, devices: new Map([mount, camera, focuser, relay].map(device => [device.id, device])) }
+const mount = { id: DeviceId.make('mount'), kind: 'mount' } as const
+const camera = { id: DeviceId.make('camera'), kind: 'camera' } as const
+const focuser = { id: DeviceId.make('focuser'), kind: 'focuser' } as const
+const box = { id: DeviceId.make('box'), kind: 'box' } as const
+const rules: Rules = { instanceId, commandsEnabled: true, history: 3, devices: new Map([mount, camera, focuser, box].map(device => [device.id, device])) }
 const empty = initialState()
 
 const slew = { kind: 'mount-slew', parameters: { rightAscensionDegrees: 120, declinationDegrees: 10, coordinateSystem: 'topocentric' } } as const
@@ -18,7 +18,7 @@ const tracking = { kind: 'mount-tracking', parameters: { tracking: true } } as c
 const confirmed = { kind: 'confirmed', value: { values: {}, image: null } } as const
 const lost = { kind: 'uncertain', reason: 'no-acknowledgement', message: 'no answer' } as const
 
-type Device = typeof mount | typeof camera | typeof focuser | typeof relay
+type Device = typeof mount | typeof camera | typeof focuser | typeof box
 const request = (n: number, command: Command, device: Device = mount): Submission => ({
   instanceId,
   requestId: RequestId.make(`r${n}`),
@@ -41,7 +41,7 @@ const states = (state: LedgerState) => [...state.operations.values()].map(operat
 describe('admission', () => {
   const slewing = stateOf(admitted(empty, 1, slew))
 
-  it('starts a motion on an idle domain and records it running', () => {
+  it('starts a motion on an idle device and records it running', () => {
     const started = admitted(empty, 1, slew)
 
     expect(resultOf(started)).toEqual({
@@ -49,7 +49,6 @@ describe('admission', () => {
       instanceId,
       requestId: 'r1',
       deviceId: 'mount',
-      failureDomain: 'zwo-am5',
       acceptedAt: 1,
       ...slew,
       state: 'running',
@@ -60,7 +59,7 @@ describe('admission', () => {
     expect(stateOf(started).revision).toBe(1)
   })
 
-  it('records a halt on a busy domain as waiting, with no timing, and asks the running motion to stop', () => {
+  it('records a halt on a busy device as waiting, with no timing, and asks the running motion to stop', () => {
     const queued = admitted(slewing, 2, stop)
 
     expect(resultOf(queued)).toEqual({
@@ -68,7 +67,6 @@ describe('admission', () => {
       instanceId,
       requestId: 'r2',
       deviceId: 'mount',
-      failureDomain: 'zwo-am5',
       acceptedAt: 2,
       ...stop,
       state: 'waiting',
@@ -76,7 +74,7 @@ describe('admission', () => {
     expect(afterOf(queued)).toEqual([['stop', id(1)]])
   })
 
-  it('refuses a motion or setting while a halt waits, and another domain still admits', () => {
+  it('refuses a motion or setting while a halt waits, and another device still admits', () => {
     const waiting = stateOf(admitted(slewing, 2, stop))
 
     expect(resultOf(admitted(waiting, 3, tracking))).toMatchObject({ code: 'device-busy', message: 'The device is running another operation' })
@@ -168,7 +166,7 @@ describe('an uncertain ending', () => {
     ['mount', mount, tracking],
     ['camera', camera, { kind: 'capture', parameters: { exposureSeconds: 1, light: true } }],
     ['focuser', focuser, { kind: 'focuser-move', parameters: { position: 1000 } }],
-    ['switch', relay, { kind: 'switch-set', parameters: { channelId: 0, value: 1 } }],
+    ['box', box, { kind: 'switch-set', parameters: { channelId: 0, value: 1 } }],
   ] as const)('holds nothing on a %s: the next command is admitted', (_name, device, command) => {
     const after = stateOf(ended(stateOf(admitted(empty, 1, command as Command, device)), 1, lost))
 

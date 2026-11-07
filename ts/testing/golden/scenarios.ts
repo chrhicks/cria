@@ -19,10 +19,9 @@ const specs: Record<Kind, DeviceSpec> = {
   camera: { id: 'camera', kind: 'camera', indiDevice: camera },
   mount: { id: 'mount', kind: 'mount', indiDevice: mount },
   focuser: { id: 'focuser', kind: 'focuser', indiDevice: focuser },
-  weather: { id: 'weather', kind: 'weather', indiDevice: box },
-  switch: {
-    id: 'switch',
-    kind: 'switch',
+  box: {
+    id: 'box',
+    kind: 'box',
     indiDevice: box,
     channels: [
       { name: '12V', property: 'POWER_CHANNELS', element: 'POWER_CHANNEL_1' },
@@ -161,8 +160,7 @@ function define(fake: FakeIndi, kind: Kind, behaviours: Map<string, Behaviour>) 
       behaviours.set(focuser, moveFocuser(100))
 
       return
-    case 'weather':
-    case 'switch':
+    case 'box':
       if (fake.vectors.has(`${box}.CONNECTION`)) return
       fake.define(connection(box))
       fake.define({ device: box, name: 'POWER_CHANNELS', kind: 'switch', perm: 'rw', rule: 'AnyOfMany', state: 'Ok', elements: { POWER_CHANNEL_1: { value: true } } })
@@ -274,14 +272,14 @@ export const scenarios: ReadonlyArray<Scenario> = [
   },
   {
     name: 'state at rest, every device kind',
-    devices: ['camera', 'mount', 'focuser', 'weather', 'switch'],
+    devices: ['camera', 'mount', 'focuser', 'box'],
     run: async g => {
       await g.wire.state()
     },
   },
   {
     name: 'first SSE state event',
-    devices: ['camera', 'mount', 'focuser', 'weather', 'switch'],
+    devices: ['camera', 'mount', 'focuser', 'box'],
     run: async g => {
       await g.recordFirstEvent()
     },
@@ -462,31 +460,31 @@ export const scenarios: ReadonlyArray<Scenario> = [
   },
   {
     name: 'switch-set',
-    devices: ['switch'],
+    devices: ['box'],
     run: async g => {
-      await runAndSettle(g, 'switch', 'switch-set', { channelId: 0, value: 0 })
-      await runAndSettle(g, 'switch', 'switch-set', { channelId: 1, value: 40 })
+      await runAndSettle(g, 'box', 'switch-set', { channelId: 0, value: 0 })
+      await runAndSettle(g, 'box', 'switch-set', { channelId: 1, value: 40 })
     },
   },
   {
     name: 'switch-set refused: a dew duty while auto dew is on',
-    devices: ['switch'],
+    devices: ['box'],
     run: async g => {
       g.fake.update(box, 'AUTO_DEW_CONTROL', { state: 'Ok', values: { DEW_CHANNEL_1: true } })
       await g.until('Cria to see auto dew on', async () => {
-        const power = await g.cria.device('switch')
+        const power = await g.cria.device('box')
 
-        return power.kind === 'switch' && power.channels[2]!.on.status === 'fresh' && power.channels[2]!.on.value
+        return power.kind === 'box' && power.channels[2]!.on.status === 'fresh' && power.channels[2]!.on.value
       })
-      await runAndSettle(g, 'switch', 'switch-set', { channelId: 1, value: 40 })
+      await runAndSettle(g, 'box', 'switch-set', { channelId: 1, value: 40 })
     },
   },
   {
     name: 'device-connect, off then on',
-    devices: ['weather'],
+    devices: ['box'],
     run: async g => {
-      await runAndSettle(g, 'weather', 'device-connect', { connected: false })
-      await runAndSettle(g, 'weather', 'device-connect', { connected: true })
+      await runAndSettle(g, 'box', 'device-connect', { connected: false })
+      await runAndSettle(g, 'box', 'device-connect', { connected: true })
     },
   },
   {
@@ -580,16 +578,16 @@ export const scenarios: ReadonlyArray<Scenario> = [
   },
   {
     name: 'refused: result expired',
-    devices: ['switch'],
+    devices: ['box'],
     config: { operationHistory: 10 },
     run: async g => {
       const requestId = crypto.randomUUID()
-      const first = await submitted(g.submit('switch', 'switch-set', { channelId: 1, value: 1 }, { requestId }))
+      const first = await submitted(g.submit('box', 'switch-set', { channelId: 1, value: 1 }, { requestId }))
 
       await g.recordSettled(first.id)
-      for (let value = 2; value <= 11; value++) await g.cria.run('switch', 'switch-set', { channelId: 1, value })
+      for (let value = 2; value <= 11; value++) await g.cria.run('box', 'switch-set', { channelId: 1, value })
       await g.wire.operation(first.id)
-      await g.submit('switch', 'switch-set', { channelId: 1, value: 1 }, { requestId })
+      await g.submit('box', 'switch-set', { channelId: 1, value: 1 }, { requestId })
       await g.wire.byRequest(first.instanceId, requestId)
     },
   },

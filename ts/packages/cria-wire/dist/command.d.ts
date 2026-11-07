@@ -105,7 +105,7 @@ export declare const commands: Table<{
         readonly parameters: Schema.Struct<{}>;
     };
     readonly 'switch-set': {
-        readonly device: "switch";
+        readonly device: "box";
         readonly halt: false;
         readonly parameters: Schema.Struct<{
             readonly channelId: Schema.Number;

@@ -17,7 +17,7 @@ const devices = [
   { id: 'primary', kind: 'camera', indiDevice: 'CCD Simulator' },
   { id: 'mount', kind: 'mount', indiDevice: 'Telescope Simulator' },
   { id: 'focuser', kind: 'focuser', indiDevice: 'Focuser Simulator' },
-  { id: 'weather', kind: 'weather', indiDevice: 'Weather Simulator' },
+  { id: 'box', kind: 'box', indiDevice: 'Weather Simulator' },
 ] as const
 
 beforeAll(async () => {
@@ -257,10 +257,11 @@ describe('mount', () => {
   })
 })
 
-describe('weather', () => {
-  it('reports what the device has', async () => {
-    const weather = await cria.device('weather')
+describe('box', () => {
+  it('reports what the device has, with no channels', async () => {
+    const box = await cria.device('box')
 
-    expect(weather.readings.temperatureC).toMatchObject({ status: 'fresh', value: 15 })
+    expect(box.kind === 'box' && box.channels).toEqual([])
+    expect(box.readings.temperatureC).toMatchObject({ status: 'fresh', value: 15 })
   })
 })

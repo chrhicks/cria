@@ -106,8 +106,7 @@ const steps: { readonly [K in DeviceKind]: ReadonlyArray<Step> } = {
   camera: [uploadToClient],
   mount: [site, time],
   focuser: [],
-  weather: [],
-  switch: [],
+  box: [],
 }
 
 function describeValues(values: Values): string {

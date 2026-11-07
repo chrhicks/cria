@@ -22,13 +22,13 @@ Moving Cria from .NET on Windows to TypeScript on Linux did not change the split
 | Cria owns | Vela owns |
 | --- | --- |
 | Current device state, as readings that are fresh, stale or unavailable | Runs and workflows, in Vela server memory |
-| One bounded operation at a time per failure domain: one exposure, one focuser move, one slew | Decisions: what to do next, retries, when to stop |
+| One bounded operation at a time per device: one exposure, one focuser move, one slew | Decisions: what to do next, retries, when to stop |
 | Request-ID dedupe, cancellation, and holding a mount after an uncertain outcome | Image processing, previews, plate solving, FITS |
 | A rolling set of the newest captured images, until they are dropped | The archive of saved images |
 
 Cria never decides what a run does next. Vela never talks to a driver directly on a Cria rig.
 
-A failure domain is one INDI device. Most devices are their own domain. The Pegasus power box is one INDI device that Cria shows as two devices, weather and switch, so those two share a domain.
+Each device takes one command at a time. The Pegasus power box is one device, `box`: its weather readings and its switch channels are together.
 
 ## What changed on Linux
 
@@ -42,8 +42,8 @@ Each layer imports only from the layers below it in this diagram. The INDI bound
 
 ```
 wire boundary    apps/cria/src/wire          HTTP routes, SSE, projection into protocol 5 (@cria/wire)
-workflows, Run   apps/cria/src/operation     the ledger, one Run per failure domain
-capabilities     apps/cria/src/capability    camera, mount, focuser, weather, power, connection
+workflows, Run   apps/cria/src/operation     the ledger, one Run per device
+capabilities     apps/cria/src/capability    camera, mount, focuser, box, connection
 disciplines      @cria/primitives            writeOnce, confirm, stoppable
 types            @cria/primitives            Outcome, Reading
 INDI boundary    @cria/indi                  XML framing, the TCP connection, the property mirror

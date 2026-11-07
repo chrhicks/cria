@@ -5,17 +5,15 @@ import { makeConnection, type Connection } from './capability/connection.js'
 import type { CapabilityContext } from './capability/context.js'
 import { makeFocuser, type Focuser } from './capability/focuser.js'
 import { makeMount, type Mount } from './capability/mount.js'
-import { makePower, type Power } from './capability/power.js'
+import { makeBox, type Box } from './capability/box.js'
 import type { DeviceSetup } from './capability/setup.js'
-import { makeWeather, type Weather } from './capability/weather.js'
 import { mountMotionDefaults, type DeviceConfig } from './config.js'
 
 export interface CapabilityOf {
   readonly camera: Camera
   readonly mount: Mount
   readonly focuser: Focuser
-  readonly weather: Weather
-  readonly switch: Power
+  readonly box: Box
 }
 
 export interface Equipment {
@@ -27,8 +25,7 @@ const makers: { readonly [D in DeviceKind]: (context: CapabilityContext, device:
   camera: (context, device) => makeCamera(context),
   mount: (context, device, setup) => makeMount(context, { ...mountMotionDefaults, ...device.motion }, setup),
   focuser: (context, device) => makeFocuser(context, device.travel),
-  weather: makeWeather,
-  switch: (context, device) => makePower(context, device.channels ?? []),
+  box: (context, device) => makeBox(context, device.channels ?? []),
 }
 
 export function equip(device: DeviceConfig, context: CapabilityContext, connectTimeoutMs: number, setup: DeviceSetup): Equipment {
