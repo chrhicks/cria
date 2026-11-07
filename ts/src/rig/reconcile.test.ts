@@ -416,6 +416,24 @@ describe('a device that is missing from INDI while its hardware is present', () 
     expect(bench.logs().filter(line => line.includes('guide CCD_EXPOSURE is Busy; not restarting'))).toHaveLength(1)
 
     bench.sim('guide').busy = []
+    bench.sim('guide').properties.CCD_EXPOSURE = { CCD_EXPOSURE_VALUE: 0 }
+    bench.poll(1)
+    expect(bench.restarts()).toHaveLength(1)
+  })
+
+  it('does not take a Busy property that can no longer be read for idle', () => {
+    const bench = new Bench()
+
+    bench.missing('primary')
+    bench.sim('guide').busy = ['CCD_EXPOSURE']
+    bench.poll(4)
+    bench.sim('guide').busy = []
+    bench.poll(20)
+
+    expect(bench.restarts()).toEqual([])
+    expect(bench.logs().some(line => line.includes('guide CCD_EXPOSURE was Busy and can no longer be read; not restarting'))).toBe(true)
+
+    bench.sim('guide').properties.CCD_EXPOSURE = { CCD_EXPOSURE_VALUE: 0 }
     bench.poll(1)
     expect(bench.restarts()).toHaveLength(1)
   })

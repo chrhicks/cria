@@ -11,6 +11,7 @@ interface DeviceMemory {
   missingStreak: number
   wasConnected: boolean
   pendingOnConnect: string[]
+  busy: string[]
   reconnectedAt?: number
 }
 
@@ -38,7 +39,7 @@ interface Observation {
 }
 
 export const emptyMemory = (config: RigConfig): Memory => ({
-  devices: Object.fromEntries(config.devices.map(device => [device.id, { hardwareStreak: 0, missingStreak: 0, wasConnected: false, pendingOnConnect: [] }])),
+  devices: Object.fromEntries(config.devices.map(device => [device.id, { hardwareStreak: 0, missingStreak: 0, wasConnected: false, pendingOnConnect: [], busy: [] }])),
   drivers: {},
   writes: {},
   said: {},
@@ -97,6 +98,7 @@ export function decide(config: RigConfig, observation: Observation, previous: Me
     if (connectedNow && !state.wasConnected) state.pendingOnConnect = Object.keys(device.onConnect)
     if (!connectedNow) state.pendingOnConnect = []
     state.wasConnected = connectedNow
+    if (!linkDown) state.busy = [...new Set([...(facts?.busy ?? []), ...state.busy.filter(name => !facts?.properties.has(name))])]
   }
 
   const quiet = (device: RigDevice) => {
@@ -158,9 +160,9 @@ export function decide(config: RigConfig, observation: Observation, previous: Me
     }
 
     const blockers = group.flatMap(device => {
-      const answers = dead.includes(device) ? [] : (factsOf(device)?.busy ?? [])
+      const answers = wanting.includes(device) ? [] : memoryOf(device).busy
 
-      return answers.map(name => `${device.id} ${name} is Busy`)
+      return answers.map(name => (factsOf(device)?.properties.has(name) ? `${device.id} ${name} is Busy` : `${device.id} ${name} was Busy and can no longer be read`))
     })
 
     if (blockers.length > 0) {
@@ -179,7 +181,10 @@ export function decide(config: RigConfig, observation: Observation, previous: Me
     bookkeeping.restarts += 1
     bookkeeping.lastRestartAt = now
     restarting.add(driver)
-    for (const device of group) delete memoryOf(device).reconnectedAt
+    for (const device of group) {
+      delete memoryOf(device).reconnectedAt
+      memoryOf(device).busy = []
+    }
     actions.push({
       kind: 'restart-driver',
       driver,
