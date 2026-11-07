@@ -1,14 +1,9 @@
 import { readFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
-import { defaultWireDevices } from '@cria/stream'
+import { BrokerLogin, defaultWireDevices } from '@cria/stream'
 import { Config, ConfigProvider, Context, Effect, Layer, Schema } from 'effect'
 
-const Broker = Schema.Struct({
-  servers: Schema.String.annotate({ description: 'The broker URL as this machine reaches it' }),
-  user: Schema.String.annotate({ description: 'Broker login for this program' }),
-  pass: Schema.String.annotate({ description: 'Password for that login. Keep the file private' }),
-})
 
 const ClientSettings = Schema.Struct({
   rig: Schema.String.annotate({
@@ -18,7 +13,7 @@ const ClientSettings = Schema.Struct({
     host: Schema.String.annotate({ description: 'Where indiserver listens' }),
     port: Schema.Number.annotate({ description: 'indiserver port' }),
   }),
-  broker: Broker,
+  broker: BrokerLogin,
   wireDevices: Schema.Record(Schema.String, Schema.String).annotate({
     description: 'INDI device name to the short id used in wire subjects. Cria\'s ids where one fits; Cria splits the power box into two views, and the wire has one device',
   }).pipe(Schema.withDecodingDefaultKey(Effect.succeed(defaultWireDevices))),
@@ -48,7 +43,7 @@ const ClientSettings = Schema.Struct({
 
 const ViewerSettings = Schema.Struct({
   port: Schema.Number.annotate({ description: 'Local port the page is served on' }),
-  broker: Broker,
+  broker: BrokerLogin,
   streamMaxAgeDays: Schema.Number.annotate({
     description: 'Days the dev stream keeps messages. Throwaway data: long enough to look back across a few iterations, at about 230 MB a day idle, estimated from the 125 MB measured before the entry format',
   }).pipe(Schema.withDecodingDefaultKey(Effect.succeed(7))),
