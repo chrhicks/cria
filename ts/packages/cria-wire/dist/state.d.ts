@@ -2824,6 +2824,8 @@ export type State = typeof State.Type;
 export declare const Health: Schema.Struct<{
     readonly status: Schema.Literal<"ok">;
     readonly protocolVersion: Schema.Literal<5>;
+    readonly instanceId: Schema.brand<Schema.String, "InstanceId">;
+    readonly commandsEnabled: Schema.Boolean;
 }>;
 export declare const errorCodes: readonly ['request-error', 'origin-rejected', 'commands-disabled', 'not-found', 'request-conflict', 'instance-changed', 'device-busy', 'result-expired', 'image-gone', 'request-too-large', 'too-many-subscribers', 'internal-error'];
 export type ErrorCode = (typeof errorCodes)[number];

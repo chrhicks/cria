@@ -35,7 +35,7 @@ describe('health', () => {
     const state = await call('/v2/state')
 
     expect([state.status, (state.body as { instanceId: string }).instanceId]).toEqual([200, instanceId])
-    expect(await call('/health')).toEqual({ status: 200, body: { status: 'ok', protocolVersion: 5 } })
+    expect(await call('/health')).toEqual({ status: 200, body: { status: 'ok', protocolVersion: 5, instanceId, commandsEnabled: true } })
   })
 })
 
