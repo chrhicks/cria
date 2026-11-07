@@ -2,8 +2,7 @@
  * Composition: the one place that shows what is connected to what.
  */
 import { Effect, Scope, Stream } from 'effect'
-import { makeIndiClient, type DeviceEvent, type IndiClient, type IndiDevice, type TrafficTap } from '@cria/indi'
-import type { Recorder } from '@cria/recording'
+import { makeIndiClient, type DeviceEvent, type IndiClient, type IndiDevice } from '@cria/indi'
 import type { InstanceId } from '@cria/wire'
 import type { CapabilityContext } from './capability/context.js'
 import { switchElement, takeSnapshot } from './capability/fields.js'
@@ -15,7 +14,6 @@ import { mint } from './ids.js'
 import { makeImageStore, type ImageStore } from './image/store.js'
 import { makeLedger, type Ledger } from './operation/ledger.js'
 import { makeWorkflows, workflowFor } from './operation/workflows.js'
-import { makeRecorder, type RecordingOptions } from './recording.js'
 import { makeCriaStream, type OpenPublisher } from './stream.js'
 
 export interface RigDevice extends Equipment {
@@ -31,26 +29,13 @@ export interface Rig {
   readonly devices: ReadonlyArray<RigDevice>
   readonly ledger: Ledger
   readonly images: ImageStore
-  /** Absent when the config has no `record`, or when it could not open. */
-  readonly recorder: Recorder | undefined
 }
 
-export function makeRig(config: Config, options: { readonly recording?: RecordingOptions; readonly stream?: OpenPublisher } = {}): Effect.Effect<Rig, Error, Scope.Scope> {
+export function makeRig(config: Config, options: { readonly stream?: OpenPublisher } = {}): Effect.Effect<Rig, Error, Scope.Scope> {
   return Effect.gen(function* () {
     const instanceId = mint.instanceId()
-    const recorder = yield* makeRecorder(config, instanceId, options.recording ?? {})
     const stream = yield* makeCriaStream(config, instanceId, options.stream)
-    const tap: TrafficTap = {
-      message: message => {
-        recorder?.message(message)
-        stream?.traffic.message(message)
-      },
-      connection: connection => {
-        recorder?.connection(connection)
-        stream?.traffic.connection(connection)
-      },
-    }
-    const client = yield* makeIndiClient({ ...config.indi, tap })
+    const client = yield* makeIndiClient({ ...config.indi, ...(stream ? { tap: stream.traffic } : {}) })
     const images = yield* makeImageStore({ directory: config.imageDirectory, budgetBytes: config.imageBudgetBytes })
     const timing = { acknowledgeMs: config.acknowledgeMs, confirmMs: config.confirmMs, stopMs: config.acknowledgeMs + config.confirmMs, operationTimeoutMs: config.operationTimeoutMs }
     const devices: RigDevice[] = []
@@ -80,10 +65,7 @@ export function makeRig(config: Config, options: { readonly recording?: Recordin
       instanceId,
       commandsEnabled: config.commandsEnabled,
       history: config.operationHistory,
-      onSettled: operation => {
-        recorder?.operation(operation)
-        stream?.settled(operation)
-      },
+      onSettled: operation => stream?.settled(operation),
       devices: devices.map(device => ({
         id: device.config.id,
         kind: device.config.kind,
@@ -107,7 +89,7 @@ export function makeRig(config: Config, options: { readonly recording?: Recordin
       yield* Effect.forkScoped(Stream.runForEach(device.indi.events, event => (endsSession(event) ? device.setup.endSession : Effect.void)))
     }
 
-    return { instanceId, config, client, devices, ledger, images, recorder }
+    return { instanceId, config, client, devices, ledger, images }
   })
 }
 

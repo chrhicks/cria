@@ -1,7 +1,6 @@
 /**
  * INDI boundary: the traffic tap. The client reports every element it sends or
- * receives to an optional tap, in the order it saw them. This is the only
- * recording concept `@cria/indi` knows; the recorder lives in `@cria/recording`.
+ * receives to an optional tap, in the order it saw them.
  */
 
 /** `in` is indiserver to Cria, `out` is Cria to indiserver. */
