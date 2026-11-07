@@ -1,7 +1,7 @@
 /**
  * Capability: mount. An INDI telescope seen through the disciplines: slews,
- * park, home and axis motion are `stoppable` (abort on cancel, confirm the
- * mount stopped); tracking and unpark are `switchConfirmed`.
+ * home and axis motion are `stoppable` (abort on cancel, confirm the
+ * mount stopped); tracking is `switchConfirmed`.
  *
  * Cria reports coordinates in the frame of the property it reads and never
  * converts frames: EQUATORIAL_EOD_COORD is JNow ("topocentric" in ASCOM's
@@ -36,8 +36,6 @@ export interface Mount {
   readonly observe: Effect.Effect<DeviceBody<'mount'>>
   readonly slew: (target: ParamsOf<'mount-slew'>, note: Note) => Effect.Effect<{ rightAscensionDegrees: number; declinationDegrees: number }, Ending>
   readonly setTracking: (tracking: boolean) => Effect.Effect<{ tracking: boolean }, Failed | Uncertain>
-  readonly park: (note: Note) => Effect.Effect<{}, Ending>
-  readonly unpark: Effect.Effect<{}, Failed | Uncertain>
   readonly home: (note: Note) => Effect.Effect<{}, Ending>
   readonly stop: (note: Note) => Effect.Effect<{}, Failed | Uncertain>
   /** Moves the primary axis at a rate for a time, then stops it. */
@@ -91,7 +89,6 @@ function readings(snapshot: DeviceSnapshot): ReadingsOf<'mount'> {
       : Reading.map(longitude, east => localSiderealHours(Date.now(), east)),
     slewing: read(coordinates.name, property => property.state === 'Busy', command),
     tracking: read('TELESCOPE_TRACK_STATE', switchElement('TRACK_ON')),
-    parked: read('TELESCOPE_PARK', switchElement('PARK')),
     trackingRate: read('TELESCOPE_TRACK_MODE', property => {
       const mode = selectedSwitch(property)
 
@@ -112,8 +109,6 @@ function readings(snapshot: DeviceSnapshot): ReadingsOf<'mount'> {
     canSlew: read(coordinates.name, property => property.perm !== 'ro'),
     canSetTracking: read(coordinates.name, () => snapshot.property('TELESCOPE_TRACK_STATE')?.perm === 'rw'),
     canFindHome: read(coordinates.name, () => homeElement(snapshot.property('TELESCOPE_HOME')) !== undefined),
-    canPark: read(coordinates.name, () => snapshot.property('TELESCOPE_PARK') !== undefined),
-    canUnpark: read(coordinates.name, () => snapshot.property('TELESCOPE_PARK') !== undefined),
     canMovePrimaryAxis: read(coordinates.name, () => snapshot.property('TELESCOPE_MOTION_WE') !== undefined),
     primaryAxisRates: read('TELESCOPE_SLEW_RATE', axisRates),
   }
@@ -275,14 +270,12 @@ export function makeMount(context: CapabilityContext, motion: MountMotionSetting
   const settled = (command: Command, tracking: Tracking) =>
     Effect.tap(confirmStopped(device, motion, command, 15_000), position => tracking.rested('arrived', position))
 
-  const idleAndUnparked = (snapshot: DeviceSnapshot, allowParked = false) =>
+  const idle = (snapshot: DeviceSnapshot) =>
     Effect.gen(function* () {
       const mount = readings(snapshot)
 
       if (yield* required(mount.slewing, 'mount motion'))
         return yield* new Failed({ reason: 'busy', message: 'The mount is already moving' })
-      if (!allowParked && (yield* required(mount.parked, 'park state')))
-        return yield* new Failed({ reason: 'invalid', message: 'The mount is parked' })
 
       return mount
     })
@@ -320,7 +313,7 @@ export function makeMount(context: CapabilityContext, motion: MountMotionSetting
   const slew = (target: ParamsOf<'mount-slew'>, note: Note) =>
     Effect.gen(function* () {
       const snapshot = yield* liveSnapshot(context)
-      const mount = yield* idleAndUnparked(snapshot)
+      const mount = yield* idle(snapshot)
       const coordinates = coordinatesProperty(snapshot)
 
       if (!(yield* required(mount.canSlew, 'slew support')))
@@ -376,8 +369,6 @@ export function makeMount(context: CapabilityContext, motion: MountMotionSetting
 
       if (!(yield* required(mount.canSetTracking, 'tracking control')))
         return yield* new Failed({ reason: 'unsupported', message: 'Tracking control unsupported' })
-      if (tracking && (yield* required(mount.parked, 'park state')))
-        return yield* invalid('A parked mount cannot track')
 
       yield* switchConfirmed(
         device,
@@ -390,49 +381,10 @@ export function makeMount(context: CapabilityContext, motion: MountMotionSetting
       return { tracking }
     })
 
-  const park = (note: Note) => Effect.gen(function* () {
-    const snapshot = yield* liveSnapshot(context)
-
-    const mount = yield* idleAndUnparked(snapshot, true)
-
-    if (!snapshot.property('TELESCOPE_PARK')) return yield* new Failed({ reason: 'unsupported', message: 'Park unsupported' })
-    // A parked mount doesn't go Busy when asked to park again.
-    if (yield* required(mount.parked, 'park state')) return {}
-
-    const command = yield* beforeCommand(device)
-    const tracking = yield* track(device, note, { kind: 'park', sentAt: command.sentAt }, command)
-
-    yield* stoppable({
-      command: `park on ${device.name}`,
-      start: tracking.sentBy(startMotion(device, 'TELESCOPE_PARK', { PARK: true }, timing, { arrived: property => switchElement('PARK')(property) === true })),
-      settle: Effect.andThen(untilSettled(device, 'TELESCOPE_PARK', property => switchElement('PARK')(property) === true, timing.operationTimeoutMs), settled(command, tracking)),
-      stop: abort(tracking),
-      stopWithin: stopWithinMs,
-    })
-
-    return {}
-  }).pipe(Effect.scoped)
-
-  const unpark = Effect.gen(function* () {
-    const snapshot = yield* liveSnapshot(context)
-
-    if (!snapshot.property('TELESCOPE_PARK')) return yield* new Failed({ reason: 'unsupported', message: 'Unpark unsupported' })
-
-    yield* switchConfirmed(
-      device,
-      'TELESCOPE_PARK',
-      { UNPARK: true },
-      property => property.state !== 'Busy' && switchElement('PARK')(property) === false,
-      timing,
-    )
-
-    return {}
-  })
-
   const home = (note: Note) => Effect.gen(function* () {
     const snapshot = yield* liveSnapshot(context)
 
-    yield* idleAndUnparked(snapshot)
+    yield* idle(snapshot)
     const element = homeElement(snapshot.property('TELESCOPE_HOME'))
 
     if (!element) return yield* new Failed({ reason: 'unsupported', message: 'Home unsupported' })
@@ -486,9 +438,7 @@ export function makeMount(context: CapabilityContext, motion: MountMotionSetting
   ) =>
     Effect.gen(function* () {
       const snapshot = yield* liveSnapshot(context)
-      const mount = continuing ? readings(snapshot) : yield* idleAndUnparked(snapshot)
-      if (continuing && (yield* required(mount.parked, 'park state')))
-        return yield* invalid('The mount is parked')
+      const mount = continuing ? readings(snapshot) : yield* idle(snapshot)
 
       if (!(yield* required(mount.canMovePrimaryAxis, 'axis motion')))
         return yield* new Failed({ reason: 'unsupported', message: 'Axis motion unsupported' })
@@ -569,7 +519,7 @@ export function makeMount(context: CapabilityContext, motion: MountMotionSetting
     if (Math.sign(rateDegreesPerSecond) !== Math.sign(distanceDegrees))
       return yield* invalid('The rate and the distance point in opposite directions')
     const snapshot = yield* liveSnapshot(context)
-    const mount = yield* idleAndUnparked(snapshot)
+    const mount = yield* idle(snapshot)
     const rates = yield* required(mount.primaryAxisRates, 'axis rates')
     const fast = advertisedRate(rates, Math.abs(rateDegreesPerSecond))
     if (fast === undefined || fast.degreesPerSecond > Math.abs(rateDegreesPerSecond))
@@ -643,8 +593,6 @@ export function makeMount(context: CapabilityContext, motion: MountMotionSetting
     observe: Effect.map(context.snapshot, snapshot => ({ kind: 'mount', readings: readings(snapshot) })),
     slew,
     setTracking,
-    park,
-    unpark,
     home,
     stop,
     moveAxis,

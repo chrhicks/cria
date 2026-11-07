@@ -135,7 +135,7 @@ describe('the configured stub before any command is sent', () => {
     expect(commands()).toEqual([])
   })
 
-  it.each(['mount-home', 'mount-park'])('exempts %s even from an unsafe pose with an unknown side', async kind => {
+  it.each(['mount-home'])('exempts %s even from an unsafe pose with an unknown side', async kind => {
     await start(57, 90, 'unknown')
     expect((await cria.run('mount', kind, {})).kind).toBe('confirmed')
     expect(commands().length).toBeGreaterThan(0)

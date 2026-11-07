@@ -1,6 +1,6 @@
 /**
  * The one definition of "the mount has stopped": readings that arrived after the command show its position no
- * longer changing. Every motion path decides this here: a rate move's halt, an abort of a slew, park or home,
+ * longer changing. Every motion path decides this here: a rate move's halt, an abort of a slew or home,
  * and the settle of a goto or home.
  *
  * The state of a property does not say it. The AM5 sets its coordinates Idle the moment it takes an abort and then

@@ -139,12 +139,6 @@ export declare const OperationRequest: Schema.Union<(Schema.Struct<{
     requestId: Schema.brand<Schema.String, "RequestId">;
     deviceId: Schema.brand<Schema.String, "DeviceId">;
 }> | Schema.Struct<{
-    kind: Schema.Literal<"mount-park">;
-    parameters: Schema.Struct<{}>;
-    instanceId: Schema.brand<Schema.String, "InstanceId">;
-    requestId: Schema.brand<Schema.String, "RequestId">;
-    deviceId: Schema.brand<Schema.String, "DeviceId">;
-}> | Schema.Struct<{
     kind: Schema.Literal<"mount-rotate">;
     parameters: Schema.Struct<{
         readonly rateDegreesPerSecond: Schema.Finite;
@@ -174,12 +168,6 @@ export declare const OperationRequest: Schema.Union<(Schema.Struct<{
     parameters: Schema.Struct<{
         readonly tracking: Schema.Boolean;
     }>;
-    instanceId: Schema.brand<Schema.String, "InstanceId">;
-    requestId: Schema.brand<Schema.String, "RequestId">;
-    deviceId: Schema.brand<Schema.String, "DeviceId">;
-}> | Schema.Struct<{
-    kind: Schema.Literal<"mount-unpark">;
-    parameters: Schema.Struct<{}>;
     instanceId: Schema.brand<Schema.String, "InstanceId">;
     requestId: Schema.brand<Schema.String, "RequestId">;
     deviceId: Schema.brand<Schema.String, "DeviceId">;
@@ -366,21 +354,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
         readonly elapsedSeconds: Schema.NullOr<Schema.Number>;
     }>;
 }> | Schema.Struct<{
-    kind: Schema.Literal<"mount-park">;
-    parameters: Schema.Struct<{}>;
-    instanceId: Schema.brand<Schema.String, "InstanceId">;
-    requestId: Schema.brand<Schema.String, "RequestId">;
-    deviceId: Schema.brand<Schema.String, "DeviceId">;
-    id: Schema.brand<Schema.String, "OperationId">;
-    failureDomain: Schema.brand<Schema.String, "FailureDomain">;
-    acceptedAt: Schema.Number;
-    state: Schema.Literal<"running">;
-    startedAt: Schema.Number;
-    progress: Schema.Struct<{
-        readonly phase: Schema.Literals<readonly ["preparing", "exposing", "readout", "retaining"]>;
-        readonly elapsedSeconds: Schema.NullOr<Schema.Number>;
-    }>;
-}> | Schema.Struct<{
     kind: Schema.Literal<"mount-rotate">;
     parameters: Schema.Struct<{
         readonly rateDegreesPerSecond: Schema.Finite;
@@ -437,21 +410,6 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
     parameters: Schema.Struct<{
         readonly tracking: Schema.Boolean;
     }>;
-    instanceId: Schema.brand<Schema.String, "InstanceId">;
-    requestId: Schema.brand<Schema.String, "RequestId">;
-    deviceId: Schema.brand<Schema.String, "DeviceId">;
-    id: Schema.brand<Schema.String, "OperationId">;
-    failureDomain: Schema.brand<Schema.String, "FailureDomain">;
-    acceptedAt: Schema.Number;
-    state: Schema.Literal<"running">;
-    startedAt: Schema.Number;
-    progress: Schema.Struct<{
-        readonly phase: Schema.Literals<readonly ["preparing", "exposing", "readout", "retaining"]>;
-        readonly elapsedSeconds: Schema.NullOr<Schema.Number>;
-    }>;
-}> | Schema.Struct<{
-    kind: Schema.Literal<"mount-unpark">;
-    parameters: Schema.Struct<{}>;
     instanceId: Schema.brand<Schema.String, "InstanceId">;
     requestId: Schema.brand<Schema.String, "RequestId">;
     deviceId: Schema.brand<Schema.String, "DeviceId">;
@@ -565,7 +523,7 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
             readonly distanceDegrees: Schema.Number;
         }>, Schema.Struct<{
             readonly sentAt: Schema.Number;
-            readonly kind: Schema.Literals<readonly ["home", "park", "stop"]>;
+            readonly kind: Schema.Literals<readonly ["home", "stop"]>;
         }>]>;
         readonly observed: Schema.Struct<{
             readonly from: Schema.NullOr<Schema.Struct<{
@@ -666,7 +624,7 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
             readonly distanceDegrees: Schema.Number;
         }>, Schema.Struct<{
             readonly sentAt: Schema.Number;
-            readonly kind: Schema.Literals<readonly ["home", "park", "stop"]>;
+            readonly kind: Schema.Literals<readonly ["home", "stop"]>;
         }>]>;
         readonly observed: Schema.Struct<{
             readonly from: Schema.NullOr<Schema.Struct<{
@@ -765,7 +723,7 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
             readonly distanceDegrees: Schema.Number;
         }>, Schema.Struct<{
             readonly sentAt: Schema.Number;
-            readonly kind: Schema.Literals<readonly ["home", "park", "stop"]>;
+            readonly kind: Schema.Literals<readonly ["home", "stop"]>;
         }>]>;
         readonly observed: Schema.Struct<{
             readonly from: Schema.NullOr<Schema.Struct<{
@@ -863,7 +821,7 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
             readonly distanceDegrees: Schema.Number;
         }>, Schema.Struct<{
             readonly sentAt: Schema.Number;
-            readonly kind: Schema.Literals<readonly ["home", "park", "stop"]>;
+            readonly kind: Schema.Literals<readonly ["home", "stop"]>;
         }>]>;
         readonly observed: Schema.Struct<{
             readonly from: Schema.NullOr<Schema.Struct<{
@@ -959,7 +917,7 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
             readonly distanceDegrees: Schema.Number;
         }>, Schema.Struct<{
             readonly sentAt: Schema.Number;
-            readonly kind: Schema.Literals<readonly ["home", "park", "stop"]>;
+            readonly kind: Schema.Literals<readonly ["home", "stop"]>;
         }>]>;
         readonly observed: Schema.Struct<{
             readonly from: Schema.NullOr<Schema.Struct<{
@@ -1059,7 +1017,7 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
             readonly distanceDegrees: Schema.Number;
         }>, Schema.Struct<{
             readonly sentAt: Schema.Number;
-            readonly kind: Schema.Literals<readonly ["home", "park", "stop"]>;
+            readonly kind: Schema.Literals<readonly ["home", "stop"]>;
         }>]>;
         readonly observed: Schema.Struct<{
             readonly from: Schema.NullOr<Schema.Struct<{
@@ -1158,7 +1116,7 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
             readonly distanceDegrees: Schema.Number;
         }>, Schema.Struct<{
             readonly sentAt: Schema.Number;
-            readonly kind: Schema.Literals<readonly ["home", "park", "stop"]>;
+            readonly kind: Schema.Literals<readonly ["home", "stop"]>;
         }>]>;
         readonly observed: Schema.Struct<{
             readonly from: Schema.NullOr<Schema.Struct<{
@@ -1254,103 +1212,7 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
             readonly distanceDegrees: Schema.Number;
         }>, Schema.Struct<{
             readonly sentAt: Schema.Number;
-            readonly kind: Schema.Literals<readonly ["home", "park", "stop"]>;
-        }>]>;
-        readonly observed: Schema.Struct<{
-            readonly from: Schema.NullOr<Schema.Struct<{
-                readonly rightAscensionDegrees: Schema.Number;
-                readonly declinationDegrees: Schema.Number;
-            }>>;
-            readonly to: Schema.NullOr<Schema.Struct<{
-                readonly rightAscensionDegrees: Schema.Number;
-                readonly declinationDegrees: Schema.Number;
-            }>>;
-            readonly travel: Schema.NullOr<Schema.Struct<{
-                readonly rightAscensionDegrees: Schema.Number;
-                readonly declinationDegrees: Schema.Number;
-            }>>;
-        }>;
-        readonly stopped: Schema.Struct<{
-            readonly how: Schema.Literals<readonly ["arrived", "halted", "aborted", "uncertain"]>;
-            readonly reason: Schema.optionalKey<Schema.String>;
-            readonly at: Schema.NullOr<Schema.Number>;
-        }>;
-    }>>;
-}> | Schema.Struct<{
-    kind: Schema.Literal<"mount-park">;
-    parameters: Schema.Struct<{}>;
-    instanceId: Schema.brand<Schema.String, "InstanceId">;
-    requestId: Schema.brand<Schema.String, "RequestId">;
-    deviceId: Schema.brand<Schema.String, "DeviceId">;
-    id: Schema.brand<Schema.String, "OperationId">;
-    failureDomain: Schema.brand<Schema.String, "FailureDomain">;
-    acceptedAt: Schema.Number;
-    state: Schema.Literal<"settled">;
-    startedAt: Schema.Number;
-    settledAt: Schema.Number;
-    outcome: Schema.Union<readonly [Schema.Struct<{
-        readonly kind: Schema.Literal<"confirmed">;
-        readonly value: Schema.Struct<{
-            readonly values: Schema.$Record<Schema.String, Schema.Union<readonly [Schema.String, Schema.Number, Schema.Boolean, Schema.Null]>>;
-            readonly image: Schema.NullOr<Schema.Struct<{
-                readonly id: Schema.brand<Schema.String, "ImageId">;
-                readonly operationId: Schema.brand<Schema.String, "OperationId">;
-                readonly instanceId: Schema.brand<Schema.String, "InstanceId">;
-                readonly deviceId: Schema.brand<Schema.String, "DeviceId">;
-                readonly cameraName: Schema.String;
-                readonly width: Schema.Number;
-                readonly height: Schema.Number;
-                readonly binX: Schema.Number;
-                readonly binY: Schema.Number;
-                readonly startX: Schema.Number;
-                readonly startY: Schema.Number;
-                readonly exposureSeconds: Schema.Number;
-                readonly color: Schema.Literals<readonly ["mono", "rggb", "grbg", "gbrg", "bggr"]>;
-                readonly capturedAt: Schema.Number;
-                readonly capturedAtSource: Schema.Literals<readonly ["camera", "server-estimate"]>;
-                readonly retainedAt: Schema.Number;
-                readonly sha256: Schema.String;
-                readonly original: Schema.Struct<{
-                    readonly mediaType: Schema.Literal<"application/imagebytes">;
-                    readonly bytes: Schema.Number;
-                    readonly url: Schema.String;
-                }>;
-            }>>;
-        }>;
-    }>, Schema.Struct<{
-        readonly kind: Schema.Literal<"failed">;
-        readonly reason: Schema.Literals<readonly ["busy", "disconnected", "unsupported", "rejected", "invalid", "unavailable"]>;
-        readonly message: Schema.String;
-    }>, Schema.Struct<{
-        readonly kind: Schema.Literal<"stopped">;
-    }>, Schema.Struct<{
-        readonly kind: Schema.Literal<"uncertain">;
-        readonly reason: Schema.Literals<readonly ["no-acknowledgement", "not-confirmed", "stop-not-confirmed", "connection-lost", "driver-lost", "unexpected-error"]>;
-        readonly message: Schema.String;
-    }>]>;
-    /** Present on a mount motion whose command was sent, whatever its outcome. */
-    motion: Schema.optionalKey<Schema.Struct<{
-        readonly commanded: Schema.Union<readonly [Schema.Struct<{
-            readonly sentAt: Schema.Number;
-            readonly kind: Schema.Literal<"slew">;
-            readonly target: Schema.Struct<{
-                readonly rightAscensionDegrees: Schema.Number;
-                readonly declinationDegrees: Schema.Number;
-            }>;
-        }>, Schema.Struct<{
-            readonly sentAt: Schema.Number;
-            readonly axis: Schema.Literal<"ra">;
-            readonly rateDegreesPerSecond: Schema.Number;
-            readonly kind: Schema.Literal<"axis">;
-        }>, Schema.Struct<{
-            readonly sentAt: Schema.Number;
-            readonly axis: Schema.Literal<"ra">;
-            readonly rateDegreesPerSecond: Schema.Number;
-            readonly kind: Schema.Literal<"rotate">;
-            readonly distanceDegrees: Schema.Number;
-        }>, Schema.Struct<{
-            readonly sentAt: Schema.Number;
-            readonly kind: Schema.Literals<readonly ["home", "park", "stop"]>;
+            readonly kind: Schema.Literals<readonly ["home", "stop"]>;
         }>]>;
         readonly observed: Schema.Struct<{
             readonly from: Schema.NullOr<Schema.Struct<{
@@ -1449,7 +1311,7 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
             readonly distanceDegrees: Schema.Number;
         }>, Schema.Struct<{
             readonly sentAt: Schema.Number;
-            readonly kind: Schema.Literals<readonly ["home", "park", "stop"]>;
+            readonly kind: Schema.Literals<readonly ["home", "stop"]>;
         }>]>;
         readonly observed: Schema.Struct<{
             readonly from: Schema.NullOr<Schema.Struct<{
@@ -1549,7 +1411,7 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
             readonly distanceDegrees: Schema.Number;
         }>, Schema.Struct<{
             readonly sentAt: Schema.Number;
-            readonly kind: Schema.Literals<readonly ["home", "park", "stop"]>;
+            readonly kind: Schema.Literals<readonly ["home", "stop"]>;
         }>]>;
         readonly observed: Schema.Struct<{
             readonly from: Schema.NullOr<Schema.Struct<{
@@ -1645,7 +1507,7 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
             readonly distanceDegrees: Schema.Number;
         }>, Schema.Struct<{
             readonly sentAt: Schema.Number;
-            readonly kind: Schema.Literals<readonly ["home", "park", "stop"]>;
+            readonly kind: Schema.Literals<readonly ["home", "stop"]>;
         }>]>;
         readonly observed: Schema.Struct<{
             readonly from: Schema.NullOr<Schema.Struct<{
@@ -1743,103 +1605,7 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
             readonly distanceDegrees: Schema.Number;
         }>, Schema.Struct<{
             readonly sentAt: Schema.Number;
-            readonly kind: Schema.Literals<readonly ["home", "park", "stop"]>;
-        }>]>;
-        readonly observed: Schema.Struct<{
-            readonly from: Schema.NullOr<Schema.Struct<{
-                readonly rightAscensionDegrees: Schema.Number;
-                readonly declinationDegrees: Schema.Number;
-            }>>;
-            readonly to: Schema.NullOr<Schema.Struct<{
-                readonly rightAscensionDegrees: Schema.Number;
-                readonly declinationDegrees: Schema.Number;
-            }>>;
-            readonly travel: Schema.NullOr<Schema.Struct<{
-                readonly rightAscensionDegrees: Schema.Number;
-                readonly declinationDegrees: Schema.Number;
-            }>>;
-        }>;
-        readonly stopped: Schema.Struct<{
-            readonly how: Schema.Literals<readonly ["arrived", "halted", "aborted", "uncertain"]>;
-            readonly reason: Schema.optionalKey<Schema.String>;
-            readonly at: Schema.NullOr<Schema.Number>;
-        }>;
-    }>>;
-}> | Schema.Struct<{
-    kind: Schema.Literal<"mount-unpark">;
-    parameters: Schema.Struct<{}>;
-    instanceId: Schema.brand<Schema.String, "InstanceId">;
-    requestId: Schema.brand<Schema.String, "RequestId">;
-    deviceId: Schema.brand<Schema.String, "DeviceId">;
-    id: Schema.brand<Schema.String, "OperationId">;
-    failureDomain: Schema.brand<Schema.String, "FailureDomain">;
-    acceptedAt: Schema.Number;
-    state: Schema.Literal<"settled">;
-    startedAt: Schema.Number;
-    settledAt: Schema.Number;
-    outcome: Schema.Union<readonly [Schema.Struct<{
-        readonly kind: Schema.Literal<"confirmed">;
-        readonly value: Schema.Struct<{
-            readonly values: Schema.$Record<Schema.String, Schema.Union<readonly [Schema.String, Schema.Number, Schema.Boolean, Schema.Null]>>;
-            readonly image: Schema.NullOr<Schema.Struct<{
-                readonly id: Schema.brand<Schema.String, "ImageId">;
-                readonly operationId: Schema.brand<Schema.String, "OperationId">;
-                readonly instanceId: Schema.brand<Schema.String, "InstanceId">;
-                readonly deviceId: Schema.brand<Schema.String, "DeviceId">;
-                readonly cameraName: Schema.String;
-                readonly width: Schema.Number;
-                readonly height: Schema.Number;
-                readonly binX: Schema.Number;
-                readonly binY: Schema.Number;
-                readonly startX: Schema.Number;
-                readonly startY: Schema.Number;
-                readonly exposureSeconds: Schema.Number;
-                readonly color: Schema.Literals<readonly ["mono", "rggb", "grbg", "gbrg", "bggr"]>;
-                readonly capturedAt: Schema.Number;
-                readonly capturedAtSource: Schema.Literals<readonly ["camera", "server-estimate"]>;
-                readonly retainedAt: Schema.Number;
-                readonly sha256: Schema.String;
-                readonly original: Schema.Struct<{
-                    readonly mediaType: Schema.Literal<"application/imagebytes">;
-                    readonly bytes: Schema.Number;
-                    readonly url: Schema.String;
-                }>;
-            }>>;
-        }>;
-    }>, Schema.Struct<{
-        readonly kind: Schema.Literal<"failed">;
-        readonly reason: Schema.Literals<readonly ["busy", "disconnected", "unsupported", "rejected", "invalid", "unavailable"]>;
-        readonly message: Schema.String;
-    }>, Schema.Struct<{
-        readonly kind: Schema.Literal<"stopped">;
-    }>, Schema.Struct<{
-        readonly kind: Schema.Literal<"uncertain">;
-        readonly reason: Schema.Literals<readonly ["no-acknowledgement", "not-confirmed", "stop-not-confirmed", "connection-lost", "driver-lost", "unexpected-error"]>;
-        readonly message: Schema.String;
-    }>]>;
-    /** Present on a mount motion whose command was sent, whatever its outcome. */
-    motion: Schema.optionalKey<Schema.Struct<{
-        readonly commanded: Schema.Union<readonly [Schema.Struct<{
-            readonly sentAt: Schema.Number;
-            readonly kind: Schema.Literal<"slew">;
-            readonly target: Schema.Struct<{
-                readonly rightAscensionDegrees: Schema.Number;
-                readonly declinationDegrees: Schema.Number;
-            }>;
-        }>, Schema.Struct<{
-            readonly sentAt: Schema.Number;
-            readonly axis: Schema.Literal<"ra">;
-            readonly rateDegreesPerSecond: Schema.Number;
-            readonly kind: Schema.Literal<"axis">;
-        }>, Schema.Struct<{
-            readonly sentAt: Schema.Number;
-            readonly axis: Schema.Literal<"ra">;
-            readonly rateDegreesPerSecond: Schema.Number;
-            readonly kind: Schema.Literal<"rotate">;
-            readonly distanceDegrees: Schema.Number;
-        }>, Schema.Struct<{
-            readonly sentAt: Schema.Number;
-            readonly kind: Schema.Literals<readonly ["home", "park", "stop"]>;
+            readonly kind: Schema.Literals<readonly ["home", "stop"]>;
         }>]>;
         readonly observed: Schema.Struct<{
             readonly from: Schema.NullOr<Schema.Struct<{
@@ -1938,7 +1704,7 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
             readonly distanceDegrees: Schema.Number;
         }>, Schema.Struct<{
             readonly sentAt: Schema.Number;
-            readonly kind: Schema.Literals<readonly ["home", "park", "stop"]>;
+            readonly kind: Schema.Literals<readonly ["home", "stop"]>;
         }>]>;
         readonly observed: Schema.Struct<{
             readonly from: Schema.NullOr<Schema.Struct<{

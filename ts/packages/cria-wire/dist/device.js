@@ -64,7 +64,6 @@ export const MountReadings = Schema.Struct({
     siderealTimeHours: number,
     slewing: boolean,
     tracking: boolean,
-    parked: boolean,
     trackingRate: Reading(Schema.Literals(['sidereal', 'lunar', 'solar'])),
     rightAscensionRateSecondsPerSiderealSecond: number,
     declinationRateArcsecondsPerSecond: number,
@@ -76,8 +75,6 @@ export const MountReadings = Schema.Struct({
     canSlew: boolean,
     canSetTracking: boolean,
     canFindHome: boolean,
-    canPark: boolean,
-    canUnpark: boolean,
     canMovePrimaryAxis: boolean,
     primaryAxisRates: Reading(Schema.Array(Schema.Struct({ name: Schema.String, degreesPerSecond: Schema.Number }))),
 });

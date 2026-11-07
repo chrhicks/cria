@@ -112,16 +112,6 @@ export declare const commands: Table<{
         readonly halt: true;
         readonly parameters: Schema.Struct<{}>;
     };
-    readonly 'mount-park': {
-        readonly device: "mount";
-        readonly halt: false;
-        readonly parameters: Schema.Struct<{}>;
-    };
-    readonly 'mount-unpark': {
-        readonly device: "mount";
-        readonly halt: false;
-        readonly parameters: Schema.Struct<{}>;
-    };
     readonly 'switch-set': {
         readonly device: "switch";
         readonly halt: false;
@@ -190,9 +180,6 @@ export declare const CommandSchema: Schema.Union<(Schema.Struct<{
     readonly kind: Schema.Literal<"mount-home">;
     readonly parameters: Schema.Struct<{}>;
 }> | Schema.Struct<{
-    readonly kind: Schema.Literal<"mount-park">;
-    readonly parameters: Schema.Struct<{}>;
-}> | Schema.Struct<{
     readonly kind: Schema.Literal<"mount-rotate">;
     readonly parameters: Schema.Struct<{
         readonly rateDegreesPerSecond: Schema.Finite;
@@ -213,9 +200,6 @@ export declare const CommandSchema: Schema.Union<(Schema.Struct<{
     readonly parameters: Schema.Struct<{
         readonly tracking: Schema.Boolean;
     }>;
-}> | Schema.Struct<{
-    readonly kind: Schema.Literal<"mount-unpark">;
-    readonly parameters: Schema.Struct<{}>;
 }> | Schema.Struct<{
     readonly kind: Schema.Literal<"switch-set">;
     readonly parameters: Schema.Struct<{

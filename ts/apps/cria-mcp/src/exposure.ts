@@ -27,8 +27,6 @@ export const commands = {
   'mount-rotate': { description: 'Move the mount axis by a signed distance in degrees at a signed rate in degrees per second. It ends when the distance is covered, or when `mount-stop` or `cancel` stops it.' },
   'mount-home': { description: 'Send the mount to its home position.' },
   'mount-stop': { description: 'Stop all mount motion.' },
-  'mount-park': { description: 'Park the mount.' },
-  'mount-unpark': { description: 'Unpark the mount.' },
   'switch-set': { description: 'Set one channel of a switch device (for example power or dew) to a value.' },
   'device-connect': { description: 'Connect a device (connected: true) or disconnect it (connected: false).' },
 } as const satisfies { readonly [K in CommandKind]?: Entry }

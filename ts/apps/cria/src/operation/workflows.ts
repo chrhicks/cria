@@ -108,8 +108,6 @@ export function makeWorkflows(images: ImageStore, onFrame: (frame: FrameKept) =>
     'mount-rotate': (mount, { rateDegreesPerSecond, distanceDegrees }, { note }) => mount.rotate(rateDegreesPerSecond, distanceDegrees, note).pipe(Effect.map(values)),
     'mount-home': (mount, _, { note }) => mount.home(note).pipe(Effect.map(values)),
     'mount-stop': (mount, _, { note }) => mount.stop(note).pipe(Effect.map(values)),
-    'mount-park': (mount, _, { note }) => mount.park(note).pipe(Effect.map(values)),
-    'mount-unpark': mount => mount.unpark.pipe(Effect.map(values)),
     'switch-set': (power, { channelId, value }) => power.set(channelId, value).pipe(Effect.map(values)),
     'device-connect': (connection, { connected }) => connection.connect(connected).pipe(Effect.map(values)),
   }

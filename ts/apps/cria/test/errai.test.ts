@@ -134,10 +134,10 @@ describe('errai, replayed', () => {
     expect(value('guide', 'gain')).toBe(100)
   })
 
-  it('reads the AM5: JNow coordinates, tracking, park, home, named slew rates; no pier side yet', () => {
+  it('reads the AM5: JNow coordinates, tracking, home, named slew rates; no pier side yet', () => {
     expect(value('mount', 'coordinateSystem')).toBe('topocentric')
     expect(value('mount', 'declinationDegrees')).toBe(90)
-    expect([value('mount', 'tracking'), value('mount', 'parked'), value('mount', 'slewing')]).toEqual([false, false, false])
+    expect([value('mount', 'tracking'), value('mount', 'slewing')]).toEqual([false, false])
     expect(value('mount', 'trackingRate')).toBe('sidereal')
     expect(value('mount', 'canFindHome')).toBe(true)
     expect(value('mount', 'canMovePrimaryAxis')).toBe(true)

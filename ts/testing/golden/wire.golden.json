@@ -316,22 +316,12 @@
               "status": "fresh",
               "value": true
             },
-            "canPark": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": true
-            },
             "canSetTracking": {
               "observedAt": "<time>",
               "status": "fresh",
               "value": true
             },
             "canSlew": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": true
-            },
-            "canUnpark": {
               "observedAt": "<time>",
               "status": "fresh",
               "value": true
@@ -374,11 +364,6 @@
               "observedAt": "<time>",
               "status": "fresh",
               "value": "ZWO AM5"
-            },
-            "parked": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": false
             },
             "pierSide": {
               "reason": "not-read",
@@ -943,22 +928,12 @@
               "status": "fresh",
               "value": true
             },
-            "canPark": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": true
-            },
             "canSetTracking": {
               "observedAt": "<time>",
               "status": "fresh",
               "value": true
             },
             "canSlew": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": true
-            },
-            "canUnpark": {
               "observedAt": "<time>",
               "status": "fresh",
               "value": true
@@ -1001,11 +976,6 @@
               "observedAt": "<time>",
               "status": "fresh",
               "value": "ZWO AM5"
-            },
-            "parked": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": false
             },
             "pierSide": {
               "reason": "not-read",
@@ -2968,140 +2938,6 @@
     }
   },
   {
-    "scenario": "mount-park, then mount-unpark",
-    "step": 1,
-    "request": "POST /v2/operations",
-    "sent": {
-      "deviceId": "mount",
-      "instanceId": "<instance-1>",
-      "kind": "mount-park",
-      "parameters": {},
-      "requestId": "<request-1>"
-    },
-    "status": 202,
-    "body": {
-      "acceptedAt": "<time>",
-      "deviceId": "mount",
-      "failureDomain": "zwo-am5",
-      "id": "<operation-1>",
-      "instanceId": "<instance-1>",
-      "kind": "mount-park",
-      "parameters": {},
-      "progress": {
-        "elapsedSeconds": null,
-        "phase": "preparing"
-      },
-      "requestId": "<request-1>",
-      "startedAt": "<time>",
-      "state": "running"
-    }
-  },
-  {
-    "scenario": "mount-park, then mount-unpark",
-    "step": 2,
-    "request": "GET /v2/operations/<operation-1>",
-    "status": 200,
-    "body": {
-      "acceptedAt": "<time>",
-      "deviceId": "mount",
-      "failureDomain": "zwo-am5",
-      "id": "<operation-1>",
-      "instanceId": "<instance-1>",
-      "kind": "mount-park",
-      "motion": {
-        "commanded": {
-          "kind": "park",
-          "sentAt": "<time>"
-        },
-        "observed": {
-          "from": {
-            "declinationDegrees": "<angle>",
-            "rightAscensionDegrees": "<angle>"
-          },
-          "to": {
-            "declinationDegrees": "<angle>",
-            "rightAscensionDegrees": "<angle>"
-          },
-          "travel": {
-            "declinationDegrees": "<angle>",
-            "rightAscensionDegrees": "<angle>"
-          }
-        },
-        "stopped": {
-          "at": "<time>",
-          "how": "arrived"
-        }
-      },
-      "outcome": {
-        "kind": "confirmed",
-        "value": {
-          "image": null,
-          "values": {}
-        }
-      },
-      "parameters": {},
-      "requestId": "<request-1>",
-      "settledAt": "<time>",
-      "startedAt": "<time>",
-      "state": "settled"
-    }
-  },
-  {
-    "scenario": "mount-park, then mount-unpark",
-    "step": 3,
-    "request": "POST /v2/operations",
-    "sent": {
-      "deviceId": "mount",
-      "instanceId": "<instance-1>",
-      "kind": "mount-unpark",
-      "parameters": {},
-      "requestId": "<request-2>"
-    },
-    "status": 202,
-    "body": {
-      "acceptedAt": "<time>",
-      "deviceId": "mount",
-      "failureDomain": "zwo-am5",
-      "id": "<operation-2>",
-      "instanceId": "<instance-1>",
-      "kind": "mount-unpark",
-      "parameters": {},
-      "progress": {
-        "elapsedSeconds": null,
-        "phase": "preparing"
-      },
-      "requestId": "<request-2>",
-      "startedAt": "<time>",
-      "state": "running"
-    }
-  },
-  {
-    "scenario": "mount-park, then mount-unpark",
-    "step": 4,
-    "request": "GET /v2/operations/<operation-2>",
-    "status": 200,
-    "body": {
-      "acceptedAt": "<time>",
-      "deviceId": "mount",
-      "failureDomain": "zwo-am5",
-      "id": "<operation-2>",
-      "instanceId": "<instance-1>",
-      "kind": "mount-unpark",
-      "outcome": {
-        "kind": "confirmed",
-        "value": {
-          "image": null,
-          "values": {}
-        }
-      },
-      "parameters": {},
-      "requestId": "<request-2>",
-      "settledAt": "<time>",
-      "startedAt": "<time>",
-      "state": "settled"
-    }
-  },
-  {
     "scenario": "mount-stop, repeated",
     "step": 1,
     "request": "POST /v2/operations",
@@ -4814,7 +4650,7 @@
     "body": {
       "error": {
         "code": "request-error",
-        "message": "Expected { readonly \"kind\": \"capture\", ... } | { readonly \"kind\": \"camera-configure\", ... } | { readonly \"kind\": \"cooling\", ... } | { readonly \"kind\": \"focuser-move\", ... } | { readonly \"kind\": \"focuser-halt\", ... } | { readonly \"kind\": \"mount-slew\", ... } | { readonly \"kind\": \"mount-tracking\", ... } | { readonly \"kind\": \"mount-axis\", ... } | { readonly \"kind\": \"mount-rotate\", ... } | { readonly \"kind\": \"mount-home\", ... } | { readonly \"kind\": \"mount-stop\", ... } | { readonly \"kind\": \"mount-park\", ... } | { readonly \"kind\": \"mount-unpark\", ... } | { readonly \"kind\": \"switch-set\", ... } | { readonly \"kind\": \"device-connect\", ... }"
+        "message": "Expected { readonly \"kind\": \"capture\", ... } | { readonly \"kind\": \"camera-configure\", ... } | { readonly \"kind\": \"cooling\", ... } | { readonly \"kind\": \"focuser-move\", ... } | { readonly \"kind\": \"focuser-halt\", ... } | { readonly \"kind\": \"mount-slew\", ... } | { readonly \"kind\": \"mount-tracking\", ... } | { readonly \"kind\": \"mount-axis\", ... } | { readonly \"kind\": \"mount-rotate\", ... } | { readonly \"kind\": \"mount-home\", ... } | { readonly \"kind\": \"mount-stop\", ... } | { readonly \"kind\": \"switch-set\", ... } | { readonly \"kind\": \"device-connect\", ... }"
       },
       "instanceId": "<instance-1>"
     }

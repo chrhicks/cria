@@ -18,7 +18,7 @@ export const MotionCommanded = Schema.Union([
   Schema.Struct({ kind: Schema.Literal('slew'), ...sentAt, target: MotionAxes }),
   Schema.Struct({ kind: Schema.Literal('axis'), ...sentAt, ...rate }),
   Schema.Struct({ kind: Schema.Literal('rotate'), ...sentAt, ...rate, distanceDegrees: Schema.Number }),
-  Schema.Struct({ kind: Schema.Literals(['home', 'park', 'stop']), ...sentAt }),
+  Schema.Struct({ kind: Schema.Literals(['home', 'stop']), ...sentAt }),
 ])
 
 export type MotionCommanded = typeof MotionCommanded.Type

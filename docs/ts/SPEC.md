@@ -163,7 +163,7 @@ classifies the driver's first answer, as this table shows.
 | The driver answers `Alert` without having gone `Busy` | `failed: rejected` | INDI drivers refuse a bad request by setting `Alert` at once. An `Alert` already present before the send is not a rejection. |
 | The driver answers `Ok`, `Idle` or `Busy` | acknowledged; `confirm` or `stoppable` continues | The driver accepted the command. Acknowledged is not confirmed. |
 | An axis motion (`TELESCOPE_MOTION_WE`) start gets an `Idle` or `Ok` update, received after the send, that shows the requested switch still Off | `failed: rejected`, "the driver answered Idle and did not start MOTION_EAST (it stayed Off)"; nothing is stopped | The driver answered, and what it answered is that it did not start (errai's AM5 at Home answered in 41 ms, 2026-10-30; nothing moved). An update received before the send never counts, and a routine update that echoes the requested switch On is ignored like any routine update. Only axis motion starts, where a driver always answers Busy. |
-| A motion (slew, focuser move, exposure, park) gets a routine `Ok` update | ignored; keep waiting | Drivers send polled properties again several times a second. Only `Busy`, `Alert` or an update at the target answers a motion. |
+| A motion (slew, focuser move, exposure) gets a routine `Ok` update | ignored; keep waiting | Drivers send polled properties again several times a second. Only `Busy`, `Alert` or an update at the target answers a motion. |
 | A number setting settles at a different value than asked (a ZWO width rounded to a multiple of 8) | `failed: rejected`, with the value the driver chose | The device state is known, so this is not uncertainty. A value within half the element's step of the request is the request applied (the PPBA holds 10 % duty as 9.8039 %); the switch channel reports the value the driver holds. |
 | No answer before the acknowledgement deadline | `uncertain: no-acknowledgement` | It may be running. Cria never resends it. |
 
@@ -293,7 +293,7 @@ operation has no deadline field, and Vela cannot read the configured values.
 | Operation | Bound |
 |---|---|
 | Capture | The exposure plus `readoutAllowanceMs`. With no frame by then Cria aborts, and with the abort confirmed it settles `failed: unavailable`. Frames that were not this exposure settle `failed: rejected` when the camera is then idle, else `uncertain`. |
-| Motion (slew, park, home, focuser move) | `operationTimeoutMs` for the driver to finish the motion, then `failed: unavailable`. |
+| Motion (slew, home, focuser move) | `operationTimeoutMs` for the driver to finish the motion, then `failed: unavailable`. |
 | Setting | `acknowledgeMs` for the driver to answer, then up to the confirm deadline (15 s unless the kind sets its own) for the new state; `uncertain` if either passes. |
 | Stop (`mount-stop`, `focuser-halt`) and a Run's stop | `stopWithin`: 20 s for the mount and focuser, 15 s for the camera abort. A stop is confirmed from the position, not from any property's state (see "Stopping the mount"). |
 | `device-connect` | `initializeTimeoutMs` for the driver to acknowledge the connect and again for the device to read connected, then `uncertain`. Device setup follows under its own writes' bounds. |
@@ -477,7 +477,7 @@ real drivers differ, the table lists both, and the first one present wins.
 | camera `bayerPattern` | `CCD_CFA` (`CFA_OFFSET_X`, `CFA_OFFSET_Y`, `CFA_TYPE`, all text) | `mono` without `CCD_CFA`; same subframe-offset rule as .NET |
 | mount RA, Dec | `EQUATORIAL_EOD_COORD.RA/DEC`, else `EQUATORIAL_COORD` | `coordinateSystem` is `topocentric` (JNow) for the first, `j2000` for the second. Cria never converts frames. |
 | mount `slewing` | the coordinates property's state is `Busy` | |
-| mount `tracking`, `parked` | `TELESCOPE_TRACK_STATE.TRACK_ON`, `TELESCOPE_PARK.PARK` | |
+| mount `tracking` | `TELESCOPE_TRACK_STATE.TRACK_ON` | |
 | mount `pierSide` | `TELESCOPE_PIER_SIDE` | `PIER_EAST` is `east`, `PIER_WEST` is `west`, else `unknown` |
 | mount `trackingRate` | `TELESCOPE_TRACK_MODE` | `sidereal`, `lunar`, `solar`; another mode is unavailable |
 | mount rate offsets | `TELESCOPE_TRACK_RATE` | |
@@ -490,8 +490,7 @@ real drivers differ, the table lists both, and the first one present wins.
 
 Commands use the same properties: exposure `CCD_EXPOSURE`, abort
 `CCD_ABORT_EXPOSURE`, cooler `CCD_COOLER` and `CCD_TEMPERATURE`, slew
-`ON_COORD_SET=TRACK` then the coordinates, stop `TELESCOPE_ABORT_MOTION`, park
-`TELESCOPE_PARK`, home `TELESCOPE_HOME.GO`, axis motion `TELESCOPE_MOTION_WE` and
+`ON_COORD_SET=TRACK` then the coordinates, stop `TELESCOPE_ABORT_MOTION`, home `TELESCOPE_HOME.GO`, axis motion `TELESCOPE_MOTION_WE` and
 `TELESCOPE_SLEW_RATE`, focuser `ABS_FOCUS_POSITION` and `FOCUS_ABORT_MOTION`,
 connect `CONNECTION`.
 
@@ -507,7 +506,7 @@ INDI conventions Cria depends on:
   already reached (`startMotion(…, { arrived })`). The focuser simulator finishes a
   short move without going `Busy`.
 - **A mount stop is confirmed** when none of `EQUATORIAL_EOD_COORD`,
-  `EQUATORIAL_COORD`, `TELESCOPE_PARK`, `TELESCOPE_HOME`, `TELESCOPE_MOTION_WE` and
+  `EQUATORIAL_COORD`, `TELESCOPE_HOME`, `TELESCOPE_MOTION_WE` and
   `TELESCOPE_MOTION_NS` is `Busy`, and the mount stands still (see "Stopping the
   mount"). The state alone is not enough: the AM5 goes `Idle` at once and coasts.
 - **A cooling setpoint is confirmed** only by `Busy` (regulating) or `Ok` at the
@@ -641,7 +640,7 @@ requested RA travel on the current pier side, plus 4,084 arcseconds in the
 travel direction. That margin is the rounded-up worst 9x stop travel in the
 AM5 recordings. A path outside the envelope fails with reason `invalid` and
 a message naming the limit. No setting or motion command is sent on refusal.
-Home and park are exempt so they can escape an unsafe pose. Their existing
+Home is exempt so it can escape an unsafe pose. Its existing
 availability checks still apply. Stop is always exempt.
 During goto and rate moves, every new position is checked with a margin of
 `pointingErrorArcmin` plus 7.02 arcseconds per degree of physical axis travel
@@ -716,9 +715,9 @@ Where it is used:
 
 | Motion | The command | Done when |
 |---|---|---|
-| `mount-stop`, and a cancelled slew, park or home | `TELESCOPE_ABORT_MOTION` | the position has stopped |
+| `mount-stop`, and a cancelled slew or home | `TELESCOPE_ABORT_MOTION` | the position has stopped |
 | `mount-axis` and `mount-rotate` halt | `TELESCOPE_MOTION_WE` both off | the position has stopped |
-| `mount-slew`, `mount-park`, `mount-home` | the motion itself | the property leaves `Busy` (the driver says it is over), then the position has stopped since the motion was sent |
+| `mount-slew`, `mount-home` | the motion itself | the property leaves `Busy` (the driver says it is over), then the position has stopped since the motion was sent |
 
 A slew then compares where it stopped with the target: within 0.1° of it, and it
 is confirmed; elsewhere, `uncertain: not-confirmed`. That tolerance says where the
@@ -737,13 +736,13 @@ The stop is bounded by `stopWithin` (20 s): inside `stoppable` the abort is sent
 again until the position has stopped or the 20 s pass, and `mount-stop` gives up at
 20 s. A stop or abort is the only command that is ever resent: it can only stop
 motion, never start it. Unconfirmed, the outcome is `uncertain: stop-not-confirmed`,
-never `confirmed`. This covers `mount-stop`, cancelling a slew, park, home,
-`mount-axis` or `mount-rotate`, and SIGTERM. A park or home that a client stopped
+never `confirmed`. This covers `mount-stop`, cancelling a slew, home,
+`mount-axis` or `mount-rotate`, and SIGTERM. A home that a client stopped
 and whose property stays `Busy` is stopped when its position has stopped, and the
 mount is `stopped`; one whose position keeps changing stays `uncertain`,
 as does one whose position cannot be read.
 
-Starting a home, slew, park, `mount-axis` or `mount-rotate` is refused as busy
+Starting a home, slew, `mount-axis` or `mount-rotate` is refused as busy
 only when the coordinates are `Busy`.
 
 **A rotate uses a fast leg and a slow approach.** `mount-rotate` keeps its
@@ -1012,7 +1011,7 @@ Readings per kind. Values are named, not ASCOM integers:
 |---|---|
 | all | `connected` boolean, `name` string |
 | camera | `activity` `'idle' \| 'exposing'`; `temperatureC`, `setpointC` (unsupported), `coolerOn`, `coolerPowerPercent`; `sensorWidthPixels`, `sensorHeightPixels`, `pixelWidthMicrons`, `pixelHeightMicrons`, `binX`, `binY`, `width`, `height`, `startX`, `startY` (binned), `maxBinX`, `maxBinY`; `bayerPattern` `'mono' \| 'rggb' \| 'grbg' \| 'gbrg' \| 'bggr'`; `canAbortExposure`, `canSetTemperature`, `canGetCoolerPower`; `exposureMinimum`, `exposureMaximum`; `gain`, `gainMinimum`, `gainMaximum`, `offset`, `offsetMinimum`, `offsetMaximum` |
-| mount | `rightAscensionHours`, `declinationDegrees`, `siderealTimeHours`; `slewing`, `tracking`, `parked`; `trackingRate` `'sidereal' \| 'lunar' \| 'solar'`; `rightAscensionRateSecondsPerSiderealSecond`, `declinationRateArcsecondsPerSecond`; `pierSide` `'east' \| 'west' \| 'unknown'`; `coordinateSystem` `'topocentric' \| 'j2000'`; `latitudeDegrees`, `longitudeDegrees` (east positive), `elevationMeters`; `canSlew`, `canSetTracking`, `canFindHome`, `canPark`, `canUnpark`, `canMovePrimaryAxis`; `primaryAxisRates` `Array<{ name, degreesPerSecond }>` |
+| mount | `rightAscensionHours`, `declinationDegrees`, `siderealTimeHours`; `slewing`, `tracking`; `trackingRate` `'sidereal' \| 'lunar' \| 'solar'`; `rightAscensionRateSecondsPerSiderealSecond`, `declinationRateArcsecondsPerSecond`; `pierSide` `'east' \| 'west' \| 'unknown'`; `coordinateSystem` `'topocentric' \| 'j2000'`; `latitudeDegrees`, `longitudeDegrees` (east positive), `elevationMeters`; `canSlew`, `canSetTracking`, `canFindHome`, `canPark`, `canUnpark`, `canMovePrimaryAxis`; `primaryAxisRates` `Array<{ name, degreesPerSecond }>` |
 | focuser | `position`, `moving`, `temperatureC`, `absolute`, `minStep`, `maxStep` (the usable window; both ends allowed except `maxStep` at the driver's top; see "The focuser travel window") |
 | weather | `temperatureC`, `humidityPercent`, `dewPointC`, `pressureHpa`, `skyTemperatureC`, `cloudCoverPercent`, `rainRateMmPerHour`, `windSpeedMps`, `windGustMps` |
 | switch | `channelCount`; per channel `id`, `name`, `writable`, `minimum`, `maximum`, `step`, `on`, `value` |
@@ -1125,7 +1124,7 @@ with RA wrapped to [-180, 180). Missing observations are null. This is displacem
 between readings, not a sum of the path or a claim of movement before the first reading.
 `stopped.how` is `arrived`, `halted`, `aborted`, or `uncertain`. `stopped.at` records when
 the step 17 stopped rule fired. An unconfirmed stop has null final position, travel and
-time. Refused commands and a park that was already parked have no motion record.
+time. Refused commands have no motion record.
 Limit stops will be added with the envelope work. Peak rate is not computed here.
 
 This is additive within protocol 5. Vela's pinned runtime decoder accepts unknown
@@ -1509,7 +1508,7 @@ real time, not scaled.
   holds is treated as the driver's answer to a `getProperties`: it changes only
   values that differ.
 - Writes that would move hardware get `Alert` "not in this recording" and are
-  not echoed: a mount goto, park, home and axis motion, a focuser move, and an
+  not echoed: a mount goto, home and axis motion, a focuser move, and an
   exposure on any camera but the one replayed. A stop or abort
   (`TELESCOPE_ABORT_MOTION`, `FOCUS_ABORT_MOTION`, `CCD_ABORT_EXPOSURE`) is
   confirmed: the motion properties that were `Busy` go `Idle` and the request
@@ -1776,7 +1775,7 @@ Gaps that need a decision:
 2. **The AM5's clock is not set.** Resolved: device setup writes the site and the
    system clock's UTC after the mount connects (see "Device setup").
 3. **No pier side.** Both `TELESCOPE_PIER_SIDE` switches are Off at the pole, so
-   Cria reports `unknown`. Check again after unparking and slewing.
+   Cria reports `unknown`. Check again after slewing.
 4. **EAF travel disagrees with itself.** Resolved: `FOCUS_MAX` is 100000, but
    `ABS_FOCUS_POSITION` allows at most 60000, and the tube is safe only from
    15500 to 38000 (Chris, 2026-10-15). Cria reports the smaller limits and

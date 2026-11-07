@@ -171,7 +171,7 @@ export function pegasusDew(options: { overrideMs: number }): Behaviour {
 }
 
 /**
- * Mount behaviour: a slew, park or home goes Busy and stays Busy until `finishAfterMs`
+ * Mount behaviour: a slew or home goes Busy and stays Busy until `finishAfterMs`
  * (never, by default); abort stops whatever moves unless `ignoreAbortFor` names it.
  */
 export function moveMount(options: { finishAfterMs?: number; ignoreAbortFor?: string } = {}): Behaviour {

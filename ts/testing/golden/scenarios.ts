@@ -425,14 +425,6 @@ export const scenarios: ReadonlyArray<Scenario> = [
     },
   },
   {
-    name: 'mount-park, then mount-unpark',
-    devices: ['mount'],
-    run: async g => {
-      await runAndSettle(g, 'mount', 'mount-park', {})
-      await runAndSettle(g, 'mount', 'mount-unpark', {})
-    },
-  },
-  {
     name: 'mount-stop, repeated',
     devices: ['mount'],
     run: async g => {
