@@ -27,7 +27,6 @@ The suite asserts literal values. Scenario tests wait for a state with a deadlin
 | Wire schemas and the ledger | `packages/cria-wire/src/*.test.ts`, `apps/cria/src/operation/*.test.ts` | Every protocol 5 schema on literal inputs, and every ledger transition |
 | Wire and image boundaries | `apps/cria/src/wire/sse.test.ts`, `packages/fits/src/*.test.ts`, `apps/cria/src/image/*.test.ts` | The event stream's cadence, coalescing and subscriber limits, the FITS to ImageBytes conversion, and the rolling image store |
 | Fake INDI server | `packages/fake-indi` (the server), `apps/cria/test/drivers.ts` (the rig's drivers on it) and the scenario tests beside them | Failures a simulator cannot produce: a driver that never acknowledges, a stop that never confirms, a dropped connection, a driver that disappears. Also the HTTP refusals, and SIGTERM during a slew aborting the mount before the process exits |
-| indi-replay | `packages/indi-replay/src/*.test.ts` (against raw TCP clients and a hand-driven clock), `testing/replay.test.ts` (the real Cria on a recording the simulators made) | The tape loader, the exposure machine, writes and pins, stops and refusals, the frame cursor and sidereal time, each fault; the real Cria's captures matching the recorded ImageBytes digests, the hour angle, abort, the end of the recording and liveness |
 | INDI simulators | `apps/cria/test/simulators.test.ts`, started by `testing/indiserver.ts` | Capture and download, cancel mid-exposure, focuser moves, slews and tracking against real INDI drivers |
 | errai, replayed | `apps/cria/test/errai.test.ts` | Cria running `deploy/rig.errai.json` against the real drivers' recorded definitions (`apps/cria/test/fixtures/errai-2026-10-15.xml`) |
 | Source rules | `testing/lint.test.ts` | Catches, `try`, `.catch(`, `Date.now()` and timers appear only at counted, reasoned sites, and `verify.sh` stays strict and pipe-free |
@@ -35,12 +34,11 @@ The suite asserts literal values. Scenario tests wait for a state with a deadlin
 
 To run the suite without the other stages, run `pnpm test` in `ts/`. It starts its own `indiserver` processes on free ports.
 
-## Keep the fake and the replay the same as indiserver
+## Keep the fake the same as indiserver
 
-`packages/fake-indi` and `packages/indi-replay` stand in for `indiserver`, so what they deliver is measured against the real one, not assumed. Python scripts under `packages/fake-indi/measure/` and `packages/indi-replay/measure/` start a real `indiserver` (libindi 2.2.5) on a free loopback port with the INDI simulators (CCD, focuser, telescope, weather) or with a scripted driver, connect clients, and write what each client received into a JSON file under `src/`. The tests replay the same steps against the fake or the replay and compare. The files are committed, so CI needs no libindi; re-run a script after a libindi upgrade or when a new case needs measuring (each script's header says how).
+`packages/fake-indi` stands in for `indiserver`, so what it delivers is measured against the real one, not assumed. Python scripts under `packages/fake-indi/measure/` start a real `indiserver` (libindi 2.2.5) on a free loopback port with the INDI simulators (CCD, focuser, telescope, weather) or with a scripted driver, connect clients, and write what each client received into a JSON file under `src/`. The tests replay the same steps against the fake and compare. The files are committed, so CI needs no libindi; re-run a script after a libindi upgrade or when a new case needs measuring (each script's header says how).
 
 - `measure-routing.py` and `measure-blob-scope.py` (fake): which clients each kind of driver output reaches, for every client setup and every sequence of up to three `getProperties` and `enableBLOB` commands over two devices, and exactly what they receive, `message` attributes and standalone `<message>` elements included.
-- `measure-definitions.py` (replay): three observers' view of the four simulators through a recorded session that includes writes the drivers reject, a limit change and a device disconnecting and connecting, and through clients that write numbers outside their limits and switch vectors that break their rule, and ask for the telescope again (a driver may set a property inside its answer). `equivalence.test.ts` compares every attribute and value of every element the replay delivers with the real ones, and then feeds both to Cria's own client and compares what it sees. Anything not compared is named in the test, with the reason.
 
 ## Cases from recorded failures
 

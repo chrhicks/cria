@@ -4,8 +4,6 @@ import { mkdir, mkdtemp, readFile, readdir, rename, rm, symlink, utimes, writeFi
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { loadTape, synthesizeTape } from '../packages/indi-replay/src/index.js'
-import { verifyRecording } from '../packages/recording/src/index.js'
 // @ts-expect-error plain ESM script with JSDoc types, not part of a TypeScript project
 import { defaults, planPrune, prune, readRecordConfig, writeStatus } from '../deploy/recording-prune.mjs'
 
@@ -379,27 +377,6 @@ describe('the keep marker', () => {
 
   afterEach(async () => {
     await rm(directory, { recursive: true, force: true })
-  })
-
-  it('does not break verifyRecording or loadTape', async () => {
-    const folder = await synthesizeTape(
-      {
-        sensor: { width: 160, height: 128 },
-        exposureSeconds: 2,
-        stars: [6, 6, 0],
-        site: { latitudeDegrees: 33.45, longitudeDegrees: -112.07 },
-        startAt: Date.UTC(2026, 2, 1, 4, 0, 0),
-        pointing: { raHours: 3, decDegrees: 30 },
-      },
-      join(directory, 'tape'),
-    )
-    const before = await verifyRecording(folder)
-
-    await writeFile(join(folder, 'keep'), 'a night worth keeping\n')
-
-    expect(before.valid).toBe(true)
-    expect(await verifyRecording(folder)).toEqual(before)
-    expect((await loadTape(folder)).events.length).toBeGreaterThan(0)
   })
 
   it('leaves the script runnable from the command line in dry-run', async () => {

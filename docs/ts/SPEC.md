@@ -898,7 +898,7 @@ not a focuser.
 
 Cria can record every element it sends to and receives from `indiserver`, so a
 night can be replayed and queried later. It is off unless the config has
-`record`. The packager and replay that read these recordings are separate
+`record`. Anything that reads these recordings is separate
 programs; Cria only writes. A recording is a diagnostic copy of what Cria saw,
 not custody: no operation, request, response or Vela image depends on it, the
 rolling image set is unchanged, and Cria owes Vela nothing about it.
@@ -1001,102 +1001,6 @@ rename it), so a reader sees the old list or the new one.
   stops between writing the list and deleting the file leaves exactly this. The
   file wins: readers use the image and report the path as still present.
 - A listed path that no `msg` line names is ignored.
-
-## Replay
-
-`indi-replay` (`ts/packages/indi-replay`) serves a recording over TCP the way
-`indiserver` does, so the real Cria runs a recorded night against files. It
-touches no equipment and needs no `indiserver`: it is built on `@cria/fake-indi`
-and parses the recording's wire text with its own parser, independent of
-`@cria/indi`. Vela's scenarios start it beside Cria; nothing in Cria changes.
-
-```sh
-indi-replay serve <recording> [--port N] [--camera NAME] [--from K] [--to K] [--faults faults.json]
-indi-replay synthesize <spec.json> <folder>      # a made-up recording, see below
-```
-
-`serve` loads and verifies the whole recording first (a damaged one fails there,
-not mid-night), listens on the loopback interface and prints
-`listening on 127.0.0.1:<port>`. It stops on SIGTERM. In a process,
-`loadTape(folder)` and `startReplay(tape, options)` do the same.
-
-**One camera's frames are the clock.** Replay serves the frames of one camera
-(`CCD1`; by default the one with most frames, else `--camera`) in recorded
-order. Reserving frame *k* brings every property to what the drivers had said
-by the time frame *k* arrived: mount, the power box and the camera's other
-properties jump together. Between frames nothing moves. What is not astronomy
-(how long an exposure takes, how long a fault lasts, timeouts) is
-real time, not scaled.
-
-**Discovery and writes.**
-
-- Every `getProperties` is answered from current values, for the whole
-  connection.
-- A client write is echoed (`Ok`) and honours the property's switch rule. The
-  property then belongs to that write for the rest of the replay: later recorded
-  updates to it are ignored. A recorded definition of a property replay already
-  holds is treated as the driver's answer to a `getProperties`: it changes only
-  values that differ.
-- Writes that would move hardware get `Alert` "not in this recording" and are
-  not echoed: a mount goto, home and axis motion, a focuser move, and an
-  exposure on any camera but the one replayed. A stop or abort
-  (`TELESCOPE_ABORT_MOTION`, `FOCUS_ABORT_MOTION`, `CCD_ABORT_EXPOSURE`) is
-  confirmed: the motion properties that were `Busy` go `Idle` and the request
-  answers `Ok`.
-- `enableBLOB` is per client, per device or property. An image goes only to a
-  client that enabled it, written in chunks that wait for the socket.
-
-**An exposure.** Replay checks the camera's geometry (`CCD_FRAME` over
-`CCD_BINNING`, the size of the image Cria receives) against the next source
-frame. A mismatch is `Alert` naming both sizes, and the frame is not used up.
-Otherwise it reserves the frame, brings the rig to that frame's time, goes
-`Busy`, waits the requested time, then sends the frame with `EXPTIME` and
-`DATE-OBS` rewritten in a copied header (`CHECKSUM` and `DATASUM` dropped, the
-pixels untouched) and reports `Ok`. Cria matches a frame to its exposure by those
-two cards, so the recorded values would be skipped as someone else's frame. An
-abort cancels the exposure: no late image is sent, the camera goes `Idle`, and
-the reserved frame stays used. After the last frame, a further exposure gets
-`Busy` then `Alert` "end of recording". `Busy` first, because Cria ignores an
-`Alert` that was already there before its command.
-
-**A pruned frame** (see "Pruned frames") keeps its place in the order. Replay
-reserves it like any frame: the rig jumps to its time, the camera goes `Busy` for
-the requested time, and then `CCD_EXPOSURE` goes `Alert` with a message naming the
-frame and its reason, and no image is sent. The cursor moves on, so the next
-exposure gets the next frame. The geometry check is skipped, because the image
-that held the size is gone. Replay does not skip the frame, which would hand Cria
-a later frame at an earlier frame's time and move every later frame's rig state.
-It does not send a blank image either, because it would be invented pixels of an
-unknown size; "nothing is simulated beyond what the recording holds". Cria sees a
-failed exposure on an idle camera, as it would from a camera that lost a frame.
-`loadTape` still fails on a recording with unlisted missing images or a malformed
-list.
-
-**Sidereal time.** If the recording's mount has no `TIME_LST`, replay defines one
-before any client connects and updates it with each frame, from the frame's
-recorded time and the recorded `GEOGRAPHIC_COORD` longitude. A site Cria writes
-is echoed but does not change it. Cria does not read `TIME_LST`: it computes
-sidereal time from the clock and the site longitude, so the hour angle it reports
-follows the clock, not the recording. `testing/replay.test.ts` checks the replay's
-formula against Cria's own.
-
-**Faults** start at a source frame and last real time (`--faults`, or the
-`faults` option): `blank` (frames arrive with every pixel equal), `set` (a
-property takes values and keeps them), `silent` (a device sends nothing and
-answers no `getProperties` for `forMs`) and `disconnect` (every connection is
-closed and new ones refused for `forMs`). Each starts `before-exposure`, or
-`before-blob` to fail during the exposure.
-
-**`synthesizeTape`** (`indi-replay synthesize`) writes a recording in the real
-format with small frames, a made-up site and a camera, a mount and optionally a
-focuser from `@cria/fake-indi`. Committed scenarios use only these, so no real
-coordinates enter the repository. Each frame holds the number of stars it is
-asked for: Gaussians with a sigma of 2 pixels on a grid 32 pixels apart, 24
-pixels from the edge (12 on a 160x128 sensor, which `starCapacity` computes), so
-a star-measuring client such as Vela finds each one isolated and whole. The
-mount tracks over the frames `tracking` names and drifts at the sidereal rate
-outside them; `pierSide` adds `TELESCOPE_PIER_SIDE`, which is absent otherwise.
-It holds no `op` lines.
 
 ## Restarts and crashes
 

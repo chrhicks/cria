@@ -440,7 +440,7 @@ function news(client: Client): string {
 
 const defined = (client: Client, name: string) => client.text().split(`<defSwitchVector device="Mount" name="${name}"`).length - 1
 
-describe('who hears what, as indiserver 2.2.5 delivers it (measured: indi-replay/measure/measure-definitions.py)', () => {
+describe('who hears what, as indiserver 2.2.5 delivers it (measured against indiserver 2.2.5)', () => {
   beforeEach(() => {
     fake.define({ device: 'Mount', name: 'TELESCOPE_HOME', kind: 'switch', perm: 'rw', rule: 'AtMostOne', state: 'Idle', elements: { GO: { value: false } } })
   })
