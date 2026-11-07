@@ -4,8 +4,7 @@
  *
  * INDI's XML is a small, flat dialect: a stream of top-level elements with no
  * namespaces, CDATA or DTDs. The framer finds whole top-level elements in the
- * bytes; BLOB payloads (tens of megabytes of base64) are decoded straight from
- * the byte buffer, never assembled into intermediate strings chunk by chunk.
+ * bytes. A `setBLOBVector` is framed and skipped: Cria never asks for BLOBs.
  */
 import { isUtf8 } from 'node:buffer'
 
@@ -25,7 +24,6 @@ export type ElementUpdate =
   | { readonly kind: 'switch'; readonly name: string; readonly on: boolean }
   | { readonly kind: 'text'; readonly name: string; readonly value: string }
   | { readonly kind: 'light'; readonly name: string; readonly state: PropertyState }
-  | { readonly kind: 'blob'; readonly name: string; readonly format: string; readonly size: number; readonly data: Buffer }
 
 export interface VectorDefinition {
   readonly device: string
@@ -41,7 +39,7 @@ export interface VectorDefinition {
 export interface VectorUpdate {
   readonly device: string
   readonly name: string
-  readonly kind: PropertyKind
+  readonly kind: Exclude<PropertyKind, 'blob'>
   readonly state?: PropertyState
   readonly message?: string
   readonly elements: ReadonlyArray<ElementUpdate>
@@ -78,7 +76,7 @@ export interface ProtocolProblem {
   readonly device?: string
   readonly name?: string
   readonly utf8: boolean
-  /** At most `excerptChars` of the element, control characters escaped, a BLOB payload never included. */
+  /** At most `excerptChars` of the element, control characters escaped. */
   readonly excerpt: string
   readonly bytes: number
 }
@@ -93,10 +91,7 @@ const excerptChars = 200
 /** A problem is described from the first `inspectedBytes` of the element, however big it is or how much is buffered. */
 const inspectedBytes = 4096
 
-/**
- * Accumulates bytes and yields complete top-level elements. Grows its buffer
- * geometrically so a 70 MB BLOB arriving in 64 KB chunks costs linear time.
- */
+/** Accumulates bytes and yields complete top-level elements. Grows its buffer geometrically. */
 export class IndiFramer {
   private buffer = Buffer.allocUnsafe(1 << 16)
   private length = 0
@@ -113,10 +108,7 @@ export class IndiFramer {
     return this.frame(chunk, false).elements.flatMap(element => (element.message ? [element.message] : []))
   }
 
-  /**
-   * Like `push`, and keeps every element, the ignored and the bad ones too, with its wire
-   * text and BLOB payloads. For the traffic tap; `push` costs none of this.
-   */
+  /** Like `push`, and keeps every element, the ignored and the bad ones too, with its wire text. For the traffic tap; `push` costs none of this. */
   pushFramed(chunk: Buffer): FramedElement[] {
     return this.frame(chunk, true).elements
   }
@@ -266,7 +258,7 @@ export class IndiFramer {
     this.declarationFrom = Math.max(0, this.declarationFrom - this.start)
     this.start = 0
 
-    // After a 70 MB BLOB the buffer would stay that big; give it back when idle.
+    // After a large element the buffer would stay that big; give it back when idle.
     if (this.buffer.length > 4 * 1024 * 1024 && this.length < 64 * 1024) {
       const smaller = Buffer.allocUnsafe(1 << 16)
 
@@ -283,8 +275,6 @@ export interface FramedElement {
   readonly problem?: ProtocolProblem
   /** The element's wire text with each BLOB payload removed: `<oneBLOB name="CCD1" size="9" format=".fits"/>`. */
   readonly xml: string
-  /** The decoded payload of each elided `oneBLOB`, in document order. */
-  readonly blobs: ReadonlyArray<Buffer>
 }
 
 function frameElement(element: Buffer, keepText: boolean): FramedElement {
@@ -298,16 +288,8 @@ function frameElement(element: Buffer, keepText: boolean): FramedElement {
     problem = describeProblem(error, element)
   }
 
-  // The recording keeps what was on the wire, so a payload is kept whether or not its vector validated: when it
-  // did, the parser already decoded it; when it did not, decode it here (the one cost of a bad BLOB).
-  const elided = keepText ? elideBlobs(element, message === undefined) : undefined
 
-  return {
-    message,
-    ...(problem ? { problem } : {}),
-    xml: elided?.xml ?? '',
-    blobs: message ? blobsOf(message) : (elided?.blobs ?? []),
-  }
+  return { message, ...(problem ? { problem } : {}), xml: keepText ? elideBlobs(element) : '' }
 }
 
 /** The error path only: where the bad bytes are from and a bounded look at them. */
@@ -321,8 +303,7 @@ function describeProblem(error: IndiProtocolError, element: Buffer): ProtocolPro
   const header = bytes.toString('utf8', 0, headerEnd < 0 ? bytes.length : headerEnd)
   const tag = /^\s*<([A-Za-z]\w*)/.exec(header)?.[1] ?? ''
   const attributes = parseAttributes(/^\s*<[A-Za-z]\w*([^>]*)/.exec(header)?.[1] ?? '')
-  // The payload of a BLOB is base64 of an image: never part of what is shown.
-  const text = tag === 'setBLOBVector' ? elideBlobs(bytes, false, bytes.length < element.length).xml : bytes.toString('utf8', 0, excerptChars * 4)
+  const text = bytes.toString('utf8', 0, excerptChars * 4)
   const escaped = JSON.stringify(text.slice(0, excerptChars)).slice(1, -1)
 
   return {
@@ -348,21 +329,9 @@ function leading(element: Buffer): Buffer {
   return element.subarray(0, end)
 }
 
-function blobsOf(message: IndiMessage | undefined): Buffer[] {
-  if (message?.type !== 'set' || message.vector.kind !== 'blob') return []
-
-  return message.vector.elements.flatMap(element => (element.kind === 'blob' ? [element.data] : []))
-}
-
-/**
- * Pure: `element` as text with each `oneBLOB` payload dropped, and, if `decode`, those payloads decoded as
- * `parseBlobVector` does (an empty one for a `oneBLOB` with no payload). Walks the bytes the way it does.
- * `prefix`: `element` is only the start of one, so a payload that begins but does not end in it is dropped too.
- */
-function elideBlobs(element: Buffer, decode: boolean, prefix = false): { readonly xml: string; readonly blobs: Buffer[] } {
-  const blobs: Buffer[] = []
-
-  if (!element.toString('latin1', 0, 14).startsWith('<setBLOBVector')) return { xml: element.toString('utf8'), blobs }
+/** `element` as text with each `oneBLOB` payload dropped. */
+function elideBlobs(element: Buffer): string {
+  if (!element.toString('latin1', 0, 14).startsWith('<setBLOBVector')) return element.toString('utf8')
 
   const parts: string[] = []
   let kept = 0
@@ -376,20 +345,10 @@ function elideBlobs(element: Buffer, decode: boolean, prefix = false): { readonl
 
     if (openEnd < 0) break
     from = openEnd + 1
-    if (element[openEnd - 1] === SLASH) {
-      if (decode) blobs.push(Buffer.alloc(0))
-      continue
-    }
+    if (element[openEnd - 1] === SLASH) continue
     const close = element.indexOf('</oneBLOB>', openEnd)
 
-    if (close < 0) {
-      if (prefix) {
-        parts.push(element.toString('utf8', kept, openEnd), '/>')
-        kept = element.length
-      }
-      break
-    }
-    if (decode) blobs.push(Buffer.from(element.toString('latin1', openEnd + 1, close), 'base64'))
+    if (close < 0) break
     parts.push(element.toString('utf8', kept, openEnd), '/>')
     kept = close + 10
     from = kept
@@ -397,7 +356,7 @@ function elideBlobs(element: Buffer, decode: boolean, prefix = false): { readonl
 
   parts.push(element.toString('utf8', kept))
 
-  return { xml: parts.join(''), blobs }
+  return parts.join('')
 }
 
 // ---------------------------------------------------------------- parsing
@@ -412,7 +371,7 @@ interface Node {
 function parseElement(bytes: Buffer): IndiMessage | undefined {
   const tag = /^<([A-Za-z]\w*)/.exec(bytes.toString('latin1', 0, 64))?.[1] ?? ''
 
-  if (tag === 'setBLOBVector') return parseBlobVector(bytes)
+  if (tag === 'setBLOBVector') return undefined
 
   const node = parseTree(bytes.toString('utf8'))
 
@@ -535,23 +494,16 @@ function decodeEntities(text: string): string {
   })
 }
 
-const vectorKinds: Record<string, PropertyKind> = {
-  Number: 'number',
-  Switch: 'switch',
-  Text: 'text',
-  Light: 'light',
-  BLOB: 'blob',
-}
+const updateKinds = { Number: 'number', Switch: 'switch', Text: 'text', Light: 'light' } as const
+const definitionKinds = { ...updateKinds, BLOB: 'blob' } as const
 
 function toMessage(node: Node): IndiMessage | undefined {
   const a = node.attributes
-  const vector = /^(def|set)(Number|Switch|Text|Light|BLOB)Vector$/.exec(node.tag)
+  const definition = /^def(Number|Switch|Text|Light|BLOB)Vector$/.exec(node.tag)
+  const update = /^set(Number|Switch|Text|Light)Vector$/.exec(node.tag)
 
-  if (vector) {
-    const kind = vectorKinds[vector[2]!]!
-
-    return vector[1] === 'def' ? { type: 'def', vector: toDefinition(node, kind) } : { type: 'set', vector: toUpdate(node, kind) }
-  }
+  if (definition) return { type: 'def', vector: toDefinition(node, definitionKinds[definition[1] as keyof typeof definitionKinds]) }
+  if (update) return { type: 'set', vector: toUpdate(node, updateKinds[update[1] as keyof typeof updateKinds]) }
 
   switch (node.tag) {
     case 'delProperty':
@@ -612,7 +564,7 @@ function toElementDefinition(node: Node, kind: PropertyKind): ElementDefinition 
   }
 }
 
-function toUpdate(node: Node, kind: PropertyKind): VectorUpdate {
+function toUpdate(node: Node, kind: Exclude<PropertyKind, 'blob'>): VectorUpdate {
   const a = node.attributes
   const elements: ElementUpdate[] = node.children.map(child => {
     const name = identity(child.attributes, 'name')
@@ -636,8 +588,6 @@ function toUpdate(node: Node, kind: PropertyKind): VectorUpdate {
         return { kind, name, value: text }
       case 'light':
         return { kind, name, state: parseState(text) }
-      case 'blob':
-        throw new IndiProtocolError('BLOB vectors are parsed separately')
     }
   })
 
@@ -648,51 +598,6 @@ function toUpdate(node: Node, kind: PropertyKind): VectorUpdate {
     ...(a.state === undefined ? {} : { state: parseState(a.state) }),
     ...(a.message === undefined ? {} : { message: a.message }),
     elements,
-  }
-}
-
-/** Parses setBLOBVector from bytes, decoding each payload without a full-element string. */
-function parseBlobVector(bytes: Buffer): IndiMessage | undefined {
-  const headerEnd = bytes.indexOf(GT)
-  const header = parseAttributes(bytes.toString('utf8', 0, headerEnd))
-
-  const elements: ElementUpdate[] = []
-  let at = headerEnd
-
-  while (true) {
-    const open = bytes.indexOf('<oneBLOB', at)
-
-    if (open < 0) break
-    const openEnd = bytes.indexOf(GT, open)
-    const attributes = parseAttributes(bytes.toString('utf8', open + 8, openEnd))
-
-    if (bytes[openEnd - 1] === SLASH) {
-      elements.push({ kind: 'blob', name: identity(attributes, 'name'), format: attributes.format ?? '', size: 0, data: Buffer.alloc(0) })
-      at = openEnd + 1
-      continue
-    }
-
-    const close = bytes.indexOf('</oneBLOB>', openEnd)
-
-    if (close < 0) throw new IndiProtocolError('Unterminated oneBLOB', 'stream')
-    // Node's base64 decoder skips the line breaks INDI inserts.
-    const data = Buffer.from(bytes.toString('latin1', openEnd + 1, close), 'base64')
-    const size = Number(attributes.size ?? data.length)
-
-    elements.push({ kind: 'blob', name: identity(attributes, 'name'), format: attributes.format ?? '', size, data })
-    at = close + 10
-  }
-
-  return {
-    type: 'set',
-    vector: {
-      device: identity(header, 'device'),
-      name: identity(header, 'name'),
-      kind: 'blob',
-      ...(header.state === undefined ? {} : { state: parseState(header.state) }),
-      ...(header.message === undefined ? {} : { message: header.message }),
-      elements,
-    },
   }
 }
 
@@ -746,11 +651,8 @@ export function parseNumber(text: string): number {
 
 // ---------------------------------------------------------------- requests
 
-export type BlobMode = 'Never' | 'Also' | 'Only'
-
 export type IndiRequest =
   | { readonly type: 'getProperties'; readonly device?: string; readonly name?: string }
-  | { readonly type: 'enableBLOB'; readonly device: string; readonly name?: string; readonly mode: BlobMode }
   | { readonly type: 'new'; readonly kind: 'number' | 'switch' | 'text'; readonly device: string; readonly name: string; readonly values: Readonly<Record<string, number | boolean | string>> }
   | { readonly type: 'pingReply'; readonly uid: string }
 
@@ -758,8 +660,6 @@ export function serialize(request: IndiRequest): string {
   switch (request.type) {
     case 'getProperties':
       return `<getProperties version="1.7"${attribute('device', request.device)}${attribute('name', request.name)}/>\n`
-    case 'enableBLOB':
-      return `<enableBLOB${attribute('device', request.device)}${attribute('name', request.name)}>${request.mode}</enableBLOB>\n`
     case 'pingReply':
       return `<pingReply${attribute('uid', request.uid)}/>\n`
     case 'new': {

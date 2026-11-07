@@ -70,15 +70,10 @@ describe('what the framer and parser do with unexpected input', () => {
     expect(elements[0]!.problem).toMatchObject({ tag: 'setNumberVector', device: 'Test Mount', name: 'COORDS', utf8: true })
   })
 
-  it('shows at most a short excerpt, with control characters escaped and no BLOB payload', () => {
+  it('shows at most a short excerpt, with control characters escaped', () => {
     const long = frame(text(`${'x'.repeat(5000)}\u0007`)).elements[0]!
-    const blob = frame(`<setBLOBVector device="D" name="CCD1" state="Broken"><oneBLOB name="CCD1" size="9" format=".fits">${'QUJD'.repeat(500)}</oneBLOB></setBLOBVector>`).elements[0]!
 
     expect(long.problem).toBeUndefined()
-    expect(blob.problem?.reason).toMatch(/Unknown INDI state/)
-    expect(blob.problem!.excerpt).not.toContain('QUJD')
-    expect(blob.problem!.excerpt.length).toBeLessThan(260)
-    expect(blob.xml).toBe('<setBLOBVector device="D" name="CCD1" state="Broken"><oneBLOB name="CCD1" size="9" format=".fits"/></setBLOBVector>')
     const junk = frame(`<defTextVector device="D" name="N" state="Nope" perm="ro">${'y'.repeat(5000)}\u0007</defTextVector>`).elements[0]!.problem!
 
     expect(junk.excerpt.length).toBeLessThan(260)
@@ -86,39 +81,16 @@ describe('what the framer and parser do with unexpected input', () => {
     expect(junk.bytes).toBeGreaterThan(5000)
   })
 
-  it('keeps every BLOB payload for the recording, whether or not the vector validates', () => {
-    const payload = Buffer.from('ABC')
-    const vector = (state: string, body: string) => `<setBLOBVector device="D" name="CCD1" state="${state}">${body}</setBLOBVector>`
-    const one = `<oneBLOB name="CCD1" size="3" format=".fits">${payload.toString('base64')}</oneBLOB>`
-    const empty = '<oneBLOB name="CCD2" size="0" format=".fits"/>'
-
-    const bad = frame(vector('Broken', one)).elements[0]!
-    const mixed = frame(vector('Broken', `${one}${empty}${one}`)).elements[0]!
-    const valid = frame(vector('Ok', `${one}${empty}${one}`)).elements[0]!
-
-    expect(bad.problem).toBeDefined()
-    expect(bad.blobs).toEqual([payload])
-    expect(bad.xml).toBe(vector('Broken', '<oneBLOB name="CCD1" size="3" format=".fits"/>'))
-    // The same payloads in the same positions as a vector that validates.
-    expect(mixed.blobs).toEqual(valid.blobs)
-    expect(valid.blobs.map(blob => blob.length)).toEqual([3, 0, 3])
-  })
-
-  it('keeps a large valid BLOB byte for byte, and a bad one too', () => {
+  it('frames a large BLOB vector split into chunks as one skipped element without its payload', () => {
     const image = Buffer.alloc(3 * 1024 * 1024)
 
     for (let i = 0; i < image.length; i += 1) image[i] = (i * 31 + (i >> 8)) & 0xff
-    const wire = (state: string) => `<setBLOBVector device="D" name="CCD1" state="${state}"><oneBLOB name="CCD1" size="${image.length}" format=".fits">${image.toString('base64')}</oneBLOB></setBLOBVector>`
-    const chunks = (text: string) => Array.from({ length: Math.ceil(text.length / 65536) }, (_, i) => Buffer.from(text.slice(i * 65536, (i + 1) * 65536)))
+    const wire = `<setBLOBVector device="D" name="CCD1" state="Ok"><oneBLOB name="CCD1" size="${image.length}" format=".fits">${image.toString('base64')}</oneBLOB></setBLOBVector><message message="after"/>`
+    const framer = new IndiFramer()
+    const elements = Array.from({ length: Math.ceil(wire.length / 65536) }, (_, i) => Buffer.from(wire.slice(i * 65536, (i + 1) * 65536))).flatMap(chunk => framer.pushFramed(chunk))
 
-    for (const state of ['Ok', 'Broken']) {
-      const framer = new IndiFramer()
-      const elements = chunks(wire(state)).flatMap(chunk => framer.pushFramed(chunk))
-
-      expect(elements).toHaveLength(1)
-      expect(Buffer.compare(elements[0]!.blobs[0]!, image)).toBe(0)
-      expect(elements[0]!.xml).toBe(`<setBLOBVector device="D" name="CCD1" state="${state}"><oneBLOB name="CCD1" size="${image.length}" format=".fits"/></setBLOBVector>`)
-    }
+    expect(elements.map(element => [element.message?.type, element.problem])).toEqual([[undefined, undefined], ['message', undefined]])
+    expect(elements[0]!.xml).toBe(`<setBLOBVector device="D" name="CCD1" state="Ok"><oneBLOB name="CCD1" size="${image.length}" format=".fits"/></setBLOBVector>`)
   })
 
   it('reads invalid UTF-8 as replacement characters without failing, and says so when it is part of a bad element', () => {
@@ -319,19 +291,15 @@ describe('the client when indiserver sends something unexpected', () => {
     )
   }
 
-  it('hands the recording the payload of a BLOB vector it could not validate, and keeps the connection', async () => {
-    await session(async ({ warnings, tapped, closed, socket }) => {
+  it('skips a BLOB vector without a warning, hands the recording its wire text without the payload, and keeps reading', async () => {
+    await session(async ({ warnings, tapped, closed, socket, property }) => {
       const first = await socket(1)
 
-      first.write('<setBLOBVector device="Test Focuser" name="CCD1" state="Broken"><oneBLOB name="CCD1" size="3" format=".fits">QUJD</oneBLOB></setBLOBVector>')
-      await until(() => tapped.some(message => message.dir === 'in'))
+      first.write(`<setBLOBVector device="Test Focuser" name="CCD1" state="Ok"><oneBLOB name="CCD1" size="3" format=".fits">QUJD</oneBLOB></setBLOBVector>${good()}`)
+      await until(() => property('POSITION') !== undefined)
 
-      const message = tapped.find(item => item.dir === 'in')!
-
-      expect(message.xml).toBe('<setBLOBVector device="Test Focuser" name="CCD1" state="Broken"><oneBLOB name="CCD1" size="3" format=".fits"/></setBLOBVector>')
-      expect(message.blobs.map(blob => blob.toString())).toEqual(['ABC'])
-      expect(warnings).toHaveLength(1)
-      expect(warnings[0]).not.toContain('QUJD')
+      expect(tapped.find(item => item.dir === 'in')!.xml).toBe('<setBLOBVector device="Test Focuser" name="CCD1" state="Ok"><oneBLOB name="CCD1" size="3" format=".fits"/></setBLOBVector>')
+      expect(warnings).toEqual([])
       expect(closed.filter(item => item.status === 'closed')).toEqual([])
     })
   })

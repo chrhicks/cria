@@ -17,8 +17,6 @@ export interface TappedMessage {
    * BLOB payload is elided to a self-closing `<oneBLOB .../>`.
    */
   readonly xml: string
-  /** The decoded payload of each elided `oneBLOB`, in document order. The tap owns the buffers from here. */
-  readonly blobs: ReadonlyArray<Buffer>
 }
 
 export type TappedConnection =

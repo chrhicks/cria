@@ -4,7 +4,7 @@ import { Socket } from 'node:net'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
-import { FakeIndi, addCamera, addMount, connection } from '../../testing/fake-indi/index.ts'
+import { FakeIndi, connection } from '../../testing/fake-indi/index.ts'
 import { startIndiServer, type RunningIndiServer } from '../../testing/indiserver.ts'
 import { until } from '../../testing/until.ts'
 import type { Property } from '../indi/index.ts'
@@ -212,7 +212,8 @@ describe('the rig program against a fake INDI server', () => {
   it('connects a camera and switches it to upload frames to the client, then leaves it alone', async () => {
     fake = new FakeIndi()
     await fake.start()
-    addCamera(fake, 'Fake CCD', { width: 8, height: 6, upload: 'local' })
+    fake.define(connection('Fake CCD'))
+    fake.define({ device: 'Fake CCD', name: 'UPLOAD_MODE', kind: 'switch', perm: 'rw', rule: 'OneOfMany', state: 'Ok', elements: { UPLOAD_CLIENT: { value: false }, UPLOAD_LOCAL: { value: true }, UPLOAD_BOTH: { value: false } } })
     fake.update('Fake CCD', 'CONNECTION', { values: { CONNECT: false, DISCONNECT: true } })
     const { tick } = await start([{ id: 'primary', indiDevice: 'Fake CCD', usb: '03c3:260a', connected: true, properties: { UPLOAD_MODE: { UPLOAD_CLIENT: true } } }])
 
@@ -258,8 +259,8 @@ describe('the rig program against a fake INDI server', () => {
   it('reconnects a device whose driver keeps reporting errors, and restarts the driver if that does not end them', async () => {
     fake = new FakeIndi()
     await fake.start()
-    addMount(fake, 'ZWO AM5')
-    fake.behaviour = (_fake, vector) => (vector.name === 'CONNECTION' ? 'handled' : 'default')
+    fake.define(connection('ZWO AM5'))
+    fake.behaviour = vector => (vector.name === 'CONNECTION' ? 'handled' : 'default')
     const { tick, fifo, logs } = await start([{ id: 'mount', indiDevice: 'ZWO AM5', serial: '/dev/serial/by-id/am5', driver: 'indi_lx200am5', connected: true }])
 
     await tick(2)
