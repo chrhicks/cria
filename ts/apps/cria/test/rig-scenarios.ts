@@ -133,7 +133,7 @@ export const scenarios: ReadonlyArray<Scenario> = [
     expect: 'The connect ends uncertain (no acknowledgement; the wait is 8 s here, 120 s on errai), the box warning shows.',
     outcome: { device: 'box', kind: 'uncertain', reason: 'no-acknowledgement' },
     boxDisconnected: true,
-    config: { initializeTimeoutMs: 8000 },
+    config: { connectTimeoutMs: 8000 },
     wrap: next => ignoring(names.box, 'CONNECTION', next),
     drive: ({ cria }) => cria.run('box', 'device-connect', { connected: true }),
   },

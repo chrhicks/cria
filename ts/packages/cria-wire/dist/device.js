@@ -39,9 +39,6 @@ export const CameraReadings = Schema.Struct({
     width: number,
     height: number,
     bayerPattern: Reading(Schema.Literals(['mono', 'rggb', 'grbg', 'gbrg', 'bggr'])),
-    canAbortExposure: boolean,
-    canSetTemperature: boolean,
-    canGetCoolerPower: boolean,
     exposureMinimum: number,
     exposureMaximum: number,
     gain: number,
@@ -64,10 +61,6 @@ export const MountReadings = Schema.Struct({
     latitudeDegrees: number,
     longitudeDegrees: number,
     elevationMeters: number,
-    canSlew: boolean,
-    canSetTracking: boolean,
-    canFindHome: boolean,
-    canMovePrimaryAxis: boolean,
     primaryAxisRates: Reading(Schema.Array(Schema.Struct({ name: Schema.String, degreesPerSecond: Schema.Number }))),
 });
 export const FocuserReadings = Schema.Struct({

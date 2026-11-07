@@ -12,6 +12,8 @@ export interface CapabilityContext {
   readonly snapshot: Effect.Effect<DeviceSnapshot>
   readonly timing: {
     readonly acknowledgeMs: number
+    readonly confirmMs: number
+    readonly stopMs: number
     readonly operationTimeoutMs: number
   }
 }

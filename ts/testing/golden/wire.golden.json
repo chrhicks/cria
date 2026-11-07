@@ -36,21 +36,6 @@
               "status": "fresh",
               "value": "grbg"
             },
-            "canAbortExposure": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": true
-            },
-            "canGetCoolerPower": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": false
-            },
-            "canSetTemperature": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": true
-            },
             "connected": {
               "observedAt": "<time>",
               "status": "fresh",
@@ -152,26 +137,6 @@
           "kind": "mount",
           "name": "ZWO AM5",
           "readings": {
-            "canFindHome": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": true
-            },
-            "canMovePrimaryAxis": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": true
-            },
-            "canSetTracking": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": true
-            },
-            "canSlew": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": true
-            },
             "connected": {
               "observedAt": "<time>",
               "status": "fresh",
@@ -584,21 +549,6 @@
               "status": "fresh",
               "value": "grbg"
             },
-            "canAbortExposure": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": true
-            },
-            "canGetCoolerPower": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": false
-            },
-            "canSetTemperature": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": true
-            },
             "connected": {
               "observedAt": "<time>",
               "status": "fresh",
@@ -700,26 +650,6 @@
           "kind": "mount",
           "name": "ZWO AM5",
           "readings": {
-            "canFindHome": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": true
-            },
-            "canMovePrimaryAxis": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": true
-            },
-            "canSetTracking": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": true
-            },
-            "canSlew": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": true
-            },
             "connected": {
               "observedAt": "<time>",
               "status": "fresh",
@@ -1457,21 +1387,6 @@
               "observedAt": "<time>",
               "status": "fresh",
               "value": "grbg"
-            },
-            "canAbortExposure": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": true
-            },
-            "canGetCoolerPower": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": false
-            },
-            "canSetTemperature": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": true
             },
             "connected": {
               "observedAt": "<time>",
@@ -2842,7 +2757,7 @@
       "kind": "mount-slew",
       "outcome": {
         "kind": "failed",
-        "message": "The mount refused the goto (Alert on EQUATORIAL_EOD_COORD). An AM5 refuses every goto until its site and time are set after it powers on. Setup since it connected: GEOGRAPHIC_COORD not sent: no site is configured for this mount; sent TIME_UTC UTC=<utc> OFFSET=0.00. Nothing moved. An AM5 can refuse a goto when its site and time are not synced after power-on (AM5 e7). Send device-connect with connected: true to re-send site and time, then try the goto again. If no site is configured, configure it first.",
+        "message": "The mount refused the goto (Alert on EQUATORIAL_EOD_COORD). Nothing moved. An AM5 refuses every goto until its site and time are set after it powers on (AM5 e7). Setup since it connected: GEOGRAPHIC_COORD not sent: no site is configured for this mount; sent TIME_UTC UTC=<utc> OFFSET=0.00. Send device-connect with connected: true to send them again.",
         "reason": "rejected"
       },
       "parameters": {
@@ -3932,21 +3847,6 @@
               "status": "fresh",
               "value": "grbg"
             },
-            "canAbortExposure": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": true
-            },
-            "canGetCoolerPower": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": false
-            },
-            "canSetTemperature": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": true
-            },
             "connected": {
               "observedAt": "<time>",
               "status": "fresh",
@@ -4856,21 +4756,6 @@
               "status": "fresh",
               "value": "grbg"
             },
-            "canAbortExposure": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": true
-            },
-            "canGetCoolerPower": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": false
-            },
-            "canSetTemperature": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": true
-            },
             "connected": {
               "observedAt": "<time>",
               "status": "fresh",
@@ -5151,21 +5036,6 @@
               "status": "fresh",
               "value": "grbg"
             },
-            "canAbortExposure": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": true
-            },
-            "canGetCoolerPower": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": false
-            },
-            "canSetTemperature": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": true
-            },
             "connected": {
               "observedAt": "<time>",
               "status": "fresh",
@@ -5369,21 +5239,6 @@
               "status": "fresh",
               "value": "grbg"
             },
-            "canAbortExposure": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": true
-            },
-            "canGetCoolerPower": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": false
-            },
-            "canSetTemperature": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": true
-            },
             "connected": {
               "observedAt": "<time>",
               "status": "fresh",
@@ -5585,21 +5440,6 @@
               "observedAt": "<time>",
               "status": "fresh",
               "value": "grbg"
-            },
-            "canAbortExposure": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": true
-            },
-            "canGetCoolerPower": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": false
-            },
-            "canSetTemperature": {
-              "observedAt": "<time>",
-              "status": "fresh",
-              "value": true
             },
             "connected": {
               "observedAt": "<time>",

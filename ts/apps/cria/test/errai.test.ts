@@ -121,7 +121,6 @@ describe('errai, replayed', () => {
     expect([value('primary', 'exposureMinimum'), value('primary', 'exposureMaximum')]).toEqual([0.000032, 2000])
     expect(value('primary', 'temperatureC')).toBe(23.8)
     expect(value('primary', 'coolerOn')).toBe(false)
-    expect(value('primary', 'canSetTemperature')).toBe(true)
     expect(value('primary', 'coolerPowerPercent')).toBe(0)
     expect(value('primary', 'setpointC')).toBe('unsupported')
     expect(devices.primary).toMatchObject({ lastCommandedSetpointC: null })
@@ -129,8 +128,6 @@ describe('errai, replayed', () => {
 
   it('reads the ASI220MM Mini as an uncooled mono camera', () => {
     expect([value('guide', 'width'), value('guide', 'height'), value('guide', 'bayerPattern')]).toEqual([1920, 1080, 'mono'])
-    expect(value('guide', 'canSetTemperature')).toBe(false)
-    expect(value('guide', 'canGetCoolerPower')).toBe(false)
     expect(value('guide', 'exposureMaximum')).toBe(10)
     expect(value('guide', 'gain')).toBe(100)
   })
@@ -140,8 +137,6 @@ describe('errai, replayed', () => {
     expect(value('mount', 'declinationDegrees')).toBe(90)
     expect([value('mount', 'tracking'), value('mount', 'slewing')]).toEqual([false, false])
     expect(value('mount', 'trackingRate')).toBe('sidereal')
-    expect(value('mount', 'canFindHome')).toBe(true)
-    expect(value('mount', 'canMovePrimaryAxis')).toBe(true)
     expect((value('mount', 'primaryAxisRates') as Array<{ degreesPerSecond: number }>).map(rate => rate.degreesPerSecond * 3600 / 15.041067)).toEqual(
       [0.25, 0.5, 1, 2, 4, 8, 20, 60, 720, 1440].map(multiple => expect.closeTo(multiple, 6)),
     )

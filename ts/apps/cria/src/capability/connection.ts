@@ -47,7 +47,7 @@ export function makeConnection(context: CapabilityContext, connectTimeoutMs: num
 
       if (connected && port !== undefined && textElement('PORT')(snapshot.property('DEVICE_PORT')) !== port) {
         yield* sendOnce(device, 'DEVICE_PORT', { PORT: port }, timing)
-        yield* confirmProperty(device, 'DEVICE_PORT', property => textElement('PORT')(property) === port, 10_000)
+        yield* confirmProperty(device, 'DEVICE_PORT', property => textElement('PORT')(property) === port, timing.confirmMs)
       }
 
       if (!connected && activity.some(name => snapshot.property(name)?.state === 'Busy'))

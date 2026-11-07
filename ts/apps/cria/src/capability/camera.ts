@@ -59,9 +59,6 @@ function readings(snapshot: DeviceSnapshot): ReadingsOf<'camera'> {
     width: read('CCD_FRAME', numberElement('WIDTH')),
     height: read('CCD_FRAME', numberElement('HEIGHT')),
     bayerPattern: cfa(snapshot),
-    canAbortExposure: read('CCD_EXPOSURE', () => snapshot.property('CCD_ABORT_EXPOSURE') !== undefined, command),
-    canSetTemperature: read('CCD_INFO', () => snapshot.property('CCD_TEMPERATURE')?.perm === 'rw'),
-    canGetCoolerPower: read('CCD_INFO', () => snapshot.property('CCD_COOLER_POWER') !== undefined),
     exposureMinimum: read('CCD_EXPOSURE', limitElement(['CCD_EXPOSURE_VALUE'], 'min'), command),
     exposureMaximum: read('CCD_EXPOSURE', limitElement(['CCD_EXPOSURE_VALUE'], 'max'), command),
     gain: read(gainProperties, firstNumberElement(['GAIN', 'Gain'])),
@@ -107,7 +104,7 @@ export function makeCamera(context: CapabilityContext): Camera {
 
   const abort = Effect.gen(function* () {
     yield* sendOnce(device, 'CCD_ABORT_EXPOSURE', { ABORT: true }, timing)
-    yield* confirmProperty(device, 'CCD_EXPOSURE', property => property.state !== 'Busy', 10_000)
+    yield* confirmProperty(device, 'CCD_EXPOSURE', property => property.state !== 'Busy', timing.confirmMs)
   })
 
   const capture = (request: ParamsOf<'capture'>, report: Report<Progress>) =>
@@ -155,7 +152,7 @@ export function makeCamera(context: CapabilityContext): Camera {
           }),
           settle: frameArrival(context, events, report, dispatchedAt, exposureSeconds, geometry),
           stop: abort,
-          stopWithin: 15_000,
+          stopWithin: timing.stopMs,
           // An exposure error with the abort confirmed leaves an idle camera and no frame:
           // nothing moved, nothing persists, so it is a plain failure.
           settleFailure: 'failed',
@@ -198,11 +195,6 @@ export function makeCamera(context: CapabilityContext): Camera {
   const cooling = (request: ParamsOf<'cooling'>) =>
     Effect.gen(function* () {
       const snapshot = yield* liveSnapshot(context)
-      const camera = readings(snapshot)
-
-      if (!(yield* required(camera.canSetTemperature, 'cooling control')))
-        return yield* new Failed({ reason: 'unsupported', message: 'Camera cooling control unsupported' })
-
       const result: { coolerOn?: boolean; setpointC?: number } = {}
 
       if (request.setpointC !== undefined) {

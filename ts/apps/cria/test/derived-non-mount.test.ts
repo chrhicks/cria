@@ -92,7 +92,7 @@ describe('a power box that never answers a connect (derived)', () => {
     fake.define(connection(box, false))
     fake.define({ device: box, name: 'WEATHER_PARAMETERS', kind: 'number', perm: 'ro', state: 'Ok', elements: { WEATHER_TEMPERATURE: { value: 11.5, min: -50, max: 70 } } })
     fake.behaviour = (_fake, vector) => (vector.name === 'CONNECTION' ? 'handled' : 'default')
-    cria = await startCria(fake.port, [{ id: 'box', kind: 'box', indiDevice: box }], { acknowledgeMs: 600, initializeTimeoutMs: 1500 })
+    cria = await startCria(fake.port, [{ id: 'box', kind: 'box', indiDevice: box }], { acknowledgeMs: 600, connectTimeoutMs: 1500 })
     await cria.waitFor(state => state.devices[0]!.readings.connected!.status === 'fresh')
 
     const first = await cria.run('box', 'device-connect', { connected: true })

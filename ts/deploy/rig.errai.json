@@ -6,7 +6,7 @@
   "commandsEnabled": true,
   "acknowledgeMs": 5000,
   "operationTimeoutMs": 180000,
-  "initializeTimeoutMs": 120000,
+  "connectTimeoutMs": 120000,
   "operationHistory": 1000,
   "devices": [
     { "id": "primary", "kind": "camera", "indiDevice": "ZWO CCD ASI2600MC Pro" },

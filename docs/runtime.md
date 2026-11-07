@@ -232,7 +232,7 @@ Cria never switches power, connects a device or sets one up on its own. A device
 
 ## Stop and restart
 
-`systemctl stop` sends SIGTERM. Cria then interrupts every running operation. Each one aborts its exposure, or stops the mount or the focuser, and confirms the stop before the process exits. `cria.service` allows 180 s for this, because a `device-connect` can run for up to `initializeTimeoutMs` (120 s) before the stops start, and each stop then gets up to 20 s. SIGINT does the same.
+`systemctl stop` sends SIGTERM. Cria then interrupts every running operation. Each one aborts its exposure, or stops the mount or the focuser, and confirms the stop before the process exits. `cria.service` allows 180 s for this, because a `device-connect` can run for up to `connectTimeoutMs` (120 s) before the stops start, and each stop then gets up to `acknowledgeMs` plus `confirmMs` (20 s). SIGINT does the same.
 
 A restart is a new Cria with nothing carried over:
 

@@ -82,10 +82,12 @@ export const ConfigSchema = Schema.Struct({
   commandsEnabled: Schema.Boolean,
   /** How long a driver has to acknowledge a command before it is uncertain. */
   acknowledgeMs: Milliseconds(500, 60_000),
+  /** How long a driver has, after answering, to show a setting applied or a device at rest; a stop gets this plus acknowledgeMs. errai's AM5 read at rest 7.7 s after a stop at 3°/s (2026-11-06), and a camera abort took 0.8 s. */
+  confirmMs: Milliseconds(1000, 120_000),
   /** Overrun allowance for a motion. */
   operationTimeoutMs: Milliseconds(1000, 600_000),
-  /** How long a cold device may take to connect at start (Pegasus took 40-82 s on Windows). */
-  initializeTimeoutMs: Milliseconds(1000, 300_000),
+  /** How long a cold device may take to connect (Pegasus took 40-82 s on Windows). */
+  connectTimeoutMs: Milliseconds(1000, 300_000),
   operationHistory: Schema.Number.pipe(Schema.check(Schema.isInt(), Schema.isBetween({ minimum: 10, maximum: 100_000 }))),
   record: Schema.optionalKey(Record),
   streamClientConfig: Schema.optionalKey(Schema.String),
@@ -103,8 +105,9 @@ export const defaults = {
   imageBudgetBytes: 1024 ** 3,
   commandsEnabled: true,
   acknowledgeMs: 5000,
+  confirmMs: 15_000,
   operationTimeoutMs: 180_000,
-  initializeTimeoutMs: 120_000,
+  connectTimeoutMs: 120_000,
   operationHistory: 1000,
 }
 

@@ -52,7 +52,7 @@ export function makeRig(config: Config, options: { readonly recording?: Recordin
     }
     const client = yield* makeIndiClient({ ...config.indi, tap })
     const images = yield* makeImageStore({ directory: config.imageDirectory, budgetBytes: config.imageBudgetBytes })
-    const timing = { acknowledgeMs: config.acknowledgeMs, operationTimeoutMs: config.operationTimeoutMs }
+    const timing = { acknowledgeMs: config.acknowledgeMs, confirmMs: config.confirmMs, stopMs: config.acknowledgeMs + config.confirmMs, operationTimeoutMs: config.operationTimeoutMs }
     const devices: RigDevice[] = []
 
     for (const deviceConfig of config.devices) {
@@ -65,7 +65,7 @@ export function makeRig(config: Config, options: { readonly recording?: Recordin
       }
       const setup = yield* makeDeviceSetup(context, deviceConfig)
 
-      const equipment = equip(deviceConfig, context, config.initializeTimeoutMs, setup)
+      const equipment = equip(deviceConfig, context, config.connectTimeoutMs, setup)
 
       devices.push({
         config: deviceConfig,

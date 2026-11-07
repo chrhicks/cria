@@ -52,8 +52,6 @@ const siderealArcsecondsPerSecond = 15.041067
 /** Properties whose Alert means "the last command failed", not "this value is old". */
 const command = { alertMeansStale: false }
 
-const stopWithinMs = 20_000
-
 const gotoToleranceDegrees = 0.1
 
 function coordinatesProperty(snapshot: DeviceSnapshot): { name: string; frame: CoordinateFrame } {
@@ -95,10 +93,6 @@ function readings(snapshot: DeviceSnapshot): ReadingsOf<'mount'> {
     latitudeDegrees: read('GEOGRAPHIC_COORD', numberElement('LAT')),
     longitudeDegrees: longitude,
     elevationMeters: read('GEOGRAPHIC_COORD', numberElement('ELEV')),
-    canSlew: read(coordinates.name, property => property.perm !== 'ro'),
-    canSetTracking: read(coordinates.name, () => snapshot.property('TELESCOPE_TRACK_STATE')?.perm === 'rw'),
-    canFindHome: read(coordinates.name, () => homeElement(snapshot.property('TELESCOPE_HOME')) !== undefined),
-    canMovePrimaryAxis: read(coordinates.name, () => snapshot.property('TELESCOPE_MOTION_WE') !== undefined),
     primaryAxisRates: read('TELESCOPE_SLEW_RATE', axisRates),
   }
 }
@@ -136,11 +130,10 @@ function onTarget(position: Position, target: ParamsOf<'mount-slew'>): boolean {
   return Math.abs(angularDelta(position.ra, target.rightAscensionDegrees)) <= gotoToleranceDegrees && Math.abs(position.dec - target.declinationDegrees) <= gotoToleranceDegrees
 }
 
-function gotoRefusalHint(outcomes: ReadonlyArray<StepOutcome> | undefined): string | undefined {
-  if (outcomes?.every(outcome => outcome.done)) return undefined
-  const done = outcomes === undefined ? 'Cria has not set it up since it connected' : `Setup since it connected: ${outcomes.map(outcome => outcome.text).join('; ')}`
+function gotoRefusal(property: string, outcomes: ReadonlyArray<StepOutcome> | undefined): string {
+  const setup = outcomes === undefined ? 'Cria has not set it up since it connected.' : `Setup since it connected: ${outcomes.map(outcome => outcome.text).join('; ')}.`
 
-  return `An AM5 refuses every goto until its site and time are set after it powers on. ${done}`
+  return `The mount refused the goto (Alert on ${property}). Nothing moved. An AM5 refuses every goto until its site and time are set after it powers on (AM5 e7). ${setup} Send device-connect with connected: true to send them again.`
 }
 
 export function makeMount(context: CapabilityContext, motion: MountMotionSettings, setup: DeviceSetup): Mount {
@@ -152,7 +145,7 @@ export function makeMount(context: CapabilityContext, motion: MountMotionSetting
       const command = yield* beforeCommand(device)
 
       yield* sending(sendOnce(device, property, values, timing))
-      const position = yield* confirmStopped(device, motion, command, 15_000)
+      const position = yield* confirmStopped(device, motion, command, timing.confirmMs)
 
       yield* tracking.rested(how, position)
 
@@ -162,7 +155,7 @@ export function makeMount(context: CapabilityContext, motion: MountMotionSetting
     Effect.asVoid(stopWith('TELESCOPE_ABORT_MOTION', { ABORT: true }, 'aborted', tracking, sending))
   // The driver says the motion is over (the property left Busy); the mount has stopped once its position stands still.
   const settled = (command: Command, tracking: Tracking) =>
-    Effect.tap(confirmStopped(device, motion, command, 15_000), position => tracking.rested('arrived', position))
+    Effect.tap(confirmStopped(device, motion, command, timing.confirmMs), position => tracking.rested('arrived', position))
 
   const idle = (snapshot: DeviceSnapshot) =>
     Effect.gen(function* () {
@@ -180,8 +173,6 @@ export function makeMount(context: CapabilityContext, motion: MountMotionSetting
       const mount = yield* idle(snapshot)
       const coordinates = coordinatesProperty(snapshot)
 
-      if (!(yield* required(mount.canSlew, 'slew support')))
-        return yield* new Failed({ reason: 'unsupported', message: 'The mount cannot slew' })
       if ((yield* required(mount.coordinateSystem, 'coordinate frame')) !== target.coordinateSystem)
         return yield* invalid(`Coordinates must be in the mount's frame (${coordinates.frame}); Cria never converts frames`)
 
@@ -190,7 +181,7 @@ export function makeMount(context: CapabilityContext, motion: MountMotionSetting
       if (onSet && switchElement('TRACK')(onSet) !== true)
         yield* switchConfirmed(device, 'ON_COORD_SET', { TRACK: true }, found => switchElement('TRACK')(found) === true, timing)
 
-      const hint = gotoRefusalHint(yield* setup.current)
+      const outcomes = yield* setup.current
       const command = yield* beforeCommand(device)
       const tracking = yield* track(device,
         note,
@@ -203,14 +194,14 @@ export function makeMount(context: CapabilityContext, motion: MountMotionSetting
           arrived: property => onTarget(positionOf(property), target),
         }).pipe(
           Effect.mapError(error =>
-            error._tag === 'Failed' && error.reason === 'rejected' && hint
-              ? new Failed({ reason: 'rejected', message: `The mount refused the goto (Alert on ${coordinates.name}). ${hint}` })
+            error._tag === 'Failed' && error.reason === 'rejected'
+              ? new Failed({ reason: 'rejected', message: gotoRefusal(coordinates.name, outcomes) })
               : error,
           ),
         )),
         settle: Effect.andThen(untilSettled(device, coordinates.name, () => true, timing.operationTimeoutMs), settled(command, tracking)),
         stop: abort(tracking),
-        stopWithin: stopWithinMs,
+        stopWithin: timing.stopMs,
       })
 
       if (!onTarget(arrived, target))
@@ -225,12 +216,7 @@ export function makeMount(context: CapabilityContext, motion: MountMotionSetting
 
   const setTracking = (tracking: boolean) =>
     Effect.gen(function* () {
-      const snapshot = yield* liveSnapshot(context)
-      const mount = readings(snapshot)
-
-      if (!(yield* required(mount.canSetTracking, 'tracking control')))
-        return yield* new Failed({ reason: 'unsupported', message: 'Tracking control unsupported' })
-
+      yield* liveSnapshot(context)
       yield* switchConfirmed(
         device,
         'TELESCOPE_TRACK_STATE',
@@ -260,7 +246,7 @@ export function makeMount(context: CapabilityContext, motion: MountMotionSetting
       start: tracking.sentBy(startMotion(device, 'TELESCOPE_HOME', { [element]: true }, timing, { arrived: property => property.state === 'Ok' })),
       settle: Effect.andThen(untilSettled(device, 'TELESCOPE_HOME', () => true, timing.operationTimeoutMs), settled(command, tracking)),
       stop: abort(tracking),
-      stopWithin: stopWithinMs,
+      stopWithin: timing.stopMs,
     })
 
     return {}
@@ -272,12 +258,12 @@ export function makeMount(context: CapabilityContext, motion: MountMotionSetting
       const tracking = yield* track(device, note, { kind: 'stop', sentAt: command.sentAt }, command)
 
       return yield* abort(tracking, tracking.sentBy).pipe(
-        Effect.timeoutOption(stopWithinMs),
+        Effect.timeoutOption(timing.stopMs),
         Effect.mapError(error => (error._tag === 'Uncertain' && error.reason === 'not-confirmed' ? new Uncertain({ reason: 'stop-not-confirmed', message: error.message }) : error)),
         Effect.flatMap(
           Option.match({
             onSome: () => Effect.succeed({}),
-            onNone: () => Effect.fail(new Uncertain({ reason: 'stop-not-confirmed', message: `stop on ${device.name}: not confirmed within ${stopWithinMs / 1000} s` })),
+            onNone: () => Effect.fail(new Uncertain({ reason: 'stop-not-confirmed', message: `stop on ${device.name}: not confirmed within ${timing.stopMs / 1000} s` })),
           }),
         ),
       )
@@ -298,9 +284,6 @@ export function makeMount(context: CapabilityContext, motion: MountMotionSetting
     Effect.gen(function* () {
       const snapshot = yield* liveSnapshot(context)
       const mount = continuing ? readings(snapshot) : yield* idle(snapshot)
-
-      if (!(yield* required(mount.canMovePrimaryAxis, 'axis motion')))
-        return yield* new Failed({ reason: 'unsupported', message: 'Axis motion unsupported' })
 
       const rates = yield* required(mount.primaryAxisRates, 'axis rates')
       const rate = advertisedRate(rates, Math.abs(rateDegreesPerSecond))
@@ -338,7 +321,7 @@ export function makeMount(context: CapabilityContext, motion: MountMotionSetting
       const halt = Effect.gen(function* () {
         const command = yield* beforeCommand(device)
         yield* sendOnce(device, 'TELESCOPE_MOTION_WE', { MOTION_EAST: false, MOTION_WEST: false }, timing)
-        const position = yield* confirmStopped(device, motion, command, 15_000)
+        const position = yield* confirmStopped(device, motion, command, timing.confirmMs)
         const coastDegrees = command.before === undefined ? undefined
           : angularDelta(position.ra, command.before.ra) * Math.sign(rateDegreesPerSecond)
         yield* tracking.rested('halted', position, coastDegrees)
@@ -350,7 +333,7 @@ export function makeMount(context: CapabilityContext, motion: MountMotionSetting
         // A normal finish stops the axis too; a second stop after a cancel is harmless.
         settle: Effect.andThen(until(Effect.map(ra, now => angularDelta(now, start))), halt),
         stop: halt,
-        stopWithin: stopWithinMs,
+        stopWithin: timing.stopMs,
       })
 
       const end = yield* ra
