@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@cria/indi": "workspace:*",
+    "@nats-io/jetstream": "3.4.0",
     "@nats-io/transport-node": "3.4.0",
     "effect": "4.0.3"
   }

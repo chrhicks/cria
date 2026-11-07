@@ -89,6 +89,9 @@ importers:
       '@cria/indi':
         specifier: workspace:*
         version: link:../indi
+      '@nats-io/jetstream':
+        specifier: 3.4.0
+        version: 3.4.0
       '@nats-io/transport-node':
         specifier: 3.4.0
         version: 3.4.0
