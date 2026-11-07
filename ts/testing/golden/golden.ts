@@ -32,7 +32,7 @@ export function recordingFetch(into: Recorded[]): typeof globalThis.fetch {
 
     into.push(entry)
     if (type === 'application/json') entry.body = await response.clone().json()
-    if (type === 'application/imagebytes') {
+    if (type === 'application/fits') {
       const bytes = Buffer.from(await response.clone().arrayBuffer())
 
       entry.body = {

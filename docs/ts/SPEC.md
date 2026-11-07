@@ -51,7 +51,7 @@ Two boundaries sit around the layers and map to no primitive on purpose:
   of the ledger's operations and the Readings into protocol 5 JSON, typed by
   `@cria/wire`. The projection functions are Views.
 
-The image store (`apps/cria/src/image`) converts FITS to ImageBytes and keeps the
+The image store (`apps/cria/src/image`) keeps the camera's FITS in a
 rolling set. It is domain storage, not a primitive.
 
 ## Effect decisions
@@ -636,7 +636,7 @@ signal, and Vela refuses any value but 5.
 | `GET /v2/operations/{id}` | `Operation`, `404 not-found`, or `410 result-expired`. |
 | `GET /v2/requests/{instance}/{request}` | The operation for a request ID, for a lost POST response. `404 not-found` if unknown. |
 | `POST /v2/operations/{id}/cancel` | `202` with the `Operation`; `404 not-found` for an unknown ID, `410 result-expired` for a pruned one (see "Halts, stops and cancel"). |
-| `GET /v2/images/{id}/original` | ImageBytes v1 with an exact `content-length` and `ETag` = SHA-256. `410 image-gone` for an image ID Cria no longer holds or never held. `404 not-found` for a path segment that is not an image ID. |
+| `GET /v2/images/{id}/original` | The camera's FITS as delivered (`application/fits`), with an exact `content-length` and `ETag` = SHA-256. `410 image-gone` for an image ID Cria no longer holds or never held. `404 not-found` for a path segment that is not an image ID. |
 
 A request with an `Origin` header is refused, so a browser cannot call Cria. Request bodies are limited in size.
 
@@ -747,9 +747,8 @@ only when the element is not already on, and confirms the switch before it sends
   operation keeps the request as sent, so its `parameters.exposureSeconds` says
   what Vela asked for (0.1). The returned `Image.exposureSeconds` also echoes the
   request, for every frame type, including `bias`. The commanded time is in the
-  INDI traffic recording (`CCD_EXPOSURE_VALUE` in the `out` message), and for the
-  camera's own `EXPTIME` only in the FITS Cria received, which it does not pass
-  on: Vela gets the image as `application/imagebytes`. Vela does not read
+  `cria.write` entry on the rig stream (`CCD_EXPOSURE_VALUE`), and the camera's own
+  `EXPTIME` is in the FITS Vela downloads. Vela does not read
   `Image.exposureSeconds` today. A client that needs the true bias time has the
   camera minimum from `readings.exposureMinimum`.
 
@@ -791,10 +790,9 @@ package registry.
 - `ts/packages/primitives` is `@cria/primitives`: Outcome, Reading
   (`Reading.required` included), the disciplines. No Cria or INDI imports.
 - `ts/packages/cria-wire` is `@cria/wire`: the protocol 5 schemas.
-- `ts/packages/fits` is `@cria/fits`: FITS header, FITS to ImageBytes v1 and
-  `fitsFrame`. No dependencies. Vela's packager uses it to compute the same
-  ImageBytes SHA-256 that Cria does.
-- `ts/packages/indi` (`@cria/indi`), `ts/packages/recording`,
+- `ts/packages/fits` is `@cria/fits`: the FITS header and `fitsFrame`. No
+  dependencies.
+- `ts/packages/indi` (`@cria/indi`),
   `ts/packages/fake-indi` (`@cria/fake-indi`, test support) and `ts/apps/cria` are Cria only.
 
 ### How the packages ship
@@ -916,13 +914,10 @@ not a focuser.
 ## Image path
 
 A capture enables BLOBs, sends `CCD_EXPOSURE` once, settles on the BLOB that
-follows its own `Busy`, and disables BLOBs. The FITS payload (16-bit, row-major,
-big-endian with `BZERO 32768`) becomes ASCOM ImageBytes v1 (Int32 image type,
-UInt16 transmission, column-major, little-endian), because Vela's Alpaca adapter
-decodes that format with the same code. The conversion is one byte swap plus a
-typed-array transpose: 78 ms for a full 6248×4176 frame on thuban (Ryzen 3800X).
-Decoding the 70 MB base64 BLOB takes about 250 ms. Expect about twice both on the
-N150. The `.imagebytes` file goes into the rolling store with its SHA-256.
+follows its own `Busy`, and disables BLOBs. The FITS payload goes into the
+rolling store unchanged, as a `.fits` file with its SHA-256; Cria reads only its
+header (to check the frame is its own, and for `DATE-OBS` and the cards it
+publishes). Decoding the 70 MB base64 BLOB takes about 250 ms on thuban.
 
 If a cancel arrives after the BLOB but before the operation returns, the run
 settles `stopped` and Cria does not keep the frame. The camera is idle either way.

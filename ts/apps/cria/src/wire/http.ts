@@ -129,7 +129,7 @@ async function sendImage(rig: Rig, id: ImageId, response: ServerResponse) {
   if (!image || !handle) throw imageGone()
 
   response.writeHead(200, {
-    'content-type': 'application/imagebytes',
+    'content-type': 'application/fits',
     'content-length': String(image.bytes),
     etag: `"${image.sha256}"`,
   })

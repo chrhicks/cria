@@ -6,7 +6,7 @@
  */
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { FakeIndi, addCamera, connection, type Behaviour } from '@cria/fake-indi'
-import { fitsFrame } from '@cria/fits'
+import { fitsFrame, readFitsHeader } from '@cria/fits'
 import { exposeNormally } from './drivers.js'
 import { Effect, Option } from 'effect'
 import { allReady, connectDevices, noneNotRead, startCria, until, type Cria } from './harness.js'
@@ -34,13 +34,15 @@ const exposures = () => fake.received.filter(xml => xml.includes('name="CCD_EXPO
 const exposing = () => until('the fake camera to expose', () => fake.vector(camera, 'CCD_EXPOSURE').state === 'Busy', 5000)
 
 describe('a camera that misbehaves', () => {
-  it("converts the FITS frame to column-major ImageBytes with the camera's colour pattern", async () => {
+  it("serves the camera's FITS byte for byte, with the camera's colour pattern", async () => {
     const operation = await cria.run('primary', 'capture', { exposureSeconds: 0.05, light: true })
 
     expect(operation).toMatchObject({ kind: 'confirmed', image: { width: 8, height: 6, color: 'grbg' } })
     const bytes = Buffer.from(await (await fetch(cria.base + operation.image!.original.url)).arrayBuffer())
-    const pixel = (x: number, y: number) => bytes.readUInt16LE(44 + (x * 6 + y) * 2)
+    const { cards, dataStart } = readFitsHeader(bytes)
+    const pixel = (x: number, y: number) => bytes.readInt16BE(dataStart + (y * 8 + x) * 2) + 32768
 
+    expect([cards.get('NAXIS1'), cards.get('NAXIS2'), cards.get('BZERO')]).toEqual(['8', '6', '32768'])
     expect([pixel(0, 0), pixel(3, 0), pixel(0, 2), pixel(7, 5)]).toEqual([0, 3, 20, 57])
   })
 

@@ -20,7 +20,7 @@ export declare const Image: Schema.Struct<{
     readonly retainedAt: Schema.Number;
     readonly sha256: Schema.String;
     readonly original: Schema.Struct<{
-        readonly mediaType: Schema.Literal<"application/imagebytes">;
+        readonly mediaType: Schema.Literal<"application/fits">;
         readonly bytes: Schema.Number;
         readonly url: Schema.String;
     }>;
@@ -43,7 +43,7 @@ export declare const OperationResult: Schema.Struct<{
         readonly retainedAt: Schema.Number;
         readonly sha256: Schema.String;
         readonly original: Schema.Struct<{
-            readonly mediaType: Schema.Literal<"application/imagebytes">;
+            readonly mediaType: Schema.Literal<"application/fits">;
             readonly bytes: Schema.Number;
             readonly url: Schema.String;
         }>;
@@ -434,7 +434,7 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
                 readonly retainedAt: Schema.Number;
                 readonly sha256: Schema.String;
                 readonly original: Schema.Struct<{
-                    readonly mediaType: Schema.Literal<"application/imagebytes">;
+                    readonly mediaType: Schema.Literal<"application/fits">;
                     readonly bytes: Schema.Number;
                     readonly url: Schema.String;
                 }>;
@@ -573,7 +573,7 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
                 readonly retainedAt: Schema.Number;
                 readonly sha256: Schema.String;
                 readonly original: Schema.Struct<{
-                    readonly mediaType: Schema.Literal<"application/imagebytes">;
+                    readonly mediaType: Schema.Literal<"application/fits">;
                     readonly bytes: Schema.Number;
                     readonly url: Schema.String;
                 }>;
@@ -710,7 +710,7 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
                 readonly retainedAt: Schema.Number;
                 readonly sha256: Schema.String;
                 readonly original: Schema.Struct<{
-                    readonly mediaType: Schema.Literal<"application/imagebytes">;
+                    readonly mediaType: Schema.Literal<"application/fits">;
                     readonly bytes: Schema.Number;
                     readonly url: Schema.String;
                 }>;
@@ -846,7 +846,7 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
                 readonly retainedAt: Schema.Number;
                 readonly sha256: Schema.String;
                 readonly original: Schema.Struct<{
-                    readonly mediaType: Schema.Literal<"application/imagebytes">;
+                    readonly mediaType: Schema.Literal<"application/fits">;
                     readonly bytes: Schema.Number;
                     readonly url: Schema.String;
                 }>;
@@ -980,7 +980,7 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
                 readonly retainedAt: Schema.Number;
                 readonly sha256: Schema.String;
                 readonly original: Schema.Struct<{
-                    readonly mediaType: Schema.Literal<"application/imagebytes">;
+                    readonly mediaType: Schema.Literal<"application/fits">;
                     readonly bytes: Schema.Number;
                     readonly url: Schema.String;
                 }>;
@@ -1116,7 +1116,7 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
                 readonly retainedAt: Schema.Number;
                 readonly sha256: Schema.String;
                 readonly original: Schema.Struct<{
-                    readonly mediaType: Schema.Literal<"application/imagebytes">;
+                    readonly mediaType: Schema.Literal<"application/fits">;
                     readonly bytes: Schema.Number;
                     readonly url: Schema.String;
                 }>;
@@ -1253,7 +1253,7 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
                 readonly retainedAt: Schema.Number;
                 readonly sha256: Schema.String;
                 readonly original: Schema.Struct<{
-                    readonly mediaType: Schema.Literal<"application/imagebytes">;
+                    readonly mediaType: Schema.Literal<"application/fits">;
                     readonly bytes: Schema.Number;
                     readonly url: Schema.String;
                 }>;
@@ -1387,7 +1387,7 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
                 readonly retainedAt: Schema.Number;
                 readonly sha256: Schema.String;
                 readonly original: Schema.Struct<{
-                    readonly mediaType: Schema.Literal<"application/imagebytes">;
+                    readonly mediaType: Schema.Literal<"application/fits">;
                     readonly bytes: Schema.Number;
                     readonly url: Schema.String;
                 }>;
@@ -1524,7 +1524,7 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
                 readonly retainedAt: Schema.Number;
                 readonly sha256: Schema.String;
                 readonly original: Schema.Struct<{
-                    readonly mediaType: Schema.Literal<"application/imagebytes">;
+                    readonly mediaType: Schema.Literal<"application/fits">;
                     readonly bytes: Schema.Number;
                     readonly url: Schema.String;
                 }>;
@@ -1662,7 +1662,7 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
                 readonly retainedAt: Schema.Number;
                 readonly sha256: Schema.String;
                 readonly original: Schema.Struct<{
-                    readonly mediaType: Schema.Literal<"application/imagebytes">;
+                    readonly mediaType: Schema.Literal<"application/fits">;
                     readonly bytes: Schema.Number;
                     readonly url: Schema.String;
                 }>;
@@ -1796,7 +1796,7 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
                 readonly retainedAt: Schema.Number;
                 readonly sha256: Schema.String;
                 readonly original: Schema.Struct<{
-                    readonly mediaType: Schema.Literal<"application/imagebytes">;
+                    readonly mediaType: Schema.Literal<"application/fits">;
                     readonly bytes: Schema.Number;
                     readonly url: Schema.String;
                 }>;
@@ -1932,7 +1932,7 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
                 readonly retainedAt: Schema.Number;
                 readonly sha256: Schema.String;
                 readonly original: Schema.Struct<{
-                    readonly mediaType: Schema.Literal<"application/imagebytes">;
+                    readonly mediaType: Schema.Literal<"application/fits">;
                     readonly bytes: Schema.Number;
                     readonly url: Schema.String;
                 }>;
@@ -2069,7 +2069,7 @@ export declare const Operation: Schema.Union<readonly (Schema.Struct<{
                 readonly retainedAt: Schema.Number;
                 readonly sha256: Schema.String;
                 readonly original: Schema.Struct<{
-                    readonly mediaType: Schema.Literal<"application/imagebytes">;
+                    readonly mediaType: Schema.Literal<"application/fits">;
                     readonly bytes: Schema.Number;
                     readonly url: Schema.String;
                 }>;

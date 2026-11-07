@@ -1095,12 +1095,12 @@
             "instanceId": "<instance-1>",
             "operationId": "<operation-1>",
             "original": {
-              "bytes": 140,
-              "mediaType": "application/imagebytes",
+              "bytes": 5760,
+              "mediaType": "application/fits",
               "url": "/v2/images/<image-1>/original"
             },
             "retainedAt": "<time>",
-            "sha256": "146f86c57bfa413cc92866d35a539fffafee4212e14f8892afa27133b469255d",
+            "sha256": "2d3ce919bd8a6cb04ad4d99df58064849ed638fef34abf07fbf2afffb9961e48",
             "width": 8
           },
           "values": {}
@@ -1122,11 +1122,11 @@
     "request": "GET /v2/images/<image-1>/original",
     "status": 200,
     "body": {
-      "bytes": 140,
-      "contentLength": "140",
-      "contentType": "application/imagebytes",
-      "etag": "\"146f86c57bfa413cc92866d35a539fffafee4212e14f8892afa27133b469255d\"",
-      "sha256": "146f86c57bfa413cc92866d35a539fffafee4212e14f8892afa27133b469255d"
+      "bytes": 5760,
+      "contentLength": "5760",
+      "contentType": "application/fits",
+      "etag": "\"2d3ce919bd8a6cb04ad4d99df58064849ed638fef34abf07fbf2afffb9961e48\"",
+      "sha256": "2d3ce919bd8a6cb04ad4d99df58064849ed638fef34abf07fbf2afffb9961e48"
     }
   },
   {
@@ -1191,12 +1191,12 @@
             "instanceId": "<instance-1>",
             "operationId": "<operation-1>",
             "original": {
-              "bytes": 140,
-              "mediaType": "application/imagebytes",
+              "bytes": 5760,
+              "mediaType": "application/fits",
               "url": "/v2/images/<image-1>/original"
             },
             "retainedAt": "<time>",
-            "sha256": "146f86c57bfa413cc92866d35a539fffafee4212e14f8892afa27133b469255d",
+            "sha256": "3744ccac12a26e4c185e9f131e7d25ae1e9dc85d352a96f4eb818104b8ac6fcb",
             "width": 8
           },
           "values": {}
@@ -1275,12 +1275,12 @@
             "instanceId": "<instance-1>",
             "operationId": "<operation-2>",
             "original": {
-              "bytes": 140,
-              "mediaType": "application/imagebytes",
+              "bytes": 5760,
+              "mediaType": "application/fits",
               "url": "/v2/images/<image-2>/original"
             },
             "retainedAt": "<time>",
-            "sha256": "146f86c57bfa413cc92866d35a539fffafee4212e14f8892afa27133b469255d",
+            "sha256": "4fdbb4cdd53f3b6df84a1df5779268f5cb512a3f7ca37960d8eabc94759e688e",
             "width": 8
           },
           "values": {}
@@ -4528,12 +4528,12 @@
             "instanceId": "<instance-1>",
             "operationId": "<operation-1>",
             "original": {
-              "bytes": 140,
-              "mediaType": "application/imagebytes",
+              "bytes": 5760,
+              "mediaType": "application/fits",
               "url": "/v2/images/<image-1>/original"
             },
             "retainedAt": "<time>",
-            "sha256": "146f86c57bfa413cc92866d35a539fffafee4212e14f8892afa27133b469255d",
+            "sha256": "9872508bff93842343022d3a4aa6f16e9a6a5079b438739de245918ee0d9c1d9",
             "width": 8
           },
           "values": {}
@@ -4609,12 +4609,12 @@
             "instanceId": "<instance-1>",
             "operationId": "<operation-2>",
             "original": {
-              "bytes": 140,
-              "mediaType": "application/imagebytes",
+              "bytes": 5760,
+              "mediaType": "application/fits",
               "url": "/v2/images/<image-2>/original"
             },
             "retainedAt": "<time>",
-            "sha256": "146f86c57bfa413cc92866d35a539fffafee4212e14f8892afa27133b469255d",
+            "sha256": "8bbdb6fa9264389798624a0dfb709b00597d08c061b898e43a1f2bd914b0f86c",
             "width": 8
           },
           "values": {}
@@ -4649,11 +4649,11 @@
     "request": "GET /v2/images/<image-2>/original",
     "status": 200,
     "body": {
-      "bytes": 140,
-      "contentLength": "140",
-      "contentType": "application/imagebytes",
-      "etag": "\"146f86c57bfa413cc92866d35a539fffafee4212e14f8892afa27133b469255d\"",
-      "sha256": "146f86c57bfa413cc92866d35a539fffafee4212e14f8892afa27133b469255d"
+      "bytes": 5760,
+      "contentLength": "5760",
+      "contentType": "application/fits",
+      "etag": "\"8bbdb6fa9264389798624a0dfb709b00597d08c061b898e43a1f2bd914b0f86c\"",
+      "sha256": "8bbdb6fa9264389798624a0dfb709b00597d08c061b898e43a1f2bd914b0f86c"
     }
   },
   {
@@ -4962,12 +4962,12 @@
             "instanceId": "<instance-1>",
             "operationId": "<operation-3>",
             "original": {
-              "bytes": 140,
-              "mediaType": "application/imagebytes",
+              "bytes": 5760,
+              "mediaType": "application/fits",
               "url": "/v2/images/<image-1>/original"
             },
             "retainedAt": "<time>",
-            "sha256": "146f86c57bfa413cc92866d35a539fffafee4212e14f8892afa27133b469255d",
+            "sha256": "7882f895cba2b00e14fc601a2c7e024bd3737d2aea24b099233fda5d0f0b76cd",
             "width": 8
           },
           "values": {}

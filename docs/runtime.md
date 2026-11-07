@@ -263,7 +263,7 @@ Cria writes to stderr, so journald holds its log under systemd. It logs `cria: i
 
 ## Images
 
-A capture writes its frame to `imageDirectory` as ImageBytes. The folder is a rolling set. Once it passes `imageBudgetBytes` (1 GiB by default, about 20 frames from the main camera), Cria drops the oldest frames, and a request for a dropped frame gets `410 image-gone`. Cria never keeps a frame for Vela. [SPEC.md, "Image path"](ts/SPEC.md#image-path) has the conversion and the store.
+A capture writes the camera's FITS to `imageDirectory` unchanged. The folder is a rolling set. Once it passes `imageBudgetBytes` (1 GiB by default, about 20 frames from the main camera), Cria drops the oldest frames, and a request for a dropped frame gets `410 image-gone`. Cria never keeps a frame for Vela. [SPEC.md, "Image path"](ts/SPEC.md#image-path) has the conversion and the store.
 
 ## Boot order
 

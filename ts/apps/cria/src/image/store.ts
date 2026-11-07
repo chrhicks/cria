@@ -28,7 +28,7 @@ export interface ImageStore {
   readonly find: (id: ImageId) => Effect.Effect<StoredImage | undefined>
 }
 
-const extension = '.imagebytes'
+const extension = '.fits'
 
 export function makeImageStore(options: { readonly directory: string; readonly budgetBytes: number }): Effect.Effect<ImageStore, Error> {
   return Effect.gen(function* () {

@@ -5,7 +5,7 @@ import { commands, type CommandKind, type DeviceFor, type DeviceId, type DeviceK
 import type { Connection } from '../capability/connection.js'
 import type { Note } from '../capability/motion-record.js'
 import type { CapabilityOf, Equipment } from '../device.js'
-import { FitsError, fitsToImageBytes, readFitsCards } from '@cria/fits'
+import { FitsError, readFitsCards, readFitsHeader, startedAt } from '@cria/fits'
 import type { ImageStore } from '../image/store.js'
 import type { Running } from './ledger.js'
 
@@ -50,11 +50,11 @@ export function makeWorkflows(images: ImageStore, onFrame: (frame: FrameKept) =>
         const frame = yield* camera.capture(parameters, report)
 
         yield* report({ phase: 'retaining' })
-        const { image, header } = yield* Effect.try({
-          try: () => ({ image: fitsToImageBytes(frame.fits, frame), header: readFitsCards(frame.fits) }),
+        const { header, capturedAt } = yield* Effect.try({
+          try: () => ({ header: readFitsCards(frame.fits), capturedAt: startedAt(readFitsHeader(frame.fits).cards) }),
           catch: error => new Failed({ reason: 'invalid', message: error instanceof FitsError ? error.message : String(error) }),
         })
-        const stored = yield* images.adopt(image.bytes)
+        const stored = yield* images.adopt(frame.fits)
 
         onFrame({
           operationId: operation.id,
@@ -62,10 +62,10 @@ export function makeWorkflows(images: ImageStore, onFrame: (frame: FrameKept) =>
           imageId: stored.id,
           bytes: stored.bytes,
           sha256: stored.sha256,
-          width: image.width,
-          height: image.height,
+          width: frame.width,
+          height: frame.height,
           exposureSeconds: parameters.exposureSeconds,
-          capturedAt: image.capturedAt ?? frame.dispatchedAt,
+          capturedAt: capturedAt ?? frame.dispatchedAt,
           header,
         })
 
@@ -77,15 +77,15 @@ export function makeWorkflows(images: ImageStore, onFrame: (frame: FrameKept) =>
             instanceId: operation.instanceId,
             deviceId: operation.deviceId,
             cameraName: frame.cameraName,
-            width: image.width,
-            height: image.height,
+            width: frame.width,
+            height: frame.height,
             exposureSeconds: parameters.exposureSeconds,
             color: frame.color,
-            capturedAt: image.capturedAt ?? frame.dispatchedAt,
-            capturedAtSource: image.capturedAt === undefined ? 'server-estimate' : 'camera',
+            capturedAt: capturedAt ?? frame.dispatchedAt,
+            capturedAtSource: capturedAt === undefined ? 'server-estimate' : 'camera',
             retainedAt: stored.retainedAt,
             sha256: stored.sha256,
-            original: { mediaType: 'application/imagebytes', bytes: stored.bytes, url: `/v2/images/${stored.id}/original` },
+            original: { mediaType: 'application/fits', bytes: stored.bytes, url: `/v2/images/${stored.id}/original` },
           },
         }
       }),
