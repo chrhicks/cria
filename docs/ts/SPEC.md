@@ -39,7 +39,7 @@ For the configured device, in order:
    - mount: `TIME_UTC` set to now;
    - any device with `driverDebug`: `DEBUG` `ENABLE`, then `DEBUG_LEVEL` `DBG_DEBUG`.
 
-A property the driver has not defined is skipped and named in `setup` (`UPLOAD_MODE skipped: not defined`). A property that already shows the value is not written (`already set`). A write ends when its property shows the value, `Alert` (`failed`, with the driver's message), the device or indiserver connection going away or the timeout (`uncertain`). Nothing is resent. The first failing step ends the call, and later steps are not tried.
+A setup property the driver has not defined yet is waited for up to `definitionWaitMs` (drivers define theirs only after `CONNECTION` goes Ok); if it still is not there it is skipped and named in `setup` (`UPLOAD_MODE skipped: not defined`). A property that already shows the value is not written (`already set`). A write ends when its property shows the value, `Alert` (`failed`, with the driver's message), the device or indiserver connection going away or the timeout (`uncertain`). Nothing is resent. The first failing step ends the call, and later steps are not tried.
 
 ## HTTP (protocol 6)
 
@@ -64,6 +64,7 @@ One JSON file, the first argument (or `CRIA_CONFIG`). An unknown key or invalid 
 | `devices` (1 to 16) | required |
 | `connectTimeoutMs` | 120000 |
 | `confirmMs` | 15000 |
+| `definitionWaitMs` | 5000 |
 | `streamClientConfig` | absent: no publishing |
 
 A device is `{id, kind, indiDevice, port?, site?, driverDebug?}`, with `kind` one of `camera`, `mount`, `focuser`, `box` and `site` for a mount only.
