@@ -86,7 +86,6 @@ export const ConfigSchema = Schema.Struct({
   imageDirectory: Schema.String,
   imageBudgetBytes: Schema.Number.pipe(Schema.check(Schema.isInt(), Schema.isGreaterThan(0))),
   commandsEnabled: Schema.Boolean,
-  mountLeaseRequired: Schema.optionalKey(Schema.Boolean),
   /** How long a driver has to acknowledge a command before it is uncertain. */
   acknowledgeMs: Milliseconds(500, 60_000),
   /** Overrun allowance for a motion, and for a camera's frame to settle after a binning change. */

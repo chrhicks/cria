@@ -8,7 +8,6 @@ import { Schema } from 'effect'
 import { CommandSchema, HaltCommandSchema } from './command.js'
 import { BindingId, DeviceId, FailureDomain, ImageId, InstanceId, OperationId, RequestId } from './ids.js'
 import { MotionRecord } from './motion.js'
-import { LeaseId } from './lease.js'
 import { Json, Outcome, Timestamp } from './values.js'
 
 const Name = Schema.String.pipe(Schema.check(Schema.isBetweenLength(1, 256)))
@@ -55,7 +54,6 @@ export const requestIdentity = {
   deviceId: DeviceId,
   bindingId: BindingId,
   expectedName: Name,
-  leaseId: Schema.optionalKey(LeaseId),
 }
 
 /** What Vela sends: its identity for the request, then one command, flat. */
