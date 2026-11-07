@@ -384,6 +384,21 @@ describe('the properties a device should have', () => {
     expect(bench.writes('TIME_UTC')).toHaveLength(2)
   })
 
+  it('says once, after the device has been connected for the settle polls, which properties the rig file names that it does not define', () => {
+    const bench = new Bench()
+
+    bench.sim('mount').properties.TIME_UTC = { UTC: '2000-01-01T00:00:00', OFFSET: '0.00' }
+    delete bench.sim('mount').properties.GEOGRAPHIC_COORD
+    bench.poll(1)
+    expect(bench.logs().filter(line => line.includes('does not define'))).toEqual([])
+    bench.poll(10)
+    expect(bench.logs().filter(line => line.includes('does not define'))).toEqual(['rig: mount: the rig file names GEOGRAPHIC_COORD, which ZWO AM5 does not define'])
+
+    delete bench.sim('mount').properties.TIME_UTC
+    bench.poll(3)
+    expect(bench.logs().filter(line => line.includes('does not define')).at(-1)).toBe('rig: mount: the rig file names GEOGRAPHIC_COORD, TIME_UTC, which ZWO AM5 does not define')
+  })
+
   it('waits for the time to be defined, and writes it once it is', () => {
     const other = new Bench()
 

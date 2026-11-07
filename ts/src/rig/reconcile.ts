@@ -12,6 +12,7 @@ interface DeviceMemory {
   wasConnected: boolean
   pendingOnConnect: string[]
   busy: string[]
+  connectedStreak: number
   reconnectedAt?: number
 }
 
@@ -48,7 +49,7 @@ export function markUnsent(memory: Memory, action: Extract<Action, { kind: 'writ
 }
 
 export const emptyMemory = (config: RigConfig): Memory => ({
-  devices: Object.fromEntries(config.devices.map(device => [device.id, { hardwareStreak: 0, missingStreak: 0, wasConnected: false, pendingOnConnect: [], busy: [] }])),
+  devices: Object.fromEntries(config.devices.map(device => [device.id, { hardwareStreak: 0, missingStreak: 0, wasConnected: false, pendingOnConnect: [], busy: [], connectedStreak: 0 }])),
   drivers: {},
   writes: {},
   said: {},
@@ -108,6 +109,7 @@ export function decide(config: RigConfig, observation: Observation, previous: Me
       for (const property of Object.keys(device.onConnect)) delete memory.writes[onConnectKey(device.id, property)]
       state.pendingOnConnect = connectedNow ? Object.keys(device.onConnect) : []
     }
+    state.connectedStreak = connectedNow ? state.connectedStreak + 1 : 0
     state.wasConnected = connectedNow
     if (!linkDown) state.busy = [...new Set([...(facts?.busy ?? []), ...state.busy.filter(name => !facts?.properties.has(name))])]
   }
@@ -222,6 +224,11 @@ export function decide(config: RigConfig, observation: Observation, previous: Me
       continue
     }
     clearNote(`hardware:${device.id}`)
+
+    const undefinedProperties = [...new Set([...Object.keys(device.properties), ...Object.keys(device.onConnect)])].filter(property => !facts.properties.has(property))
+
+    if (state.connectedStreak >= config.settlePolls && undefinedProperties.length > 0) note(`undefined:${device.id}`, `rig: ${device.id}: the rig file names ${undefinedProperties.join(', ')}, which ${device.indiDevice} does not define`)
+    else clearNote(`undefined:${device.id}`)
 
     const differing = Object.entries(device.properties).flatMap(([property, wanted]) => {
       const found = facts.properties.get(property)
