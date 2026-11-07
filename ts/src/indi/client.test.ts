@@ -37,22 +37,7 @@ const waitFor = <A>(effect: Effect.Effect<Option.Option<A>>) =>
   }).pipe(Effect.timeout('5 seconds'))
 
 describe('INDI client against a real indiserver', () => {
-  it('mirrors definitions and answers a liveness read with a fresh definition', () =>
-    withClient(client =>
-      Effect.gen(function* () {
-        const focuser = client.device('Focuser Simulator')
-        const before = yield* waitFor(focuser.property('CONNECTION'))
-
-        yield* Effect.sleep('2 millis')
-        const read = yield* focuser.read('CONNECTION')
-
-        expect(read.name).toBe('CONNECTION')
-        expect(read.receivedAt).toBeGreaterThan(before.receivedAt)
-        expect(Option.getOrUndefined(yield* focuser.property('CONNECTION'))).toBe(read)
-      }),
-    ))
-
-  it('refresh has indiserver define every property again', () =>
+  it('mirrors definitions, and refresh has indiserver define every property again', () =>
     withClient(client =>
       Effect.gen(function* () {
         const focuser = client.device('Focuser Simulator')
@@ -129,7 +114,7 @@ describe('INDI client against a real indiserver', () => {
     const received = tapped.filter((item): item is TappedMessage => 'dir' in item && item.dir === 'in')
 
     expect(tapped[0]).toEqual({ conn: 1, status: 'connected' })
-    expect(tapped[1]).toEqual({ conn: 1, dir: 'out', xml: '<getProperties version="1.7"/>\n', blobs: [] })
+    expect(tapped[1]).toEqual({ conn: 1, dir: 'out', xml: '<getProperties version="1.7"/>\n' })
     expect(sent.map(message => message.xml.split('\n')[0])).toEqual([
       '<getProperties version="1.7"/>',
       '<newSwitchVector device="Focuser Simulator" name="CONNECTION">',

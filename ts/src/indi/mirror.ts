@@ -5,6 +5,7 @@
  */
 import type {
   ElementDefinition,
+  ElementUpdate,
   IndiMessage,
   Permission,
   PropertyKind,
@@ -27,19 +28,9 @@ export interface Property {
   readonly receivedAt: number
 }
 
-export interface Blob {
-  readonly device: string
-  readonly property: string
-  readonly element: string
-  readonly format: string
-  readonly data: Buffer
-  readonly receivedAt: number
-}
-
 export type MirrorChange =
   | { readonly type: 'property'; readonly origin: 'def' | 'set'; readonly property: Property }
   | { readonly type: 'deleted'; readonly device: string; readonly name?: string }
-  | { readonly type: 'blob'; readonly blob: Blob }
 
 export class Mirror {
   private readonly devices = new Map<string, Map<string, Property>>()
@@ -98,20 +89,11 @@ export class Mirror {
     if (!current || current.kind !== vector.kind) return []
 
     const elements = new Map(current.elements)
-    const blobs: MirrorChange[] = []
 
     for (const update of vector.elements) {
       const element = elements.get(update.name)
 
       if (!element) continue
-      if (update.kind === 'blob') {
-        blobs.push({
-          type: 'blob',
-          blob: { device: vector.device, property: vector.name, element: update.name, format: update.format, data: update.data, receivedAt: now },
-        })
-        continue
-      }
-
       elements.set(update.name, merge(element, update))
     }
 
@@ -126,7 +108,7 @@ export class Mirror {
 
     this.store(property)
 
-    return [...blobs, { type: 'property', origin: 'set', property }]
+    return [{ type: 'property', origin: 'set', property }]
   }
 
   private delete(device: string, name: string | undefined): MirrorChange {
@@ -153,7 +135,7 @@ export class Mirror {
   }
 }
 
-function merge(element: ElementDefinition, update: Exclude<VectorUpdate['elements'][number], { kind: 'blob' }>): ElementDefinition {
+function merge(element: ElementDefinition, update: ElementUpdate): ElementDefinition {
   switch (update.kind) {
     case 'number':
       return element.kind === 'number'
@@ -172,15 +154,4 @@ function merge(element: ElementDefinition, update: Exclude<VectorUpdate['element
     case 'light':
       return element.kind === 'light' ? { ...element, state: update.state } : element
   }
-}
-
-/** The name of the switch that is on, for OneOfMany switches like TELESCOPE_TRACK_MODE. */
-export function selectedSwitch(property: Property | undefined): string | undefined {
-  if (property?.kind !== 'switch') return undefined
-
-  for (const element of property.elements.values()) {
-    if (element.kind === 'switch' && element.on) return element.name
-  }
-
-  return undefined
 }

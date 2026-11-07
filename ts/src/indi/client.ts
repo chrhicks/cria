@@ -13,10 +13,10 @@
  */
 import net from 'node:net'
 import { Data, Effect, Option, PubSub, Scope, Stream, SubscriptionRef } from 'effect'
-import { Mirror, type Blob, type MirrorChange, type Property } from './mirror.ts'
+import { Mirror, type MirrorChange, type Property } from './mirror.ts'
 import type { TrafficTap } from './tap.ts'
 import { ProblemLog } from './problems.ts'
-import { IndiFramer, serialize, type BlobMode, type IndiMessage, type IndiRequest, type ProtocolProblem } from './xml.ts'
+import { IndiFramer, serialize, type IndiMessage, type IndiRequest, type ProtocolProblem } from './xml.ts'
 
 export type ConnectionStatus =
   | { readonly kind: 'connecting' }
@@ -34,7 +34,6 @@ export class IndiError extends Data.TaggedError('IndiError')<{
 export type DeviceEvent =
   | { readonly type: 'property'; readonly origin: 'def' | 'set'; readonly property: Property }
   | { readonly type: 'deleted'; readonly name?: string }
-  | { readonly type: 'blob'; readonly blob: Blob }
   | { readonly type: 'connection'; readonly status: ConnectionStatus }
   | { readonly type: 'message'; readonly device?: string; readonly text: string }
 
@@ -54,12 +53,6 @@ export interface IndiDevice {
   readonly events: Stream.Stream<DeviceEvent>
   /** One new*Vector. Sent exactly once; never retried here. */
   readonly send: (property: string, values: Values) => Effect.Effect<void, IndiError>
-  /**
-   * A liveness read: asks the driver to define `property` again and waits for
-   * that definition. Proves the driver is alive and answering.
-   */
-  readonly read: (property: string) => Effect.Effect<Property, IndiError>
-  readonly enableBlobs: (mode: BlobMode) => Effect.Effect<void, IndiError>
 }
 
 export interface IndiClient {
@@ -106,7 +99,7 @@ export function makeIndiClient(options: IndiClientOptions): Effect.Effect<IndiCl
     const transmit = (request: IndiRequest, current: net.Socket, onWritten?: (error?: Error | null) => void) => {
       const text = serialize(request)
 
-      tap?.message({ conn: connectionNumber, dir: 'out', xml: text, blobs: [] })
+      tap?.message({ conn: connectionNumber, dir: 'out', xml: text })
       current.write(text, onWritten)
     }
 
@@ -178,8 +171,8 @@ export function makeIndiClient(options: IndiClientOptions): Effect.Effect<IndiCl
         try {
           const { elements, stopped } = framer.frame(chunk, tap !== undefined)
 
-          for (const { message, problem, xml, blobs } of elements) {
-            tap?.message({ conn: connectionNumber, dir: 'in', xml, blobs })
+          for (const { message, problem, xml } of elements) {
+            tap?.message({ conn: connectionNumber, dir: 'in', xml })
             if (message) receive(message, current)
             else if (problem && problem.scope === 'element') skip(problem, current)
           }
@@ -252,24 +245,6 @@ export function makeIndiClient(options: IndiClientOptions): Effect.Effect<IndiCl
           yield* send({ type: 'new', kind: known.kind, device: name, name: propertyName, values })
         })
 
-      const read = (propertyName: string) =>
-        Effect.scoped(
-          Effect.gen(function* () {
-            const subscription = yield* subscribeDevice(name)
-
-            yield* send({ type: 'getProperties', device: name, name: propertyName })
-
-            while (true) {
-              const event = yield* subscription.next
-
-              if (event.type === 'property' && event.origin === 'def' && event.property.name === propertyName)
-                return event.property
-              if (event.type === 'connection' && event.status.kind !== 'connected')
-                return yield* new IndiError({ reason: 'connection-lost', message: 'indiserver connection lost during read' })
-            }
-          }),
-        )
-
       return {
         name,
         property,
@@ -280,8 +255,6 @@ export function makeIndiClient(options: IndiClientOptions): Effect.Effect<IndiCl
           Stream.map(item => item.event),
         ),
         send: sendVector,
-        read,
-        enableBlobs: mode => send({ type: 'enableBLOB', device: name, mode }),
       }
     }
 
@@ -302,7 +275,5 @@ function toClientEvent(change: MirrorChange): ClientEvent {
         device: change.device,
         event: change.name === undefined ? { type: 'deleted' } : { type: 'deleted', name: change.name },
       }
-    case 'blob':
-      return { device: change.blob.device, event: { type: 'blob', blob: change.blob } }
   }
 }

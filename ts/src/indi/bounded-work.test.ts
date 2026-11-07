@@ -32,15 +32,6 @@ describe('what is read of a bad element does not depend on how big it is', () =>
     }
   })
 
-  it('never shows the start of a BLOB payload that is cut by the inspected prefix', () => {
-    const wire = `<setBLOBVector device="D" name="CCD1" state="Broken"><oneBLOB name="CCD1" size="9" format=".fits">${'QUJD'.repeat(2_000_000)}</oneBLOB></setBLOBVector>`
-    const { elements } = new IndiFramer().frame(Buffer.from(wire), false)
-
-    expect(elements[0]!.problem).toMatchObject({ tag: 'setBLOBVector', device: 'D', name: 'CCD1', reason: expect.stringMatching(/Unknown INDI state/) })
-    expect(elements[0]!.problem!.excerpt).not.toContain('QUJD')
-    expect(elements[0]!.problem!.excerpt).toContain('<oneBLOB name=\\"CCD1\\"')
-  })
-
   it('still sees invalid UTF-8 in the start of the element', () => {
     const wire = Buffer.concat([Buffer.from('<defTextVector device="D\u00e9" name="N" state="Nope" perm="ro">'), Buffer.from([0xff]), Buffer.from(`${'z'.repeat(100_000)}</defTextVector>`)])
 
@@ -120,7 +111,7 @@ describe('a stream of valid and malformed input, however it is chunked', () => {
   }
 
   const summary = (elements: FramedElement[]) =>
-    elements.map(element => JSON.stringify({ message: element.message, problem: element.problem, xml: element.xml, blobs: element.blobs.map(blob => blob.toString('hex')) }))
+    elements.map(element => JSON.stringify({ message: element.message, problem: element.problem, xml: element.xml }))
 
   it('gives the same elements for chunks of 1, 7 and 64 KiB, and no single call is slow', () => {
     for (const seed of [1, 2, 3]) {

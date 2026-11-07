@@ -1,4 +1,4 @@
-import { addCamera, FakeIndi } from '../../testing/fake-indi/index.ts'
+import { FakeIndi, connection } from '../../testing/fake-indi/index.ts'
 import { Effect, Option, Stream } from 'effect'
 import { describe, expect, it } from 'vitest'
 import { makeIndiClient, type DeviceEvent } from './client.ts'
@@ -20,7 +20,7 @@ describe('the property mirror and a new connection', () => {
     const first = new FakeIndi()
 
     await first.start()
-    addCamera(first, camera)
+    first.define(connection(camera))
 
     const second = new FakeIndi()
     const events: Array<DeviceEvent> = []

@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { IndiFramer, parseNumber, serialize, type IndiMessage } from './xml.ts'
-import { Mirror, selectedSwitch } from './mirror.ts'
+import { Mirror } from './mirror.ts'
 
 // Real traffic from indiserver 2.2.5 with the CCD, telescope, focuser and
 // weather simulators: definitions, a 64x48 exposure with its BLOB, a focuser
@@ -51,27 +51,13 @@ describe('INDI XML framing', () => {
     }
   })
 
-  it('decodes the exposure BLOB to the FITS file the simulator wrote', () => {
-    const blob = whole.find(message => message.type === 'set' && message.vector.kind === 'blob' && message.vector.elements.length > 0)
-
-    expect(blob?.type).toBe('set')
-    if (blob?.type !== 'set') return
-    const element = blob.vector.elements[0]!
-
-    expect(element.kind).toBe('blob')
-    if (element.kind !== 'blob') return
-    expect(element.format).toBe('.fits')
-    expect(element.data.length).toBe(element.size)
-    expect(element.data.toString('latin1', 0, 9)).toBe('SIMPLE  =')
-  })
-
   it('builds a mirror that knows the current values and deletes what the driver removed', () => {
     const mirror = new Mirror()
 
     for (const message of whole) mirror.apply(message, 0)
 
     expect(mirror.property('Focuser Simulator', 'ABS_FOCUS_POSITION')?.elements.get('FOCUS_ABSOLUTE_POSITION')).toMatchObject({ value: 50200 })
-    expect(selectedSwitch(mirror.property('Telescope Simulator', 'TELESCOPE_TRACK_MODE'))).toBe('TRACK_SIDEREAL')
+    expect(mirror.property('Telescope Simulator', 'TELESCOPE_TRACK_MODE')?.elements.get('TRACK_SIDEREAL')).toMatchObject({ on: true })
     expect(mirror.property('Weather Simulator', 'WEATHER_PARAMETERS')).toBeUndefined()
     expect(mirror.property('CCD Simulator', 'CCD_EXPOSURE')?.state).toBe('Ok')
   })
@@ -123,7 +109,7 @@ describe('INDI framing for the traffic tap', () => {
     const relayed = '<newNumberVector device="CCD" name="CCD_CONTROLS"><oneNumber name="Gain">100</oneNumber></newNumberVector>'
     const framed = new IndiFramer().pushFramed(Buffer.from(relayed))
 
-    expect(framed).toEqual([{ message: undefined, xml: relayed, blobs: [] }])
+    expect(framed).toEqual([{ message: undefined, xml: relayed }])
   })
 
   it('reads a driver message with its device and text', () => {
@@ -135,23 +121,17 @@ describe('INDI framing for the traffic tap', () => {
     ])
   })
 
-  it('elides every BLOB payload and hands back the decoded bytes in document order', () => {
+  it('frames a BLOB vector without reading it and drops each payload from the wire text', () => {
     const wire = blobVector(
-      '<oneBLOB name="CCD1" size="3" format=".fits">AQID</oneBLOB><oneBLOB name="CCD2" size="2" format=".fits">\nBAU=\n</oneBLOB>',
+      '<oneBLOB name="CCD1" size="3" format=".fits">AQID</oneBLOB><oneBLOB name="A" size="0" format=".fits"/><oneBLOB name="CCD2" size="2" format=".fits">\nBAU=\n</oneBLOB>',
     )
-    const [element] = new IndiFramer().pushFramed(Buffer.from(wire))
+    const framed = new IndiFramer().pushFramed(Buffer.from(`${wire}<message message="after"/>`))
 
-    expect(element!.xml).toBe(blobVector('<oneBLOB name="CCD1" size="3" format=".fits"/><oneBLOB name="CCD2" size="2" format=".fits"/>'))
-    expect(element!.blobs.map(blob => [...blob])).toEqual([[1, 2, 3], [4, 5]])
-  })
-
-  it('keeps a self-closing oneBLOB in place and counts it as an empty payload', () => {
-    const [element] = new IndiFramer().pushFramed(
-      Buffer.from(blobVector('<oneBLOB name="A" size="0" format=".fits"/><oneBLOB name="B" size="1" format=".fits">AQ==</oneBLOB>')),
-    )
-
-    expect(element!.xml).toBe(blobVector('<oneBLOB name="A" size="0" format=".fits"/><oneBLOB name="B" size="1" format=".fits"/>'))
-    expect(element!.blobs.map(blob => [...blob])).toEqual([[], [1]])
+    expect(framed[0]).toEqual({
+      message: undefined,
+      xml: blobVector('<oneBLOB name="CCD1" size="3" format=".fits"/><oneBLOB name="A" size="0" format=".fits"/><oneBLOB name="CCD2" size="2" format=".fits"/>'),
+    })
+    expect(framed[1]!.message).toEqual({ type: 'message', text: 'after' })
   })
 
   it('frames real indiserver traffic the same however the bytes are split, and never changes what push returns', () => {
@@ -172,19 +152,19 @@ describe('INDI framing for the traffic tap', () => {
       }
 
       expect(split.map(element => element.xml)).toEqual(whole.map(element => element.xml))
-      expect(split.map(element => element.blobs.map(blob => blob.toString('base64')))).toEqual(whole.map(element => element.blobs.map(blob => blob.toString('base64'))))
     }
   })
 
-  it('gives the exposure BLOB of the real traffic as one elided element and the FITS bytes', () => {
-    const framed = new IndiFramer().pushFramed(recorded).filter(element => element.blobs.some(blob => blob.length > 0))
+  it('gives the exposure BLOB of the real traffic as one elided element', () => {
+    const framed = new IndiFramer().pushFramed(recorded).filter(element => element.xml.startsWith('<setBLOBVector'))
 
     expect(framed).toHaveLength(1)
+    expect(framed[0]!.message).toBeUndefined()
+    expect(framed[0]!.problem).toBeUndefined()
     expect(framed[0]!.xml).toBe(
       '<setBLOBVector device="CCD Simulator" name="CCD1" state="Ok" timeout="60" timestamp="2026-10-15T03:27:32">\n' +
         '    <oneBLOB name="CCD1" size="14400" format=".fits" len="14400"/>\n' +
         '</setBLOBVector>',
     )
-    expect(framed[0]!.blobs[0]!.toString('latin1', 0, 6)).toBe('SIMPLE')
   })
 })
