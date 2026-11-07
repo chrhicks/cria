@@ -111,7 +111,7 @@ Preconditions: a clear sky; the mount tracking and polar aligned; the target fra
 1. Close ports 4300 and 4400 to everything but errai (the rule above), before enabling the unit.
 2. Install as above. Check `systemctl --user status phd2`, then `ss -ltnp | grep 4400` on errai. PHD2 shows as `phd2.bin`. If it is not listening 20 s after the unit starts, read `journalctl --user -u phd2` and look at PHD2 over x11vnc: a dialog that waits for a click is the usual cause.
 3. `node ts/deploy/phd2-rpc.mjs watch 5` prints a `Version` event. `state` returns `Stopped`.
-4. `connect`. Expect a result and, in `journalctl`, no INDI errors. `state` returns `Stopped` still. Cria should show the guide camera and the mount as before.
+4. `connect`. Expect a result and, in `journalctl`, no INDI errors. `state` returns `Stopped` still. The guide camera and the mount stay connected as before.
 5. Dark library (first time only), as above. Then `connect` again if the camera was disconnected.
 6. `loop`. Events with `Event":"LoopingExposures"` appear about every 2 s. `find-star` returns `[x, y]`. If it fails, look through x11vnc, and make sure the guide scope is on stars and focused.
 7. `guide`. The first time PHD2 calibrates (events `Calibrating`, then `CalibrationComplete`), which takes a few minutes, and then settles. PHD2's usual advice is to calibrate near the celestial equator and the meridian (general PHD2 advice, not checked in the source). Exit 0 means `SettleDone` with `Status` 0. Let it guide for 10 minutes and note the RMS from the `GuideStep` events. The unguided frames of 2026-10-23 trailed in RA on about 1 frame in 3 with a period near 4.9 min.
