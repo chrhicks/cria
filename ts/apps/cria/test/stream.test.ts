@@ -14,8 +14,10 @@ const devices = [{ id: 'primary', kind: 'camera', indiDevice: camera }]
 let fake: FakeIndi
 let cria: Cria | undefined
 let published: Array<{ readonly subject: string; readonly entry: Entry }>
+let logins: Array<{ readonly user: string; readonly pass: string }> = []
 
-const fakePublisher: OpenPublisher = (_broker, onConnected) => {
+const fakePublisher: OpenPublisher = (broker, onConnected) => {
+  logins.push({ user: broker.user, pass: broker.pass })
   const publisher: Publisher = {
     ready: Promise.resolve(),
     publish: (subject, entry) => published.push({ subject, entry }),
@@ -33,19 +35,22 @@ const fakePublisher: OpenPublisher = (_broker, onConnected) => {
 }
 
 async function settings(contents: string) {
-  const file = join(await mkdtemp(join(tmpdir(), 'cria-stream-')), 'client.json')
+  const folder = await mkdtemp(join(tmpdir(), 'cria-stream-'))
+  const file = join(folder, 'client.json')
 
-  await writeFile(file, contents)
+  await writeFile(join(folder, 'broker.pass'), 'p\n')
+  await writeFile(file, contents.replaceAll('PASS_FILE', join(folder, 'broker.pass')))
 
   return file
 }
 
-const broker = JSON.stringify({ broker: { servers: 'nats://nowhere', user: 'u', pass: 'p' } })
+const broker = JSON.stringify({ broker: { servers: 'nats://nowhere', user: 'u', passFile: 'PASS_FILE' } })
 
 const body = (kind: string) => published.filter(({ entry }) => entry.kind === kind).map(({ entry }) => entry.body as Record<string, unknown>)
 
 beforeEach(async () => {
   published = []
+  logins = []
   fake = new FakeIndi()
   await fake.start()
   addCamera(fake, camera)
@@ -99,7 +104,7 @@ describe('Cria on the rig stream', () => {
   })
 
   it('names the device from the settings file when it has one', async () => {
-    const named = JSON.stringify({ wireDevices: { [camera]: 'primary' }, broker: { servers: 'nats://nowhere', user: 'u', pass: 'p' } })
+    const named = JSON.stringify({ wireDevices: { [camera]: 'primary' }, broker: { servers: 'nats://nowhere', user: 'u', passFile: 'PASS_FILE' } })
 
     cria = await startCria(fake.port, devices, { streamClientConfig: await settings(named) }, { stream: fakePublisher })
     await connectDevices(cria, ['primary'])
@@ -150,6 +155,22 @@ describe('Cria on the rig stream', () => {
 
     expect(response.ok).toBe(false)
     expect(body('cria.request').at(-1)).toMatchObject({ deviceId: 'primary', result: 'refused', code: 'instance-changed' })
+  })
+
+  it('logs in with the password from its own file', async () => {
+    cria = await startCria(fake.port, devices, { streamClientConfig: await settings(broker) }, { stream: fakePublisher })
+
+    expect(logins).toEqual([{ user: 'u', pass: 'p' }])
+  })
+
+  it('runs without publishing when the password file cannot be read', async () => {
+    const missing = JSON.stringify({ broker: { servers: 'nats://nowhere', user: 'u', passFile: '/nonexistent/broker.pass' } })
+
+    cria = await startCria(fake.port, devices, { streamClientConfig: await settings(missing) }, { stream: fakePublisher })
+    await connectDevices(cria, ['primary'])
+    await cria.waitFor(allReady(['primary']))
+
+    expect([logins, published]).toEqual([[], []])
   })
 
   it('runs without publishing, and without showing the file, when its settings cannot be read', async () => {

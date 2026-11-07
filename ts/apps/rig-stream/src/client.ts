@@ -3,7 +3,7 @@ import { spawnSync } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
 import { hostname } from 'node:os'
 import { makeIndiClient, type TrafficTap } from '@cria/indi'
-import { makeEntries, openPublisher, wireSubject } from '@cria/stream'
+import { brokerSettings, makeEntries, openPublisher, wireSubject } from '@cria/stream'
 import { Effect } from 'effect'
 import { ClientConfig } from './config.js'
 import { makeDebugChangeFilter } from './debug-lines.js'
@@ -25,7 +25,7 @@ const build = spawnSync('git', ['-C', import.meta.dirname, 'rev-parse', '--short
 const version = build.status === 0 ? build.stdout.trim() : 'unknown'
 
 const broker = openPublisher({
-  broker: config.broker,
+  broker: brokerSettings(config.broker),
   name: 'rig-stream-client',
   log: line => console.error(`rig-stream-client: ${line}`),
   onConnected: connection =>

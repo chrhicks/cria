@@ -4,6 +4,7 @@ import { createServer, type ServerResponse } from 'node:http'
 import { DeliverPolicy, jetstream, jetstreamManager, RetentionPolicy, StorageType } from '@nats-io/jetstream'
 import { connect, nanos } from '@nats-io/transport-node'
 import { Effect } from 'effect'
+import { brokerSettings } from '@cria/stream'
 import { ViewerConfig } from './config.js'
 import { makeHistory, parseQuery, type HistoryQuery } from './viewer-history.js'
 
@@ -11,7 +12,7 @@ const stream = 'RIG_DEV'
 const page = readFileSync(new URL('../src/viewer.html', import.meta.url))
 
 const config = await Effect.runPromise(Effect.provide(Effect.service(ViewerConfig), ViewerConfig.layer))
-const broker = await connect({ ...config.broker, name: 'rig-stream-viewer', maxReconnectAttempts: -1 })
+const broker = await connect({ ...brokerSettings(config.broker), name: 'rig-stream-viewer', maxReconnectAttempts: -1 })
 const manager = await jetstreamManager(broker)
 const client = jetstream(broker)
 

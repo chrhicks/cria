@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs'
 import { hostname } from 'node:os'
 import { Effect, Option, Schema, Scope } from 'effect'
 import type { TrafficTap } from '@cria/indi'
-import { defaultWireDevices, makeEntries, openPublisher, wireDevice, type BrokerSettings, type Publisher } from '@cria/stream'
+import { BrokerLogin, brokerSettings, defaultWireDevices, makeEntries, openPublisher, wireDevice, type BrokerSettings, type Publisher } from '@cria/stream'
 import type { InstanceId, Operation } from '@cria/wire'
 import type { Config } from './config.js'
 import type { Submission } from './operation/ledger.js'
@@ -16,7 +16,7 @@ const StreamSettings = Schema.fromJsonString(
   Schema.Struct({
     rig: Schema.optionalKey(Schema.String),
     wireDevices: Schema.optionalKey(Schema.Record(Schema.String, Schema.String)),
-    broker: Schema.Struct({ servers: Schema.String, user: Schema.String, pass: Schema.String }),
+    broker: BrokerLogin,
   }),
 )
 
@@ -44,7 +44,11 @@ export function makeCriaStream(
 
   return Effect.gen(function* () {
     const read = yield* Effect.option(
-      Effect.try(() => Schema.decodeUnknownSync(StreamSettings)(readFileSync(file, 'utf8'))),
+      Effect.try(() => {
+        const settings = Schema.decodeUnknownSync(StreamSettings)(readFileSync(file, 'utf8'))
+
+        return { ...settings, broker: brokerSettings(settings.broker) }
+      }),
     )
 
     if (Option.isNone(read)) {
