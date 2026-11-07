@@ -13,11 +13,8 @@ release/
 artifacts/
 coverage/
 data/
-**/bin/
-**/obj/
 **/__pycache__/
 *.py[cod]
-/tests/results/
 /tests/.vela
 /tests/.v2-baseline/
 

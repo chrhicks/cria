@@ -124,7 +124,3 @@ node testing/mutate.mjs apps/cria/src/wire/sse.ts 'sentRevision = snapshotRevisi
 ## What the tests do not prove
 
 The tests never command real equipment, so they do not prove how the rig's drivers behave under a command. The errai replay covers only the drivers' definitions.
-
-## Legacy .NET tests
-
-The .NET service's offline suite (`tools/check.sh` and `tests/*.py`) is described in [legacy-windows.md, "Testing the .NET service"](legacy-windows.md#testing-the-net-service).
