@@ -25,7 +25,7 @@ describe('wire subjects', () => {
 })
 
 describe('the rig\'s device names', () => {
-  it('give one id to the power box, which Cria splits into two views', () => {
+  it('give one id to the power box, which is one INDI device', () => {
     expect(wireDevice(defaultWireDevices, '<newSwitchVector device="Pegasus PPBA" name="X">')).toBe('box')
   })
 })

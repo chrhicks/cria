@@ -52,6 +52,7 @@ export type IndiMessage =
   | { readonly type: 'set'; readonly vector: VectorUpdate }
   | { readonly type: 'del'; readonly device: string; readonly name?: string }
   | { readonly type: 'pingRequest'; readonly uid: string }
+  | { readonly type: 'message'; readonly device?: string; readonly text: string }
 
 export class IndiProtocolError extends Error {
   override readonly name = 'IndiProtocolError'
@@ -276,7 +277,7 @@ export class IndiFramer {
 }
 
 export interface FramedElement {
-  /** Undefined for an element the client ignores (`<message>`) and for a bad one (then `problem` is set). */
+  /** Undefined for an element the client ignores (another client's `new*Vector`, relayed by indiserver) and for a bad one (then `problem` is set). */
   readonly message: IndiMessage | undefined
   /** Why this element could not be read. It is still in `xml`, byte for byte, for the recording. */
   readonly problem?: ProtocolProblem
@@ -558,8 +559,10 @@ function toMessage(node: Node): IndiMessage | undefined {
     case 'pingRequest':
       return { type: 'pingRequest', uid: a.uid ?? '' }
     case 'message':
-      return undefined
+      return a.device === undefined ? { type: 'message', text: a.message ?? '' } : { type: 'message', device: a.device, text: a.message ?? '' }
     default:
+      if (/^new(Number|Switch|Text|BLOB)Vector$/.test(node.tag)) return undefined
+
       throw new IndiProtocolError(`Unknown INDI element <${node.tag}>`)
   }
 }

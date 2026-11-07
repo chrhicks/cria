@@ -1,15 +1,15 @@
 # User unit: install to ~/.config/systemd/user/ (README.md). Disable with
 # `systemctl --user disable --now rig-supervisor`. It reads
-# ~/.config/cria/supervisor.json.
+# ~/.config/cria/rig.json.
 [Unit]
 StartLimitIntervalSec=0
-Description=Rig supervisor (restart a driver for a device that appeared, connect a device that is disconnected)
-After=cria.service
+Description=Rig program (keep the devices connected and set up as the rig file says, restart a driver that is missing or whose link is dead)
+After=indiserver.service
 # Stopped and restarted with indiserver, so it never restarts a driver mid-restart.
 PartOf=indiserver.service
 
 [Service]
-ExecStart=/usr/bin/node %h/dev/personal/cria-ts/ts/src/bin/rig.ts
+ExecStart=/usr/bin/node %h/dev/personal/cria-ts/ts/src/bin/rig.ts %h/.config/cria/rig.json
 Restart=always
 RestartSec=5
 # Exit 2 is a bad config file: restarting cannot fix it.

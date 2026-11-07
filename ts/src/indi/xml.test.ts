@@ -120,9 +120,19 @@ describe('INDI framing for the traffic tap', () => {
   const blobVector = (elements: string) => `<setBLOBVector device="CCD" name="CCD1" state="Ok" timestamp="2026-10-18T01:02:03">${elements}</setBLOBVector>`
 
   it('keeps an element ignored by the parser, with its wire text', () => {
-    const framed = new IndiFramer().pushFramed(Buffer.from('<message device="CCD" message="hello &amp; bye"/>'))
+    const relayed = '<newNumberVector device="CCD" name="CCD_CONTROLS"><oneNumber name="Gain">100</oneNumber></newNumberVector>'
+    const framed = new IndiFramer().pushFramed(Buffer.from(relayed))
 
-    expect(framed).toEqual([{ message: undefined, xml: '<message device="CCD" message="hello &amp; bye"/>', blobs: [] }])
+    expect(framed).toEqual([{ message: undefined, xml: relayed, blobs: [] }])
+  })
+
+  it('reads a driver message with its device and text', () => {
+    const framed = new IndiFramer().pushFramed(Buffer.from('<message device="CCD" message="hello &amp; bye"/><message message="no device"/>'))
+
+    expect(framed.map(element => element.message)).toEqual([
+      { type: 'message', device: 'CCD', text: 'hello & bye' },
+      { type: 'message', text: 'no device' },
+    ])
   })
 
   it('elides every BLOB payload and hands back the decoded bytes in document order', () => {

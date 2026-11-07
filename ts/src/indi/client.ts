@@ -36,6 +36,7 @@ export type DeviceEvent =
   | { readonly type: 'deleted'; readonly name?: string }
   | { readonly type: 'blob'; readonly blob: Blob }
   | { readonly type: 'connection'; readonly status: ConnectionStatus }
+  | { readonly type: 'message'; readonly device?: string; readonly text: string }
 
 export interface DeviceSubscription {
   /** The next event for this device, waiting if there is none yet. */
@@ -131,6 +132,12 @@ export function makeIndiClient(options: IndiClientOptions): Effect.Effect<IndiCl
     const receive = (message: IndiMessage, current: net.Socket) => {
       if (message.type === 'pingRequest') {
         transmit({ type: 'pingReply', uid: message.uid }, current)
+
+        return
+      }
+
+      if (message.type === 'message') {
+        publish({ ...(message.device === undefined ? {} : { device: message.device }), event: message })
 
         return
       }
