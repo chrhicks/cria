@@ -27,7 +27,7 @@ export interface RigDevice {
   readonly indiDevice: string
   readonly usb?: string
   readonly serial?: string
-  readonly driver?: string
+  readonly driver: string
   readonly connected: boolean
   readonly properties: WantedProperties
   readonly onConnect: WantedProperties
@@ -80,7 +80,7 @@ function parseDevice(device: unknown, index: number, ids: Set<string>): RigDevic
   if ((usb === undefined) === (serial === undefined)) fail(`device ${id}: give exactly one of usb and serial`)
   if (usb !== undefined && !(typeof usb === 'string' && /^[0-9a-fA-F]{4}:[0-9a-fA-F]{4}$/.test(usb))) fail(`device ${id}: usb must look like 03c3:260a`)
   if (serial !== undefined && (typeof serial !== 'string' || !serial.startsWith('/'))) fail(`device ${id}: serial must be an absolute path`)
-  if (driver !== undefined && (typeof driver !== 'string' || !/^[A-Za-z0-9_.-]+$/.test(driver))) fail(`device ${id}: driver must be an executable name`)
+  if (typeof driver !== 'string' || !/^[A-Za-z0-9_.-]+$/.test(driver)) fail(`device ${id}: driver must be an executable name`)
   if (typeof connected !== 'boolean') fail(`device ${id}: connected must be true or false`)
 
   const wanted = parseProperties(id, 'properties', device.properties)
@@ -92,7 +92,7 @@ function parseDevice(device: unknown, index: number, ids: Set<string>): RigDevic
     indiDevice,
     ...(typeof usb === 'string' && { usb: usb.toLowerCase() }),
     ...(typeof serial === 'string' && { serial }),
-    ...(typeof driver === 'string' && { driver }),
+    driver: driver as string,
     connected: connected as boolean,
     properties: typeof serial === 'string' ? { DEVICE_PORT: { PORT: serial }, ...wanted } : wanted,
     onConnect: parseProperties(id, 'onConnect', device.onConnect),

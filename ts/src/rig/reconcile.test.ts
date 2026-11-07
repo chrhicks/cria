@@ -134,7 +134,7 @@ class Bench {
 
 describe('the rig file', () => {
   it('fills defaults, normalises, and takes the serial device port from its path', () => {
-    const config = parseConfig({ devices: [{ id: 'a', indiDevice: 'Cam', usb: '03C3:260A', driver: 'indi_asi_ccd', connected: true }, { id: 'm', indiDevice: 'Mount', serial: '/dev/x', connected: false }] }, { runtimeDir: '/run/user/1000' })
+    const config = parseConfig({ devices: [{ id: 'a', indiDevice: 'Cam', usb: '03C3:260A', driver: 'indi_asi_ccd', connected: true }, { id: 'm', indiDevice: 'Mount', serial: '/dev/x', driver: 'indi_mount', connected: false }] }, { runtimeDir: '/run/user/1000' })
 
     expect(config).toEqual({
       indiHost: '127.0.0.1',
@@ -151,20 +151,21 @@ describe('the rig file', () => {
       backoffMs: [10_000, 30_000, 60_000],
       devices: [
         { id: 'a', indiDevice: 'Cam', usb: '03c3:260a', driver: 'indi_asi_ccd', connected: true, properties: {}, onConnect: {} },
-        { id: 'm', indiDevice: 'Mount', serial: '/dev/x', connected: false, properties: { DEVICE_PORT: { PORT: '/dev/x' } }, onConnect: {} },
+        { id: 'm', indiDevice: 'Mount', serial: '/dev/x', driver: 'indi_mount', connected: false, properties: { DEVICE_PORT: { PORT: '/dev/x' } }, onConnect: {} },
       ],
     })
   })
 
-  const one = (device: object) => ({ fifo: '/x', devices: [{ id: 'a', indiDevice: 'A', serial: '/dev/x', connected: true, ...device }] })
+  const one = (device: object) => ({ fifo: '/x', devices: [{ id: 'a', indiDevice: 'A', serial: '/dev/x', driver: 'indi_x', connected: true, ...device }] })
 
   it.each([
     [{ fifo: '/x', devices: [] }, 'devices must be a non-empty array'],
-    [{ fifo: '/x', devices: [{ id: 'a', serial: '/dev/x', connected: true }] }, 'indiDevice is required'],
+    [{ fifo: '/x', devices: [{ id: 'a', serial: '/dev/x', driver: 'indi_x', connected: true }] }, 'indiDevice is required'],
     [one({ serial: undefined }), 'give exactly one of usb and serial'],
     [one({ usb: '03c3:260a' }), 'give exactly one of usb and serial'],
     [one({ serial: undefined, usb: 'nope' }), 'usb must look like'],
     [one({ driver: 'a b' }), 'driver must be an executable name'],
+    [one({ driver: undefined }), 'driver must be an executable name'],
     [one({ connected: undefined }), 'connected must be true or false'],
     [one({ properties: { DEVICE_PORT: { PORT: '/dev/y' } } }), 'DEVICE_PORT comes from serial'],
     [one({ properties: { X: {} } }), 'must be an object of element values'],
@@ -261,21 +262,26 @@ describe('connecting a device', () => {
     expect(bench.writes().map(write => [write.property, write.values])).toEqual([['CONNECTION', { DISCONNECT: true }]])
   })
 
-  it('writes nothing while indiserver is unreachable or none of the devices is defined', () => {
+  it('writes and restarts nothing while indiserver is unreachable', () => {
     const bench = new Bench()
 
     bench.sim('focuser').connection = 'disconnected'
+    bench.missing('primary')
     bench.linked = false
     bench.poll(5)
-    bench.linked = true
-    const sims = bench.sims
-
-    bench.sims = new Map()
-    bench.poll(5)
-    bench.sims = sims
 
     expect(bench.writes()).toEqual([])
     expect(bench.restarts()).toEqual([])
+  })
+
+  it('starts every driver whose hardware is present when indiserver was started with none', () => {
+    const bench = new Bench()
+
+    bench.sims = new Map()
+    bench.present.delete('box')
+    bench.poll(2)
+
+    expect(bench.restarts().map(restart => restart.driver).sort()).toEqual(['indi_asi_ccd', 'indi_asi_focuser', 'indi_lx200am5'])
   })
 })
 
@@ -397,15 +403,6 @@ describe('a device that is missing from INDI while its hardware is present', () 
     expect(bench.restarts()).toEqual([])
     bench.poll(1)
     expect(bench.restarts()).toHaveLength(1)
-  })
-
-  it('does nothing for a device whose entry names no driver', () => {
-    const bench = new Bench({}, [{ id: 'mount', indiDevice: 'ZWO AM5', serial: '/dev/serial/by-id/mount', connected: true }, { id: 'box', indiDevice: 'Pegasus PPBA', serial: '/dev/serial/by-id/box', connected: true }])
-
-    bench.missing('mount')
-    bench.poll(5)
-
-    expect(bench.restarts()).toEqual([])
   })
 
   it("waits while any property on a device that driver serves is Busy, such as another client's guide exposure", () => {
@@ -632,18 +629,6 @@ describe('a dead link: the driver reports errors while the device still looks co
 
     expect(bench.restarts()).toEqual([])
     expect(bench.logs().some(line => line.includes('box POWER_CHANNELS is Busy; not restarting'))).toBe(true)
-  })
-
-  it('only says so when a serial device fails and the rig file names no driver to restart, and reconnects again later', () => {
-    const bench = new Bench({}, [{ id: 'mount', indiDevice: 'ZWO AM5', serial: '/dev/serial/by-id/mount', connected: true }, { id: 'box', indiDevice: 'Pegasus PPBA', serial: '/dev/serial/by-id/box', connected: true }])
-
-    bench.poll(2)
-    bench.sim('mount').brokenSince = bench.now
-    bench.poll(40)
-
-    expect(bench.restarts()).toEqual([])
-    expect(bench.logs().filter(line => line.includes('mount: still failing after the reconnect, and the rig file names no driver to restart'))).toHaveLength(1)
-    expect(bench.writes('CONNECTION').filter(write => 'DISCONNECT' in write.values).length).toBeGreaterThan(1)
   })
 
   it('restarts the driver again when the same device fails again later', () => {
