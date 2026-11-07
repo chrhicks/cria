@@ -2,20 +2,27 @@ import { describe, expect, it } from 'vitest'
 import type { Entry } from './entry.js'
 import { openPublisher, type BrokerConnection } from './publisher.js'
 
-const settings = { servers: 'nats://nowhere', user: 'u', pass: 'p' }
+const settings = { servers: 'nats://nowhere', user: 'u', pass: 'p', retryDelayMs: 1 }
 const entry: Entry = { v: 1, id: 'x', rig: 'r', kind: 'k', at: 1, source: 's', tags: [], body: {} }
 
 function fakeBroker() {
   const sent: Array<string> = []
   const failures: Array<Error> = []
+  const stored: Array<string> = []
   let announce = (_type: string) => {}
 
   const connection = {
     publish: (subject: string) => void sent.push(subject),
-    flush: () => {
+    store: (subject: string, _payload: string, messageId: string) => {
+      sent.push(subject)
+
       const failure = failures.shift()
 
-      return failure ? Promise.reject(failure) : Promise.resolve()
+      if (failure) return Promise.reject(failure)
+
+      stored.push(messageId)
+
+      return Promise.resolve()
     },
     close: () => Promise.resolve(),
     getServer: () => 'fake',
@@ -25,7 +32,7 @@ function fakeBroker() {
     },
   } as unknown as BrokerConnection
 
-  return { connection, sent, failures, announce: (type: string) => announce(type) }
+  return { connection, sent, stored, failures, announce: (type: string) => announce(type) }
 }
 
 async function open(broker: ReturnType<typeof fakeBroker>) {
@@ -52,21 +59,54 @@ describe('publisher', () => {
     expect(connected).toEqual([1, 2])
   })
 
-  it('sends an unconfirmed entry again once the broker returns, without failing', async () => {
+  it('sends an unstored entry again, under the same message id, without failing', async () => {
     const broker = fakeBroker()
     const { publisher } = await open(broker)
 
     broker.failures.push(new Error('connection disconnected'))
 
-    const done = publisher.publishConfirmed('subject', entry)
-
-    await new Promise(resolve => setTimeout(resolve))
-    expect(broker.sent).toEqual(['subject'])
-
-    broker.announce('reconnect')
-    await done
+    await publisher.publishConfirmed('subject', entry)
 
     expect(broker.sent).toEqual(['subject', 'subject'])
+    expect(broker.stored).toEqual(['x'])
+  })
+
+  it('does not report an entry stored until the broker is reachable and acknowledges it', async () => {
+    const broker = fakeBroker()
+    const attempts: Array<string> = []
+    let allowed = false
+    const publisher = openPublisher(
+      { broker: settings, name: 'test', log: () => {}, onConnected: () => {} },
+      options => {
+        attempts.push(options.user)
+
+        return allowed ? Promise.resolve(broker.connection) : Promise.reject(new Error('authorization violation'))
+      },
+    )
+    let done = false
+    const confirmed = publisher.publishConfirmed('subject', entry).then(() => (done = true))
+
+    await new Promise(resolve => setTimeout(resolve, 20))
+    expect(done).toBe(false)
+    expect(broker.stored).toEqual([])
+    expect(attempts.length).toBeGreaterThan(1)
+
+    allowed = true
+    await confirmed
+
+    expect(broker.stored).toEqual(['x'])
+  })
+
+  it('fails a confirmed publish when closed before the entry is stored', async () => {
+    const publisher = openPublisher(
+      { broker: settings, name: 'test', log: () => {}, onConnected: () => {} },
+      () => Promise.reject(new Error('authorization violation')),
+    )
+    const confirmed = publisher.publishConfirmed('subject', entry)
+
+    await publisher.close()
+
+    await expect(confirmed).rejects.toThrow('closed')
   })
 
   it('never throws from a plain publish', async () => {

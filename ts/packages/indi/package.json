@@ -17,5 +17,8 @@
   },
   "dependencies": {
     "effect": "4.0.3"
+  },
+  "devDependencies": {
+    "@cria/fake-indi": "workspace:*"
   }
 }

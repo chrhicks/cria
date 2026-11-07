@@ -52,6 +52,14 @@ export class Mirror {
     return [...(this.devices.get(device)?.values() ?? [])]
   }
 
+  clear(): MirrorChange[] {
+    const devices = [...this.devices.keys()]
+
+    this.devices.clear()
+
+    return devices.map(device => ({ type: 'deleted', device }))
+  }
+
   apply(message: IndiMessage, now: number): MirrorChange[] {
     switch (message.type) {
       case 'def':

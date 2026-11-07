@@ -450,7 +450,7 @@ describe('the client when indiserver sends something unexpected', () => {
 
       expect(warnings[0]).toContain('INDI protocol error #1: dropped the connection: Incomplete INDI element')
       expect(fake.connections.length).toBeGreaterThanOrEqual(2)
-      expect(property('BEFORE')).toBeDefined()
+      expect(property('BEFORE')).toBeUndefined()
       expect(closed.find(item => item.status === 'closed')).toMatchObject({ error: expect.stringContaining('Incomplete INDI element') })
     })
   })

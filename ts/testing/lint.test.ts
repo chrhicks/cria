@@ -24,8 +24,8 @@ const allowed: Record<string, Partial<Record<Rule, readonly [count: number, why:
     'try-catch': [2, 'an IndiProtocolError from one element or from the framing becomes a problem the client logs, never a throw out of a data handler'],
   },
   'packages/stream/src/publisher.ts': {
-    'try-catch': [2, 'a message the broker refuses is logged and skipped, and an unconfirmed one is sent again once it returns: whatever publishes must never stop for it'],
-    'promise-catch': [1, 'a broker that refuses the login is logged: Cria still has to run without it'],
+    'try-catch': [3, 'a refused login is logged and tried again, a plain publish the broker refuses is logged and skipped, and an entry the stream has not stored is sent again: whatever publishes must never stop for it'],
+    'node-timer': [1, 'the wait before logging in or storing again, cut short when the connection returns or the publisher closes'],
   },
   'apps/cria/src/stream.ts': {
     'catch-all': [1, 'stream settings that cannot be read are logged and Cria runs without publishing'],
