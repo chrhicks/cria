@@ -293,8 +293,8 @@ export function makeLedger(options: LedgerOptions): Effect.Effect<Ledger, never,
     const devices = new Map(options.devices.map(device => [device.id, device]))
     const rules: Rules = { instanceId: options.instanceId, commandsEnabled: options.commandsEnabled, history: options.history, devices }
     const state = yield* Ref.make(initialState())
-    const working = yield* FiberMap.make<OperationId>()
     const revisions = yield* Effect.acquireRelease(PubSub.sliding<number>(1), PubSub.shutdown)
+    const working = yield* FiberMap.make<OperationId>()
 
     const apply = <A>(transition: (current: LedgerState) => Transition<A>): Effect.Effect<A> =>
       Ref.modify(state, current => {
