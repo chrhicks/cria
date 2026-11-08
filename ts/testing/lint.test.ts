@@ -19,7 +19,6 @@ const allowed: Record<string, Partial<Record<Rule, readonly [count: number, why:
   },
   'src/stream/json.ts': { 'try-catch': [1, 'a line that is not JSON is kept as text'] },
   'src/stream/publisher.ts': { 'try-catch': [1, 'an entry the stream has not acknowledged is sent again under the same id; any other error ends the process'] },
-  'src/rig/fifo.ts': { 'try-catch': [1, 'the FIFO handle is closed whether or not the write succeeded'] },
   'src/rig/hardware.ts': { 'try-catch': [2, 'a USB device sysfs cannot be read, or a sysfs that is not there, is a device that is not attached'] },
   'src/rig/supervisor.ts': {
     'try-catch': [2, 'a write INDI refuses and a FIFO that cannot be written are logged and tried again on a later poll: one failure must not stop the rig program'],

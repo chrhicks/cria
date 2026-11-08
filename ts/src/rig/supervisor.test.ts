@@ -399,14 +399,31 @@ describe('the FIFO', () => {
     expect(received).toBe('stop indi_asi_ccd\nstart indi_asi_ccd\n')
   })
 
-  it('fails at once, instead of hanging, when nothing reads the FIFO or it does not exist', async () => {
-    await expect(writeFifo(fifoPath(), 'stop indi_asi_ccd')).rejects.toMatchObject({ code: 'ENXIO' })
-    await expect(writeFifo(join(tmpdir(), 'no-such-fifo'), 'stop x')).rejects.toMatchObject({ code: 'ENOENT' })
+  it('holds the FIFO open, so a line written while no one reads waits there for indiserver', async () => {
+    const path = fifoPath()
+
+    await writeFifo(path, 'start indi_asi_focuser')
+    const reader = new Socket({ fd: openSync(path, constants.O_RDONLY | constants.O_NONBLOCK), readable: true, writable: false })
+    let received = ''
+
+    reader.setEncoding('utf8').on('data', chunk => (received += chunk))
+    await new Promise<void>(resolve => setTimeout(resolve, 100))
+    reader.destroy()
+
+    expect(received).toBe('start indi_asi_focuser\n')
+  })
+
+  it('fails at once when the FIFO does not exist, and opens it once it does', async () => {
+    const path = join(mkdtempSync(join(tmpdir(), 'fifo-')), 'indi.fifo')
+
+    await expect(writeFifo(path, 'stop x')).rejects.toMatchObject({ code: 'ENOENT' })
+    execFileSync('mkfifo', [path])
+    await expect(writeFifo(path, 'stop x')).resolves.toBeUndefined()
   })
 })
 
 describe('the FIFO', () => {
-  it('spaces every line, across drivers too, so indiserver has reopened it', async () => {
+  it('spaces every line, across drivers too', async () => {
     const config = parseConfig({
       stream,
       fifo: '/run/test/indi.fifo',
