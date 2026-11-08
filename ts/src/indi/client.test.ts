@@ -125,3 +125,26 @@ describe('INDI client when the connection ends', () => {
     await expect(connectIndi({ host: '127.0.0.1', port, warn: () => {} })).rejects.toThrow('ECONNREFUSED')
   })
 })
+
+describe('asking for everything again', () => {
+  it('has indiserver send every definition again, through the tap', async () => {
+    const fake = new FakeIndi()
+    await fake.start()
+    fake.define(connection('Fake Focuser'))
+    const definitions: string[] = []
+    const client = await connectIndi({
+      host: '127.0.0.1',
+      port: fake.port,
+      warn: () => {},
+      tap: { connection: () => {}, message: message => void (message.dir === 'in' && message.xml.startsWith('<def') && definitions.push(message.xml)) },
+    })
+
+    await until('the first definitions', () => definitions.length === 1 || undefined)
+    client.askAll()
+    await until('the definitions again', () => definitions.length === 2 || undefined)
+    expect(fake.received.filter(xml => xml.startsWith('<getProperties'))).toHaveLength(2)
+
+    client.close()
+    await fake.stop()
+  })
+})

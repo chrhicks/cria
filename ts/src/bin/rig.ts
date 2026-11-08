@@ -20,8 +20,10 @@ try {
   process.exit(2)
 }
 
-const recording = startRecording({ settings: config.stream, wireDevices: wireIdsOf(config), log })
+let askIndiForEverything = () => {}
+const recording = startRecording({ settings: config.stream, wireDevices: wireIdsOf(config), log, onBrokerConnected: () => askIndiForEverything() })
 const indi = await openIndiLink({ host: config.indiHost, port: config.indiPort, devices: config.devices.map(device => device.indiDevice), errorGapMs: config.errorGapMs, now: Date.now, warn: log, tap: recording.tap })
+askIndiForEverything = indi.askAll
 const rig = createRig({ config, now: Date.now, sleep: ms => delay(ms), hardwarePresent, writeFifo, indi, log })
 
 for (const signal of ['SIGTERM', 'SIGINT']) {

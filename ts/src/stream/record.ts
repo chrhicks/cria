@@ -15,7 +15,12 @@ export interface Recording {
   readonly running: Promise<unknown>
 }
 
-export function startRecording(options: { readonly settings: StreamSettings; readonly wireDevices: Readonly<Record<string, string>>; readonly log: (line: string) => void }): Recording {
+export function startRecording(options: {
+  readonly settings: StreamSettings
+  readonly wireDevices: Readonly<Record<string, string>>
+  readonly log: (line: string) => void
+  readonly onBrokerConnected: () => void
+}): Recording {
   const { settings, wireDevices } = options
   const log = (line: string) => options.log(`rig: ${line}`)
   const run = randomUUID()
@@ -27,8 +32,10 @@ export function startRecording(options: { readonly settings: StreamSettings; rea
     broker: brokerSettings(settings.broker),
     name: 'rig',
     log,
-    onConnected: connection =>
-      broker.publish('rig-dev.client', entries.client('connected', { client: 'rig', run, connection, version, sources: ['wire', 'system', 'phd2'], wireDevices })),
+    onConnected: connection => {
+      broker.publish('rig-dev.client', entries.client('connected', { client: 'rig', run, connection, version, sources: ['wire', 'system', 'phd2'], wireDevices }))
+      options.onBrokerConnected()
+    },
   })
 
   const tap: TrafficTap = {

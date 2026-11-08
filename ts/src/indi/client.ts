@@ -19,6 +19,7 @@ export interface IndiClient {
   readonly properties: (device: string) => ReadonlyArray<Property>
   readonly property: (device: string, name: string) => Property | undefined
   readonly send: (device: string, property: string, values: Values) => Promise<void>
+  readonly askAll: () => void
   readonly close: () => void
 }
 
@@ -92,6 +93,7 @@ export async function connectIndi(options: IndiClientOptions): Promise<IndiClien
 
   return {
     closed,
+    askAll: () => transmit({ type: 'getProperties' }),
     properties: device => mirror.properties(device),
     property: (device, name) => mirror.property(device, name),
     send: async (device, property, values) => {

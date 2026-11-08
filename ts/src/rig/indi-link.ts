@@ -28,6 +28,7 @@ export interface IndiLink {
   readonly closed: Promise<string>
   readonly view: () => IndiSnapshot
   readonly write: (device: string, property: string, values: Values) => Promise<void>
+  readonly askAll: () => void
   readonly close: () => void
 }
 
@@ -99,6 +100,7 @@ export async function openIndiLink(options: {
       return { devices }
     },
     write: client.send,
+    askAll: client.askAll,
     close: client.close,
   }
 }
