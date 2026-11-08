@@ -131,6 +131,41 @@ describe('history', () => {
     expect(history.counted().counts).toEqual({ mount: 3, commands: 1, problems: 1, changes: 3 })
   })
 
+  describe('search', () => {
+    const abort = wire({ type: 'new', indiDevice: 'ZWO AM5', property: 'TELESCOPE_ABORT_MOTION', elements: { ABORT: true } })
+
+    it('keeps the newest entries that match the search, however many came before', () => {
+      const history = makeHistory(parseQuery(new URLSearchParams('q=abort')), 1)
+
+      history.take(raw(1, mountWire, abort))
+      for (let seq = 2; seq < 10; seq += 1) history.take(raw(seq, mountWire, quiet))
+      history.take(raw(10, mountWire, abort))
+      for (let seq = 11; seq < 20; seq += 1) history.take(raw(seq, mountWire, quiet))
+
+      expect(history.drained().map(kept => kept.seq)).toEqual([10])
+      expect(history.counted()).toMatchObject({ scanned: 19, matched: 2 })
+    })
+
+    it('searches together with the other filters', () => {
+      const history = makeHistory(parseQuery(new URLSearchParams('q=abort&show=box')), 5)
+
+      expect(history.take(raw(1, mountWire, abort))).toBeUndefined()
+    })
+
+    it('leaves out a hidden property', () => {
+      const history = makeHistory(parseQuery(new URLSearchParams('hide=TELESCOPE_ABORT_MOTION,COORD')), 5)
+
+      expect(history.take(raw(1, mountWire, abort))).toBeUndefined()
+      expect(history.take(raw(2, mountWire, quiet))?.view.what).toBe('set')
+    })
+
+    it('sends the row the page shows with each entry', () => {
+      const history = makeHistory(parseQuery(new URLSearchParams('')), 5)
+
+      expect(history.take(raw(1, mountWire, abort))?.view).toMatchObject({ who: 'mount', label: 'cmd', what: 'TELESCOPE_ABORT_MOTION', pairs: [['ABORT', 'On']] })
+    })
+  })
+
   describe('the window', () => {
     it('is the entry\'s own time, and a delivered entry shows the same time', () => {
       const history = makeHistory(parseQuery(new URLSearchParams('since=100&until=200')), 10)
@@ -275,6 +310,27 @@ describe('history', () => {
 
       expect(history.take(raw(2, mountWire, wire(reading(1))))?.differs).toBe(false)
       expect(history.take(raw(3, mountWire, wire(reading(2))))?.differs).toBe(true)
+    })
+
+    it('says whether each property\'s latest reading matches the sources, problems, search and hidden properties', () => {
+      const matching = (query: string, text: string, subject = mountWire) => makeHistory(parseQuery(new URLSearchParams(`table=&${query}`)), 10).take(raw(1, subject, text))?.matches
+
+      expect(matching('', wire(reading(1)))).toBe(true)
+      expect(matching('show=box', wire(reading(1)))).toBe(false)
+      expect(matching('problems=', wire(reading(1)))).toBe(false)
+      expect(matching('problems=', wire(reading(1, 'Alert')))).toBe(true)
+      expect(matching('q=state:alert', wire(reading(1)))).toBe(false)
+      expect(matching('hide=COORD', wire(reading(1)))).toBe(false)
+      expect(matching('commands=&changes=', wire(reading(1)))).toBe(true)
+    })
+
+    it('shows the whole property in its row', () => {
+      const history = table()
+
+      history.take(raw(1, mountWire, wire({ type: 'def', indiDevice: 'ZWO AM5', property: 'COORD', state: 'Ok', elements: { RA: 1, DEC: 2 } })))
+      history.take(raw(2, mountWire, wire({ type: 'set', indiDevice: 'ZWO AM5', property: 'COORD', elements: { RA: 5 } })))
+
+      expect(history.groups()[0]?.latest.view.pairs).toEqual([['RA', '5'], ['DEC', '2']])
     })
 
     it('groups PHD2 by event and leaves the journal out', () => {

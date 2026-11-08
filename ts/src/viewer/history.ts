@@ -1,6 +1,8 @@
 import { readWireBody, type WireBody } from '../stream/entry.ts'
-import { parseRecord } from '../stream/json.ts'
+import { parseRecord, stringField } from '../stream/json.ts'
 import { makeReplay, type Reading } from './replay.ts'
+import { matches, parseSearch, type Search } from './search.ts'
+import { viewOf, type View } from './view.ts'
 
 const protocolProblemKind = 'client.protocol-problem'
 const problemEvents = new Set(['phd2.StarLost', 'phd2.Alert', 'phd2.CalibrationFailed'])
@@ -15,6 +17,8 @@ interface Classified {
 
 export interface ReadEntry {
   readonly v: number
+  readonly id: string
+  readonly source: string
   readonly kind: string
   readonly at: number
   readonly body: unknown
@@ -29,7 +33,7 @@ export function readEntry(text: string): ReadEntry | undefined {
 
   if (entry === undefined || (entry['v'] !== 1 && entry['v'] !== 2) || typeof entry['kind'] !== 'string' || typeof entry['at'] !== 'number') return undefined
 
-  return { v: entry['v'], kind: entry['kind'], at: entry['at'], body: entry['body'] }
+  return { v: entry['v'], id: stringField(entry, 'id') ?? '', source: stringField(entry, 'source') ?? '', kind: entry['kind'], at: entry['at'], body: entry['body'] }
 }
 
 function classifyWire(subject: string, body: unknown): Classified | undefined {
@@ -75,6 +79,8 @@ export interface HistoryQuery {
   readonly problems: boolean
   readonly changes: boolean
   readonly table: boolean
+  readonly search: Search
+  readonly hidden: ReadonlySet<string>
 }
 
 function time(value: string | null) {
@@ -92,6 +98,8 @@ export function parseQuery(parameters: URLSearchParams): HistoryQuery {
     problems: parameters.has('problems'),
     changes: parameters.has('changes'),
     table: parameters.has('table'),
+    search: parseSearch(parameters.get('q') ?? ''),
+    hidden: new Set((parameters.get('hide') ?? '').split(',').filter(Boolean)),
   }
 }
 
@@ -108,6 +116,8 @@ interface Delivered extends Raw {
   readonly group: string | undefined
   readonly differs: boolean
   readonly current: Reading | undefined
+  readonly view: View
+  readonly matches: boolean
 }
 
 interface Group {
@@ -161,9 +171,29 @@ export function makeHistory(query: HistoryQuery, keep: number) {
       const replayed = classified.wire === undefined ? undefined : replay.apply(classified.wire)
       const changed = replayed === undefined || replayed.changed
       const differs = replayed !== undefined && replayed.known && replayed.changed
-      const delivered = { ...raw, at: entry.at, problem: classified.problem, command: classified.command, group: classified.group, differs, current: replayed?.current }
 
       if (changed) count('changes')
+
+      const shown = query.show.size === 0 || query.show.has(classified.source)
+      const wanted = query.table
+        ? shown && (!query.problems || classified.problem)
+        : shown && (!query.changes || changed) && (!query.commands || classified.command) && (!query.problems || classified.problem)
+
+      if (!query.table && !wanted) return undefined
+
+      const view = viewOf(entry, raw.subject, query.table ? replayed?.current : undefined)
+      const found = wanted && !query.hidden.has(view.what) && matches(query.search, { view, kind: entry.kind, id: entry.id, text: raw.text })
+      const delivered = {
+        ...raw,
+        at: entry.at,
+        problem: classified.problem,
+        command: classified.command,
+        group: classified.group,
+        differs,
+        current: replayed?.current,
+        view,
+        matches: found,
+      }
 
       if (classified.group !== undefined) {
         const known = groups.get(classified.group)
@@ -179,10 +209,7 @@ export function makeHistory(query: HistoryQuery, keep: number) {
       }
 
       if (query.table) return delivered
-      if (query.changes && !changed) return undefined
-      if (query.show.size > 0 && !query.show.has(classified.source)) return undefined
-      if (query.commands && !classified.command) return undefined
-      if (query.problems && !classified.problem) return undefined
+      if (!found) return undefined
 
       matched += 1
       kept.push(delivered)
