@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import type { Entry } from './entry.ts'
 import { openPublisher, type BrokerConnection } from './publisher.ts'
 
-const settings = { servers: 'nats://nowhere', user: 'u', pass: 'p' }
+const settings = { servers: 'nats://nowhere' }
 const entry: Entry = { v: 2, id: 'x', rig: 'r', run: 'r1', kind: 'k', at: 1, source: 's', body: {} }
 
 function fakeBroker() {
