@@ -31,6 +31,12 @@ export function startRecording(options: {
   const build = spawnSync('git', ['-C', import.meta.dirname, 'rev-parse', '--short', 'HEAD'], { encoding: 'utf8' })
   const version = build.status === 0 ? build.stdout.trim() : 'unknown'
 
+  const lastConnection = new Map<string, Record<string, unknown>>()
+  const connectionEntry = (body: Record<string, unknown> & { readonly target: string }) => {
+    lastConnection.set(body.target, body)
+    broker.publish('rig-dev.client', entries.client('connection', body))
+  }
+
   const broker = openPublisher({
     broker: () => brokerSettings(settings.broker),
     name: 'rig',
@@ -38,6 +44,7 @@ export function startRecording(options: {
     retryMs: settings.retrySeconds * 1000,
     onConnected: connection => {
       broker.publish('rig-dev.client', entries.client('connected', { client: 'rig', run, connection, version, sources: ['wire', 'system', 'phd2'], wireDevices }))
+      for (const body of lastConnection.values()) broker.publish('rig-dev.client', entries.client('connection', body))
       options.onBrokerConnected()
     },
   })
@@ -50,10 +57,7 @@ export function startRecording(options: {
     },
     problem: problem => broker.publish('rig-dev.client', entries.protocolProblem(problem)),
     connection: connection => {
-      broker.publish(
-        'rig-dev.client',
-        entries.client('connection', { target: 'indiserver', status: connection.status, ...(connection.status === 'closed' ? { error: connection.error } : {}) }),
-      )
+      connectionEntry({ target: 'indiserver', status: connection.status, ...(connection.status === 'closed' ? { error: connection.error } : {}) })
     },
   }
 
@@ -69,7 +73,7 @@ export function startRecording(options: {
       line => broker.publish('rig-dev.phd2', entries.phd2(line)),
       status => {
         log(`phd2 ${JSON.stringify(status)}`)
-        broker.publish('rig-dev.client', entries.client('connection', { target: 'phd2', ...status }))
+        connectionEntry({ target: 'phd2', ...status })
       },
     ),
   ])
