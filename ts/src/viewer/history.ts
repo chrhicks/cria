@@ -2,6 +2,7 @@ import { readWireBody, type WireBody } from '../stream/entry.ts'
 import { parseRecord } from '../stream/json.ts'
 import { makeReplay, type Reading } from './replay.ts'
 
+const protocolProblemKind = 'client.protocol-problem'
 const problemEvents = new Set(['phd2.StarLost', 'phd2.Alert', 'phd2.CalibrationFailed'])
 
 interface Classified {
@@ -60,7 +61,7 @@ export function classify(subject: string, entry: ReadEntry): Classified | undefi
   if (kind.startsWith('client.')) {
     const target = isRecord(body) && typeof body['target'] === 'string' ? `.${body['target']}` : ''
 
-    return { source: 'client', command: false, problem: false, group: `${kind}${target}`, wire: undefined }
+    return { source: 'client', command: false, problem: kind === protocolProblemKind, group: `${kind}${target}`, wire: undefined }
   }
 
   return { source: 'phd2', command: false, problem: problemEvents.has(kind), group: kind, wire: undefined }

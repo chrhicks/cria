@@ -241,6 +241,13 @@ function describeClient(entry) {
     return { ...base, what: `connection ${target}`, state: status, pairs: [], text: error ?? '' }
   }
 
+  if (entry.kind === 'client.protocol-problem') {
+    const { scope, consequence, reason, tag, indiDevice, property, bytes, excerpt } = entry.body
+    const pairs = [['tag', tag || '–'], ...(indiDevice === undefined ? [] : [['device', indiDevice]]), ...(property === undefined ? [] : [['property', property]]), ['bytes', String(bytes)]]
+
+    return { ...base, what: 'protocol problem', state: scope, pairs, text: `${consequence}: ${reason}: ${excerpt}` }
+  }
+
   const { connection, version, sources: published } = entry.body
 
   return { ...base, what: 'connected', pairs: [['connection', String(connection)], ...(version === undefined ? [] : [['version', String(version)]]), ['sources', published.join(', ')]] }
