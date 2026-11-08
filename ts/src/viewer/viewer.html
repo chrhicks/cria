@@ -41,7 +41,6 @@ button:focus-visible, input:focus-visible, .row:focus-visible { outline: 2px sol
 .columns, .row { display: grid; grid-template-columns: 7ch 12ch 3ch 8ch 24ch minmax(0, 1fr); gap: 0 10px; padding: 2px 12px; font: 12px/1.45 ui-monospace, Menlo, monospace }
 .columns { color: var(--mu); margin-top: 6px; border-top: 1px solid var(--ln); padding-top: 3px; padding-bottom: 3px }
 .row { border-bottom: 1px solid color-mix(in srgb, var(--ln) 60%, transparent); cursor: pointer; align-items: baseline }
-.row[hidden] { display: none }
 .row:hover { background: var(--sub) }
 .seq, .ms, .src, .state, .k { color: var(--mu) }
 .seq, .at { font-variant-numeric: tabular-nums }
@@ -103,7 +102,7 @@ main[hidden], .columns[hidden] { display: none }
     </div>
   </div>
   <div class="bar">
-    <input id="search" type="search" placeholder="Search what's shown, or prop:COORD state:Alert who:kernel -debug" aria-label="Search entries">
+    <input id="search" type="search" placeholder="Search the window, Enter to run: ABORT, prop:COORD state:Alert who:kernel -debug" aria-label="Search entries">
     <button id="clear" type="button">Clear</button>
   </div>
   <div class="bar">
@@ -174,134 +173,6 @@ function element(tag, className, text) {
   return made
 }
 
-function shortNumber(text) {
-  const value = Number(text)
-
-  return text !== '' && Number.isFinite(value) ? String(Number(value.toFixed(6))) : text
-}
-
-function wireValues(elements) {
-  return Object.entries(elements ?? {}).filter(([, value]) => value !== false).map(([key, value]) => [key, typeof value === 'number' ? shortNumber(String(value)) : value === true ? 'On' : String(value)])
-}
-
-function describeWire(entry, subject, current) {
-  const body = entry.body
-
-  if (body.type === undefined) return { source: subject.split('.')[2], who: subject.split('.')[2], label: body.dir, what: '', state: '', pairs: [], text: body.xml.trim(), quiet: true }
-
-  const shown = current ?? body
-  const base = { source: body.device, who: body.device, label: body.dir, what: body.property ?? body.tag ?? body.type, state: shown.state ?? '', pairs: wireValues(shown.elements), text: '', quiet: false }
-
-  switch (body.type) {
-    case 'message': return { ...base, what: 'message', text: body.text ?? '', quiet: (body.text ?? '').includes('[DEBUG]') }
-    case 'new': return { ...base, label: 'cmd' }
-    case 'def': return { ...base, text: base.pairs.length === 0 ? 'defined' : '', quiet: true }
-    case 'set': return base
-    case 'del': return { ...base, text: 'deleted', quiet: true }
-    case 'unreadable': return { ...base, what: 'unreadable', text: body.text ?? '' }
-    default: return { ...base, quiet: true }
-  }
-}
-
-function describeSystem(entry) {
-  const base = { source: 'system', label: 'sys', what: '', state: '', pairs: [] }
-
-  if (typeof entry.body === 'string') return { ...base, who: 'journal', text: entry.body, quiet: false }
-
-  const message = entry.body.MESSAGE
-  const text = typeof message === 'string' ? message : JSON.stringify(message)
-  const priority = Number(entry.body.PRIORITY)
-
-  return {
-    ...base,
-    who: entry.body.SYSLOG_IDENTIFIER ?? entry.body._COMM ?? 'journal',
-    what: entry.body._SYSTEMD_USER_UNIT ?? entry.body._SYSTEMD_UNIT ?? '',
-    text,
-    quiet: priority >= 6 && priority !== 6,
-  }
-}
-
-function describePhd2(entry) {
-  const event = entry.kind.slice('phd2.'.length)
-  const base = { source: 'phd2', who: 'phd2', label: 'phd', what: event, state: '', quiet: false }
-
-  if (typeof entry.body === 'string') return { ...base, pairs: [], text: entry.body }
-
-  const { Event, Timestamp, Host, Inst, ...rest } = entry.body
-
-  return { ...base, pairs: Object.entries(rest).map(([key, value]) => [key, typeof value === 'number' ? shortNumber(String(value)) : String(value)]), text: '' }
-}
-
-function describeClient(entry) {
-  const base = { source: 'client', who: entry.source.split(':').at(-1), label: 'cli', state: '', text: '', quiet: false }
-
-  if (entry.kind === 'client.connection') {
-    const { target, status, error } = entry.body
-
-    return { ...base, what: `connection ${target}`, state: status, pairs: [], text: error ?? '' }
-  }
-
-  if (entry.kind === 'client.protocol-problem') {
-    const { scope, consequence, reason, tag, indiDevice, property, bytes, excerpt } = entry.body
-    const pairs = [['tag', tag || '–'], ...(indiDevice === undefined ? [] : [['device', indiDevice]]), ...(property === undefined ? [] : [['property', property]]), ['bytes', String(bytes)]]
-
-    return { ...base, what: 'protocol problem', state: scope, pairs, text: `${consequence}: ${reason}: ${excerpt}` }
-  }
-
-  const { connection, version, sources: published } = entry.body
-
-  return { ...base, what: 'connected', pairs: [['connection', String(connection)], ...(version === undefined ? [] : [['version', String(version)]]), ['sources', published.join(', ')]] }
-}
-
-function describeEntry(entry, subject, current) {
-  if (entry.kind === 'wire') return describeWire(entry, subject, current)
-  if (entry.kind.startsWith('client.')) return describeClient(entry)
-
-  return entry.kind === 'system' ? describeSystem(entry) : describePhd2(entry)
-}
-
-function describe(entry, subject, current) {
-  try {
-    return describeEntry(entry, subject, current)
-  } catch (error) {
-    return { source: 'client', who: 'viewer', label: 'cli', what: 'unreadable entry', state: '', pairs: [], text: `${error} in ${JSON.stringify(entry)}`, quiet: false }
-  }
-}
-
-function tokenMatches(token, view) {
-  const field = /^(who|what|prop|state|kind|id|src):(.+)$/.exec(token)
-
-  if (!field) return view.haystack.includes(token)
-
-  const [, key, wanted] = field
-
-  const value = { who: view.who, what: view.what, prop: view.what, state: view.state, kind: view.entry.kind, id: view.entry.id, src: view.label }[key]
-
-  return value.toLowerCase().includes(wanted)
-}
-
-function passes(view) {
-  if (filter.hidden.has(view.what)) return false
-
-  return search.value.toLowerCase().split(/\s+/).filter(Boolean).every(token =>
-    token.startsWith('-') && token.length > 1 ? !tokenMatches(token.slice(1), view) : tokenMatches(token, view))
-}
-
-function setShown(row, view) {
-  const visible = passes(view)
-
-  if (row.hidden === visible) shown += visible ? 1 : -1
-  row.hidden = !visible
-}
-
-function applyFilter() {
-  if (filter.view === 'table') drawTable()
-  for (const row of rows.querySelectorAll('.row')) setShown(row, meta.get(row))
-  saveFilter()
-  drawChips()
-  showStatus()
-}
-
 function saveFilter() {
   const next = new URLSearchParams()
 
@@ -347,12 +218,12 @@ function drawChips() {
     ...sources.map(source => source === null ? element('span', 'gap') : chip(source, source, filter.show.has(source), source, () => {
       if (filter.show.has(source)) filter.show.delete(source)
       else filter.show.add(source)
-      refilter()
+      openEvents()
     })),
     element('span', 'gap'),
     ...flags.filter(([key]) => filter.view === 'log' || key === 'problems').map(([key, label]) => chip(label, key, filter[key], '', () => {
       filter[key] = !filter[key]
-      refilter()
+      openEvents()
     })),
   )
   drawViews()
@@ -365,22 +236,11 @@ function drawChips() {
     made.setAttribute('aria-label', `Show ${name} again`)
     made.addEventListener('click', () => {
       filter.hidden.delete(name)
-      applyFilter()
+      openEvents()
     })
 
     return made
   }))
-}
-
-function refilter() {
-  if (filter.view === 'table') {
-    drawTable()
-    saveFilter()
-    drawChips()
-    showStatus()
-  } else {
-    openEvents()
-  }
 }
 
 function drawViews() {
@@ -461,11 +321,11 @@ function moreOf(view, subject) {
     actions.append(
       action(`Only ${view.what}`, () => {
         search.value = `what:${view.what}`
-        applyFilter()
+        openEvents()
       }),
       action(`Hide ${view.what}`, () => {
         filter.hidden.add(view.what)
-        applyFilter()
+        openEvents()
       }),
     )
   }
@@ -494,20 +354,17 @@ function detailOf(view) {
 
 function rowOf(message) {
   const entry = JSON.parse(message.text)
-  const view = { ...describe(entry, message.subject), problem: message.problem, command: message.command, entry, subject: message.subject, seq: message.seq }
+  const view = { ...message.view, problem: message.problem, command: message.command, entry, subject: message.subject, seq: message.seq }
   const when = new Date(entry.at)
   const row = element('div', `row ${view.source} ${entry.kind === 'wire' ? entry.body?.dir ?? '' : ''} ${view.command ? 'command' : ''} ${view.problem ? 'problem' : ''} ${view.quiet ? 'quiet' : ''}`)
   const time = element('span', 'at', clock.format(when))
   const what = element('span', 'what', view.what)
 
-  view.haystack = `${view.who} ${view.what} ${view.state} ${message.text}`.toLowerCase()
   what.title = view.what
   time.append(element('span', 'ms', `.${String(when.getMilliseconds()).padStart(3, '0')}`))
   row.tabIndex = 0
-  row.hidden = true
   row.append(element('span', 'seq', message.seq), time, element('span', 'src', view.label), element('span', 'who', view.who), what, detailOf(view))
   meta.set(row, view)
-  setShown(row, view)
 
   return row
 }
@@ -516,7 +373,6 @@ function add(message) {
   rows.prepend(rowOf(message))
   kept += 1
   while (kept > rowsKeptOnPage) {
-    if (!rows.lastElementChild.hidden) shown -= 1
     rows.lastElementChild.remove()
     kept -= 1
   }
@@ -542,18 +398,7 @@ function age(from) {
 }
 
 function groupView(group) {
-  const entry = JSON.parse(group.latest.text)
-
-  return { ...describe(entry, group.latest.subject, group.current), problem: group.latest.problem, entry }
-}
-
-function groupPasses(group) {
-  const view = groupView(group)
-
-  if (filter.show.size > 0 && !filter.show.has(view.source)) return false
-  if (filter.problems && !view.problem) return false
-
-  return passes({ ...view, haystack: `${view.who} ${view.what} ${view.state} ${group.latest.text}`.toLowerCase() })
+  return { ...group.latest.view, problem: group.latest.problem }
 }
 
 function fillGroupRow(row, group) {
@@ -573,7 +418,7 @@ function fillGroupRow(row, group) {
 }
 
 function drawTable() {
-  const visible = [...groups.values()].filter(groupPasses).sort((a, b) => a.group.localeCompare(b.group))
+  const visible = [...groups.values()].filter(group => group.latest.matches).sort((a, b) => a.group.localeCompare(b.group))
 
   table.replaceChildren(...visible.map(group => {
     const row = element('div', '')
@@ -603,7 +448,12 @@ function updateGroup(message) {
 
   const row = table.querySelector(`[data-key="${CSS.escape(message.group)}"]`)
 
-  if (row === null || known === undefined) {
+  if (row === null) {
+    if (message.matches) drawTable()
+    return
+  }
+
+  if (!message.matches) {
     drawTable()
     return
   }
@@ -631,7 +481,7 @@ function statusText() {
 
   const place = phase === 'range' ? `${filter.from.replace('T', ' ')} to ${filter.to.replace('T', ' ')}` : `${connected ? 'Live' : 'Reconnecting'} · since ${clock.format(new Date(openedAt))} ET${Date.now() - liveSince >= 60000 ? ` · ${recent.length.toLocaleString()} in the last minute` : ''}`
   const capped = matched > kept ? ` · this page keeps the newest ${kept.toLocaleString()}` : ''
-  const amount = filter.view === 'table' ? `${shown.toLocaleString()} of ${groups.size.toLocaleString()} properties` : `showing ${shown.toLocaleString()} of ${matched.toLocaleString()}${capped}`
+  const amount = filter.view === 'table' ? `${shown.toLocaleString()} of ${groups.size.toLocaleString()} properties` : `${matched.toLocaleString()} found${capped}`
 
   return `${place} · ${amount}${paused ? ` · paused, ${held.length.toLocaleString()} held` : ''}`
 }
@@ -642,7 +492,7 @@ function showStatus() {
   while (recent.length > 0 && now - recent[0] > 60000) recent.shift()
   statusLine.textContent = statusText()
   statusLine.classList.toggle('down', phase === 'live' && !connected)
-  empty.hidden = shown > 0 || phase === 'reading'
+  empty.hidden = (filter.view === 'table' ? shown : kept) > 0 || phase === 'reading'
   empty.textContent = 'Nothing matches in this window.'
 }
 
@@ -660,15 +510,13 @@ function eventsUrl() {
     openedAt = windowStart()
     query.set('since', String(openedAt))
   }
-  if (filter.view === 'table') {
-    query.set('table', '')
-
-    return `events?${query}`
-  }
+  if (filter.view === 'table') query.set('table', '')
   if (filter.show.size > 0) query.set('show', [...filter.show].join(','))
-  if (filter.commands) query.set('commands', '')
   if (filter.problems) query.set('problems', '')
-  if (filter.changes) query.set('changes', '')
+  if (filter.view === 'log' && filter.commands) query.set('commands', '')
+  if (filter.view === 'log' && filter.changes) query.set('changes', '')
+  if (search.value.trim() !== '') query.set('q', search.value.trim())
+  if (filter.hidden.size > 0) query.set('hide', [...filter.hidden].join(','))
 
   return `events?${query}`
 }
@@ -730,7 +578,7 @@ function openEvents() {
   showStatus()
 }
 
-search.addEventListener('input', applyFilter)
+search.addEventListener('change', openEvents)
 
 document.getElementById('clear').addEventListener('click', () => {
   search.value = ''
