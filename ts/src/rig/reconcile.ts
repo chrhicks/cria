@@ -3,7 +3,7 @@ import type { DeviceFacts, IndiSnapshot, PropertyFacts } from './indi-link.ts'
 
 export type Action =
   | { readonly kind: 'write'; readonly device: string; readonly indiDevice: string; readonly property: string; readonly values: Readonly<Record<string, WantedValue>>; readonly why: string; readonly onConnect?: true }
-  | { readonly kind: 'restart-driver'; readonly driver: string; readonly why: string }
+  | { readonly kind: 'restart-driver'; readonly driver: string; readonly wanting: ReadonlyArray<string>; readonly why: string }
   | { readonly kind: 'log'; readonly line: string }
 
 interface DeviceMemory {
@@ -196,6 +196,7 @@ export function decide(config: RigConfig, observation: Observation, previous: Me
     actions.push({
       kind: 'restart-driver',
       driver,
+      wanting: wanting.map(device => device.id),
       why: [
         ...(missing.length > 0 ? [`${missing.map(device => device.id).join(', ')} missing from INDI with hardware present`] : []),
         ...(dead.length > 0 ? [`${dead.map(device => device.id).join(', ')} still failing ${config.reconnectWaitMs / 1000} s after a reconnect`] : []),
