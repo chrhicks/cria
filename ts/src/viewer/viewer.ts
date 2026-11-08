@@ -6,6 +6,7 @@ import { readConfig } from '../config.ts'
 import { brokerSettings, streamName } from '../stream/index.ts'
 import { ViewerSettings } from './config.ts'
 import { makeHistory, parseQuery, type HistoryQuery } from './history.ts'
+import { requestUrl } from './url.ts'
 
 const page = readFileSync(new URL('./viewer.html', import.meta.url))
 
@@ -109,7 +110,13 @@ export async function runViewer(): Promise<void> {
       return
     }
 
-    const url = new URL(request.url ?? '/', 'http://viewer')
+    const url = requestUrl(request.url)
+
+    if (url === undefined) {
+      response.writeHead(400).end()
+
+      return
+    }
 
     if (url.pathname === '/events') {
       response.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-store' })
