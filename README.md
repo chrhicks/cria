@@ -20,7 +20,7 @@ When the INDI connection is lost the rig program exits and systemd starts it aga
 | Folder | Contents |
 | --- | --- |
 | `src/indi` | INDI client (one connection, no reconnect), property mirror, XML, problem log, traffic tap ([README](ts/src/indi/README.md)) |
-| `src/stream` | Entry format, subjects, publisher, broker login, the journal and PHD2 followers, and `record.ts`, which the rig program starts |
+| `src/stream` | Entry format, subjects, publisher, broker address, the journal and PHD2 followers, and `record.ts`, which the rig program starts |
 | `src/rig` | The rig file (a Schema, `config.ts`), the decision (`reconcile.ts`, a pure function), the poll that carries it out, the INDI link, the FIFO |
 | `src/viewer` | The stream viewer and its page |
 | `deploy` | systemd units, `install.sh`, PHD2 profile and step scripts |
@@ -55,7 +55,7 @@ It fetches, checks out `COMMIT` detached (default `origin/main`), runs `pnpm ins
 
 A first install is the same two lines after `git clone` of this repo to the path above. The firewall unit `phd2-guard` is a system unit installed once with sudo ([docs/phd2.md](docs/phd2.md)).
 
-Configuration lives outside the repo: on errai `~/.config/cria/rig.json` (the rig file, whose `stream` section holds the broker login, `passFile` naming the file that holds the password, and the journal and PHD2 settings); on thuban `~/.config/rig-stream/viewer.json`. Each setting's description, with the evidence behind its default, is in `src/rig/config.ts`, `src/stream/config.ts`, `src/viewer/config.ts` and `src/stream/ensure.ts`. An unknown key or invalid value stops the program at start. The site coordinates live only in the rig file on errai, never in the repo.
+Configuration lives outside the repo: on errai `~/.config/cria/rig.json` (the rig file, whose `stream` section holds the broker address and the journal and PHD2 settings); on thuban `~/.config/rig-stream/viewer.json`. Each setting's description, with the evidence behind its default, is in `src/rig/config.ts`, `src/stream/config.ts`, `src/viewer/config.ts` and `src/stream/ensure.ts`. An unknown key or invalid value stops the program at start. The site coordinates live only in the rig file on errai, never in the repo.
 
 `systemctl --user restart indiserver` restarts the rig software as one: `rig` is `PartOf` it and starts every driver again within a few polls. It also stops the camera cooler until the camera is connected again.
 
@@ -85,7 +85,7 @@ One file describes every device and what it should be. The rig program reads it 
 - `properties` are INDI properties the device should hold (element name to number, boolean or text). `LONG` is INDI's 0 to 360, east positive. Numbers match within `numberTolerance`.
 - `onConnect` properties are written once each time the device becomes connected, because they can never already hold. A text value of `now` is written as the current UTC time.
 - `driver` names the executable the FIFO starts and restarts. indiserver starts with no drivers, so a device without one is never brought up. Settings that are not in the list of devices (poll interval, thresholds, backoff) are the other keys of `RigFile` in `src/rig/config.ts`, each with its description and default.
-- `stream` (required) configures the recording: `broker` (`servers`, `user`, `passFile`, the path of a file holding only the password), and optionally `rig`, `journalExclusions`, `journalCursorFile` and `phd2`, described in `src/stream/config.ts`. The password is never in the rig file.
+- `stream` (required) configures the recording: `broker` (`servers`, the broker address; the broker takes no login), and optionally `rig`, `journalExclusions`, `journalCursorFile` and `phd2`, described in `src/stream/config.ts`.
 
 ## How the rig comes up
 

@@ -35,7 +35,6 @@ describe('the rig program', () => {
     const fifo = join(dir, 'indi.fifo')
 
     execFileSync('mkfifo', [fifo])
-    writeFileSync(join(dir, 'broker.pass'), 'secret\n')
     server = await startIndiServer(['indi_simulator_focus'], { fifo })
 
     const configPath = join(dir, 'rig.json')
@@ -47,7 +46,7 @@ describe('the rig program', () => {
         indiPort: server.port,
         pollMs: 200,
         settlePolls: 1,
-        stream: { broker: { servers: 'nats://127.0.0.1:1', user: 'test', passFile: join(dir, 'broker.pass') }, journalCursorFile: join(dir, 'cursor') },
+        stream: { broker: { servers: 'nats://127.0.0.1:1' }, journalCursorFile: join(dir, 'cursor') },
         devices: [{ id: 'focuser', indiDevice: 'Focuser Simulator', serial: '/dev/null', driver: 'indi_simulator_focus', connected: true }],
       }),
     )
@@ -55,7 +54,6 @@ describe('the rig program', () => {
     const { exit, text } = run(configPath)
 
     await until('the focuser to be connected by the rig program', () => text().includes('focuser: writing CONNECTION') || undefined)
-    expect(text()).not.toContain('secret')
 
     await server.stop()
     server = undefined
@@ -64,7 +62,7 @@ describe('the rig program', () => {
     expect(text()).toContain('indiserver connection lost')
   })
 
-  it('keeps the devices up and does not exit when the journal follower keeps failing and the broker password file is missing', async () => {
+  it('keeps the devices up and does not exit when the journal follower keeps failing', async () => {
     const dir = folder()
     const fifo = join(dir, 'indi.fifo')
     const bin = join(dir, 'bin')
@@ -85,7 +83,7 @@ describe('the rig program', () => {
         pollMs: 200,
         settlePolls: 1,
         stream: {
-          broker: { servers: 'nats://127.0.0.1:1', user: 'test', passFile: join(dir, 'missing.pass') },
+          broker: { servers: 'nats://127.0.0.1:1' },
           journalCursorFile: join(dir, 'cursor'),
           retrySeconds: 0.05,
         },
@@ -97,12 +95,10 @@ describe('the rig program', () => {
 
     await until('the focuser to be connected by the rig program', () => text().includes('focuser: writing CONNECTION') || undefined)
     await until('the journal failure to be logged', () => text().includes('journal: journalctl stopped (exit 1)') || undefined)
-    await until('the missing password file to be logged', () => text().includes('broker connect: ENOENT') || undefined)
     await new Promise(resolve => setTimeout(resolve, 400))
 
     expect(child.exitCode).toBeNull()
     expect(text().match(/journal: journalctl stopped/g)).toHaveLength(1)
-    expect(text().match(/broker connect: ENOENT/g)).toHaveLength(1)
 
     child.kill()
     await exit
