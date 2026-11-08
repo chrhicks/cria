@@ -60,9 +60,9 @@ describe('the row for an entry', () => {
   })
 
   it('shows a PHD2 event with its fields, less the ones every event has', () => {
-    const view = viewOf(entry('phd2.GuideStep', { Event: 'GuideStep', Timestamp: 1, Host: 'h', Inst: 1, RADistanceRaw: 0.25 }), 'rig-dev.phd2', undefined)
+    const view = viewOf(entry('phd2.GuideStep', { Event: 'GuideStep', Timestamp: 1, Host: 'h', Inst: 1, RADistanceRaw: 0.25, Limit: false, Enabled: true }), 'rig-dev.phd2', undefined)
 
-    expect(view).toMatchObject({ source: 'phd2', what: 'GuideStep', pairs: [['RADistanceRaw', '0.25']] })
+    expect(view).toMatchObject({ source: 'phd2', what: 'GuideStep', pairs: [['RADistanceRaw', '0.25'], ['Limit', 'false'], ['Enabled', 'true']] })
   })
 
   it('shows client entries by the program that wrote them', () => {

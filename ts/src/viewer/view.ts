@@ -95,7 +95,7 @@ function phd2View(entry: ReadEntry): View {
 
   const { Event, Timestamp, Host, Inst, ...rest } = entry.body
 
-  return { ...base, pairs: pairsOf(rest), text: '' }
+  return { ...base, pairs: Object.entries(rest).map(([key, value]) => [key, typeof value === 'boolean' ? String(value) : shown(value)]), text: '' }
 }
 
 function clientView(entry: ReadEntry): View {
