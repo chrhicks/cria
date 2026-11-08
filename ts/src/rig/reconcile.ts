@@ -93,25 +93,20 @@ export function decide(config: RigConfig, observation: Observation, previous: Me
   }
   const attempt = (key: string) => memory.writes[key]?.attempts ?? 0
 
-  const linkDown = !snapshot.linked
-
-  if (linkDown) note('indi', 'indiserver unreachable; writing and restarting nothing')
-  else clearNote('indi')
-
   for (const device of config.devices) {
     const facts = factsOf(device)
     const state = memoryOf(device)
-    const connectedNow = !linkDown && facts?.connection === 'connected'
+    const connectedNow = facts?.connection === 'connected'
 
     state.hardwareStreak = observation.hardware[device.id] ? state.hardwareStreak + 1 : 0
-    state.missingStreak = !linkDown && !facts ? state.missingStreak + 1 : 0
+    state.missingStreak = facts ? 0 : state.missingStreak + 1
     if ((connectedNow && !state.wasConnected) || !connectedNow) {
       for (const property of Object.keys(device.onConnect)) delete memory.writes[onConnectKey(device.id, property)]
       state.pendingOnConnect = connectedNow ? Object.keys(device.onConnect) : []
     }
     state.connectedStreak = connectedNow ? state.connectedStreak + 1 : 0
     state.wasConnected = connectedNow
-    if (!linkDown) state.busy = [...new Set([...(facts?.busy ?? []), ...state.busy.filter(name => !facts?.properties.has(name))])]
+    state.busy = [...new Set([...(facts?.busy ?? []), ...state.busy.filter(name => !facts?.properties.has(name))])]
   }
 
   const quiet = (device: RigDevice) => {
@@ -122,7 +117,7 @@ export function decide(config: RigConfig, observation: Observation, previous: Me
   const deadLink = (device: RigDevice) => {
     const run = factsOf(device)?.errorRun
 
-    return device.serial !== undefined && device.connected && !linkDown && factsOf(device)?.connection === 'connected' && run !== undefined && !quiet(device) && run.last - run.since >= config.deadLinkMs
+    return device.serial !== undefined && device.connected && factsOf(device)?.connection === 'connected' && run !== undefined && !quiet(device) && run.last - run.since >= config.deadLinkMs
   }
 
   const reconnecting = new Set<string>()
@@ -213,7 +208,7 @@ export function decide(config: RigConfig, observation: Observation, previous: Me
     const facts = factsOf(device)
     const connectionKey = `${device.id}/CONNECTION`
 
-    if (linkDown || !facts) {
+    if (!facts) {
       clearNote(`hardware:${device.id}`)
       continue
     }

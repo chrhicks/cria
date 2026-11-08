@@ -1,8 +1,8 @@
-import { Effect, Option, Scope, Stream } from 'effect'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { FakeIndi, connection } from '../../testing/fake-indi/index.ts'
 import { startIndiServer, type RunningIndiServer } from '../../testing/indiserver.ts'
-import { propertyOf } from '../../testing/property.ts'
-import { makeIndiClient, type IndiClient } from './client.ts'
+import { until } from '../../testing/until.ts'
+import { connectIndi, type IndiClient } from './client.ts'
 import type { TappedConnection, TappedMessage } from './tap.ts'
 
 let server: RunningIndiServer
@@ -13,115 +13,113 @@ beforeAll(async () => {
 
 afterAll(() => server.stop())
 
-function withClient<A, E>(use: (client: IndiClient) => Effect.Effect<A, E, Scope.Scope>) {
-  return Effect.runPromise(
-    Effect.scoped(
-      Effect.gen(function* () {
-        const client = yield* makeIndiClient({ host: '127.0.0.1', port: server.port })
+const focuser = 'Focuser Simulator'
 
-        yield* waitFor(client.status.pipe(Effect.map(Option.liftPredicate(status => status.kind === 'connected'))))
+async function withClient(use: (client: IndiClient) => Promise<void>, tap?: { message: (message: TappedMessage) => void; connection: (connection: TappedConnection) => void }) {
+  const client = await connectIndi({ host: '127.0.0.1', port: server.port, warn: () => {}, ...(tap ? { tap } : {}) })
 
-        return yield* use(client)
-      }),
-    ),
-  )
+  try {
+    await use(client)
+  } finally {
+    client.close()
+  }
 }
 
-const waitFor = <A>(effect: Effect.Effect<Option.Option<A>>) =>
-  Effect.gen(function* () {
-    while (true) {
-      const found = yield* effect
+const valueOf = (client: IndiClient, property: string, element: string) => {
+  const found = client.property(focuser, property)?.elements.get(element)
 
-      if (Option.isSome(found)) return found.value
-      yield* Effect.sleep('20 millis')
-    }
-  }).pipe(Effect.timeout('5 seconds'))
+  return found?.kind === 'number' ? found.value : undefined
+}
 
 describe('INDI client against a real indiserver', () => {
   it('mirrors the definitions indiserver sends', () =>
-    withClient(client =>
-      Effect.gen(function* () {
-        const connection = yield* waitFor(propertyOf(client.device('Focuser Simulator'), 'CONNECTION'))
+    withClient(async client => {
+      const connectionProperty = await until('the CONNECTION definition', () => client.property(focuser, 'CONNECTION'))
 
-        expect(connection.name).toBe('CONNECTION')
-      }),
-    ))
+      expect(connectionProperty.name).toBe('CONNECTION')
+      expect(client.properties(focuser).map(property => property.name)).toContain('CONNECTION')
+    }))
 
-  it('sends a command once and sees the driver move through Busy to Ok', () =>
-    withClient(client =>
-      Effect.gen(function* () {
-        const focuser = client.device('Focuser Simulator')
+  it('sends a command once and sees the driver finish it', async () => {
+    const states: string[] = []
+    const tap = {
+      message: ({ dir, xml }: TappedMessage) => {
+        const state = dir === 'in' && xml.startsWith('<setNumberVector') && xml.includes('name="ABS_FOCUS_POSITION"') ? /state="(\w+)"/.exec(xml)?.[1] : undefined
 
-        yield* waitFor(propertyOf(focuser, 'CONNECTION'))
-        yield* focuser.send('CONNECTION', { CONNECT: true })
-        const position = yield* waitFor(propertyOf(focuser, 'ABS_FOCUS_POSITION'))
-        const target = 50100
+        if (state) states.push(state)
+      },
+      connection: () => {},
+    }
 
-        expect(position.elements.get('FOCUS_ABSOLUTE_POSITION')).toMatchObject({ kind: 'number', value: 50000 })
+    await withClient(async client => {
+      await until('CONNECTION', () => client.property(focuser, 'CONNECTION'))
+      await client.send(focuser, 'CONNECTION', { CONNECT: true })
+      await until('the position', () => client.property(focuser, 'ABS_FOCUS_POSITION'))
 
-        const states: string[] = []
+      expect(valueOf(client, 'ABS_FOCUS_POSITION', 'FOCUS_ABSOLUTE_POSITION')).toBe(50000)
 
-        yield* Effect.forkScoped(
-          Stream.runForEach(focuser.events, event =>
-            Effect.sync(() => {
-              if (event.type === 'property' && event.property.name === 'ABS_FOCUS_POSITION') states.push(event.property.state)
-            }),
-          ),
-        )
-        yield* Effect.sleep('50 millis')
-        yield* focuser.send('ABS_FOCUS_POSITION', { FOCUS_ABSOLUTE_POSITION: target })
-        yield* waitFor(Effect.sync(() => Option.fromNullishOr(states.find(state => state === 'Ok' || state === 'Alert'))))
+      states.length = 0
+      await client.send(focuser, 'ABS_FOCUS_POSITION', { FOCUS_ABSOLUTE_POSITION: 50100 })
+      await until('the move to finish', () => states.includes('Ok') || undefined)
 
-        expect(states.at(-1)).toBe('Ok')
-        expect(Option.getOrUndefined(yield* propertyOf(focuser, 'ABS_FOCUS_POSITION'))?.elements.get('FOCUS_ABSOLUTE_POSITION')).toMatchObject({ value: target })
-      }),
-    ))
+      expect(states.at(-1)).toBe('Ok')
+      expect(valueOf(client, 'ABS_FOCUS_POSITION', 'FOCUS_ABSOLUTE_POSITION')).toBe(50100)
+    }, tap)
+  })
 
   it('refuses to send to a property the driver never defined, without sending', () =>
-    withClient(client =>
-      Effect.gen(function* () {
-        const error = yield* Effect.flip(client.device('Focuser Simulator').send('NO_SUCH_PROPERTY', { X: 1 }))
-
-        expect(error.reason).toBe('unknown-property')
-      }),
-    ))
+    withClient(async client => {
+      await expect(client.send(focuser, 'NO_SUCH_PROPERTY', { X: 1 })).rejects.toThrow('has no property NO_SUCH_PROPERTY')
+    }))
 
   it('tells the tap about the connection and every element, in the order it saw them', async () => {
     const tapped: Array<TappedConnection | TappedMessage> = []
     const tap = { message: (message: TappedMessage) => void tapped.push(message), connection: (connection: TappedConnection) => void tapped.push(connection) }
 
-    await Effect.runPromise(
-      Effect.scoped(
-        Effect.gen(function* () {
-          const client = yield* makeIndiClient({ host: '127.0.0.1', port: server.port, tap })
-          const focuser = client.device('Focuser Simulator')
-
-          yield* waitFor(propertyOf(focuser, 'CONNECTION'))
-          yield* focuser.send('CONNECTION', { CONNECT: true })
-          yield* waitFor(propertyOf(focuser, 'ABS_FOCUS_POSITION'))
-        }),
-      ),
-    )
+    await withClient(async client => {
+      await until('CONNECTION', () => client.property(focuser, 'CONNECTION'))
+      await client.send(focuser, 'CONNECTION', { CONNECT: true })
+      await until('the position', () => client.property(focuser, 'ABS_FOCUS_POSITION'))
+    }, tap)
 
     const sent = tapped.filter((item): item is TappedMessage => 'dir' in item && item.dir === 'out')
     const received = tapped.filter((item): item is TappedMessage => 'dir' in item && item.dir === 'in')
 
     expect(tapped[0]).toEqual({ conn: 1, status: 'connected' })
     expect(tapped[1]).toEqual({ conn: 1, dir: 'out', xml: '<getProperties version="1.7"/>\n' })
-    expect(sent.map(message => message.xml.split('\n')[0])).toEqual([
-      '<getProperties version="1.7"/>',
-      '<newSwitchVector device="Focuser Simulator" name="CONNECTION">',
-    ])
+    expect(sent.map(message => message.xml.split('\n')[0])).toEqual(['<getProperties version="1.7"/>', '<newSwitchVector device="Focuser Simulator" name="CONNECTION">'])
     expect(received.some(message => message.xml.startsWith('<defSwitchVector device="Focuser Simulator" name="CONNECTION"'))).toBe(true)
 
-    await until(() => tapped.some(item => 'status' in item && item.status === 'closed'))
+    await until('the tap to see the socket close', () => tapped.some(item => 'status' in item && item.status === 'closed') || undefined)
     expect(tapped.at(-1)).toMatchObject({ conn: 1, status: 'closed' })
   })
 })
 
-async function until(done: () => boolean) {
-  for (let waited = 0; !done(); waited += 20) {
-    if (waited > 2000) throw new Error('Timed out waiting for the tap to see the socket close')
-    await new Promise(resolve => setTimeout(resolve, 20))
-  }
-}
+describe('INDI client when the connection ends', () => {
+  it('says why the connection ended, to the tap too, and keeps what it had', async () => {
+    const fake = new FakeIndi()
+    const closed: TappedConnection[] = []
+
+    await fake.start()
+    fake.define(connection('Fake CCD'))
+
+    const client = await connectIndi({ host: '127.0.0.1', port: fake.port, warn: () => {}, tap: { message: () => {}, connection: item => void closed.push(item) } })
+
+    await until('CONNECTION', () => client.property('Fake CCD', 'CONNECTION'))
+    await fake.stop()
+
+    expect(typeof (await client.closed)).toBe('string')
+    expect(closed.at(-1)).toMatchObject({ status: 'closed' })
+    expect(client.property('Fake CCD', 'CONNECTION')).toBeDefined()
+  })
+
+  it('fails to connect when nothing listens', async () => {
+    const fake = new FakeIndi()
+
+    await fake.start()
+    const { port } = fake
+
+    await fake.stop()
+    await expect(connectIndi({ host: '127.0.0.1', port, warn: () => {} })).rejects.toThrow('ECONNREFUSED')
+  })
+})

@@ -23,10 +23,6 @@ export interface Property {
   readonly elements: ReadonlyMap<string, ElementDefinition>
 }
 
-export type MirrorChange =
-  | { readonly type: 'property'; readonly origin: 'def' | 'set'; readonly property: Property }
-  | { readonly type: 'deleted'; readonly device: string; readonly name?: string }
-
 export class Mirror {
   private readonly devices = new Map<string, Map<string, Property>>()
 
@@ -38,28 +34,21 @@ export class Mirror {
     return [...(this.devices.get(device)?.values() ?? [])]
   }
 
-  clear(): MirrorChange[] {
-    const devices = [...this.devices.keys()]
-
-    this.devices.clear()
-
-    return devices.map(device => ({ type: 'deleted', device }))
-  }
-
-  apply(message: IndiMessage): MirrorChange[] {
+  apply(message: IndiMessage) {
     switch (message.type) {
       case 'def':
-        return [this.define(message.vector)]
+        this.define(message.vector)
+        break
       case 'set':
-        return this.update(message.vector)
+        this.update(message.vector)
+        break
       case 'del':
-        return [this.delete(message.device, message.name)]
-      default:
-        return []
+        this.delete(message.device, message.name)
+        break
     }
   }
 
-  private define(vector: VectorDefinition): MirrorChange {
+  private define(vector: VectorDefinition) {
     const property: Property = {
       device: vector.device,
       name: vector.name,
@@ -70,15 +59,12 @@ export class Mirror {
     }
 
     this.store(property)
-
-    return { type: 'property', origin: 'def', property }
   }
 
-  private update(vector: VectorUpdate): MirrorChange[] {
+  private update(vector: VectorUpdate) {
     const current = this.property(vector.device, vector.name)
 
-    // An update for an undefined property can't be interpreted (no kind, no limits).
-    if (!current || current.kind !== vector.kind) return []
+    if (!current || current.kind !== vector.kind) return
 
     const elements = new Map(current.elements)
 
@@ -92,20 +78,11 @@ export class Mirror {
     const property: Property = { ...current, state: vector.state ?? current.state, elements }
 
     this.store(property)
-
-    return [{ type: 'property', origin: 'set', property }]
   }
 
-  private delete(device: string, name: string | undefined): MirrorChange {
-    if (name === undefined) {
-      this.devices.delete(device)
-
-      return { type: 'deleted', device }
-    }
-
-    this.devices.get(device)?.delete(name)
-
-    return { type: 'deleted', device, name }
+  private delete(device: string, name: string | undefined) {
+    if (name === undefined) this.devices.delete(device)
+    else this.devices.get(device)?.delete(name)
   }
 
   private store(property: Property) {

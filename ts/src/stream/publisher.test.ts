@@ -1,8 +1,9 @@
+import { TimeoutError } from '@nats-io/transport-node'
 import { describe, expect, it } from 'vitest'
 import type { Entry } from './entry.ts'
 import { openPublisher, type BrokerConnection } from './publisher.ts'
 
-const settings = { servers: 'nats://nowhere', user: 'u', pass: 'p', retryDelayMs: 1 }
+const settings = { servers: 'nats://nowhere', user: 'u', pass: 'p' }
 const entry: Entry = { v: 1, id: 'x', rig: 'r', kind: 'k', at: 1, source: 's', body: {} }
 
 function fakeBroker() {
@@ -13,7 +14,7 @@ function fakeBroker() {
 
   const connection = {
     publish: (subject: string) => void sent.push(subject),
-    store: (subject: string, _payload: string, messageId: string) => {
+    acknowledged: (subject: string, _payload: string, messageId: string) => {
       sent.push(subject)
 
       const failure = failures.shift()
@@ -24,7 +25,6 @@ function fakeBroker() {
 
       return Promise.resolve()
     },
-    close: () => Promise.resolve(),
     getServer: () => 'fake',
     status: async function* () {
       while (true) yield { type: await new Promise<string>(resolve => (announce = resolve)) }
@@ -41,8 +41,9 @@ async function open(broker: ReturnType<typeof fakeBroker>) {
     () => Promise.resolve(broker.connection),
   )
 
-  await publisher.ready
-  await new Promise(resolve => setTimeout(resolve))
+  await publisher.store('subject', entry)
+  broker.sent.length = 0
+  broker.stored.length = 0
 
   return { publisher, connected }
 }
@@ -58,64 +59,44 @@ describe('publisher', () => {
     expect(connected).toEqual([1, 2])
   })
 
-  it('sends an unstored entry again, under the same message id, without failing', async () => {
+  it('sends an entry again, under the same message id, when no acknowledgement came', async () => {
     const broker = fakeBroker()
     const { publisher } = await open(broker)
 
-    broker.failures.push(new Error('connection disconnected'))
+    broker.failures.push(new TimeoutError())
 
-    await publisher.publishConfirmed('subject', entry)
+    await publisher.store('subject', entry)
 
     expect(broker.sent).toEqual(['subject', 'subject'])
     expect(broker.stored).toEqual(['x'])
   })
 
-  it('does not report an entry stored until the broker is reachable and acknowledges it', async () => {
-    const broker = fakeBroker()
-    const attempts: Array<string> = []
-    let allowed = false
-    const publisher = openPublisher(
-      { broker: settings, name: 'test', log: () => {}, onConnected: () => {} },
-      options => {
-        attempts.push(options.user)
-
-        return allowed ? Promise.resolve(broker.connection) : Promise.reject(new Error('authorization violation'))
-      },
-    )
-    let done = false
-    const confirmed = publisher.publishConfirmed('subject', entry).then(() => (done = true))
-
-    await new Promise(resolve => setTimeout(resolve, 20))
-    expect(done).toBe(false)
-    expect(broker.stored).toEqual([])
-    expect(attempts.length).toBeGreaterThan(1)
-
-    allowed = true
-    await confirmed
-
-    expect(broker.stored).toEqual(['x'])
-  })
-
-  it('fails a confirmed publish when closed before the entry is stored', async () => {
-    const publisher = openPublisher(
-      { broker: settings, name: 'test', log: () => {}, onConnected: () => {} },
-      () => Promise.reject(new Error('authorization violation')),
-    )
-    const confirmed = publisher.publishConfirmed('subject', entry)
-
-    await publisher.close()
-
-    await expect(confirmed).rejects.toThrow('closed')
-  })
-
-  it('never throws from a plain publish', async () => {
+  it('fails when the broker refuses the entry for any other reason', async () => {
     const broker = fakeBroker()
     const { publisher } = await open(broker)
 
-    broker.connection.publish = () => {
-      throw new Error('refused')
-    }
+    broker.failures.push(new Error('no responders'))
 
-    expect(() => publisher.publish('subject', entry)).not.toThrow()
+    await expect(publisher.store('subject', entry)).rejects.toThrow('no responders')
+  })
+
+  it('does not store an entry before the broker has answered', async () => {
+    const broker = fakeBroker()
+    let answer = (_connection: BrokerConnection) => {}
+    const publisher = openPublisher(
+      { broker: settings, name: 'test', log: () => {}, onConnected: () => {} },
+      () => new Promise<BrokerConnection>(resolve => (answer = resolve)),
+    )
+    let done = false
+    const stored = publisher.store('subject', entry).then(() => (done = true))
+
+    publisher.publish('wire', entry)
+    await new Promise(resolve => setTimeout(resolve, 20))
+    expect([done, broker.sent]).toEqual([false, []])
+
+    answer(broker.connection)
+    await stored
+
+    expect(broker.stored).toEqual(['x'])
   })
 })
