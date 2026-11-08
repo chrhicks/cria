@@ -90,6 +90,11 @@ export const RigFile = Schema.Struct({
   deadLinkMs: described('How long a serial device\'s driver must report errors without a break before the link counts as dead. The longest burst that was not a dead link lasted 10.0 s (a power-off, 2026-10-24 02:28 ET; five bursts from 2 to 10 s between 10-23 and 10-31); the shortest dead link lasted 77 s (2026-11-02 21:22:50 ET)', positiveInteger, 30_000),
   errorGapMs: described('The longest silence between two driver errors that still belongs to one burst. Inside every dead link on 11-01 and 11-02 the errors came at least every 2.0 s (box) and 1.6 s (mount); the rig program also looks only every poll', positiveInteger, 5_000),
   reconnectWaitMs: described('How long after a reconnect the device may stay disconnected or keep reporting errors before its driver is restarted. The AM5 and the PPBA each connected in 10 s on 2026-11-01 (wire); the Pegasus once took 40 to 82 s on Windows', positiveInteger, 60_000),
+  commandMaxAgeMs: described(
+    'How old a command from the stream may be, by its own send time, and still be written. The NATS client keeps retrying a lost broker connection every 2 s (its reconnectTimeWait default) and holds what is published meanwhile, so a goto clicked during a blip arrives when the link returns; 10 s is five of those tries, after which the person who clicked has had time to see nothing happen and click again. Not measured on errai: no blip has been recorded with a command in it yet',
+    positiveInteger,
+    10_000,
+  ),
   devices: Schema.Array(Device).check(
     Schema.isMinLength(1, { expected: 'at least one device' }),
     Schema.makeFilter(devices => {
