@@ -1,8 +1,6 @@
 import net from 'node:net'
-import { Effect, Option, Stream } from 'effect'
 import { afterEach, describe, expect, it } from 'vitest'
-import { propertyOf } from '../../testing/property.ts'
-import { makeIndiClient } from './client.ts'
+import { connectIndi } from './client.ts'
 import { ProblemLog } from './problems.ts'
 import type { TappedConnection, TappedMessage } from './tap.ts'
 import { IndiFramer } from './xml.ts'
@@ -250,7 +248,6 @@ describe('the client when indiserver sends something unexpected', () => {
     readonly warnings: string[]
     readonly tapped: TappedMessage[]
     readonly closed: TappedConnection[]
-    readonly deleted: string[]
     readonly property: (name: string) => unknown
     /** The socket of the nth connection, once it is open. */
     readonly socket: (n: number) => Promise<net.Socket>
@@ -261,36 +258,26 @@ describe('the client when indiserver sends something unexpected', () => {
     const warnings: string[] = []
     const tapped: TappedMessage[] = []
     const closed: TappedConnection[] = []
-    const deleted: string[] = []
     const tap = { message: (message: TappedMessage) => void tapped.push(message), connection: (connection: TappedConnection) => void closed.push(connection) }
 
-    await Effect.runPromise(
-      Effect.scoped(
-        Effect.gen(function* () {
-          const client = yield* makeIndiClient({ host: '127.0.0.1', port: fake.port, tap, warn: line => void warnings.push(line) })
-          const focuser = client.device(deviceName)
+    const client = await connectIndi({ host: '127.0.0.1', port: fake.port, tap, warn: line => void warnings.push(line) })
 
-          yield* Effect.forkScoped(
-            Stream.runForEach(focuser.events, event => (event.type === 'deleted' ? Effect.sync(() => void deleted.push(event.name ?? '')) : Effect.void)),
-          )
-          yield* Effect.promise(() =>
-            run({
-              fake,
-              warnings,
-              tapped,
-              closed,
-              deleted,
-              property: name => Option.getOrUndefined(Effect.runSync(propertyOf(focuser, name))),
-              socket: async n => {
-                await until(() => fake.connections.length >= n)
+    try {
+      await run({
+        fake,
+        warnings,
+        tapped,
+        closed,
+        property: name => client.property(deviceName, name),
+        socket: async n => {
+          await until(() => fake.connections.length >= n)
 
-                return fake.connections[n - 1]!
-              },
-            }),
-          )
-        }),
-      ),
-    )
+          return fake.connections[n - 1]!
+        },
+      })
+    } finally {
+      client.close()
+    }
   }
 
   it('logs one short physical line for a number made of ten thousand lines of junk', async () => {
@@ -329,7 +316,7 @@ describe('the client when indiserver sends something unexpected', () => {
   })
 
   it('keeps the property when one of its elements has an empty name, and logs it once', async () => {
-    await session(async ({ warnings, deleted, property, socket }) => {
+    await session(async ({ warnings, property, socket }) => {
       const first = await socket(1)
       const bad = '<defNumberVector device="Test Focuser" name="POSITION" state="Idle" perm="rw"><defNumber name="STEPS" min="0" max="100" step="1">5</defNumber><defNumber name="" min="0" max="1" step="1">0</defNumber></defNumberVector>'
 
@@ -337,14 +324,13 @@ describe('the client when indiserver sends something unexpected', () => {
       await until(() => property('POSITION') !== undefined)
 
       expect([...(property('POSITION') as { elements: Map<string, unknown> }).elements.keys()]).toEqual(['STEPS'])
-      expect(deleted).toEqual([])
       expect(warnings).toHaveLength(1)
       expect(warnings[0]).toContain('left one element out and kept the property: INDI element has an empty name')
     })
   })
 
   it('forgets a property whose update it could not read, so no old value shows, and asks for it again once', async () => {
-    await session(async ({ fake, warnings, deleted, property, socket }) => {
+    await session(async ({ fake, warnings, property, socket }) => {
       const first = await socket(1)
       const bad = '<setNumberVector device="Test Focuser" name="POSITION" state="Ok"><oneNumber name="STEPS">12abc</oneNumber></setNumberVector>'
 
@@ -354,7 +340,6 @@ describe('the client when indiserver sends something unexpected', () => {
       await until(() => property('POSITION') === undefined)
       await until(() => fake.received.join('').includes('<getProperties version="1.7" device="Test Focuser" name="POSITION"/>'))
 
-      expect(deleted).toEqual(['POSITION'])
       expect(warnings).toHaveLength(1)
       expect(warnings[0]).toContain('device="Test Focuser" name="POSITION"')
       expect(warnings[0]).toContain('Invalid INDI number "12abc"')
@@ -369,7 +354,7 @@ describe('the client when indiserver sends something unexpected', () => {
     const device = 'Review é'
 
     await session(
-      async ({ fake, warnings, deleted, property, socket }) => {
+      async ({ fake, warnings, property, socket }) => {
         const first = await socket(1)
         const define = `<defNumberVector device="${device}" name="CCD_TEMPERATURE" state="Idle" perm="ro"><defNumber name="TEMPERATURE" min="-50" max="50" step="1">-5</defNumber></defNumberVector>`
         const bad = `<setNumberVector device="${device}" name="CCD_TEMPERATURE" state="Ok"><oneNumber name="TEMPERATURE">junk</oneNumber></setNumberVector>`
@@ -377,11 +362,10 @@ describe('the client when indiserver sends something unexpected', () => {
         first.write(define)
         await until(() => property('CCD_TEMPERATURE') !== undefined)
         first.write(bad)
-        await until(() => deleted.length > 0)
+        await until(() => property('CCD_TEMPERATURE') === undefined)
         await until(() => fake.received.join('').includes(`<getProperties version="1.7" device="${device}" name="CCD_TEMPERATURE"/>`))
 
         expect(property('CCD_TEMPERATURE')).toBeUndefined()
-        expect(deleted).toEqual(['CCD_TEMPERATURE'])
         expect(warnings).toHaveLength(1)
         expect(warnings[0]).toContain(`device="${device}" name="CCD_TEMPERATURE"`)
       },
@@ -418,18 +402,15 @@ describe('the client when indiserver sends something unexpected', () => {
     })
   })
 
-  it('drops the connection, logs why, and reconnects when the framing is lost', async () => {
-    await session(async ({ fake, warnings, closed, property, socket }) => {
+  it('drops the connection and logs why when the framing is lost', async () => {
+    await session(async ({ warnings, closed, socket }) => {
       const first = await socket(1)
 
       first.write(`${good('Test Focuser', 'BEFORE')}<defTextVector device="D" name="N" state="Idle" perm="ro"><defText name="T">v</defText>${text('later').toString()}`)
       await until(() => warnings.length === 1)
       await until(() => closed.some(item => item.status === 'closed'))
-      await socket(2)
 
       expect(warnings[0]).toContain('INDI protocol error #1: dropped the connection: Incomplete INDI element')
-      expect(fake.connections.length).toBeGreaterThanOrEqual(2)
-      expect(property('BEFORE')).toBeUndefined()
       expect(closed.find(item => item.status === 'closed')).toMatchObject({ error: expect.stringContaining('Incomplete INDI element') })
     })
   })

@@ -2,7 +2,7 @@
   "name": "cria",
   "private": true,
   "type": "module",
-  "description": "Cria on Linux: the rig program, the rig stream recorder and viewer",
+  "description": "Cria on Linux: the rig program and the stream viewer",
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run",

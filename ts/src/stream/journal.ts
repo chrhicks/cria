@@ -2,32 +2,18 @@ import { spawn } from 'node:child_process'
 import { closeSync, existsSync, fsyncSync, mkdirSync, openSync, readFileSync, renameSync, rmSync, writeSync } from 'node:fs'
 import { dirname } from 'node:path'
 import { createInterface } from 'node:readline'
-import { Option, Schema } from 'effect'
-
-const JournalEntry = Schema.fromJsonString(
-  Schema.Struct({
-    __CURSOR: Schema.optionalKey(Schema.String),
-    SYSLOG_IDENTIFIER: Schema.optionalKey(Schema.String),
-    UNIT: Schema.optionalKey(Schema.String),
-    _SYSTEMD_UNIT: Schema.optionalKey(Schema.String),
-    _SYSTEMD_USER_UNIT: Schema.optionalKey(Schema.String),
-  }),
-)
-
-const decodeEntry = Schema.decodeUnknownOption(JournalEntry)
+import { parseRecord, stringField, type JsonRecord } from './json.ts'
 
 interface JournalExclusions {
   readonly identifiers: ReadonlyArray<string>
   readonly unitPrefixes: ReadonlyArray<string>
 }
 
-function isExcluded(line: string, exclusions: JournalExclusions) {
-  const entry = decodeEntry(line)
+function isExcluded(entry: JsonRecord | undefined, exclusions: JournalExclusions) {
+  if (entry === undefined) return false
 
-  if (Option.isNone(entry)) return false
-
-  const { SYSLOG_IDENTIFIER, UNIT, _SYSTEMD_UNIT, _SYSTEMD_USER_UNIT } = entry.value
-  const units = [UNIT, _SYSTEMD_UNIT, _SYSTEMD_USER_UNIT]
+  const SYSLOG_IDENTIFIER = stringField(entry, 'SYSLOG_IDENTIFIER')
+  const units = [stringField(entry, 'UNIT'), stringField(entry, '_SYSTEMD_UNIT'), stringField(entry, '_SYSTEMD_USER_UNIT')]
 
   return (
     (SYSLOG_IDENTIFIER !== undefined && exclusions.identifiers.includes(SYSLOG_IDENTIFIER)) ||
@@ -65,11 +51,14 @@ export async function followJournal(
 
   for await (const line of createInterface({ input: journal.stdout })) {
     linesRead += 1
-    if (!isExcluded(line, exclusions)) await publish(line)
 
-    const entry = decodeEntry(line)
+    const entry = parseRecord(line)
 
-    if (Option.isSome(entry) && entry.value.__CURSOR !== undefined) saveCursor(cursorFile, entry.value.__CURSOR)
+    if (!isExcluded(entry, exclusions)) await publish(line)
+
+    const cursor = entry === undefined ? undefined : stringField(entry, '__CURSOR')
+
+    if (cursor !== undefined) saveCursor(cursorFile, cursor)
   }
 
   if (linesRead === 0) rmSync(cursorFile, { force: true })

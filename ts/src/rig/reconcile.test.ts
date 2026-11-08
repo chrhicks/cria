@@ -1,4 +1,7 @@
+import { homedir } from 'node:os'
+import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { stream } from '../../testing/stream-settings.ts'
 import { parseConfig, refusedProperties, type RigConfig, type WantedValue } from './config.ts'
 import type { DeviceFacts } from './indi-link.ts'
 import { decide, emptyMemory, holds, markUnsent, type Action, type Memory } from './reconcile.ts'
@@ -21,7 +24,7 @@ const devices = [
   { id: 'box', indiDevice: 'Pegasus PPBA', serial: '/dev/serial/by-id/box', driver: 'indi_pegasus_ppba', connected: true },
 ]
 
-const makeConfig = (overrides: Record<string, unknown> = {}, list: ReadonlyArray<object> = devices) => parseConfig({ fifo: '/run/test/indi.fifo', devices: list, ...overrides })
+const makeConfig = (overrides: Record<string, unknown> = {}, list: ReadonlyArray<object> = devices) => parseConfig({ stream, fifo: '/run/test/indi.fifo', devices: list, ...overrides })
 
 type Values = Record<string, Record<string, WantedValue>>
 
@@ -59,7 +62,6 @@ class Bench {
   readonly config: RigConfig
   memory: Memory
   now = 1_000_000
-  linked = true
   sims = new Map<string, Sim>()
   present = new Set<string>(devices.map(device => device.id))
   actions: Array<{ at: number; action: Action }> = []
@@ -83,7 +85,6 @@ class Bench {
   poll(count = 1) {
     for (let i = 0; i < count; i += 1) {
       const snapshot = {
-        linked: this.linked,
         devices: new Map(this.config.devices.flatMap(device => (this.sims.has(device.id) ? [[device.indiDevice, factsOf(this.sims.get(device.id)!, this.now)] as const] : []))),
       }
       const decision = decide(this.config, { now: this.now, snapshot, hardware: Object.fromEntries(this.config.devices.map(device => [device.id, this.present.has(device.id)])) }, this.memory)
@@ -137,7 +138,7 @@ class Bench {
 
 describe('the rig file', () => {
   it('fills defaults, normalises, and takes the serial device port from its path', () => {
-    const config = parseConfig({ devices: [{ id: 'a', indiDevice: 'Cam', usb: '03C3:260A', driver: 'indi_asi_ccd', connected: true }, { id: 'm', indiDevice: 'Mount', serial: '/dev/x', driver: 'indi_mount', connected: false }] }, { runtimeDir: '/run/user/1000' })
+    const config = parseConfig({ stream, devices: [{ id: 'a', indiDevice: 'Cam', usb: '03C3:260A', driver: 'indi_asi_ccd', connected: true }, { id: 'm', indiDevice: 'Mount', serial: '/dev/x', driver: 'indi_mount', connected: false }] }, { runtimeDir: '/run/user/1000' })
 
     expect(config).toEqual({
       indiHost: '127.0.0.1',
@@ -152,6 +153,13 @@ describe('the rig file', () => {
       reconnectWaitMs: 60_000,
       numberTolerance: 1e-6,
       backoffMs: [10_000, 30_000, 60_000],
+      stream: {
+        rig: 'fra-cria',
+        broker: stream.broker,
+        journalExclusions: { identifiers: ['sshd', 'sshd-session', 'systemd-logind', 'tailscaled'], unitPrefixes: ['session-'] },
+        journalCursorFile: join(homedir(), '.local', 'state', 'rig-stream', 'journal-cursor'),
+        phd2: { host: '127.0.0.1', port: 4400, reconnectSeconds: 5 },
+      },
       devices: [
         { id: 'a', indiDevice: 'Cam', usb: '03c3:260a', driver: 'indi_asi_ccd', connected: true, properties: {}, onConnect: {} },
         { id: 'm', indiDevice: 'Mount', serial: '/dev/x', driver: 'indi_mount', connected: false, properties: { DEVICE_PORT: { PORT: '/dev/x' } }, onConnect: {} },
@@ -159,30 +167,32 @@ describe('the rig file', () => {
     })
   })
 
-  const one = (device: object) => ({ fifo: '/x', devices: [{ id: 'a', indiDevice: 'A', serial: '/dev/x', driver: 'indi_x', connected: true, ...device }] })
+  const one = (device: object) => ({ stream, fifo: '/x', devices: [{ id: 'a', indiDevice: 'A', serial: '/dev/x', driver: 'indi_x', connected: true, ...device }] })
 
   it.each([
-    [{ fifo: '/x', devices: [] }, 'devices must be a non-empty array'],
-    [{ fifo: '/x', devices: [{ id: 'a', serial: '/dev/x', driver: 'indi_x', connected: true }] }, 'indiDevice is required'],
+    [{ stream, fifo: '/x', devices: [] }, 'at least one device'],
+    [{ stream, fifo: '/x', devices: [{ id: 'a', serial: '/dev/x', driver: 'indi_x', connected: true }] }, 'Missing key\n  at ["devices"][0]["indiDevice"]'],
     [one({ serial: undefined }), 'give exactly one of usb and serial'],
     [one({ usb: '03c3:260a' }), 'give exactly one of usb and serial'],
-    [one({ serial: undefined, usb: 'nope' }), 'usb must look like'],
-    [one({ driver: 'a b' }), 'driver must be an executable name'],
-    [one({ driver: undefined }), 'driver must be an executable name'],
-    [one({ connected: undefined }), 'connected must be true or false'],
+    [one({ serial: undefined, usb: 'nope' }), 'a vendor:product pair like 03c3:260a'],
+    [one({ serial: 'dev/x' }), 'an absolute path'],
+    [one({ driver: 'a b' }), 'an executable name'],
+    [one({ driver: undefined }), 'Missing key\n  at ["devices"][0]["driver"]'],
+    [one({ connected: undefined }), 'Missing key\n  at ["devices"][0]["connected"]'],
     [one({ properties: { DEVICE_PORT: { PORT: '/dev/y' } } }), 'DEVICE_PORT comes from serial'],
-    [one({ properties: { X: {} } }), 'must be an object of element values'],
-    [one({ properties: { X: { Y: null } } }), 'must be a finite number, a boolean or a string'],
-    [one({ onConnect: [] }), 'onConnect must be an object'],
-    [one({ properties: { CCD_EXPOSURE: { CCD_EXPOSURE_VALUE: 1 } } }), 'properties.CCD_EXPOSURE starts a motion or an exposure'],
-    [one({ onConnect: { TELESCOPE_PARK: { PARK: true } } }), 'onConnect.TELESCOPE_PARK starts a motion or an exposure'],
-    [{ fifo: '/x', devices: [one({}).devices[0], one({}).devices[0]] }, 'listed twice'],
-    [{ ...one({}), extra: 1 }, 'unknown key extra'],
-    [{ ...one({}), backoffMs: [] }, 'backoffMs must be'],
-    [{ ...one({}), deadLinkMs: 0 }, 'deadLinkMs must be a positive integer'],
-    [{ devices: one({}).devices }, 'fifo is required'],
+    [one({ properties: { X: {} } }), 'must name at least one element'],
+    [one({ properties: { X: { Y: null } } }), '["properties"]["X"]["Y"]'],
+    [one({ onConnect: [] }), '["onConnect"]'],
+    [one({ properties: { CCD_EXPOSURE: { CCD_EXPOSURE_VALUE: 1 } } }), 'CCD_EXPOSURE starts a motion or an exposure'],
+    [one({ onConnect: { TELESCOPE_PARK: { PARK: true } } }), 'TELESCOPE_PARK starts a motion or an exposure'],
+    [{ stream, fifo: '/x', devices: [one({}).devices[0], one({}).devices[0]] }, 'device a is listed twice'],
+    [{ ...one({}), extra: 1 }, 'Expected no excess property\n  at ["extra"]'],
+    [{ ...one({}), backoffMs: [] }, 'at least one wait'],
+    [{ ...one({}), deadLinkMs: 0 }, 'Expected a value greater than 0\n  at ["deadLinkMs"]'],
+    [{ stream, devices: one({}).devices }, 'fifo is required'],
+    [{ fifo: '/x', devices: one({}).devices }, 'Missing key\n  at ["stream"]'],
   ])('refuses %j', (config, message) => {
-    expect(() => parseConfig(config)).toThrow(message)
+    expect(() => parseConfig(JSON.parse(JSON.stringify(config)))).toThrow(message)
   })
 })
 
@@ -265,18 +275,6 @@ describe('connecting a device', () => {
     bench.poll(3)
 
     expect(bench.writes().map(write => [write.property, write.values])).toEqual([['CONNECTION', { DISCONNECT: true }]])
-  })
-
-  it('writes and restarts nothing while indiserver is unreachable', () => {
-    const bench = new Bench()
-
-    bench.sim('focuser').connection = 'disconnected'
-    bench.missing('primary')
-    bench.linked = false
-    bench.poll(5)
-
-    expect(bench.writes()).toEqual([])
-    expect(bench.restarts()).toEqual([])
   })
 
   it('starts every driver whose hardware is present when indiserver was started with none', () => {
@@ -649,7 +647,6 @@ describe('a dead link: the driver reports errors while the device still looks co
     const bench = new Bench()
     const config = bench.config
     const snapshot = (last: number) => ({
-      linked: true,
       devices: new Map(config.devices.map(device => [device.indiDevice, { ...factsOf(bench.sim(device.id), 0), ...(device.id === 'mount' ? { errorRun: { since: last, last } } : {}) }])),
     })
     let memory = bench.memory

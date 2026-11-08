@@ -1,5 +1,4 @@
-import { Effect, Exit, Scope, Stream } from 'effect'
-import { makeIndiClient, type Property, type PropertyState, type Values } from '../indi/index.ts'
+import { connectIndi, type Property, type PropertyState, type TrafficTap, type Values } from '../indi/index.ts'
 import type { WantedValue } from './config.ts'
 
 type ConnectionState = 'connected' | 'disconnected' | 'changing'
@@ -22,14 +21,14 @@ export interface DeviceFacts {
 }
 
 export interface IndiSnapshot {
-  readonly linked: boolean
   readonly devices: ReadonlyMap<string, DeviceFacts>
 }
 
 export interface IndiLink {
-  readonly view: () => Promise<IndiSnapshot>
+  readonly closed: Promise<string>
+  readonly view: () => IndiSnapshot
   readonly write: (device: string, property: string, values: Values) => Promise<void>
-  readonly close: () => Promise<void>
+  readonly close: () => void
 }
 
 const driverErrorPrefix = '[ERROR]'
@@ -67,40 +66,39 @@ export async function openIndiLink(options: {
   readonly errorGapMs: number
   readonly now: () => number
   readonly warn: (line: string) => void
+  readonly tap?: TrafficTap
 }): Promise<IndiLink> {
-  const scope = Effect.runSync(Scope.make())
-  const client = await Effect.runPromise(Scope.provide(makeIndiClient({ host: options.host, port: options.port, warn: options.warn }), scope))
   const errorRuns = new Map<string, ErrorRun>()
 
-  for (const name of options.devices) {
-    const listen = Stream.runForEach(client.device(name).events, event =>
-      Effect.sync(() => {
-        if (event.type !== 'message' || event.device !== name || !event.text.startsWith(driverErrorPrefix)) return
+  const client = await connectIndi({
+    host: options.host,
+    port: options.port,
+    warn: options.warn,
+    ...(options.tap ? { tap: options.tap } : {}),
+    onMessage: (device, text) => {
+      if (device === undefined || !options.devices.includes(device) || !text.startsWith(driverErrorPrefix)) return
 
-        const at = options.now()
-        const run = errorRuns.get(name)
+      const at = options.now()
+      const run = errorRuns.get(device)
 
-        errorRuns.set(name, run && at - run.last <= options.errorGapMs ? { since: run.since, last: at } : { since: at, last: at })
-      }),
-    )
-
-    await Effect.runPromise(Scope.provide(Effect.forkScoped(listen), scope))
-  }
+      errorRuns.set(device, run && at - run.last <= options.errorGapMs ? { since: run.since, last: at } : { since: at, last: at })
+    },
+  })
 
   return {
-    view: async () => {
-      const status = await Effect.runPromise(client.status)
-      const facts = new Map<string, DeviceFacts>()
+    closed: client.closed,
+    view: () => {
+      const devices = new Map<string, DeviceFacts>()
 
       for (const name of options.devices) {
-        const found = indiFacts(await Effect.runPromise(client.device(name).properties), errorRuns.get(name))
+        const found = indiFacts(client.properties(name), errorRuns.get(name))
 
-        if (found) facts.set(name, found)
+        if (found) devices.set(name, found)
       }
 
-      return { linked: status.kind === 'connected', devices: facts }
+      return { devices }
     },
-    write: (device, property, values) => Effect.runPromise(client.device(device).send(property, values)),
-    close: () => Effect.runPromise(Scope.close(scope, Exit.void)),
+    write: client.send,
+    close: client.close,
   }
 }

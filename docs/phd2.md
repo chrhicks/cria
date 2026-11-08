@@ -1,6 +1,6 @@
 # PHD2 on errai
 
-PHD2 does the guiding. It runs on errai as rig equipment, headless, and nobody looks at it. The plan is in `bots/observer/specs/rig-guiding.md` of Chris's `home` repo (decided 2026-10-24). This covers the errai side: a unit, a profile writer and a step script. Cria has no PHD2 code; the recorder only reads PHD2's events.
+PHD2 does the guiding. It runs on errai as rig equipment, headless, and nobody looks at it. The plan is in `bots/observer/specs/rig-guiding.md` of Chris's `home` repo (decided 2026-10-24). This covers the errai side: a unit, a profile writer and a step script. Cria has no PHD2 code; the rig program only reads PHD2's events.
 
 Three files in `ts/deploy` do it (`install.sh` links the unit):
 
@@ -45,7 +45,7 @@ sudo nft list table inet phd2_guard
 
 The rule drops TCP 4300 and 4400 unless the packet arrives on `lo`. The unit touches only its own table: `systemctl stop phd2-guard` deletes `inet phd2_guard` and nothing else. **Do not use `nftables.service` for this.** On errai `/etc/nftables.conf` is Arch's stock firewall, which drops all input except ssh, so enabling that service would cut thuban off from INDI (7624). A unit of its own also keeps the rule separate from any later firewall: stopping it removes only this table.
 
-Check it with PHD2 running. On errai: `ss -ltnp | grep -E ':(4300|4400) '` shows PHD2 listening. From thuban (no `nc` there): `timeout 5 bash -c 'exec 3<>/dev/tcp/HOST/4400'` and the same for 4300 must both fail, for errai's LAN address and its tailnet name, while 7624 still connects, and `ssh errai 'node ts/deploy/phd2-rpc.mjs watch 2'` must still print a `Version` event. The recorder reads PHD2 on `127.0.0.1:4400`.
+Check it with PHD2 running. On errai: `ss -ltnp | grep -E ':(4300|4400) '` shows PHD2 listening. From thuban (no `nc` there): `timeout 5 bash -c 'exec 3<>/dev/tcp/HOST/4400'` and the same for 4300 must both fail, for errai's LAN address and its tailnet name, while 7624 still connects, and `ssh errai 'node ts/deploy/phd2-rpc.mjs watch 2'` must still print a `Version` event. The rig program reads PHD2 on `127.0.0.1:4400`.
 
 ## Install
 
@@ -105,7 +105,7 @@ The exit code is 0 when the step worked, 1 for bad arguments and 2 when PHD2 ref
 
 ## Night-of checklist (supervised, with Chris at the rig)
 
-Preconditions: a clear sky; the mount tracking and polar aligned; the target framed; the guide scope focused; dew control on the guide scope (the Pegasus Dew B port is free); `indiserver`, `rig-supervisor` and `rig-stream-client` running; nothing exposing on the guide camera: PHD2 owns it while it guides, so take no exposure on `ZWO CCD ASI220MM Mini` from anything else. The main camera (ASI2600) can keep exposing. Both cameras share one INDI driver process (`indi_asi_ccd`), so watch the main camera's frames during the first PHD2 exposures in case one camera disturbs the other (not tested on Linux).
+Preconditions: a clear sky; the mount tracking and polar aligned; the target framed; the guide scope focused; dew control on the guide scope (the Pegasus Dew B port is free); `indiserver` and `rig` running; nothing exposing on the guide camera: PHD2 owns it while it guides, so take no exposure on `ZWO CCD ASI220MM Mini` from anything else. The main camera (ASI2600) can keep exposing. Both cameras share one INDI driver process (`indi_asi_ccd`), so watch the main camera's frames during the first PHD2 exposures in case one camera disturbs the other (not tested on Linux).
 
 1. Close ports 4300 and 4400 to everything but errai (the rule above), before enabling the unit.
 2. Install as above. Check `systemctl --user status phd2`, then `ss -ltnp | grep 4400` on errai. PHD2 shows as `phd2.bin`. If it is not listening 20 s after the unit starts, read `journalctl --user -u phd2` and look at PHD2 over x11vnc: a dialog that waits for a click is the usual cause.

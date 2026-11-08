@@ -2,27 +2,25 @@ import { readFileSync } from 'node:fs'
 import { createServer, type ServerResponse } from 'node:http'
 import { DeliverPolicy, jetstream, jetstreamManager } from '@nats-io/jetstream'
 import { connect } from '@nats-io/transport-node'
-import { Effect } from 'effect'
+import { readConfig } from '../config.ts'
 import { brokerSettings, streamName } from '../stream/index.ts'
-import { ViewerConfig } from './config.ts'
+import { ViewerSettings } from './config.ts'
 import { makeHistory, parseQuery, type HistoryQuery } from './history.ts'
 
 const page = readFileSync(new URL('./viewer.html', import.meta.url))
 
 export async function runViewer(): Promise<void> {
-  const config = await Effect.runPromise(Effect.provide(Effect.service(ViewerConfig), ViewerConfig.layer))
-  const broker = await connect({ ...brokerSettings(config.broker), name: 'rig-stream-viewer', maxReconnectAttempts: -1 })
+  const config = readConfig(ViewerSettings, process.argv[2])
+  const broker = await connect({ ...brokerSettings(config.broker), name: 'rig-stream-viewer', reconnect: false })
   const manager = await jetstreamManager(broker)
   const client = jetstream(broker)
 
   const progressEvery = 100000
-  const openPages = new Set<ServerResponse>()
 
-  void (async () => {
-    for await (const status of broker.status()) {
-      if (status.type === 'reconnect') for (const page of openPages) page.end()
-    }
-  })()
+  void broker.closed().then(error => {
+    console.error(`rig-stream-viewer: broker connection lost${error ? `: ${error.message}` : ''}`)
+    process.exit(1)
+  })
 
   function send(response: ServerResponse, event: string, data: unknown, id?: number) {
     response.write(`${id === undefined ? '' : `id: ${id}\n`}event: ${event}\ndata: ${JSON.stringify(data)}\n\n`)
@@ -116,8 +114,6 @@ export async function runViewer(): Promise<void> {
     if (url.pathname === '/events') {
       response.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-store' })
       response.flushHeaders()
-      openPages.add(response)
-      response.on('close', () => openPages.delete(response))
 
       const lastSeenByBrowser = Number(request.headers['last-event-id'])
 

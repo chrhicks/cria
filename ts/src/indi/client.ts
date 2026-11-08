@@ -1,253 +1,112 @@
-/**
- * INDI boundary: the client. One TCP connection to indiserver, the property
- * mirror it feeds, and `IndiDevice`, the narrow face capabilities use.
- *
- * Failure meanings are decided here once: a request that could not be written
- * fails `not-connected` (nothing was sent); a request whose write failed or
- * whose connection dropped afterwards fails `connection-lost` (it may have been
- * received). Nothing is ever resent by this layer.
- *
- * Bytes indiserver sends that Cria cannot read are never silent: an element that is bad on its own is skipped and
- * the connection kept, with the property it was about forgotten so no stale value is shown; a stream whose framing
- * is lost ends the connection. Both are logged (see `ProblemLog`).
- */
 import net from 'node:net'
-import { Data, Effect, PubSub, Scope, Stream, SubscriptionRef } from 'effect'
-import { Mirror, type MirrorChange, type Property } from './mirror.ts'
-import type { TrafficTap } from './tap.ts'
+import { Mirror, type Property } from './mirror.ts'
 import { ProblemLog } from './problems.ts'
-import { IndiFramer, serialize, type IndiMessage, type IndiRequest, type ProtocolProblem } from './xml.ts'
-
-export type ConnectionStatus =
-  | { readonly kind: 'connecting' }
-  | { readonly kind: 'connected'; readonly since: number }
-  | { readonly kind: 'disconnected'; readonly since: number; readonly error: string }
-
-export type IndiErrorReason = 'not-connected' | 'connection-lost' | 'unknown-property' | 'not-writable'
-
-export class IndiError extends Data.TaggedError('IndiError')<{
-  readonly reason: IndiErrorReason
-  readonly message: string
-}> {}
-
-/** What a capability can observe about one INDI device. */
-export type DeviceEvent =
-  | { readonly type: 'property'; readonly origin: 'def' | 'set'; readonly property: Property }
-  | { readonly type: 'deleted'; readonly name?: string }
-  | { readonly type: 'connection'; readonly status: ConnectionStatus }
-  | { readonly type: 'message'; readonly device?: string; readonly text: string }
+import type { TrafficTap } from './tap.ts'
+import { IndiFramer, serialize, type IndiRequest, type ProtocolProblem } from './xml.ts'
 
 export type Values = Readonly<Record<string, number | boolean | string>>
-
-export interface IndiDevice {
-  readonly name: string
-  readonly properties: Effect.Effect<ReadonlyArray<Property>>
-  readonly events: Stream.Stream<DeviceEvent>
-  /** One new*Vector. Sent exactly once; never retried here. */
-  readonly send: (property: string, values: Values) => Effect.Effect<void, IndiError>
-}
-
-export interface IndiClient {
-  readonly status: Effect.Effect<ConnectionStatus>
-  readonly device: (name: string) => IndiDevice
-}
 
 export interface IndiClientOptions {
   readonly host: string
   readonly port: number
-  /** Told of every element sent and received. Absent, the client behaves exactly as without recording. */
+  readonly warn: (line: string) => void
   readonly tap?: TrafficTap
-  /** Where protocol problems are written, one line each. Default: the Effect log at warning level. */
-  readonly warn?: (line: string) => void
+  readonly onMessage?: (device: string | undefined, text: string) => void
 }
 
-type ClientEvent = { readonly device?: string; readonly event: DeviceEvent }
+export interface IndiClient {
+  readonly closed: Promise<string>
+  readonly properties: (device: string) => ReadonlyArray<Property>
+  readonly property: (device: string, name: string) => Property | undefined
+  readonly send: (device: string, property: string, values: Values) => Promise<void>
+  readonly close: () => void
+}
 
-export function makeIndiClient(options: IndiClientOptions): Effect.Effect<IndiClient, never, Scope.Scope> {
-  return Effect.gen(function* () {
-    const mirror = new Mirror()
-    const status = yield* SubscriptionRef.make<ConnectionStatus>({ kind: 'connecting' })
-    const events = yield* PubSub.unbounded<ClientEvent>()
-    let socket: net.Socket | undefined
-    let connectionNumber = 0
+const connection = 1
 
-    const publish = (event: ClientEvent) => {
-      PubSub.publishUnsafe(events, event)
-    }
+export async function connectIndi(options: IndiClientOptions): Promise<IndiClient> {
+  const { tap, onMessage } = options
+  const mirror = new Mirror()
+  const problems = new ProblemLog({ warn: options.warn, now: Date.now })
+  const framer = new IndiFramer()
+  const socket = net.connect({ host: options.host, port: options.port })
+  let lastError = 'connection closed'
 
-    const setStatus = (next: ConnectionStatus) => {
-      Effect.runSync(SubscriptionRef.set(status, next))
-      publish({ event: { type: 'connection', status: next } })
-    }
+  const transmit = (request: IndiRequest, onWritten?: (error?: Error | null) => void) => {
+    const text = serialize(request)
 
-    const tap = options.tap
-    const problems = new ProblemLog({
-      warn: options.warn ?? (line => Effect.runSync(Effect.logWarning(line))),
-      now: Date.now,
+    tap?.message({ conn: connection, dir: 'out', xml: text })
+    socket.write(text, onWritten)
+  }
+
+  const skip = (problem: ProtocolProblem) => {
+    const logged = problems.report(problem, 'skipped the element')
+
+    if (problem.device === undefined || problem.name === undefined || !/^(def|set)\w+Vector$/.test(problem.tag)) return
+    const { device, name } = problem
+
+    mirror.apply({ type: 'del', device, name })
+    if (logged) transmit({ type: 'getProperties', device, name })
+  }
+
+  const opened = new Promise<void>((resolve, reject) => {
+    socket.once('connect', resolve)
+    socket.once('close', () => reject(new Error(lastError)))
+  })
+
+  const closed = new Promise<string>(resolve => {
+    socket.once('close', () => {
+      tap?.connection({ conn: connection, status: 'closed', error: lastError })
+      resolve(lastError)
     })
+  })
 
-    // The one place Cria writes to indiserver: what it meant to send is recorded before the write.
-    const transmit = (request: IndiRequest, current: net.Socket, onWritten?: (error?: Error | null) => void) => {
-      const text = serialize(request)
+  socket.setNoDelay(true)
+  socket.on('error', error => {
+    lastError = error.message
+  })
+  socket.on('connect', () => {
+    tap?.connection({ conn: connection, status: 'connected' })
+    transmit({ type: 'getProperties' })
+  })
+  socket.on('data', (chunk: Buffer) => {
+    const { elements, stopped } = framer.frame(chunk, tap !== undefined)
 
-      tap?.message({ conn: connectionNumber, dir: 'out', xml: text })
-      current.write(text, onWritten)
+    for (const { message, problem, xml } of elements) {
+      tap?.message({ conn: connection, dir: 'in', xml })
+      if (message) {
+        if (problem) problems.report(problem, 'left one element out and kept the property')
+        if (message.type === 'pingRequest') transmit({ type: 'pingReply', uid: message.uid })
+        else if (message.type === 'message') onMessage?.(message.device, message.text)
+        else mirror.apply(message)
+      } else if (problem && problem.scope === 'element') skip(problem)
     }
 
-    const write = (request: IndiRequest, current: net.Socket) =>
-      Effect.callback<void, IndiError>(resume => {
-        transmit(request, current, error => {
-          resume(
-            error
-              ? Effect.fail(new IndiError({ reason: 'connection-lost', message: `INDI write failed: ${error.message}` }))
-              : Effect.void,
-          )
-        })
-      })
-
-    const send = (request: IndiRequest) =>
-      Effect.suspend(() => {
-        if (!socket || socket.destroyed || !socket.writable)
-          return Effect.fail(new IndiError({ reason: 'not-connected', message: 'Not connected to indiserver' }))
-
-        return write(request, socket)
-      })
-
-    const receive = (message: IndiMessage, current: net.Socket) => {
-      if (message.type === 'pingRequest') {
-        transmit({ type: 'pingReply', uid: message.uid }, current)
-
-        return
-      }
-
-      if (message.type === 'message') {
-        publish({ ...(message.device === undefined ? {} : { device: message.device }), event: message })
-
-        return
-      }
-
-      for (const change of mirror.apply(message)) publish(toClientEvent(change))
-    }
-
-    // An element that is bad on its own: skipped and logged. The property it was about is forgotten every time, even
-    // when the log line is suppressed: keeping the old value would let it look current while the driver has moved on
-    // (liveness only proves the driver answers, not that every update arrived), so the property reads as gone until a
-    // good definition arrives. The driver is asked for that definition only when a line is logged, so a driver that
-    // always sends the same bad element is asked at most once a minute.
-    const skip = (problem: ProtocolProblem, current: net.Socket) => {
-      const logged = problems.report(problem, 'skipped the element')
-
-      if (problem.device === undefined || problem.name === undefined || !/^(def|set)\w+Vector$/.test(problem.tag)) return
-      const { device, name } = problem
-
-      if (mirror.property(device, name)) for (const change of mirror.apply({ type: 'del', device, name })) publish(toClientEvent(change))
-      if (logged) transmit({ type: 'getProperties', device, name }, current)
-    }
-
-    // One session per TCP connection; resolves when the socket closes.
-    const session = Effect.callback<string>(resume => {
-      const framer = new IndiFramer()
-      const current = net.connect({ host: options.host, port: options.port })
-      let lastError = 'connection closed'
-
-      connectionNumber += 1
-      socket = current
-      current.setNoDelay(true)
-      current.on('connect', () => {
-        tap?.connection({ conn: connectionNumber, status: 'connected' })
-        setStatus({ kind: 'connected', since: Date.now() })
-        transmit({ type: 'getProperties' }, current)
-      })
-      current.on('data', (chunk: Buffer) => {
-        try {
-          const { elements, stopped } = framer.frame(chunk, tap !== undefined)
-
-          for (const { message, problem, xml } of elements) {
-            tap?.message({ conn: connectionNumber, dir: 'in', xml })
-            if (message) {
-              if (problem) problems.report(problem, 'left one element out and kept the property')
-              receive(message, current)
-            } else if (problem && problem.scope === 'element') skip(problem, current)
-          }
-
-          if (stopped) {
-            problems.report(stopped, 'dropped the connection')
-            current.destroy(new Error(`INDI protocol error: ${stopped.reason}`))
-          }
-        } catch (error) {
-          current.destroy(error instanceof Error ? error : new Error(String(error)))
-        }
-      })
-      current.on('error', error => {
-        lastError = error.message
-      })
-      current.on('close', () => {
-        tap?.connection({ conn: connectionNumber, status: 'closed', error: lastError })
-        resume(Effect.succeed(lastError))
-      })
-
-      return Effect.sync(() => current.destroy())
-    })
-
-    const connectForever = Effect.gen(function* () {
-      let delay = 250
-
-      while (true) {
-        const startedAt = Date.now()
-        const error = yield* session
-
-        socket = undefined
-        for (const change of mirror.clear()) publish(toClientEvent(change))
-        setStatus({ kind: 'disconnected', since: Date.now(), error })
-        if (Date.now() - startedAt > 10_000) delay = 250
-        yield* Effect.sleep(delay)
-        delay = Math.min(delay * 2, 5000)
-        setStatus({ kind: 'connecting' })
-      }
-    })
-
-    yield* Effect.forkScoped(connectForever)
-    yield* Effect.addFinalizer(() => Effect.sync(() => socket?.destroy()))
-
-    const device = (name: string): IndiDevice => {
-      const sendVector = (propertyName: string, values: Values) =>
-        Effect.gen(function* () {
-          const known = mirror.property(name, propertyName)
-
-          if (!known)
-            return yield* new IndiError({ reason: 'unknown-property', message: `${name} has no property ${propertyName}` })
-          if (known.perm === 'ro' || known.kind === 'light' || known.kind === 'blob')
-            return yield* new IndiError({ reason: 'not-writable', message: `${name}.${propertyName} is read-only` })
-
-          yield* send({ type: 'new', kind: known.kind, device: name, name: propertyName, values })
-        })
-
-      return {
-        name,
-        properties: Effect.sync(() => mirror.properties(name)),
-        events: Stream.fromPubSub(events).pipe(
-          Stream.filter(item => item.device === undefined || item.device === name),
-          Stream.map(item => item.event),
-        ),
-        send: sendVector,
-      }
-    }
-
-    return {
-      status: SubscriptionRef.get(status),
-      device,
+    if (stopped) {
+      problems.report(stopped, 'dropped the connection')
+      socket.destroy(new Error(`INDI protocol error: ${stopped.reason}`))
     }
   })
-}
 
-function toClientEvent(change: MirrorChange): ClientEvent {
-  switch (change.type) {
-    case 'property':
-      return { device: change.property.device, event: { type: 'property', origin: change.origin, property: change.property } }
-    case 'deleted':
-      return {
-        device: change.device,
-        event: change.name === undefined ? { type: 'deleted' } : { type: 'deleted', name: change.name },
-      }
+  await opened
+
+  return {
+    closed,
+    properties: device => mirror.properties(device),
+    property: (device, name) => mirror.property(device, name),
+    send: async (device, property, values) => {
+      const known = mirror.property(device, property)
+
+      if (!known) throw new Error(`${device} has no property ${property}`)
+
+      const kind = known.kind
+
+      if (known.perm === 'ro' || kind === 'light' || kind === 'blob') throw new Error(`${device}.${property} is read-only`)
+
+      await new Promise<void>((resolve, reject) => {
+        transmit({ type: 'new', kind, device, name: property, values }, error => (error ? reject(new Error(`INDI write failed: ${error.message}`)) : resolve()))
+      })
+    },
+    close: () => socket.destroy(),
   }
 }

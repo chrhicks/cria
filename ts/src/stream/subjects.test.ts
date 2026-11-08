@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { stream } from '../../testing/stream-settings.ts'
 import { parseConfig } from '../rig/config.ts'
 import { wireIdsOf } from '../rig/file.ts'
 import { wireSubject } from './subjects.ts'
@@ -29,6 +30,7 @@ describe('wire subjects', () => {
 describe('the rig file\'s device names', () => {
   it('give each INDI device the id the rig file gives it', () => {
     const config = parseConfig({
+      stream,
       fifo: '/run/test/indi.fifo',
       devices: [
         { id: 'mount', indiDevice: 'ZWO AM5', serial: '/dev/x', driver: 'indi_lx200am5', connected: true },

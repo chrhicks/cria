@@ -7,21 +7,21 @@ Cria is TypeScript on Node 26 that runs the rig's software on errai (the rig PC,
 | Program | Where | What it does |
 | --- | --- | --- |
 | `indiserver` | errai | Owns the drivers, one process each, and listens on 7624. It starts with no drivers (the rig program starts them through its FIFO) and `-r 0`: it never restarts a crashed driver |
-| `rig-supervisor` (`src/bin/rig.ts`, the rig program) | errai | Owns bring-up: compares INDI with the rig file every 5 s and writes what differs. Restarts a driver whose device is missing while its hardware is present, or whose serial link is dead, when nothing it serves is Busy |
-| `rig-stream-client` | errai | Publishes the raw INDI traffic, the system journal and PHD2's events to the rig stream (NATS JetStream on thuban). It also carries the rig program's writes: indiserver relays every client's `new*Vector` to the others |
+| `rig` (`src/bin/rig.ts`, the rig program) | errai | Owns bring-up: compares INDI with the rig file every 5 s and writes what differs. Restarts a driver whose device is missing while its hardware is present, or whose serial link is dead, when nothing it serves is Busy. Over the same INDI connection it publishes the raw INDI traffic (its own writes included), errai's journal and PHD2's events to the rig stream (NATS JetStream on thuban) |
 | `rig-stream-viewer` | thuban | A web page of the stream |
 | `phd2` | errai | Guiding, headless; see [docs/phd2.md](docs/phd2.md) |
 
-Entry points are `ts/src/bin/{rig,recorder,viewer}.ts`; each unit in `ts/deploy/` runs one.
+Entry points are `ts/src/bin/{rig,viewer,ensure-stream}.ts`; each unit in `ts/deploy/` runs one of the first two.
+
+When a connection a program depends on is lost, it exits and systemd starts it again with fresh state (`Restart=always`, with a delay that grows on repeated failure). The rig program does this for indiserver and for an unreadable config; the viewer does it for the broker. The one connection it keeps instead of exiting is the broker's, because bring-up must not wait for thuban: the NATS client reconnects by itself, wire entries are dropped while it is away, and journal lines wait for the stream's acknowledgement before the cursor moves.
 
 ## Layout (`ts/`)
 
 | Folder | Contents |
 | --- | --- |
-| `src/indi` | INDI client, property mirror, XML, problem log, traffic tap ([README](ts/src/indi/README.md)) |
-| `src/stream` | Entry format, subjects, publisher, broker login |
-| `src/rig` | The rig file, the decision (`reconcile.ts`, a pure function), the loop that carries it out, the INDI link, the FIFO |
-| `src/recorder` | The rig stream client: journal, PHD2, INDI wire |
+| `src/indi` | INDI client (one connection, no reconnect), property mirror, XML, problem log, traffic tap ([README](ts/src/indi/README.md)) |
+| `src/stream` | Entry format, subjects, publisher, broker login, the journal and PHD2 followers, and `record.ts`, which the rig program starts |
+| `src/rig` | The rig file (a Schema, `config.ts`), the decision (`reconcile.ts`, a pure function), the poll that carries it out, the INDI link, the FIFO |
 | `src/viewer` | The stream viewer and its page |
 | `deploy` | systemd units, `install.sh`, PHD2 profile and step scripts |
 | `testing` | The real-`indiserver` helper, the fake INDI server, PHD2 script tests |
@@ -47,13 +47,13 @@ ssh errai '~/dev/personal/cria-ts/ts/deploy/install.sh errai --commit COMMIT'
 ~/dev/personal/cria-run/ts/deploy/install.sh thuban --commit COMMIT
 ```
 
-It fetches, checks out `COMMIT` detached (default `origin/main`), runs `pnpm install --frozen-lockfile --prod`, links the machine's units from `ts/deploy/` into `~/.config/systemd/user/` (`systemctl --user link`, so an installed unit is always the repo's file), reloads systemd and restarts the programs (`rig-supervisor` and `rig-stream-client` on errai, the viewer on thuban; they hold no drivers, and a rig program restart only sends the mount's `TIME_UTC` again). On thuban it first creates or updates the stream (`src/bin/ensure-stream.ts`, from the viewer's settings file). It never restarts `indiserver` or `phd2` unless you add `--restart indiserver` or `--restart phd2`, it never enables `phd2`, and it never touches a settings file.
+It fetches, checks out `COMMIT` detached (default `origin/main`), runs `pnpm install --frozen-lockfile --prod`, links the machine's units from `ts/deploy/` into `~/.config/systemd/user/` (`systemctl --user link`, so an installed unit is always the repo's file), reloads systemd and restarts the programs (`rig` on errai, the viewer on thuban; they hold no drivers, and a rig program restart only sends the mount's `TIME_UTC` again). On errai it first disables and removes the retired units `rig-supervisor` and `rig-stream-client`. On thuban it first creates or updates the stream (`src/bin/ensure-stream.ts`, from the viewer's settings file). It never restarts `indiserver` or `phd2` unless you add `--restart indiserver` or `--restart phd2`, it never enables `phd2`, and it never touches a settings file.
 
 A first install is the same two lines after `git clone` of this repo to the path above. The firewall unit `phd2-guard` is a system unit installed once with sudo ([docs/phd2.md](docs/phd2.md)).
 
-Configuration lives outside the repo: on errai `~/.config/cria/rig.json` (the rig file) and `~/.config/rig-stream/client.json` (recorder); on thuban `~/.config/rig-stream/viewer.json`. Each setting's description, with the evidence behind its default, is in `src/rig/config.ts`, `src/recorder/config.ts`, `src/viewer/config.ts` and `src/stream/ensure.ts`. An unknown key or invalid value stops the program at start. The site coordinates live only in the rig file on errai, never in the repo.
+Configuration lives outside the repo: on errai `~/.config/cria/rig.json` (the rig file, whose `stream` section holds the broker login, `passFile` naming the file that holds the password, and the journal and PHD2 settings); on thuban `~/.config/rig-stream/viewer.json`. Each setting's description, with the evidence behind its default, is in `src/rig/config.ts`, `src/stream/config.ts`, `src/viewer/config.ts` and `src/stream/ensure.ts`. An unknown key or invalid value stops the program at start. The site coordinates live only in the rig file on errai, never in the repo.
 
-`systemctl --user restart indiserver` restarts the rig software as one: `rig-supervisor` is `PartOf` it and starts every driver again within a few polls. It also stops the camera cooler until the camera is connected again.
+`systemctl --user restart indiserver` restarts the rig software as one: `rig` is `PartOf` it and starts every driver again within a few polls. It also stops the camera cooler until the camera is connected again.
 
 ## The rig file
 
@@ -80,7 +80,8 @@ One file describes every device and what it should be. The rig program reads it 
 - `connected` says whether the device should be connected.
 - `properties` are INDI properties the device should hold (element name to number, boolean or text). `LONG` is INDI's 0 to 360, east positive. Numbers match within `numberTolerance`.
 - `onConnect` properties are written once each time the device becomes connected, because they can never already hold. A text value of `now` is written as the current UTC time.
-- `driver` names the executable the FIFO starts and restarts. indiserver starts with no drivers, so a device without one is never brought up. Settings that are not in the list of devices (poll interval, thresholds, backoff) are the keys of `settings` in `src/rig/config.ts`, each with its description.
+- `driver` names the executable the FIFO starts and restarts. indiserver starts with no drivers, so a device without one is never brought up. Settings that are not in the list of devices (poll interval, thresholds, backoff) are the other keys of `RigFile` in `src/rig/config.ts`, each with its description and default.
+- `stream` (required) configures the recording: `broker` (`servers`, `user`, `passFile`, the path of a file holding only the password), and optionally `rig`, `journalExclusions`, `journalCursorFile` and `phd2`, described in `src/stream/config.ts`. The password is never in the rig file.
 
 ## How the rig comes up
 
@@ -91,11 +92,11 @@ The mini PC may boot before the rest of the rig has power, and nothing is starte
 - A serial device whose driver reports `[ERROR]` messages without a break of 5 s for 30 s is a dead link, although the device still looks connected (11-01 and 11-02: the mount and the box drivers printed `Serial write error: Write Error: Input/output error` two to three times a second for hours). The rig program reconnects the device (`CONNECTION` off, then on). If it is not connected and quiet 60 s later, it restarts that device's driver. The device's own Busy properties do not hold the restart back: a dead mount keeps `TELESCOPE_TRACK_STATE` Busy.
 - It never switches power, and none of the properties it writes starts a motion or an exposure. It logs one line per decision, without the values it writes.
 
-Its writes reach the rig stream through the stream client: indiserver relays every client's `new*Vector` to the other clients, and the stream client publishes the raw wire.
+Its writes reach the rig stream directly: the tap on its one INDI connection records every element it sends and receives.
 
 ## Changing a device by hand
 
-On errai, `indi_setprop "ZWO EAF.CONNECTION.DISCONNECT=On"` writes any property. A property the rig file names is written back at the next poll, and a device the rig file wants connected is connected again: to keep a device off or set a different value, edit `~/.config/cria/rig.json` and `systemctl --user restart rig-supervisor`.
+On errai, `indi_setprop "ZWO EAF.CONNECTION.DISCONNECT=On"` writes any property. A property the rig file names is written back at the next poll, and a device the rig file wants connected is connected again: to keep a device off or set a different value, edit `~/.config/cria/rig.json` and `systemctl --user restart rig`.
 
 ## Ownership of the rig
 

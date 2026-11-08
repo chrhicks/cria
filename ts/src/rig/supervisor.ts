@@ -59,7 +59,7 @@ export function createRig(dependencies: RigDependencies): Rig {
   }
 
   async function tick() {
-    const snapshot = await indi.view()
+    const snapshot = indi.view()
     const hardware: Record<string, boolean> = {}
 
     for (const device of config.devices) hardware[device.id] = await dependencies.hardwarePresent(device)

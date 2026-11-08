@@ -3,12 +3,15 @@ import { closeSync, constants, mkdirSync, mkdtempSync, openSync, writeFileSync }
 import { Socket } from 'node:net'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { SchemaAST } from 'effect'
 import { afterEach, describe, expect, it } from 'vitest'
 import { FakeIndi, connection } from '../../testing/fake-indi/index.ts'
 import { startIndiServer, type RunningIndiServer } from '../../testing/indiserver.ts'
+import { stream } from '../../testing/stream-settings.ts'
 import { until } from '../../testing/until.ts'
 import type { Property } from '../indi/index.ts'
-import { parseConfig, settings } from './config.ts'
+import { parseConfig, RigFile } from './config.ts'
+import { StreamSettings } from '../stream/config.ts'
 import { writeFifo } from './fifo.ts'
 import { usbAttached } from './hardware.ts'
 import { indiFacts, openIndiLink, type IndiLink } from './indi-link.ts'
@@ -17,8 +20,12 @@ import { createRig } from './supervisor.ts'
 const site = { LAT: 33.45, LONG: 247.93, ELEV: 331 }
 
 describe('settings', () => {
+  const undescribed = (fields: Readonly<Record<string, { readonly ast: SchemaAST.AST }>>, structural: ReadonlyArray<string>) =>
+    Object.entries(fields).flatMap(([name, field]) => (structural.includes(name) || (SchemaAST.resolveDescription(field.ast)?.length ?? 0) > 10 ? [] : [name]))
+
   it('describes every setting', () => {
-    expect(Object.values(settings).every(setting => typeof setting.description === 'string' && setting.description.length > 10)).toBe(true)
+    expect(undescribed(RigFile.fields, ['devices', 'stream'])).toEqual([])
+    expect(undescribed(StreamSettings.fields, ['broker'])).toEqual([])
   })
 
   it('reads USB presence from sysfs by vendor and product', () => {
@@ -67,17 +74,17 @@ describe('the INDI link against a real indiserver', () => {
 
     try {
       const seen = await until('the simulator', async () => {
-        const snapshot = await link.view()
+        const snapshot = link.view()
 
         return snapshot.devices.has('Focuser Simulator') ? snapshot : undefined
       })
 
-      expect([seen.linked, seen.devices.get('Focuser Simulator')?.connection, seen.devices.has('No Such Device')]).toEqual([true, 'disconnected', false])
+      expect([seen.devices.get('Focuser Simulator')?.connection, seen.devices.has('No Such Device')]).toEqual(['disconnected', false])
 
       await link.write('Focuser Simulator', 'CONNECTION', { CONNECT: true })
-      await until('the simulator to connect', async () => (await link.view()).devices.get('Focuser Simulator')?.connection === 'connected')
+      await until('the simulator to connect', () => link.view().devices.get('Focuser Simulator')?.connection === 'connected')
     } finally {
-      await link.close()
+      link.close()
       await server.stop()
     }
   })
@@ -87,10 +94,10 @@ describe('the INDI link against a real indiserver', () => {
     const link = await openIndiLink({ host: '127.0.0.1', port: server.port, devices: ['Focuser Simulator'], errorGapMs: 5000, now: Date.now, warn: () => {} })
 
     try {
-      await until('the simulator', async () => (await link.view()).devices.has('Focuser Simulator'))
+      await until('the simulator', () => link.view().devices.has('Focuser Simulator'))
       await expect(link.write('Focuser Simulator', 'NO_SUCH_PROPERTY', { X: true })).rejects.toThrow('no property NO_SUCH_PROPERTY')
     } finally {
-      await link.close()
+      link.close()
       await server.stop()
     }
   })
@@ -108,7 +115,7 @@ describe('the rig program against a real indiserver', () => {
   let link: IndiLink | undefined
 
   afterEach(async () => {
-    await link?.close()
+    link?.close()
     await server?.stop()
     server = undefined
     link = undefined
@@ -119,6 +126,7 @@ describe('the rig program against a real indiserver', () => {
 
     server = await startIndiServer(['indi_simulator_focus', 'indi_simulator_gps'], { fifo })
     const config = parseConfig({
+      stream,
       fifo,
       indiPort: server.port,
       settlePolls: 1,
@@ -134,22 +142,23 @@ describe('the rig program against a real indiserver', () => {
 
     link = await openIndiLink({ host: '127.0.0.1', port: server.port, devices: ['Focuser Simulator', 'GPS Simulator'], errorGapMs: config.errorGapMs, now: Date.now, warn: () => {} })
     const rig = createRig({ config, now: Date.now, sleep: ms => new Promise(resolve => setTimeout(resolve, ms)), hardwarePresent: () => true, writeFifo, indi: link, log: line => logs.push(line) })
-    const connection = async () => (await link!.view()).devices.get('Focuser Simulator')?.connection
-    const tickUntil = (what: string, probe: () => Promise<boolean>) =>
+    const connection = () => link!.view().devices.get('Focuser Simulator')?.connection
+    const tickUntil = (what: string, probe: () => boolean) =>
       until(what, async () => {
         await rig.tick()
 
-        return (await probe()) || undefined
+        return probe() || undefined
       })
     const driverPid = () => execFileSync('pgrep', ['-P', String(server!.pid)], { encoding: 'utf8' }).trim().split('\n').map(Number)[0]!
 
-    await tickUntil('the simulator to be connected', async () => (await connection()) === 'connected')
+    await until('both simulators to be defined', () => link!.view().devices.size === 2 || undefined)
+    await tickUntil('the simulator to be connected', () => connection() === 'connected')
 
     const before = driverPid()
 
     process.kill(before, 'SIGKILL')
-    await until('the device to disappear', async () => (await link!.view()).devices.has('Focuser Simulator') === false)
-    await tickUntil('the restarted driver to be connected again', async () => (await connection()) === 'connected' && driverPid() !== before)
+    await until('the device to disappear', () => link!.view().devices.has('Focuser Simulator') === false)
+    await tickUntil('the restarted driver to be connected again', () => connection() === 'connected' && driverPid() !== before)
 
     expect(logs.some(line => line.includes('rig: indi_simulator_focus: restarting (focuser missing from INDI with hardware present; restart 1)'))).toBe(true)
     expect(logs.filter(line => line.includes('focuser: writing CONNECTION')).length).toBeGreaterThanOrEqual(2)
@@ -161,6 +170,7 @@ describe('the rig program against a real indiserver', () => {
 
     server = await startIndiServer([], { fifo })
     const config = parseConfig({
+      stream,
       fifo,
       indiPort: server.port,
       settlePolls: 1,
@@ -174,7 +184,7 @@ describe('the rig program against a real indiserver', () => {
     await until('the simulator to be started and connected', async () => {
       await rig.tick()
 
-      return (await link!.view()).devices.get('Focuser Simulator')?.connection === 'connected' || undefined
+      return link!.view().devices.get('Focuser Simulator')?.connection === 'connected' || undefined
     })
   })
 })
@@ -184,7 +194,7 @@ describe('the rig program against a fake INDI server', () => {
   let link: IndiLink | undefined
 
   afterEach(async () => {
-    await link?.close()
+    link?.close()
     await fake?.stop()
     fake = undefined
     link = undefined
@@ -195,7 +205,7 @@ describe('the rig program against a fake INDI server', () => {
   async function start(devices: ReadonlyArray<object>, overrides: Record<string, unknown> = {}) {
     clock.at = 1_000_000
     fake = fake ?? new FakeIndi()
-    const config = parseConfig({ fifo: '/run/test/indi.fifo', indiPort: fake.port, settlePolls: 1, ...overrides, devices })
+    const config = parseConfig({ stream, fifo: '/run/test/indi.fifo', indiPort: fake.port, settlePolls: 1, ...overrides, devices })
     const logs: string[] = []
     const fifo: string[] = []
 
@@ -220,8 +230,8 @@ describe('the rig program against a fake INDI server', () => {
       }
     }
 
-    await until('the devices', async () => {
-      const snapshot = await link!.view()
+    await until('the devices', () => {
+      const snapshot = link!.view()
 
       return config.devices.every(device => snapshot.devices.has(device.indiDevice)) || undefined
     })
@@ -288,7 +298,7 @@ describe('the rig program against a fake INDI server', () => {
   })
 
   async function settleDefinitions() {
-    await until('the definitions to reach the rig program', async () => (await link!.view()).devices.get('ZWO AM5')?.properties.has('TIME_UTC') || undefined)
+    await until('the definitions to reach the rig program', () => link!.view().devices.get('ZWO AM5')?.properties.has('TIME_UTC') || undefined)
   }
 
   it('reconnects a device whose driver keeps reporting errors, and restarts the driver if that does not end them', async () => {
@@ -304,7 +314,7 @@ describe('the rig program against a fake INDI server', () => {
       for (let i = 0; i < seconds; i += 1) {
         clock.at += 1_000
         fake!.message('ZWO AM5', '[ERROR] Serial write error: Write Error: Input/output error.')
-        await until('the error to arrive', async () => ((await link!.view()).devices.get('ZWO AM5')?.errorRun?.last === clock.at ? true : undefined))
+        await until('the error to arrive', () => (link!.view().devices.get('ZWO AM5')?.errorRun?.last === clock.at ? true : undefined))
       }
     }
 
@@ -325,6 +335,7 @@ describe('the rig program against a fake INDI server', () => {
 describe('the rig program when a send fails', () => {
   it('sends the time again on a later poll, then leaves it alone', async () => {
     const config = parseConfig({
+      stream,
       fifo: '/x',
       devices: [{ id: 'mount', indiDevice: 'ZWO AM5', serial: '/dev/serial/by-id/am5', driver: 'indi_lx200am5', connected: true, onConnect: { TIME_UTC: { UTC: 'now', OFFSET: '0.00' } } }],
     })
@@ -344,7 +355,7 @@ describe('the rig program when a send fails', () => {
       hardwarePresent: () => true,
       writeFifo: async () => {},
       indi: {
-        view: async () => ({ linked: true, devices: new Map([['ZWO AM5', facts]]) }),
+        view: () => ({ devices: new Map([['ZWO AM5', facts]]) }),
         write: async (_device, name) => {
           sent.push(name)
           if (failures-- > 0) throw new Error('socket closed')
@@ -397,6 +408,7 @@ describe('the FIFO', () => {
 describe('the FIFO', () => {
   it('spaces every line, across drivers too, so indiserver has reopened it', async () => {
     const config = parseConfig({
+      stream,
       fifo: '/run/test/indi.fifo',
       settlePolls: 1,
       devices: [
@@ -414,7 +426,7 @@ describe('the FIFO', () => {
       },
       hardwarePresent: () => true,
       writeFifo: async (_path, line) => void lines.push({ line, at: clock.at }),
-      indi: { view: async () => ({ linked: true, devices: new Map() }), write: async () => {} },
+      indi: { view: () => ({ devices: new Map() }), write: async () => {} },
       log: () => {},
     })
 
