@@ -59,6 +59,23 @@ describe('publisher', () => {
     expect(connected).toEqual([1, 2])
   })
 
+  it('logs the broker connecting, disconnecting and reconnecting, and not its pings', async () => {
+    const broker = fakeBroker()
+    const lines: string[] = []
+    const publisher = openPublisher(
+      { broker: () => settings, name: 'test', log: line => lines.push(line), retryMs: 0, onConnected: () => {} },
+      () => Promise.resolve(broker.connection),
+    )
+
+    await publisher.store('subject', entry)
+    for (const type of ['ping', 'disconnect', 'reconnecting', 'ping', 'reconnect', 'update']) {
+      broker.announce(type)
+      await new Promise(resolve => setTimeout(resolve))
+    }
+
+    expect(lines).toEqual(['broker connected, fake', 'broker disconnected', 'broker reconnected'])
+  })
+
   it('sends an entry again, under the same message id, when no acknowledgement came', async () => {
     const broker = fakeBroker()
     const { publisher } = await open(broker)

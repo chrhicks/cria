@@ -37,6 +37,19 @@ const connectToBroker: ConnectToBroker = async options => {
   }
 }
 
+const statusLine = (status: Status): string | undefined => {
+  switch (status.type) {
+    case 'disconnect':
+      return 'broker disconnected'
+    case 'reconnect':
+      return 'broker reconnected'
+    case 'error':
+      return `broker error: ${status.error.message}`
+    default:
+      return undefined
+  }
+}
+
 export function openPublisher(
   { broker, name, log, retryMs, onConnected }: PublisherOptions,
   connectTo: ConnectToBroker = connectToBroker,
@@ -72,7 +85,9 @@ export function openPublisher(
 
     void (async () => {
       for await (const status of opened.status()) {
-        log(`broker ${status.type}`)
+        const line = statusLine(status)
+
+        if (line !== undefined) log(line)
         if (status.type === 'reconnect') announce()
       }
     })()
