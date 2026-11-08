@@ -241,16 +241,31 @@ function describeClient(entry) {
     return { ...base, what: `connection ${target}`, state: status, pairs: [], text: error ?? '' }
   }
 
+  if (entry.kind === 'client.protocol-problem') {
+    const { scope, consequence, reason, tag, indiDevice, property, bytes, excerpt } = entry.body
+    const pairs = [['tag', tag || '–'], ...(indiDevice === undefined ? [] : [['device', indiDevice]]), ...(property === undefined ? [] : [['property', property]]), ['bytes', String(bytes)]]
+
+    return { ...base, what: 'protocol problem', state: scope, pairs, text: `${consequence}: ${reason}: ${excerpt}` }
+  }
+
   const { connection, version, sources: published } = entry.body
 
   return { ...base, what: 'connected', pairs: [['connection', String(connection)], ...(version === undefined ? [] : [['version', String(version)]]), ['sources', published.join(', ')]] }
 }
 
-function describe(entry, subject, current) {
+function describeEntry(entry, subject, current) {
   if (entry.kind === 'wire') return describeWire(entry, subject, current)
   if (entry.kind.startsWith('client.')) return describeClient(entry)
 
   return entry.kind === 'system' ? describeSystem(entry) : describePhd2(entry)
+}
+
+function describe(entry, subject, current) {
+  try {
+    return describeEntry(entry, subject, current)
+  } catch (error) {
+    return { source: 'client', who: 'viewer', label: 'cli', what: 'unreadable entry', state: '', pairs: [], text: `${error} in ${JSON.stringify(entry)}`, quiet: false }
+  }
 }
 
 function tokenMatches(token, view) {
@@ -481,7 +496,7 @@ function rowOf(message) {
   const entry = JSON.parse(message.text)
   const view = { ...describe(entry, message.subject), problem: message.problem, command: message.command, entry, subject: message.subject, seq: message.seq }
   const when = new Date(entry.at)
-  const row = element('div', `row ${view.source} ${entry.kind === 'wire' ? entry.body.dir : ''} ${view.command ? 'command' : ''} ${view.problem ? 'problem' : ''} ${view.quiet ? 'quiet' : ''}`)
+  const row = element('div', `row ${view.source} ${entry.kind === 'wire' ? entry.body?.dir ?? '' : ''} ${view.command ? 'command' : ''} ${view.problem ? 'problem' : ''} ${view.quiet ? 'quiet' : ''}`)
   const time = element('span', 'at', clock.format(when))
   const what = element('span', 'what', view.what)
 

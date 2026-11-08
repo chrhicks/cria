@@ -23,12 +23,26 @@ export function createRig(dependencies: RigDependencies): Rig {
   let memory = emptyMemory(config)
   let lastFifoWrite = Number.NEGATIVE_INFINITY
 
-  async function fifoLine(line: string) {
+  async function fifoLine(line: string, refusal?: () => string | undefined): Promise<string | undefined> {
     const wait = lastFifoWrite + config.fifoGapMs - now()
 
     if (wait > 0) await sleep(wait)
+
+    const reason = refusal?.()
+
+    if (reason !== undefined) return reason
     lastFifoWrite = now()
     await dependencies.writeFifo(config.fifo, line)
+
+    return undefined
+  }
+
+  function busyNow(action: Extract<Action, { kind: 'restart-driver' }>) {
+    const snapshot = indi.view()
+
+    return config.devices
+      .filter(device => device.driver === action.driver && !action.wanting.includes(device.id))
+      .flatMap(device => (snapshot.devices.get(device.indiDevice)?.busy ?? []).map(name => `${device.id} ${name} is Busy`))
   }
 
   async function perform(action: Action) {
@@ -50,7 +64,17 @@ export function createRig(dependencies: RigDependencies): Rig {
       case 'restart-driver':
         log(`rig: ${action.driver}: restarting (${action.why})`)
         try {
-          await fifoLine(`stop ${action.driver}`)
+          const blockers = await fifoLine(`stop ${action.driver}`, () => {
+            const busy = busyNow(action)
+
+            return busy.length === 0 ? undefined : busy.join('; ')
+          })
+
+          if (blockers !== undefined) {
+            log(`rig: ${action.driver}: restart skipped, ${blockers} now; asking again on a later poll`)
+
+            return
+          }
           await fifoLine(`start ${action.driver}`)
         } catch (error) {
           log(`rig: ${action.driver}: FIFO write failed: ${errorText(error)}`)

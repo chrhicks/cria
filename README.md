@@ -13,7 +13,7 @@ Cria is TypeScript on Node 26 that runs the rig's software on errai (the rig PC,
 
 Entry points are `ts/src/bin/{rig,viewer,ensure-stream}.ts`; each unit in `ts/deploy/` runs one of the first two.
 
-When a connection a program depends on is lost, it exits and systemd starts it again with fresh state (`Restart=always`, with a delay that grows on repeated failure). The rig program does this for indiserver and for an unreadable config; the viewer does it for the broker. The one connection it keeps instead of exiting is the broker's, because bring-up must not wait for thuban: the NATS client reconnects by itself, wire entries are dropped while it is away, and journal lines wait for the stream's acknowledgement before the cursor moves.
+When the INDI connection is lost the rig program exits and systemd starts it again with fresh state (`Restart=always`, with a delay that grows on repeated failure); the viewer does the same for the broker. An unreadable config also exits (status 2, which systemd does not restart). Nothing else ends the rig program: a recording source that fails (the journal follower, the broker connection, a stream that is missing) is retried every `retrySeconds` with one log line per change of state, journal lines wait for the stream's acknowledgement before the cursor moves, and wire entries are dropped while the broker is away (the NATS client reconnects by itself, so bring-up never waits for thuban).
 
 ## Layout (`ts/`)
 
@@ -28,7 +28,7 @@ When a connection a program depends on is lost, it exits and systemd starts it a
 
 ## Stream entries
 
-Every entry is `{ v: 2, id, rig, kind, at, source, body }`. A `wire` entry's body keeps the raw `xml` and carries what the parser read from it: `{ conn, dir, n, xml, device, type, indiDevice?, property?, state?, elements?, text?, tag? }`. `device` is the id from the rig file (`server` when the element names no device, `other` when the rig file does not list it), `type` is `def`, `set`, `new`, `del`, `message`, `other` (`tag` says which: `getProperties`, `pingRequest`, `pingReply`) or `unreadable` (`text` is the problem). The viewer reads these fields and never the XML; a version 1 wire entry has none of them and is shown as raw XML until it ages out of the stream.
+Every entry is `{ v: 2, id, rig, kind, at, source, body }`. A `wire` entry's body keeps the raw `xml` and carries what the parser read from it: `{ conn, dir, n, xml, device, type, indiDevice?, property?, state?, elements?, text?, tag? }`. `device` is the id from the rig file (`server` when the element names no device, `other` when the rig file does not list it), `type` is `def`, `set`, `new`, `del`, `message`, `other` (`tag` says which: `getProperties`, `pingRequest`, `pingReply`) or `unreadable` (`text` is the problem). Every protocol problem the parser reports (an element it skipped, an element left out of a property, framing it lost and resynchronised) is also a `client.protocol-problem` entry: `{ target: 'indiserver', conn, consequence, scope, reason, tag, indiDevice?, property?, utf8, excerpt, bytes }`, shown in the viewer as a problem. The viewer reads these fields and never the XML; a version 1 wire entry has none of them and is shown as raw XML until it ages out of the stream.
 
 ## Test
 

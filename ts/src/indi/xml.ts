@@ -67,13 +67,9 @@ export interface WireFacts {
 export class IndiProtocolError extends Error {
   override readonly name = 'IndiProtocolError'
 
-  /**
-   * `element`: this one element is bad but its extent is known, so the next one starts cleanly and can be read.
-   * `stream`: the framer can no longer tell where elements begin, so only a new connection restores it.
-   */
-  readonly scope: 'element' | 'stream'
+  readonly scope: 'element' | 'framing'
 
-  constructor(message: string, scope: 'element' | 'stream' = 'element') {
+  constructor(message: string, scope: 'element' | 'framing' = 'element') {
     super(message)
     this.scope = scope
   }
@@ -98,56 +94,59 @@ export interface ProtocolProblem {
 const LT = 0x3c
 const GT = 0x3e
 const SLASH = 0x2f
+const DOUBLE_QUOTE = 0x22
+const SINGLE_QUOTE = 0x27
+const QUESTION_MARK = 0x3f
+const BANG = 0x21
 
 const excerptChars = 200
-/** A problem is described from the first `inspectedBytes` of the element, however big it is or how much is buffered. */
 const inspectedBytes = 4096
+const headBytes = inspectedBytes + 1
+const topLevelStart = /^<(?:(?:def|set|new)(?:Number|Switch|Text|Light|BLOB)Vector|delProperty|message|pingRequest)[\s/>]/
+const startLookahead = '<setNumberVector '.length
 
-/** Accumulates bytes and yields complete top-level elements. Grows its buffer geometrically. */
+function startsTopLevel(buffer: Buffer, at: number, length: number): boolean | undefined {
+  const text = buffer.toString('latin1', at, Math.min(length, at + startLookahead))
+
+  if (topLevelStart.test(text)) return true
+
+  return length - at < startLookahead ? undefined : false
+}
+
+interface Pending {
+  readonly error: IndiProtocolError
+  size: number
+  head: Buffer
+}
+
+type Mode = 'between' | 'header' | 'declaration' | 'body' | 'discarding'
+
+interface Step {
+  readonly bytes: Buffer
+  readonly size: number
+  readonly error?: IndiProtocolError
+}
+
+type Outcome = Step | undefined | 'continue'
+
 export class IndiFramer {
   private buffer = Buffer.allocUnsafe(1 << 16)
   private length = 0
   private start = 0
-  private searchFrom = 0
-  /** How far the bytes of a header, and of a comment, have been searched for their end: each new chunk is searched once. */
-  private headerFrom = 0
-  private declarationFrom = 0
-  private closing: Buffer | undefined
-  private stopped: ProtocolProblem | undefined
+  private mode: Mode = 'between'
+  private scanFrom = 0
+  private quote = 0
+  private closing: Buffer = Buffer.alloc(0)
+  private pending: Pending | undefined
 
-  /**
-   * Every whole top-level element in the bytes so far, in order. A bad element does not throw: it comes back
-   * with a `problem` and no message, and the elements after it are read as usual. `stopped` is set when the
-   * framing itself is lost (an element that never closes, a tag that is not a tag): the elements before it are
-   * returned, the framer reads nothing more, and the caller must start a new connection.
-   */
-  frame(chunk: Buffer, keepText: boolean): { readonly elements: FramedElement[]; readonly stopped?: ProtocolProblem } {
+  frame(chunk: Buffer, keepText: boolean): { readonly elements: FramedElement[] } {
     const elements: FramedElement[] = []
 
-    if (this.stopped) return { elements, stopped: this.stopped }
     this.append(chunk)
-
-    try {
-      while (true) {
-        const element = this.nextElement()
-
-        if (!element) break
-        const framed = frameElement(element, keepText)
-
-        elements.push(framed)
-        if (framed.problem?.scope === 'stream') {
-          this.stopped = framed.problem
-          break
-        }
-      }
-    } catch (error) {
-      if (!(error instanceof IndiProtocolError)) throw error
-      this.stopped = describeProblem(error, this.buffer.subarray(this.start, this.length))
-    }
-
+    for (let step = this.next(); step; step = this.next()) elements.push(frameStep(step, keepText))
     this.compact()
 
-    return this.stopped ? { elements, stopped: this.stopped } : { elements }
+    return { elements }
   }
 
   private append(chunk: Buffer) {
@@ -165,102 +164,230 @@ export class IndiFramer {
     this.length += chunk.length
   }
 
-  private nextElement(): Buffer | undefined {
-    if (!this.closing) {
-      const open = this.buffer.indexOf(LT, this.start)
+  private next(): Step | undefined {
+    for (;;) {
+      const outcome = this.advance()
 
-      if (open < 0 || open >= this.length) {
-        this.start = this.length
+      if (outcome !== 'continue') return outcome
+    }
+  }
 
-        return undefined
+  private advance(): Outcome {
+    switch (this.mode) {
+      case 'between':
+        return this.between()
+      case 'header':
+        return this.header()
+      case 'declaration':
+        return this.declaration()
+      case 'body':
+        return this.body()
+      case 'discarding':
+        return this.discarding()
+    }
+  }
+
+  private between(): Outcome {
+    const open = this.buffer.indexOf(LT, this.start)
+    const end = open < 0 || open >= this.length ? this.length : open
+
+    if (end > this.start) {
+      let from = this.start
+
+      if (!this.pending) while (from < end && this.buffer[from]! <= 0x20) from++
+      if (from < end) this.absorb(from, end, 'Text outside any INDI element')
+      this.start = end
+    }
+
+    if (end === this.length) return undefined
+    if (this.pending) return this.flush()
+
+    this.mode = 'header'
+    this.scanFrom = open + 1
+    this.quote = 0
+
+    return 'continue'
+  }
+
+  private header(): Outcome {
+    const open = this.start
+
+    if (open + 1 >= this.length) return undefined
+
+    const second = this.buffer[open + 1]
+
+    if (second === QUESTION_MARK || second === BANG) {
+      if (second === BANG && this.length - open < 4 && '<!--'.startsWith(this.buffer.toString('latin1', open, this.length))) return undefined
+      this.mode = 'declaration'
+      this.scanFrom = open
+      this.closing = Buffer.from(this.buffer.toString('latin1', open, open + 4) === '<!--' ? '-->' : '>')
+
+      return 'continue'
+    }
+
+    for (let at = this.scanFrom; at < this.length; at++) {
+      const byte = this.buffer[at]!
+
+      if (byte === LT) {
+        const decided = startsTopLevel(this.buffer, at, this.length)
+
+        if (this.quote === 0 || decided === true) return this.abandon('Tag is not closed before the next element starts', at)
+        if (decided === undefined) {
+          this.scanFrom = at
+
+          return undefined
+        }
+      } else if (this.quote !== 0) {
+        if (byte === this.quote) this.quote = 0
+      } else if (byte === DOUBLE_QUOTE || byte === SINGLE_QUOTE) {
+        this.quote = byte
+      } else if (byte === GT) {
+        return this.opened(open, at)
       }
+    }
 
-      this.start = open
-      const headerEnd = this.buffer.indexOf(GT, Math.max(open, this.headerFrom))
+    this.scanFrom = this.length
 
-      if (headerEnd < 0 || headerEnd >= this.length) {
-        this.headerFrom = this.length
+    return undefined
+  }
 
-        return undefined
-      }
+  private opened(open: number, headerEnd: number): Outcome {
+    const tag = /^([A-Za-z]\w*)/.exec(this.buffer.toString('latin1', open + 1, Math.min(headerEnd, open + 1 + 64)))?.[1]
 
-      this.headerFrom = 0
+    if (!tag) return this.abandon(`Malformed INDI element <${this.buffer.toString('utf8', open + 1, Math.min(headerEnd, open + 41))}>`, open + 1)
 
-      const header = this.buffer.toString('utf8', open + 1, headerEnd)
+    if (this.buffer[headerEnd - 1] === SLASH) {
+      this.start = headerEnd + 1
+      this.mode = 'between'
 
-      if (header.startsWith('?') || header.startsWith('!')) {
-        const after = this.skipDeclaration(open)
+      return { bytes: this.buffer.subarray(open, headerEnd + 1), size: headerEnd + 1 - open }
+    }
 
-        if (after < 0) {
+    this.closing = Buffer.from(`</${tag}>`)
+    this.scanFrom = headerEnd + 1
+    this.mode = 'body'
+
+    return 'continue'
+  }
+
+  private body(): Outcome {
+    for (let at = this.buffer.indexOf(LT, this.scanFrom); at >= 0 && at < this.length; at = this.buffer.indexOf(LT, at + 1)) {
+      const available = Math.min(this.closing.length, this.length - at)
+
+      if (this.buffer.subarray(at, at + available).equals(this.closing.subarray(0, available))) {
+        if (available < this.closing.length) {
+          this.scanFrom = at
 
           return undefined
         }
 
-        this.start = after
+        const bytes = this.buffer.subarray(this.start, at + available)
 
-        return this.nextElement()
+        this.start = at + available
+        this.mode = 'between'
+
+        return { bytes, size: bytes.length }
       }
 
-      if (this.buffer[headerEnd - 1] === SLASH) {
-        this.start = headerEnd + 1
+      const decided = startsTopLevel(this.buffer, at, this.length)
 
-        return this.buffer.subarray(open, headerEnd + 1)
+      if (decided === undefined) {
+        this.scanFrom = at
+
+        return undefined
       }
 
-      const tag = /^([A-Za-z][\w]*)/.exec(header)?.[1]
+      if (decided) {
+        const bytes = this.buffer.subarray(this.start, at)
 
-      if (!tag) throw new IndiProtocolError(`Malformed INDI element <${header.slice(0, 40)}>`, 'stream')
-      this.closing = Buffer.from(`</${tag}>`)
-      this.searchFrom = headerEnd + 1
+        this.start = at
+        this.mode = 'between'
+
+        return { bytes, size: bytes.length, error: new IndiProtocolError('Incomplete INDI element: it is never closed before the next element starts', 'framing') }
+      }
     }
 
-    const close = this.buffer.indexOf(this.closing, this.searchFrom)
+    this.scanFrom = this.length
 
-    if (close < 0 || close + this.closing.length > this.length) {
-      this.searchFrom = Math.max(this.start, this.length - this.closing.length)
+    return undefined
+  }
+
+  private declaration(): Outcome {
+    const end = this.buffer.indexOf(this.closing, this.scanFrom)
+
+    if (end < 0 || end + this.closing.length > this.length) {
+      this.scanFrom = Math.max(this.start, this.length - this.closing.length + 1)
 
       return undefined
     }
 
-    const end = close + this.closing.length
+    this.start = end + this.closing.length
+    this.mode = 'between'
 
-    const element = this.buffer.subarray(this.start, end)
-
-    this.start = end
-    this.closing = undefined
-
-    return element
+    return 'continue'
   }
 
+  private discarding(): Outcome {
+    for (let at = this.buffer.indexOf(LT, this.scanFrom); at >= 0 && at < this.length; at = this.buffer.indexOf(LT, at + 1)) {
+      const decided = startsTopLevel(this.buffer, at, this.length)
 
-  /** Comments and processing instructions carry nothing for a client. */
-  private skipDeclaration(open: number): number {
-    const isComment = this.buffer.toString('utf8', open, open + 4) === '<!--'
-    const terminator = isComment ? '-->' : '>'
-    const end = this.buffer.indexOf(terminator, Math.max(open, this.declarationFrom))
+      if (decided === undefined) {
+        this.absorb(this.start, at)
+        this.start = at
+        this.scanFrom = at
 
-    if (end < 0 || end >= this.length) {
-      this.declarationFrom = Math.max(open, this.length - terminator.length + 1)
+        return undefined
+      }
 
-      return -1
+      if (decided) {
+        this.absorb(this.start, at)
+        this.start = at
+
+        return this.flush()
+      }
     }
-    this.declarationFrom = 0
 
-    return end + terminator.length
+    this.absorb(this.start, this.length)
+    this.start = this.length
+    this.scanFrom = this.length
+
+    return undefined
+  }
+
+  private abandon(reason: string, from: number): 'continue' {
+    this.pending = { error: new IndiProtocolError(reason, 'framing'), size: 0, head: Buffer.alloc(0) }
+    this.mode = 'discarding'
+    this.scanFrom = from
+
+    return 'continue'
+  }
+
+  private absorb(from: number, to: number, reason?: string) {
+    this.pending ??= { error: new IndiProtocolError(reason ?? 'Skipped bytes', 'framing'), size: 0, head: Buffer.alloc(0) }
+
+    const pending = this.pending
+
+    pending.size += to - from
+    if (pending.head.length < headBytes) pending.head = Buffer.concat([pending.head, this.buffer.subarray(from, Math.min(to, from + headBytes - pending.head.length))])
+  }
+
+  private flush(): Step {
+    const { error, size, head } = this.pending!
+
+    this.pending = undefined
+    this.mode = 'between'
+
+    return { bytes: head, size, error }
   }
 
   private compact() {
     if (this.start === 0) return
 
-    // Elements already returned are copies (parseElement), so the bytes can move.
     this.buffer.copy(this.buffer, 0, this.start, this.length)
     this.length -= this.start
-    this.searchFrom = Math.max(0, this.searchFrom - this.start)
-    this.headerFrom = Math.max(0, this.headerFrom - this.start)
-    this.declarationFrom = Math.max(0, this.declarationFrom - this.start)
+    this.scanFrom = Math.max(0, this.scanFrom - this.start)
     this.start = 0
 
-    // After a large element the buffer would stay that big; give it back when idle.
     if (this.buffer.length > 4 * 1024 * 1024 && this.length < 64 * 1024) {
       const smaller = Buffer.allocUnsafe(1 << 16)
 
@@ -271,13 +398,20 @@ export class IndiFramer {
 }
 
 export interface FramedElement {
-  /** Undefined for an element the client ignores (another client's `new*Vector`, relayed by indiserver) and for a bad one (then `problem` is set). */
   readonly message: IndiMessage | undefined
-  /** Why this element could not be read, or, when `message` is set, why one of its elements was left out of it. It is still in `xml`, byte for byte, for the recording. */
   readonly problem?: ProtocolProblem
   readonly facts: WireFacts
-  /** The element's wire text, kept only when the caller asked for it. */
   readonly xml: string
+}
+
+function frameStep(step: Step, keepText: boolean): FramedElement {
+  if (step.error) {
+    const problem = describeProblem(step.error, step.bytes, step.size)
+
+    return { message: undefined, facts: unreadableFacts(problem), problem, xml: keepText ? step.bytes.toString('utf8') : '' }
+  }
+
+  return frameElement(step.bytes, keepText)
 }
 
 function frameElement(element: Buffer, keepText: boolean): FramedElement {
@@ -290,10 +424,10 @@ function frameElement(element: Buffer, keepText: boolean): FramedElement {
 
     message = parsed.message
     facts = parsed.facts
-    if (parsed.dropped[0]) problem = describeProblem(parsed.dropped[0], element)
+    if (parsed.dropped[0]) problem = describeProblem(parsed.dropped[0], element, element.length)
   } catch (error) {
     if (!(error instanceof IndiProtocolError)) throw error
-    problem = describeProblem(error, element)
+    problem = describeProblem(error, element, element.length)
   }
 
   return {
@@ -314,34 +448,28 @@ function unreadableFacts(problem: ProtocolProblem | undefined): WireFacts {
   }
 }
 
-/** The error path only: where the bad bytes are from and a bounded look at them. */
-function describeProblem(error: IndiProtocolError, element: Buffer): ProtocolProblem {
-  // The element can be megabytes of anything, and a stream problem is described from a buffer that never ended:
-  // everything below reads only its start, so the cost does not depend on its size.
+function describeProblem(error: IndiProtocolError, element: Buffer, size: number): ProtocolProblem {
   const bytes = leading(element)
-  // Attribution must name the property the way parsing does (UTF-8, entities decoded) or the client forgets and
-  // re-requests a property that does not exist. The header is the bytes up to the first '>', as in the parsers.
-  const headerEnd = bytes.indexOf(GT)
-  const header = bytes.toString('utf8', 0, headerEnd < 0 ? bytes.length : headerEnd)
+  const decoded = bytes.toString('utf8')
+  const headerEnd = tagEnd(decoded, 0)
+  const header = headerEnd < 0 ? decoded : decoded.slice(0, headerEnd)
   const tag = /^\s*<([A-Za-z]\w*)/.exec(header)?.[1] ?? ''
-  const attributes = parseAttributes(/^\s*<[A-Za-z]\w*([^>]*)/.exec(header)?.[1] ?? '')
+  const attributes = parseAttributes(/^\s*<[A-Za-z]\w*([\s\S]*)/.exec(header)?.[1] ?? '')
   const text = bytes.toString('utf8', 0, excerptChars * 4)
   const escaped = JSON.stringify(text.slice(0, excerptChars)).slice(1, -1)
 
   return {
     scope: error.scope,
-    // Reasons quote the driver's text; the reason also reaches the connection's error, so it is bounded here too.
     reason: error.message.length > excerptChars ? `${error.message.slice(0, excerptChars)}...` : error.message,
     tag,
     ...(attributes.device ? { device: attributes.device } : {}),
     ...(attributes.name ? { name: attributes.name } : {}),
     utf8: isUtf8(bytes),
     excerpt: text.length > excerptChars ? `${escaped}...` : escaped,
-    bytes: element.length,
+    bytes: size,
   }
 }
 
-/** The first `inspectedBytes` of `element`, cut between characters so the cut is not itself invalid UTF-8. */
 function leading(element: Buffer): Buffer {
   if (element.length <= inspectedBytes) return element
   let end = inspectedBytes
@@ -349,6 +477,24 @@ function leading(element: Buffer): Buffer {
   while (end > inspectedBytes - 4 && (element[end]! & 0xc0) === 0x80) end--
 
   return element.subarray(0, end)
+}
+
+function tagEnd(text: string, from: number): number {
+  let quote = ''
+
+  for (let at = from; at < text.length; at++) {
+    const character = text[at]!
+
+    if (quote !== '') {
+      if (character === quote) quote = ''
+    } else if (character === '"' || character === "'") {
+      quote = character
+    } else if (character === '>') {
+      return at
+    }
+  }
+
+  return -1
 }
 
 // ---------------------------------------------------------------- parsing
@@ -491,27 +637,27 @@ function parseTree(xml: string): Node {
     if (xml.startsWith('<!--', open)) {
       const end = xml.indexOf('-->', open)
 
-      if (end < 0) throw new IndiProtocolError('Unterminated comment in INDI element', 'stream')
+      if (end < 0) throw new IndiProtocolError('Unterminated comment in INDI element')
       index = end + 3
       continue
     }
 
-    const close = xml.indexOf('>', open)
+    const close = tagEnd(xml, open + 1)
 
-    if (close < 0) throw new IndiProtocolError('Unterminated INDI tag', 'stream')
+    if (close < 0) throw new IndiProtocolError('Unterminated INDI tag')
     const inner = xml.slice(open + 1, close)
 
     if (inner.startsWith('/')) {
       const done = stack.pop()
 
-      if (!done) throw new IndiProtocolError('Unbalanced INDI closing tag', 'stream')
+      if (!done) throw new IndiProtocolError('Unbalanced INDI closing tag')
       if (stack.length === 0) root = done
     } else {
       const selfClosing = inner.endsWith('/')
       const body = selfClosing ? inner.slice(0, -1) : inner
       const name = /^([A-Za-z]\w*)/.exec(body)?.[1]
 
-      if (!name) throw new IndiProtocolError(`Malformed INDI tag <${body.slice(0, 40)}>`, 'stream')
+      if (!name) throw new IndiProtocolError(`Malformed INDI tag <${body.slice(0, 40)}>`)
       const node: Node = { tag: name, attributes: parseAttributes(body.slice(name.length)), children: [], text: '' }
 
       stack[stack.length - 1]?.children.push(node)
@@ -525,7 +671,7 @@ function parseTree(xml: string): Node {
     index = close + 1
   }
 
-  if (!root || stack.length > 0) throw new IndiProtocolError('Incomplete INDI element: a tag is never closed', 'stream')
+  if (!root || stack.length > 0) throw new IndiProtocolError('Incomplete INDI element: a tag is never closed')
 
   return root
 }

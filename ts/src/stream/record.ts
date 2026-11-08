@@ -8,6 +8,7 @@ import { makeEntries } from './entry.ts'
 import { followJournal } from './journal.ts'
 import { followPhd2 } from './phd2.ts'
 import { openPublisher } from './publisher.ts'
+import { keepRunning } from './retry.ts'
 import { wireDeviceId, wireSubject } from './subjects.ts'
 
 export interface Recording {
@@ -29,9 +30,10 @@ export function startRecording(options: {
   const version = build.status === 0 ? build.stdout.trim() : 'unknown'
 
   const broker = openPublisher({
-    broker: brokerSettings(settings.broker),
+    broker: () => brokerSettings(settings.broker),
     name: 'rig',
     log,
+    retryMs: settings.retrySeconds * 1000,
     onConnected: connection => {
       broker.publish('rig-dev.client', entries.client('connected', { client: 'rig', run, connection, version, sources: ['wire', 'system', 'phd2'], wireDevices }))
       options.onBrokerConnected()
@@ -44,6 +46,7 @@ export function startRecording(options: {
 
       broker.publish(wireSubject(device, message.dir), entries.wire(message, device))
     },
+    problem: problem => broker.publish('rig-dev.client', entries.protocolProblem(problem)),
     connection: connection => {
       broker.publish(
         'rig-dev.client',
@@ -53,7 +56,12 @@ export function startRecording(options: {
   }
 
   const running = Promise.all([
-    followJournal(settings.journalExclusions, settings.journalCursorFile, line => broker.store('rig-dev.system', entries.system(line))),
+    keepRunning({
+      name: 'journal',
+      retryMs: settings.retrySeconds * 1000,
+      log,
+      run: healthy => followJournal(settings.journalExclusions, settings.journalCursorFile, line => broker.store('rig-dev.system', entries.system(line)), 'journalctl', healthy),
+    }),
     followPhd2(
       settings.phd2,
       line => broker.publish('rig-dev.phd2', entries.phd2(line)),

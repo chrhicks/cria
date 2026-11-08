@@ -56,6 +56,10 @@ describe('classify', () => {
     expect(classified('rig-dev.client', entry('client.connected', {}))).toEqual({ source: 'client', command: false, problem: false, group: 'client.connected', wire: undefined })
   })
 
+  it('counts a protocol problem the parser reported as a problem', () => {
+    expect(classified('rig-dev.client', entry('client.protocol-problem', { target: 'indiserver', scope: 'framing' }))).toEqual({ source: 'client', command: false, problem: true, group: 'client.protocol-problem.indiserver', wire: undefined })
+  })
+
   it('groups a client connection by what it connected to', () => {
     expect(classified('rig-dev.client', entry('client.connection', { target: 'phd2', status: 'closed' }))?.group).toBe('client.connection.phd2')
   })

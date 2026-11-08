@@ -2,6 +2,7 @@ import { chmodSync, mkdtempSync, readFileSync, existsSync, writeFileSync } from 
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { until } from '../../testing/until.ts'
 import { followJournal, journalArguments, readCursor, saveCursor } from './journal.ts'
 
 const noExclusions = { identifiers: [], unitPrefixes: [] }
@@ -76,5 +77,43 @@ describe('following the journal', () => {
 
     await expect(followJournal(noExclusions, cursor, () => Promise.resolve(), journalctl)).rejects.toThrow('journalctl stopped')
     expect(existsSync(cursor)).toBe(false)
+  })
+
+  it('says how journalctl stopped, so a retry can log it once', async () => {
+    const journalctl = fakeJournalctl(folder(), 'exit 3')
+
+    await expect(followJournal(noExclusions, join(folder(), 'cursor'), () => Promise.resolve(), journalctl)).rejects.toThrow('journalctl stopped (exit 3)')
+  })
+
+  it('fails with the reason when journalctl cannot be started', async () => {
+    await expect(followJournal(noExclusions, join(folder(), 'cursor'), () => Promise.resolve(), join(folder(), 'missing'))).rejects.toThrow('ENOENT')
+  })
+
+  it('stops journalctl when it gives up, so a retry does not leave one running behind', async () => {
+    const dir = folder()
+    const journalctl = fakeJournalctl(dir, `echo $$ > ${join(dir, 'pid')}\necho '{"__CURSOR":"new"}'\nexec sleep 30`)
+
+    await expect(followJournal(noExclusions, join(dir, 'cursor'), () => Promise.reject(new Error('broker gone')), journalctl)).rejects.toThrow('broker gone')
+
+    const pid = Number(readFileSync(join(dir, 'pid'), 'utf8'))
+
+    await until('the journalctl process to be gone', () => {
+      try {
+        process.kill(pid, 0)
+
+        return false
+      } catch {
+        return true
+      }
+    })
+  })
+
+  it('tells the caller it is working once a line has been taken', async () => {
+    const dir = folder()
+    const journalctl = fakeJournalctl(dir, `echo '{"__CURSOR":"one"}'\necho '{"__CURSOR":"two"}'`)
+    let working = 0
+
+    await expect(followJournal(noExclusions, join(dir, 'cursor'), () => Promise.resolve(), journalctl, () => (working += 1))).rejects.toThrow('journalctl stopped')
+    expect(working).toBe(2)
   })
 })

@@ -45,23 +45,41 @@ export async function followJournal(
   cursorFile: string,
   publish: (line: string) => Promise<void>,
   journalctl = 'journalctl',
+  healthy: () => void = () => undefined,
 ) {
   const journal = spawn(journalctl, journalArguments(readCursor(cursorFile)), { stdio: ['ignore', 'pipe', 'inherit'] })
+  let stopped = new Error('journalctl stopped')
+  const exited = new Promise<void>(resolve => {
+    journal.once('error', error => {
+      stopped = new Error(`${journalctl}: ${error.message}`)
+      resolve()
+    })
+    journal.once('exit', (code, signal) => {
+      stopped = new Error(`journalctl stopped (${signal === null ? `exit ${code}` : signal})`)
+      resolve()
+    })
+  })
   let linesRead = 0
 
-  for await (const line of createInterface({ input: journal.stdout })) {
-    linesRead += 1
+  try {
+    for await (const line of createInterface({ input: journal.stdout })) {
+      linesRead += 1
 
-    const entry = parseRecord(line)
+      const entry = parseRecord(line)
 
-    if (!isExcluded(entry, exclusions)) await publish(line)
+      if (!isExcluded(entry, exclusions)) await publish(line)
+      healthy()
 
-    const cursor = entry === undefined ? undefined : stringField(entry, '__CURSOR')
+      const cursor = entry === undefined ? undefined : stringField(entry, '__CURSOR')
 
-    if (cursor !== undefined) saveCursor(cursorFile, cursor)
+      if (cursor !== undefined) saveCursor(cursorFile, cursor)
+    }
+
+    await exited
+
+    throw stopped
+  } finally {
+    if (linesRead === 0) rmSync(cursorFile, { force: true })
+    journal.kill()
   }
-
-  if (linesRead === 0) rmSync(cursorFile, { force: true })
-
-  throw new Error('journalctl stopped')
 }

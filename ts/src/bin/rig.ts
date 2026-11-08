@@ -6,8 +6,8 @@ import { hardwarePresent } from '../rig/hardware.ts'
 import { openIndiLink } from '../rig/indi-link.ts'
 import { createRig } from '../rig/supervisor.ts'
 import { startRecording } from '../stream/record.ts'
+import { errorText, stateLog, tryingAgain } from '../stream/retry.ts'
 
-const errorText = (error: unknown) => (error instanceof Error ? error.message : String(error))
 const log = (line: string) => console.log(line)
 
 const path = process.argv[2] ?? defaultRigFile
@@ -40,8 +40,15 @@ void indi.closed.then(reason => {
 
 async function reconcile() {
   log(`rig: reconciling ${config.devices.map(device => device.id).join(', ')} (config ${path})`)
+  const failures = stateLog('rig', log, tryingAgain(config.pollMs))
+
   for (;;) {
-    await rig.tick()
+    try {
+      await rig.tick()
+      failures.healthy()
+    } catch (error) {
+      failures.failed(error)
+    }
     await delay(config.pollMs)
   }
 }

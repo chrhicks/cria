@@ -1,7 +1,9 @@
 import { jetstream } from '@nats-io/jetstream'
+import { setTimeout as delay } from 'node:timers/promises'
 import { connect, TimeoutError, type NatsConnection, type Status } from '@nats-io/transport-node'
 import type { BrokerSettings } from './broker.ts'
 import type { Entry } from './entry.ts'
+import { stateLog, tryingAgain } from './retry.ts'
 
 export interface Publisher {
   readonly publish: (subject: string, entry: Entry) => void
@@ -9,9 +11,10 @@ export interface Publisher {
 }
 
 export interface PublisherOptions {
-  readonly broker: BrokerSettings
+  readonly broker: () => BrokerSettings
   readonly name: string
   readonly log: (line: string) => void
+  readonly retryMs: number
   readonly onConnected: (connection: number) => void
 }
 
@@ -34,17 +37,36 @@ const connectToBroker: ConnectToBroker = async options => {
   }
 }
 
-export function openPublisher({ broker, name, log, onConnected }: PublisherOptions, connectTo: ConnectToBroker = connectToBroker): Publisher {
+export function openPublisher(
+  { broker, name, log, retryMs, onConnected }: PublisherOptions,
+  connectTo: ConnectToBroker = connectToBroker,
+  sleep: (ms: number) => Promise<unknown> = delay,
+): Publisher {
   let connection: BrokerConnection | undefined
   let connections = 0
+  const connectState = stateLog('broker connect', log, tryingAgain(retryMs))
+  const publishState = stateLog('broker publish', log, 'entries it cannot send are dropped')
+  const storeState = stateLog('stream', log, tryingAgain(retryMs))
 
   const announce = () => {
     connections += 1
     onConnected(connections)
   }
 
-  const connecting = connectTo({ ...broker, name }).then(opened => {
+  async function connectUntilAnswered() {
+    for (;;) {
+      try {
+        return await connectTo({ ...broker(), name })
+      } catch (error) {
+        connectState.failed(error)
+        await sleep(retryMs)
+      }
+    }
+  }
+
+  const connecting = connectUntilAnswered().then(opened => {
     connection = opened
+    connectState.healthy()
     log(`broker connected, ${opened.getServer()}`)
     announce()
 
@@ -59,18 +81,25 @@ export function openPublisher({ broker, name, log, onConnected }: PublisherOptio
   })
 
   return {
-    publish: (subject, entry) => connection?.publish(subject, JSON.stringify(entry)),
+    publish: (subject, entry) => {
+      try {
+        connection?.publish(subject, JSON.stringify(entry))
+      } catch (error) {
+        publishState.failed(error)
+      }
+    },
     async store(subject, entry) {
       const opened = await connecting
 
       for (;;) {
         try {
           await opened.acknowledged(subject, JSON.stringify(entry), entry.id)
+          storeState.healthy()
 
           return
         } catch (error) {
-          if (!(error instanceof TimeoutError)) throw error
-          log(`no acknowledgement yet, sending again: ${error.message}`)
+          storeState.failed(error)
+          if (!(error instanceof TimeoutError)) await sleep(retryMs)
         }
       }
     },

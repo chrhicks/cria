@@ -1,4 +1,4 @@
-import type { WireFacts } from './xml.ts'
+import type { ProtocolProblem, WireFacts } from './xml.ts'
 
 /**
  * INDI boundary: the traffic tap. The client reports every element it sends or
@@ -21,6 +21,12 @@ export interface TappedMessage {
   readonly facts: WireFacts
 }
 
+export interface TappedProblem {
+  readonly conn: number
+  readonly consequence: string
+  readonly problem: ProtocolProblem
+}
+
 export type TappedConnection =
   | { readonly conn: number; readonly status: 'connected' }
   | { readonly conn: number; readonly status: 'closed'; readonly error: string }
@@ -32,4 +38,5 @@ export type TappedConnection =
 export interface TrafficTap {
   readonly message: (message: TappedMessage) => void
   readonly connection: (connection: TappedConnection) => void
+  readonly problem: (problem: TappedProblem) => void
 }

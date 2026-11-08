@@ -373,6 +373,61 @@ describe('the rig program when a send fails', () => {
   })
 })
 
+describe('the rig program when a camera turns Busy between the poll and the driver stop', () => {
+  const property = (name: string, state: string, elements: ReadonlyArray<[string, object]>) => ({ name, state, elements: new Map(elements) }) as unknown as Property
+  const camera = (exposure: 'Idle' | 'Busy') =>
+    indiFacts([property('CONNECTION', 'Ok', [['CONNECT', { kind: 'switch', on: true }]]), property('CCD_EXPOSURE', exposure, [])])!
+
+  function setup(turnsBusyDuringSpacing: boolean) {
+    const config = parseConfig({
+      stream,
+      fifo: '/x',
+      settlePolls: 1,
+      devices: [
+        { id: 'focuser', indiDevice: 'ZWO EAF', usb: '03c3:1f10', driver: 'indi_asi_focuser', connected: true },
+        { id: 'main-cam', indiDevice: 'ZWO ASI2600', usb: '03c3:2600', driver: 'indi_asi_ccd', connected: true },
+        { id: 'guide-cam', indiDevice: 'ZWO ASI220', usb: '03c3:220a', driver: 'indi_asi_ccd', connected: true },
+      ],
+    })
+    const clock = { at: 1_000_000 }
+    const written: string[] = []
+    const logs: string[] = []
+    let guideExposure: 'Idle' | 'Busy' = 'Idle'
+    const rig = createRig({
+      config,
+      now: () => clock.at,
+      sleep: async ms => {
+        clock.at += ms
+        if (turnsBusyDuringSpacing) guideExposure = 'Busy'
+      },
+      hardwarePresent: () => true,
+      writeFifo: async (_path, line) => void written.push(line),
+      indi: { view: () => ({ devices: new Map([['ZWO ASI220', camera(guideExposure)]]) }), write: async () => {} },
+      log: line => logs.push(line),
+    })
+
+    return { rig, written, logs }
+  }
+
+  it('skips the stop and the start, and says why, when a camera the driver serves is Busy by the time the stop would be written', async () => {
+    const { rig, written, logs } = setup(true)
+
+    await rig.tick()
+
+    expect(written).toEqual(['stop indi_asi_focuser', 'start indi_asi_focuser'])
+    expect(logs).toContain('rig: indi_asi_ccd: restart skipped, guide-cam CCD_EXPOSURE is Busy now; asking again on a later poll')
+  })
+
+  it('restarts the driver when nothing it serves is Busy', async () => {
+    const { rig, written, logs } = setup(false)
+
+    await rig.tick()
+
+    expect(written).toEqual(['stop indi_asi_focuser', 'start indi_asi_focuser', 'stop indi_asi_ccd', 'start indi_asi_ccd'])
+    expect(logs.some(line => line.includes('skipped'))).toBe(false)
+  })
+})
+
 describe('the FIFO', () => {
   const fifoPath = () => {
     const directory = mkdtempSync(join(tmpdir(), 'fifo-'))

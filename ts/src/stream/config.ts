@@ -20,6 +20,11 @@ export const StreamSettings = Schema.Struct({
     Schema.String,
     join(homedir(), '.local', 'state', 'rig-stream', 'journal-cursor'),
   ),
+  retrySeconds: described(
+    'How long a recording source (the broker connection, the journal follower) waits before trying again after it failed. Before 2026-11-07 a failed source ended the whole rig program, and systemd started it again after 1 s growing to 60 s (rig.service RestartSec, RestartSteps, RestartMaxDelaySec), each time sending the mount its clock again. 5 s is the delay phd2.reconnectSeconds already uses and was not measured separately; a failure that lasts all day costs at most 17,280 tries and one log line',
+    Schema.Number,
+    5,
+  ),
   phd2: described(
     'Where the rig program follows PHD2',
     Schema.Struct({

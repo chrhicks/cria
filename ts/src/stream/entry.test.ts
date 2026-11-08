@@ -77,6 +77,27 @@ describe('client entries', () => {
   })
 })
 
+describe('protocol problem entries', () => {
+  it('carry what the parser could not read, under the INDI names the wire entries use', () => {
+    const problem = { scope: 'element' as const, reason: 'INDI element has an empty name', tag: 'defSwitchVector', device: 'ZWO AM5', name: 'ALTITUDE_LIMIT_CONTROL', utf8: true, excerpt: '<defSwitchVector/>', bytes: 18 }
+
+    expect(entries().protocolProblem({ conn: 1, consequence: 'skipped the element', problem })).toEqual({
+      ...outer,
+      id: 'client:run1:1',
+      kind: 'client.protocol-problem',
+      at: 1000,
+      body: { target: 'indiserver', conn: 1, consequence: 'skipped the element', scope: 'element', reason: 'INDI element has an empty name', tag: 'defSwitchVector', utf8: true, excerpt: '<defSwitchVector/>', bytes: 18, indiDevice: 'ZWO AM5', property: 'ALTITUDE_LIMIT_CONTROL' },
+    })
+  })
+
+  it('leave out the device and property when the problem names none', () => {
+    const { body } = entries().protocolProblem({ conn: 2, consequence: 'lost the framing and skipped to the next element', problem: { scope: 'framing', reason: 'Text outside any INDI element', tag: '', utf8: true, excerpt: 'xx', bytes: 2 } })
+
+    expect(body).not.toHaveProperty('indiDevice')
+    expect(body).not.toHaveProperty('property')
+  })
+})
+
 describe('PHD2 entries', () => {
   it('name the event in the kind and take their time from PHD2', () => {
     const event = { Event: 'GuideStep', Timestamp: 1793990281.025, dx: -1.283 }

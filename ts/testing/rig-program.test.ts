@@ -1,5 +1,5 @@
 import { execFileSync, spawn } from 'node:child_process'
-import { mkdtempSync, writeFileSync } from 'node:fs'
+import { chmodSync, mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
@@ -15,9 +15,9 @@ afterEach(async () => {
   server = undefined
 })
 
-function run(configPath: string) {
+function run(configPath: string, env: NodeJS.ProcessEnv = process.env) {
   const output: string[] = []
-  const child = spawn(process.execPath, [program, configPath], { stdio: ['ignore', 'pipe', 'pipe'] })
+  const child = spawn(process.execPath, [program, configPath], { stdio: ['ignore', 'pipe', 'pipe'], env })
   const exit = new Promise<number | null>(resolve => child.once('exit', code => resolve(code)))
 
   for (const stream of [child.stdout, child.stderr]) stream.on('data', chunk => output.push(String(chunk)))
@@ -62,6 +62,50 @@ describe('the rig program', () => {
 
     expect(await exit).toBe(1)
     expect(text()).toContain('indiserver connection lost')
+  })
+
+  it('keeps the devices up and does not exit when the journal follower keeps failing and the broker password file is missing', async () => {
+    const dir = folder()
+    const fifo = join(dir, 'indi.fifo')
+    const bin = join(dir, 'bin')
+
+    execFileSync('mkfifo', [fifo])
+    execFileSync('mkdir', [bin])
+    writeFileSync(join(bin, 'journalctl'), '#!/bin/sh\nexit 1\n')
+    chmodSync(join(bin, 'journalctl'), 0o755)
+    server = await startIndiServer(['indi_simulator_focus'], { fifo })
+
+    const configPath = join(dir, 'rig.json')
+
+    writeFileSync(
+      configPath,
+      JSON.stringify({
+        fifo,
+        indiPort: server.port,
+        pollMs: 200,
+        settlePolls: 1,
+        stream: {
+          broker: { servers: 'nats://127.0.0.1:1', user: 'test', passFile: join(dir, 'missing.pass') },
+          journalCursorFile: join(dir, 'cursor'),
+          retrySeconds: 0.05,
+        },
+        devices: [{ id: 'focuser', indiDevice: 'Focuser Simulator', serial: '/dev/null', driver: 'indi_simulator_focus', connected: true }],
+      }),
+    )
+
+    const { child, exit, text } = run(configPath, { ...process.env, PATH: `${bin}:${process.env.PATH}` })
+
+    await until('the focuser to be connected by the rig program', () => text().includes('focuser: writing CONNECTION') || undefined)
+    await until('the journal failure to be logged', () => text().includes('journal: journalctl stopped (exit 1)') || undefined)
+    await until('the missing password file to be logged', () => text().includes('broker connect: ENOENT') || undefined)
+    await new Promise(resolve => setTimeout(resolve, 400))
+
+    expect(child.exitCode).toBeNull()
+    expect(text().match(/journal: journalctl stopped/g)).toHaveLength(1)
+    expect(text().match(/broker connect: ENOENT/g)).toHaveLength(1)
+
+    child.kill()
+    await exit
   })
 
   it('exits 2, which systemd does not restart, when the rig file is not valid', async () => {
