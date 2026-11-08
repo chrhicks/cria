@@ -10,6 +10,7 @@ import type {
   Permission,
   PropertyKind,
   PropertyState,
+  SwitchRule,
   VectorDefinition,
   VectorUpdate,
 } from './xml.ts'
@@ -20,6 +21,7 @@ export interface Property {
   readonly kind: PropertyKind
   readonly state: PropertyState
   readonly perm: Permission
+  readonly rule?: SwitchRule
   readonly elements: ReadonlyMap<string, ElementDefinition>
 }
 
@@ -55,6 +57,7 @@ export class Mirror {
       kind: vector.kind,
       state: vector.state,
       perm: vector.perm,
+      ...(vector.rule === undefined ? {} : { rule: vector.rule }),
       elements: new Map(vector.elements.map(element => [element.name, element])),
     }
 

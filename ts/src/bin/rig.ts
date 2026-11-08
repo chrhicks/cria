@@ -1,4 +1,5 @@
 import { setTimeout as delay } from 'node:timers/promises'
+import { createCommands, followCommands } from '../rig/commands.ts'
 import type { RigConfig } from '../rig/config.ts'
 import { writeFifo } from '../rig/fifo.ts'
 import { defaultRigFile, readRigFile, wireIdsOf } from '../rig/file.ts'
@@ -25,6 +26,7 @@ const recording = startRecording({ settings: config.stream, wireDevices: wireIds
 const indi = await openIndiLink({ host: config.indiHost, port: config.indiPort, devices: config.devices.map(device => device.indiDevice), errorGapMs: config.errorGapMs, now: Date.now, warn: log, tap: recording.tap })
 askIndiForEverything = indi.askAll
 const rig = createRig({ config, now: Date.now, sleep: ms => delay(ms), hardwarePresent, writeFifo, indi, log })
+const commands = createCommands({ config, indi, answer: answer => recording.client('command', answer), log })
 
 for (const signal of ['SIGTERM', 'SIGINT']) {
   process.once(signal, () => {
@@ -53,4 +55,4 @@ async function reconcile() {
   }
 }
 
-await Promise.all([reconcile(), recording.running])
+await Promise.all([reconcile(), recording.running, followCommands({ settings: config.stream, devices: config.devices.map(device => device.id), commands, log })])

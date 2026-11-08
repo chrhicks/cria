@@ -12,6 +12,8 @@ import { keepRunning } from './retry.ts'
 import { wireDeviceId, wireSubject } from './subjects.ts'
 
 export interface Recording {
+  readonly run: string
+  readonly client: (kind: string, body: unknown) => void
   readonly tap: TrafficTap
   readonly running: Promise<unknown>
 }
@@ -72,5 +74,5 @@ export function startRecording(options: {
     ),
   ])
 
-  return { tap, running }
+  return { run, client: (kind, body) => broker.publish('rig-dev.client', entries.client(kind, body)), tap, running }
 }

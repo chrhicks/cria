@@ -21,6 +21,9 @@ const allowed: Record<string, Partial<Record<Rule, readonly [count: number, why:
   'src/stream/publisher.ts': {
     'try-catch': [3, 'a broker that cannot be reached or an entry it will not take is logged once and tried again (stored entries) or dropped (live entries), never a throw into the INDI socket or the journal follower'],
   },
+  'src/rig/commands.ts': {
+    'try-catch': [1, 'a write INDI refuses is answered as refused with its reason and the next command is still written'],
+  },
   'src/rig/hardware.ts': { 'try-catch': [2, 'a USB device sysfs cannot be read, or a sysfs that is not there, is a device that is not attached'] },
   'src/rig/supervisor.ts': {
     'try-catch': [2, 'a write INDI refuses and a FIFO that cannot be written are logged and tried again on a later poll: one failure must not stop the rig program'],
