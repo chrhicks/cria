@@ -149,7 +149,8 @@ describe('what an element says, for the recording', () => {
   it('reads each kind of element once, from the parse the client uses', () => {
     expect(
       factsOf(
-        '<defNumberVector device="Mount" name="COORD" state="Idle" perm="rw" message="ready"><defNumber name="RA" min="0" max="24" step="0.1">5:30</defNumber><defNumber name="DEC" min="-90" max="90" step="1">-10</defNumber></defNumberVector>' +
+        '<defNumberVector device="Mount" name="COORD" state="Idle" perm="rw" timeout="60" message="ready"><defNumber name="RA" format="%010.6m" min="0" max="24" step="0.1">5:30</defNumber><defNumber name="DEC" format="%010.6m" min="-90" max="90" step="1">-10</defNumber></defNumberVector>' +
+          '<defSwitchVector device="Mount" name="TRACK" state="Idle" perm="wo" rule="OneOfMany"><defSwitch name="ON">On</defSwitch><defSwitch name="OFF">Off</defSwitch></defSwitchVector>' +
           '<setSwitchVector device="Mount" name="TRACK" state="Busy"><oneSwitch name="ON">On</oneSwitch><oneSwitch name="OFF">Off</oneSwitch></setSwitchVector>' +
           '<setTextVector device="Cam" name="INFO"><oneText name="MODEL">\nASI\n</oneText></setTextVector>' +
           '<setLightVector device="Cam" name="STATUS" state="Ok"><oneLight name="TEMP">Alert</oneLight></setLightVector>' +
@@ -159,7 +160,18 @@ describe('what an element says, for the recording', () => {
           '<pingRequest uid="7"/>',
       ),
     ).toEqual([
-      { type: 'def', indiDevice: 'Mount', property: 'COORD', state: 'Idle', elements: { RA: 5.5, DEC: -10 }, text: 'ready' },
+      {
+        type: 'def',
+        indiDevice: 'Mount',
+        property: 'COORD',
+        state: 'Idle',
+        elements: { RA: 5.5, DEC: -10 },
+        numbers: { RA: { min: 0, max: 24, step: 0.1, format: '%010.6m' }, DEC: { min: -90, max: 90, step: 1, format: '%010.6m' } },
+        perm: 'rw',
+        timeout: 60,
+        text: 'ready',
+      },
+      { type: 'def', indiDevice: 'Mount', property: 'TRACK', state: 'Idle', elements: { ON: true, OFF: false }, perm: 'wo', timeout: 0, rule: 'OneOfMany' },
       { type: 'set', indiDevice: 'Mount', property: 'TRACK', state: 'Busy', elements: { ON: true, OFF: false } },
       { type: 'set', indiDevice: 'Cam', property: 'INFO', elements: { MODEL: 'ASI' } },
       { type: 'set', indiDevice: 'Cam', property: 'STATUS', state: 'Ok', elements: { TEMP: 'Alert' } },
@@ -169,6 +181,15 @@ describe('what an element says, for the recording', () => {
       { type: 'message', indiDevice: 'Mount', text: '[ERROR] bad' },
       { type: 'message', text: 'hello' },
       { type: 'other', tag: 'pingRequest' },
+    ])
+  })
+
+  it('reads a number format that is missing as the plain default, and leaves out a switch rule it does not know', () => {
+    expect(factsOf('<defNumberVector device="D" name="N" perm="ro"><defNumber name="X" min="1" max="2" step="0">1</defNumber></defNumberVector>')).toEqual([
+      { type: 'def', indiDevice: 'D', property: 'N', state: 'Idle', elements: { X: 1 }, numbers: { X: { min: 1, max: 2, step: 0, format: '%g' } }, perm: 'ro', timeout: 0 },
+    ])
+    expect(factsOf('<defSwitchVector device="D" name="S" perm="rw" rule="Some"><defSwitch name="A">On</defSwitch></defSwitchVector>')).toEqual([
+      { type: 'def', indiDevice: 'D', property: 'S', state: 'Idle', elements: { A: true }, perm: 'rw', timeout: 0 },
     ])
   })
 
@@ -184,7 +205,7 @@ describe('what an element says, for the recording', () => {
       { type: 'set', indiDevice: 'Cam', property: 'CCD1', state: 'Ok' },
     ])
     expect(factsOf('<defBLOBVector device="Cam" name="CCD1" state="Idle" perm="ro"><defBLOB name="CCD1"/></defBLOBVector>')).toEqual([
-      { type: 'def', indiDevice: 'Cam', property: 'CCD1', state: 'Idle', elements: {} },
+      { type: 'def', indiDevice: 'Cam', property: 'CCD1', state: 'Idle', elements: {}, perm: 'ro', timeout: 0 },
     ])
   })
 

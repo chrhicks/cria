@@ -6,7 +6,7 @@ function entries() {
   return makeEntries({ rig: 'test-rig', source: 'test:stream-client', run: 'run1', now: () => 1000 })
 }
 
-const outer = { v: 2, rig: 'test-rig', source: 'test:stream-client' }
+const outer = { v: 2, rig: 'test-rig', run: 'run1', source: 'test:stream-client' }
 
 describe('wire entries', () => {
   const tapped = (dir: 'in' | 'out', xml: string, facts: WireFacts): TappedMessage => ({ dir, xml, facts })

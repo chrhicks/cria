@@ -11,9 +11,10 @@ import { isUtf8 } from 'node:buffer'
 export type PropertyState = 'Idle' | 'Ok' | 'Busy' | 'Alert'
 export type PropertyKind = 'number' | 'switch' | 'text' | 'light' | 'blob'
 export type Permission = 'ro' | 'wo' | 'rw'
+export type SwitchRule = 'OneOfMany' | 'AtMostOne' | 'AnyOfMany'
 
 export type ElementDefinition =
-  | { readonly kind: 'number'; readonly name: string; readonly label: string; readonly value: number; readonly min: number; readonly max: number; readonly step: number }
+  | { readonly kind: 'number'; readonly name: string; readonly label: string; readonly value: number; readonly min: number; readonly max: number; readonly step: number; readonly format: string }
   | { readonly kind: 'switch'; readonly name: string; readonly label: string; readonly on: boolean }
   | { readonly kind: 'text'; readonly name: string; readonly label: string; readonly value: string }
   | { readonly kind: 'light'; readonly name: string; readonly label: string; readonly state: PropertyState }
@@ -32,6 +33,8 @@ export interface VectorDefinition {
   readonly label: string
   readonly state: PropertyState
   readonly perm: Permission
+  readonly timeout: number
+  readonly rule?: SwitchRule
   readonly message?: string
   readonly elements: ReadonlyArray<ElementDefinition>
 }
@@ -54,6 +57,13 @@ export type IndiMessage =
 
 export type ElementValue = number | boolean | string
 
+export interface NumberLimits {
+  readonly min: number
+  readonly max: number
+  readonly step: number
+  readonly format: string
+}
+
 export interface WireFacts {
   readonly type: 'def' | 'set' | 'new' | 'del' | 'message' | 'other' | 'unreadable'
   readonly tag?: string
@@ -61,6 +71,10 @@ export interface WireFacts {
   readonly property?: string
   readonly state?: PropertyState
   readonly elements?: Readonly<Record<string, ElementValue>>
+  readonly perm?: Permission
+  readonly timeout?: number
+  readonly rule?: SwitchRule
+  readonly numbers?: Readonly<Record<string, NumberLimits>>
   readonly text?: string
 }
 
@@ -554,6 +568,25 @@ function valuesOf(elements: ReadonlyArray<ElementDefinition | ElementUpdate>): R
   return values
 }
 
+function limitsOf(elements: ReadonlyArray<ElementDefinition>): Record<string, NumberLimits> {
+  const limits: Record<string, NumberLimits> = {}
+
+  for (const element of elements) {
+    if (element.kind === 'number') limits[element.name] = { min: element.min, max: element.max, step: element.step, format: element.format }
+  }
+
+  return limits
+}
+
+function definitionFacts(vector: VectorDefinition): Pick<WireFacts, 'numbers' | 'perm' | 'timeout' | 'rule'> {
+  return {
+    ...(vector.kind === 'number' ? { numbers: limitsOf(vector.elements) } : {}),
+    perm: vector.perm,
+    timeout: vector.timeout,
+    ...(vector.rule === undefined ? {} : { rule: vector.rule }),
+  }
+}
+
 function factsOfMessage(message: IndiMessage): WireFacts {
   switch (message.type) {
     case 'def':
@@ -566,6 +599,7 @@ function factsOfMessage(message: IndiMessage): WireFacts {
         property: vector.name,
         ...(vector.state === undefined ? {} : { state: vector.state }),
         elements: valuesOf(vector.elements),
+        ...(message.type === 'def' ? definitionFacts(message.vector) : {}),
         ...(vector.message === undefined ? {} : { text: vector.message }),
       }
     }
@@ -774,6 +808,8 @@ function toDefinition(node: Node, kind: PropertyKind, dropped: IndiProtocolError
     label: a.label ?? a.name ?? '',
     state: parseState(a.state ?? 'Idle'),
     perm: kind === 'light' ? 'ro' : parsePermission(a.perm ?? 'ro'),
+    timeout: parseNumber(a.timeout ?? '0'),
+    ...(kind === 'switch' ? ruleOf(a.rule) : {}),
     ...(a.message === undefined ? {} : { message: a.message }),
     elements,
   }
@@ -795,6 +831,7 @@ function toElementDefinition(node: Node, kind: PropertyKind): ElementDefinition 
         min: parseNumber(a.min ?? '0'),
         max: parseNumber(a.max ?? '0'),
         step: parseNumber(a.step ?? '0'),
+        format: a.format ?? '%g',
       }
     case 'switch':
       return { kind, name, label, on: parseSwitch(text) }
@@ -880,6 +917,10 @@ function parseState(text: string): PropertyState {
 function parsePermission(text: string): Permission {
   if (text === 'ro' || text === 'wo' || text === 'rw') return text
   throw new IndiProtocolError(`Unknown INDI permission ${text}`)
+}
+
+function ruleOf(text: string | undefined): { readonly rule?: SwitchRule } {
+  return text === 'OneOfMany' || text === 'AtMostOne' || text === 'AnyOfMany' ? { rule: text } : {}
 }
 
 /** INDI numbers are decimal or sexagesimal ("-12:30:15.5", "12 30 15"). */
