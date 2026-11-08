@@ -52,6 +52,18 @@ export type IndiMessage =
   | { readonly type: 'pingRequest'; readonly uid: string }
   | { readonly type: 'message'; readonly device?: string; readonly text: string }
 
+export type ElementValue = number | boolean | string
+
+export interface WireFacts {
+  readonly type: 'def' | 'set' | 'new' | 'del' | 'message' | 'other' | 'unreadable'
+  readonly tag?: string
+  readonly indiDevice?: string
+  readonly property?: string
+  readonly state?: PropertyState
+  readonly elements?: Readonly<Record<string, ElementValue>>
+  readonly text?: string
+}
+
 export class IndiProtocolError extends Error {
   override readonly name = 'IndiProtocolError'
 
@@ -263,25 +275,43 @@ export interface FramedElement {
   readonly message: IndiMessage | undefined
   /** Why this element could not be read, or, when `message` is set, why one of its elements was left out of it. It is still in `xml`, byte for byte, for the recording. */
   readonly problem?: ProtocolProblem
+  readonly facts: WireFacts
   /** The element's wire text, kept only when the caller asked for it. */
   readonly xml: string
 }
 
 function frameElement(element: Buffer, keepText: boolean): FramedElement {
   let message: IndiMessage | undefined
+  let facts: WireFacts | undefined
   let problem: ProtocolProblem | undefined
 
   try {
     const parsed = parseElement(element)
 
     message = parsed.message
+    facts = parsed.facts
     if (parsed.dropped[0]) problem = describeProblem(parsed.dropped[0], element)
   } catch (error) {
     if (!(error instanceof IndiProtocolError)) throw error
     problem = describeProblem(error, element)
   }
 
-  return { message, ...(problem ? { problem } : {}), xml: keepText ? element.toString('utf8') : '' }
+  return {
+    message,
+    facts: facts ?? unreadableFacts(problem),
+    ...(problem ? { problem } : {}),
+    xml: keepText ? element.toString('utf8') : '',
+  }
+}
+
+function unreadableFacts(problem: ProtocolProblem | undefined): WireFacts {
+  return {
+    type: 'unreadable',
+    tag: problem?.tag ?? '',
+    ...(problem?.device === undefined ? {} : { indiDevice: problem.device }),
+    ...(problem?.name === undefined ? {} : { property: problem.name }),
+    text: problem?.reason ?? '',
+  }
 }
 
 /** The error path only: where the bad bytes are from and a bounded look at them. */
@@ -330,15 +360,110 @@ interface Node {
   text: string
 }
 
-function parseElement(bytes: Buffer): { readonly message: IndiMessage | undefined; readonly dropped: IndiProtocolError[] } {
+function parseElement(bytes: Buffer): { readonly message: IndiMessage | undefined; readonly facts: WireFacts; readonly dropped: IndiProtocolError[] } {
   const tag = /^<([A-Za-z]\w*)/.exec(bytes.toString('latin1', 0, 64))?.[1] ?? ''
   const dropped: IndiProtocolError[] = []
 
-  if (tag === 'setBLOBVector') return { message: undefined, dropped }
+  if (tag === 'setBLOBVector') return { message: undefined, facts: blobFacts(bytes), dropped }
 
   const node = parseTree(bytes.toString('utf8'))
+  const message = toMessage(node, dropped)
 
-  return { message: toMessage(node, dropped), dropped }
+  return { message, facts: message ? factsOfMessage(message) : factsOfNewVector(node, dropped), dropped }
+}
+
+function blobFacts(bytes: Buffer): WireFacts {
+  const header = leading(bytes).toString('utf8')
+  const attributes = parseAttributes(/^\s*<[A-Za-z]\w*([^>]*)/.exec(header)?.[1] ?? '')
+  const state = attributes.state
+
+  return {
+    type: 'set',
+    ...(attributes.device ? { indiDevice: attributes.device } : {}),
+    ...(attributes.name ? { property: attributes.name } : {}),
+    ...(state === 'Idle' || state === 'Ok' || state === 'Busy' || state === 'Alert' ? { state } : {}),
+  }
+}
+
+function valuesOf(elements: ReadonlyArray<ElementDefinition | ElementUpdate>): Record<string, ElementValue> {
+  const values: Record<string, ElementValue> = {}
+
+  for (const element of elements) {
+    switch (element.kind) {
+      case 'number':
+      case 'text':
+        values[element.name] = element.value
+        break
+      case 'switch':
+        values[element.name] = element.on
+        break
+      case 'light':
+        values[element.name] = element.state
+        break
+      case 'blob':
+        break
+    }
+  }
+
+  return values
+}
+
+function factsOfMessage(message: IndiMessage): WireFacts {
+  switch (message.type) {
+    case 'def':
+    case 'set': {
+      const { vector } = message
+
+      return {
+        type: message.type,
+        indiDevice: vector.device,
+        property: vector.name,
+        ...(vector.state === undefined ? {} : { state: vector.state }),
+        elements: valuesOf(vector.elements),
+        ...(vector.message === undefined ? {} : { text: vector.message }),
+      }
+    }
+    case 'del':
+      return { type: 'del', indiDevice: message.device, ...(message.name === undefined ? {} : { property: message.name }) }
+    case 'message':
+      return { type: 'message', ...(message.device === undefined ? {} : { indiDevice: message.device }), text: message.text }
+    case 'pingRequest':
+      return { type: 'other', tag: 'pingRequest' }
+  }
+}
+
+function factsOfNewVector(node: Node, dropped: IndiProtocolError[]): WireFacts {
+  const kind = node.tag.slice('new'.length, -'Vector'.length)
+  const values: Record<string, ElementValue> = {}
+
+  for (const child of namedChildren(node, dropped)) {
+    const text = child.text.trim()
+
+    const name = child.attributes.name!
+    const number = Number(text)
+
+    if (kind === 'Number') values[name] = text !== '' && Number.isFinite(number) ? number : text
+    else if (kind === 'Switch') values[name] = text === 'On' ? true : text === 'Off' ? false : text
+    else if (kind === 'Text') values[name] = text
+  }
+
+  return { type: 'new', indiDevice: identity(node.attributes, 'device'), property: identity(node.attributes, 'name'), elements: values }
+}
+
+export function factsOfRequest(request: IndiRequest): WireFacts {
+  switch (request.type) {
+    case 'getProperties':
+      return {
+        type: 'other',
+        tag: 'getProperties',
+        ...(request.device === undefined ? {} : { indiDevice: request.device }),
+        ...(request.name === undefined ? {} : { property: request.name }),
+      }
+    case 'pingReply':
+      return { type: 'other', tag: 'pingReply' }
+    case 'new':
+      return { type: 'new', indiDevice: request.device, property: request.name, elements: request.values }
+  }
 }
 
 function namedChildren(node: Node, dropped: IndiProtocolError[]): Node[] {

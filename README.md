@@ -26,6 +26,10 @@ When a connection a program depends on is lost, it exits and systemd starts it a
 | `deploy` | systemd units, `install.sh`, PHD2 profile and step scripts |
 | `testing` | The real-`indiserver` helper, the fake INDI server, PHD2 script tests |
 
+## Stream entries
+
+Every entry is `{ v: 2, id, rig, kind, at, source, body }`. A `wire` entry's body keeps the raw `xml` and carries what the parser read from it: `{ conn, dir, n, xml, device, type, indiDevice?, property?, state?, elements?, text?, tag? }`. `device` is the id from the rig file (`server` when the element names no device, `other` when the rig file does not list it), `type` is `def`, `set`, `new`, `del`, `message`, `other` (`tag` says which: `getProperties`, `pingRequest`, `pingReply`) or `unreadable` (`text` is the problem). The viewer reads these fields and never the XML; a version 1 wire entry has none of them and is shown as raw XML until it ages out of the stream.
+
 ## Test
 
 You need Node 26, pnpm and libindi with `indiserver` and `indi_simulator_focus`.

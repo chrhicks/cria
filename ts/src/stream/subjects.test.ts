@@ -2,28 +2,28 @@ import { describe, expect, it } from 'vitest'
 import { stream } from '../../testing/stream-settings.ts'
 import { parseConfig } from '../rig/config.ts'
 import { wireIdsOf } from '../rig/file.ts'
-import { wireSubject } from './subjects.ts'
+import { wireDeviceId, wireSubject } from './subjects.ts'
 
 const devices = { 'ZWO AM5': 'mount', 'Pegasus PPBA': 'box' }
 
 describe('wire subjects', () => {
-  it('use the short id of the device in the first tag', () => {
-    expect(wireSubject(devices, 'in', '<setNumberVector device="ZWO AM5" name="EQUATORIAL_EOD_COORD">')).toBe('rig-dev.wire.mount.in')
-    expect(wireSubject(devices, 'out', '\n  <getProperties version="1.7" device="Pegasus PPBA"/>')).toBe('rig-dev.wire.box.out')
+  it('use the id the rig file gives the INDI device', () => {
+    expect(wireDeviceId(devices, { type: 'set', indiDevice: 'ZWO AM5' })).toBe('mount')
+    expect(wireDeviceId(devices, { type: 'other', tag: 'getProperties', indiDevice: 'Pegasus PPBA' })).toBe('box')
   })
 
   it('send a message with no device to server', () => {
-    expect(wireSubject(devices, 'out', '<getProperties version="1.7"/>')).toBe('rig-dev.wire.server.out')
-    expect(wireSubject(devices, 'in', '<message timestamp="2026-11-06T18:00:00" message="hello"/>')).toBe('rig-dev.wire.server.in')
-    expect(wireSubject(devices, 'in', '<defNumberVector device="" name=""/>')).toBe('rig-dev.wire.server.in')
+    expect(wireDeviceId(devices, { type: 'other', tag: 'getProperties' })).toBe('server')
+    expect(wireDeviceId(devices, { type: 'message', text: 'hello' })).toBe('server')
   })
 
   it('send a device not on the list to other', () => {
-    expect(wireSubject(devices, 'in', '<message device="New Camera" message="hello"/>')).toBe('rig-dev.wire.other.in')
+    expect(wireDeviceId(devices, { type: 'message', indiDevice: 'New Camera', text: 'hello' })).toBe('other')
   })
 
-  it('does not read a device from a later element', () => {
-    expect(wireSubject(devices, 'in', '<message message="hello"/><setNumberVector device="ZWO AM5"/>')).toBe('rig-dev.wire.server.in')
+  it('name the device and direction, whatever characters the id has', () => {
+    expect(wireSubject('mount', 'in')).toBe('rig-dev.wire.mount.in')
+    expect(wireSubject('guide-cam', 'out')).toBe('rig-dev.wire.guide-cam.out')
   })
 })
 
@@ -38,7 +38,7 @@ describe('the rig file\'s device names', () => {
       ],
     })
 
-    expect(wireSubject(wireIdsOf(config), 'out', '<newSwitchVector device="Pegasus PPBA" name="X">')).toBe('rig-dev.wire.box.out')
-    expect(wireSubject(wireIdsOf(config), 'in', '<setNumberVector device="ZWO AM5" name="X">')).toBe('rig-dev.wire.mount.in')
+    expect(wireDeviceId(wireIdsOf(config), { type: 'new', indiDevice: 'Pegasus PPBA' })).toBe('box')
+    expect(wireDeviceId(wireIdsOf(config), { type: 'set', indiDevice: 'ZWO AM5' })).toBe('mount')
   })
 })

@@ -4,12 +4,11 @@ import { hostname } from 'node:os'
 import type { TrafficTap } from '../indi/index.ts'
 import { brokerSettings } from './broker.ts'
 import type { StreamSettings } from './config.ts'
-import { makeDebugChangeFilter } from './debug-lines.ts'
 import { makeEntries } from './entry.ts'
 import { followJournal } from './journal.ts'
 import { followPhd2 } from './phd2.ts'
 import { openPublisher } from './publisher.ts'
-import { wireSubject } from './subjects.ts'
+import { wireDeviceId, wireSubject } from './subjects.ts'
 
 export interface Recording {
   readonly tap: TrafficTap
@@ -23,7 +22,6 @@ export function startRecording(options: { readonly settings: StreamSettings; rea
   const entries = makeEntries({ rig: settings.rig, source: `${hostname()}:rig`, run, now: Date.now })
   const build = spawnSync('git', ['-C', import.meta.dirname, 'rev-parse', '--short', 'HEAD'], { encoding: 'utf8' })
   const version = build.status === 0 ? build.stdout.trim() : 'unknown'
-  const debugLines = makeDebugChangeFilter()
 
   const broker = openPublisher({
     broker: brokerSettings(settings.broker),
@@ -34,11 +32,12 @@ export function startRecording(options: { readonly settings: StreamSettings; rea
   })
 
   const tap: TrafficTap = {
-    message: ({ conn, dir, xml }) => {
-      for (const line of debugLines.pass(xml)) broker.publish(wireSubject(wireDevices, dir, line), entries.wire(conn, dir, line))
+    message: message => {
+      const device = wireDeviceId(wireDevices, message.facts)
+
+      broker.publish(wireSubject(device, message.dir), entries.wire(message, device))
     },
     connection: connection => {
-      debugLines.forget()
       broker.publish(
         'rig-dev.client',
         entries.client('connection', { target: 'indiserver', conn: connection.conn, status: connection.status, ...(connection.status === 'closed' ? { error: connection.error } : {}) }),

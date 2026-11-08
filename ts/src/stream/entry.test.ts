@@ -1,26 +1,44 @@
 import { describe, expect, it } from 'vitest'
-import { makeEntries } from './entry.ts'
+import type { TappedMessage, WireFacts } from '../indi/index.ts'
+import { makeEntries, readWireBody } from './entry.ts'
 
 function entries() {
   return makeEntries({ rig: 'test-rig', source: 'test:stream-client', run: 'run1', now: () => 1000 })
 }
 
-const outer = { v: 1, rig: 'test-rig', source: 'test:stream-client' }
+const outer = { v: 2, rig: 'test-rig', source: 'test:stream-client' }
 
 describe('wire entries', () => {
-  it('keep the raw XML and count each direction of each connection', () => {
+  const tapped = (conn: number, dir: 'in' | 'out', xml: string, facts: WireFacts): TappedMessage => ({ conn, dir, xml, facts })
+  const set = tapped(1, 'in', '<setSwitchVector device="ZWO AM5" name="TELESCOPE_TRACK_STATE" state="Ok"><oneSwitch name="TRACK_ON">On</oneSwitch></setSwitchVector>', {
+    type: 'set',
+    indiDevice: 'ZWO AM5',
+    property: 'TELESCOPE_TRACK_STATE',
+    state: 'Ok',
+    elements: { TRACK_ON: true },
+  })
+
+  it('keep the raw XML and carry what the parser read, and count each direction of each connection', () => {
     const made = entries()
 
-    expect(made.wire(1, 'in', '<a/>')).toEqual({
+    expect(made.wire(set, 'mount')).toEqual({
       ...outer,
       id: 'wire:run1:1:in:1',
       kind: 'wire',
       at: 1000,
-      body: { conn: 1, dir: 'in', n: 1, xml: '<a/>' },
+      body: { conn: 1, dir: 'in', n: 1, xml: set.xml, device: 'mount', type: 'set', indiDevice: 'ZWO AM5', property: 'TELESCOPE_TRACK_STATE', state: 'Ok', elements: { TRACK_ON: true } },
     })
-    expect(made.wire(1, 'in', '<b/>').id).toBe('wire:run1:1:in:2')
-    expect(made.wire(1, 'out', '<c/>').id).toBe('wire:run1:1:out:1')
-    expect(made.wire(2, 'in', '<d/>').id).toBe('wire:run1:2:in:1')
+    expect(made.wire(set, 'mount').id).toBe('wire:run1:1:in:2')
+    expect(made.wire({ ...set, dir: 'out' }, 'mount').id).toBe('wire:run1:1:out:1')
+    expect(made.wire({ ...set, conn: 2 }, 'mount').id).toBe('wire:run1:2:in:1')
+  })
+
+  it('read back as a wire body, and a body from before the parse is not one', () => {
+    const body = entries().wire(set, 'mount').body
+
+    expect(readWireBody(body)?.property).toBe('TELESCOPE_TRACK_STATE')
+    expect(readWireBody({ conn: 1, dir: 'in', n: 1, xml: '<a/>' })).toBeUndefined()
+    expect(readWireBody('text')).toBeUndefined()
   })
 })
 

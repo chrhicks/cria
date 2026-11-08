@@ -1,3 +1,5 @@
+import type { WireFacts } from './xml.ts'
+
 /**
  * INDI boundary: the traffic tap. The client reports every element it sends or
  * receives to an optional tap, in the order it saw them.
@@ -16,6 +18,7 @@ export interface TappedMessage {
    * `format` and every element the parser ignores, and replay needs them.
    */
   readonly xml: string
+  readonly facts: WireFacts
 }
 
 export type TappedConnection =

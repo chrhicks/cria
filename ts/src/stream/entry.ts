@@ -1,14 +1,30 @@
-import type { Direction } from '../indi/index.ts'
+import type { Direction, TappedMessage, WireFacts } from '../indi/index.ts'
 import { parseRecord, stringField } from './json.ts'
 
 export interface Entry {
-  readonly v: 1
+  readonly v: 2
   readonly id: string
   readonly rig: string
   readonly kind: string
   readonly at: number
   readonly source: string
   readonly body: unknown
+}
+
+export interface WireBody extends WireFacts {
+  readonly conn: number
+  readonly dir: Direction
+  readonly n: number
+  readonly xml: string
+  readonly device: string
+}
+
+export function readWireBody(body: unknown): WireBody | undefined {
+  if (typeof body !== 'object' || body === null) return undefined
+
+  const { dir, device, type, xml } = body as Readonly<Record<string, unknown>>
+
+  return (dir === 'in' || dir === 'out') && typeof device === 'string' && typeof type === 'string' && typeof xml === 'string' ? (body as WireBody) : undefined
 }
 
 export interface EntryContext {
@@ -31,7 +47,7 @@ export function makeEntries({ rig, source, run, now }: EntryContext) {
   let clientCount = 0
 
   const entry = (kind: string, id: string, at: number, body: unknown): Entry => ({
-    v: 1,
+    v: 2,
     id,
     rig,
     kind,
@@ -41,13 +57,13 @@ export function makeEntries({ rig, source, run, now }: EntryContext) {
   })
 
   return {
-    wire(conn: number, dir: Direction, xml: string) {
+    wire({ conn, dir, xml, facts }: TappedMessage, device: string) {
       const key = `${conn}:${dir}`
       const n = (wireCounts.get(key) ?? 0) + 1
 
       wireCounts.set(key, n)
 
-      return entry('wire', `wire:${run}:${key}:${n}`, now(), { conn, dir, n, xml })
+      return entry('wire', `wire:${run}:${key}:${n}`, now(), { conn, dir, n, xml, device, ...facts })
     },
 
     system(line: string) {

@@ -1,15 +1,11 @@
-import type { Direction } from '../indi/index.ts'
+import type { Direction, WireFacts } from '../indi/index.ts'
 
-const firstTagDevice = /^\s*<[^>]*?\bdevice="([^"]+)"/
-
-function wireDevice(devices: Readonly<Record<string, string>>, xml: string) {
-  const device = firstTagDevice.exec(xml)?.[1]
-
-  return device === undefined ? 'server' : (devices[device] ?? 'other')
+export function wireDeviceId(devices: Readonly<Record<string, string>>, facts: WireFacts) {
+  return facts.indiDevice === undefined ? 'server' : (devices[facts.indiDevice] ?? 'other')
 }
 
-export function wireSubject(devices: Readonly<Record<string, string>>, dir: Direction, xml: string) {
-  return `rig-dev.wire.${wireDevice(devices, xml)}.${dir}`
+export function wireSubject(device: string, dir: Direction) {
+  return `rig-dev.wire.${device}.${dir}`
 }
 
 export const streamName = 'RIG_DEV'

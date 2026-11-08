@@ -69,7 +69,7 @@ export async function runViewer(): Promise<void> {
         break
       }
 
-      const delivered = history.take({ seq: message.seq, at, subject: message.subject, text: message.string() })
+      const delivered = history.take({ seq: message.seq, subject: message.subject, text: message.string() })
 
       lastRead = message.seq
       read += 1
