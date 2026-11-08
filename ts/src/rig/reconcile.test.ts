@@ -152,7 +152,6 @@ describe('the rig file', () => {
       errorGapMs: 5000,
       reconnectWaitMs: 60_000,
       numberTolerance: 1e-6,
-      commandMaxAgeMs: 10_000,
       backoffMs: [10_000, 30_000, 60_000],
       stream: {
         rig: 'fra-cria',

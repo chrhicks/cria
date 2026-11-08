@@ -26,7 +26,7 @@ const recording = startRecording({ settings: config.stream, wireDevices: wireIds
 const indi = await openIndiLink({ host: config.indiHost, port: config.indiPort, devices: config.devices.map(device => device.indiDevice), errorGapMs: config.errorGapMs, now: Date.now, warn: log, tap: recording.tap })
 askIndiForEverything = indi.askAll
 const rig = createRig({ config, now: Date.now, sleep: ms => delay(ms), hardwarePresent, writeFifo, indi, log })
-const commands = createCommands({ config, run: recording.run, now: Date.now, indi, answer: answer => recording.client('command', answer), log })
+const commands = createCommands({ config, indi, answer: answer => recording.client('command', answer), log })
 
 for (const signal of ['SIGTERM', 'SIGINT']) {
   process.once(signal, () => {

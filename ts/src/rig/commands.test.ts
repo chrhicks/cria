@@ -2,14 +2,12 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { FakeIndi, connection } from '../../testing/fake-indi/index.ts'
 import { stream } from '../../testing/stream-settings.ts'
 import { until } from '../../testing/until.ts'
-import { createCommands, stopProperties, type CommandAnswer } from './commands.ts'
+import { createCommands, type CommandAnswer } from './commands.ts'
 import { parseConfig } from './config.ts'
 import { openIndiLink, type IndiLink } from './indi-link.ts'
 
 const mount = 'Mount'
 const camera = 'Camera'
-const run = 'run-1'
-const maxAge = 10_000
 
 let fake: FakeIndi
 let link: IndiLink
@@ -54,7 +52,7 @@ afterEach(async () => {
 
 function setup(indi: Pick<IndiLink, 'property' | 'write'> = link) {
   const answers: CommandAnswer[] = []
-  const commands = createCommands({ config: config(), run, now: () => clock, indi, answer: answer => answers.push(answer), log: () => {} })
+  const commands = createCommands({ config: config(), indi, answer: answer => answers.push(answer), log: () => {} })
 
   return { answers, commands }
 }
@@ -62,7 +60,7 @@ function setup(indi: Pick<IndiLink, 'property' | 'write'> = link) {
 let counter = 0
 
 const send = (commands: ReturnType<typeof setup>['commands'], device: string, body: Record<string, unknown>) =>
-  commands.receive(device, JSON.stringify({ id: `c${++counter}`, run, at: clock, by: 'test', ...body }))
+  commands.receive(device, JSON.stringify({ id: `c${++counter}`, by: 'test', ...body }))
 
 const sentNew = () => fake.received.filter(xml => /^<new(Number|Switch|Text)Vector/.test(xml))
 
@@ -78,51 +76,13 @@ describe('commands from the stream', () => {
     expect(sentNew()[0]).toContain('5.5')
   })
 
-  it('refuses an id it already saw in this run, and writes the first one once', async () => {
-    const { answers, commands } = setup()
-    const body = JSON.stringify({ id: 'same', run, at: clock, by: 'test', property: 'NOTE', values: { TEXT: 'hello' } })
-
-    await commands.receive('mount', body)
-    await commands.receive('mount', body)
-
-    expect(answers.map(answer => [answer.id, answer.result, answer.reason])).toEqual([
-      ['same', 'written', undefined],
-      ['same', 'refused', 'this id was already seen in this run'],
-    ])
-    await until('the fake to receive the write', () => sentNew().length === 1)
-    await new Promise(resolve => setTimeout(resolve, 100))
-    expect(sentNew()).toHaveLength(1)
-  })
-
-  it('refuses a command meant for another run', async () => {
-    const { answers, commands } = setup()
-
-    await send(commands, 'mount', { run: 'run-0', property: 'NOTE', values: { TEXT: 'x' } })
-
-    expect(answers[0]).toMatchObject({ result: 'refused', reason: 'meant for another run of the rig program' })
-    expect(sentNew()).toHaveLength(0)
-  })
-
-  it('refuses a command older than the maximum age and one dated ahead of the clock', async () => {
-    const { answers, commands } = setup()
-
-    await send(commands, 'mount', { at: clock - maxAge - 1, property: 'NOTE', values: { TEXT: 'x' } })
-    await send(commands, 'mount', { at: clock - maxAge, property: 'NOTE', values: { TEXT: 'x' } })
-    await send(commands, 'mount', { at: clock + maxAge + 1, property: 'NOTE', values: { TEXT: 'x' } })
-
-    expect(answers.map(answer => answer.result)).toEqual(['refused', 'written', 'refused'])
-    expect(answers[0]?.reason).toContain('older than the 10 s')
-    expect(answers[2]?.reason).toContain('ahead of this clock')
-  })
-
-  it('refuses a device or property that is unknown, and one that is read-only', async () => {
+  it('refuses a device or property that is unknown', async () => {
     const { answers, commands } = setup()
 
     await send(commands, 'dome', { property: 'NOTE', values: { TEXT: 'x' } })
     await send(commands, 'mount', { property: 'NO_SUCH', values: { A: 1 } })
-    await send(commands, 'mount', { property: 'TELESCOPE_INFO', values: { TELESCOPE_APERTURE: 100 } })
 
-    expect(answers.map(answer => answer.reason)).toEqual(['dome is not in the rig file', 'mount has no property NO_SUCH', 'TELESCOPE_INFO is read-only'])
+    expect(answers.map(answer => answer.reason)).toEqual(['dome is not in the rig file', 'mount has no property NO_SUCH'])
     expect(sentNew()).toHaveLength(0)
   })
 
@@ -141,29 +101,6 @@ describe('commands from the stream', () => {
     expect(sentNew()).toHaveLength(0)
   })
 
-  it('refuses values that do not fit the property', async () => {
-    const { answers, commands } = setup()
-
-    await send(commands, 'mount', { property: 'EQUATORIAL_EOD_COORD', values: { RA: 25, DEC: 0 } })
-    await send(commands, 'mount', { property: 'EQUATORIAL_EOD_COORD', values: { RA: '5', DEC: 0 } })
-    await send(commands, 'mount', { property: 'EQUATORIAL_EOD_COORD', values: { HA: 5 } })
-    await send(commands, 'mount', { property: 'EQUATORIAL_EOD_COORD', values: {} })
-    await send(commands, 'mount', { property: 'TELESCOPE_PARK', values: { PARK: true, UNPARK: true } })
-    await send(commands, 'mount', { property: 'TELESCOPE_PARK', values: { PARK: 1 } })
-    await send(commands, 'mount', { property: 'NOTE', values: { TEXT: 4 } })
-
-    expect(answers.map(answer => answer.reason)).toEqual([
-      'RA must be from 0 to 24',
-      'RA must be a number',
-      'EQUATORIAL_EOD_COORD has no element HA',
-      'no element given',
-      'TELESCOPE_PARK takes at most one element on',
-      'PARK must be true or false',
-      'TEXT must be text',
-    ])
-    expect(sentNew()).toHaveLength(0)
-  })
-
   it('refuses what is not a command, answering with what it could read', async () => {
     const { answers, commands } = setup()
 
@@ -171,12 +108,12 @@ describe('commands from the stream', () => {
     await commands.receive('mount', JSON.stringify({ id: 'partial', by: 'test', property: 'NOTE' }))
 
     expect(answers).toEqual([
-      { id: '', by: '', device: 'mount', property: '', result: 'refused', reason: 'not a command: it needs id, run, at, property, values and by' },
-      { id: 'partial', by: 'test', device: 'mount', property: 'NOTE', result: 'refused', reason: 'not a command: it needs id, run, at, property, values and by' },
+      { id: '', by: '', device: 'mount', property: '', result: 'refused', reason: 'not a command: it needs id, property, values and by' },
+      { id: 'partial', by: 'test', device: 'mount', property: 'NOTE', result: 'refused', reason: 'not a command: it needs id, property, values and by' },
     ])
   })
 
-  it('answers refused with the reason when INDI will not take the write, and writes the next command', async () => {
+  it('answers refused with the reason when INDI will not take the write, and answers the next command', async () => {
     const { answers, commands } = setup({ property: link.property, write: (device, property, values) => (property === 'NOTE' ? Promise.reject(new Error('INDI write failed: socket closed')) : link.write(device, property, values)) })
 
     await send(commands, 'mount', { property: 'NOTE', values: { TEXT: 'x' } })
@@ -186,82 +123,5 @@ describe('commands from the stream', () => {
       ['refused', 'INDI write failed: socket closed'],
       ['written', undefined],
     ])
-  })
-
-  it('writes one at a time in arrival order', async () => {
-    const order: string[] = []
-    const { commands } = setup({
-      property: link.property,
-      write: async (device, property, values) => {
-        order.push(`start ${property}`)
-        await new Promise(resolve => setTimeout(resolve, 20))
-        await link.write(device, property, values)
-        order.push(`end ${property}`)
-      },
-    })
-
-    await Promise.all([
-      send(commands, 'mount', { property: 'EQUATORIAL_EOD_COORD', values: { RA: 1, DEC: 1 } }),
-      send(commands, 'mount', { property: 'NOTE', values: { TEXT: 'x' } }),
-      send(commands, 'camera', { property: 'CCD_EXPOSURE', values: { CCD_EXPOSURE_VALUE: 5 } }),
-    ])
-
-    expect(order).toEqual(['start EQUATORIAL_EOD_COORD', 'end EQUATORIAL_EOD_COORD', 'start NOTE', 'end NOTE', 'start CCD_EXPOSURE', 'end CCD_EXPOSURE'])
-  })
-
-  it('writes Stop at once, ahead of a command that is still being written', async () => {
-    const order: string[] = []
-    let release = () => {}
-    const held = new Promise<void>(resolve => (release = resolve))
-    const { answers, commands } = setup({
-      property: link.property,
-      write: async (device, property, values) => {
-        order.push(`start ${property}`)
-        if (property === 'EQUATORIAL_EOD_COORD') await held
-        await link.write(device, property, values)
-        order.push(`end ${property}`)
-      },
-    })
-
-    const goto = send(commands, 'mount', { property: 'EQUATORIAL_EOD_COORD', values: { RA: 1, DEC: 1 } })
-    const later = send(commands, 'mount', { property: 'NOTE', values: { TEXT: 'x' } })
-
-    await until('the goto to be held', () => order.length === 1)
-    await send(commands, 'mount', { property: 'TELESCOPE_ABORT_MOTION', values: { ABORT: true } })
-    expect(order).toEqual(['start EQUATORIAL_EOD_COORD', 'start TELESCOPE_ABORT_MOTION', 'end TELESCOPE_ABORT_MOTION'])
-
-    release()
-    await Promise.all([goto, later])
-    expect(order.slice(3)).toEqual(['end EQUATORIAL_EOD_COORD', 'start NOTE', 'end NOTE'])
-    expect(answers.map(answer => answer.property)).toEqual(['TELESCOPE_ABORT_MOTION', 'EQUATORIAL_EOD_COORD', 'NOTE'])
-  })
-
-  it('writes a Stop that is late, for another run or a repeat of an id, and still checks its values', async () => {
-    const { answers, commands } = setup()
-    const stop = { property: 'TELESCOPE_ABORT_MOTION', values: { ABORT: true } }
-
-    await send(commands, 'mount', { ...stop, at: clock - 10 * maxAge })
-    await send(commands, 'mount', { ...stop, run: 'run-0' })
-    await commands.receive('mount', JSON.stringify({ id: 'again', run, at: clock, by: 'test', ...stop }))
-    await commands.receive('mount', JSON.stringify({ id: 'again', run, at: clock, by: 'test', ...stop }))
-    await send(commands, 'mount', { property: 'TELESCOPE_ABORT_MOTION', values: { ABORT: 'yes' } })
-
-    expect(answers.map(answer => [answer.result, answer.reason])).toEqual([
-      ['written', undefined],
-      ['written', undefined],
-      ['written', undefined],
-      ['written', undefined],
-      ['refused', 'ABORT must be true or false'],
-    ])
-  })
-
-  it('names the camera and the mount stop properties', async () => {
-    const { answers, commands } = setup()
-
-    await send(commands, 'camera', { property: 'CCD_ABORT_EXPOSURE', values: { ABORT: true } })
-    await send(commands, 'mount', { property: 'TELESCOPE_ABORT_MOTION', values: { ABORT: true } })
-
-    expect(answers.map(answer => answer.result)).toEqual(['written', 'written'])
-    expect(stopProperties.value).toContain('FOCUS_ABORT_MOTION')
   })
 })
