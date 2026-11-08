@@ -1,5 +1,5 @@
 import type { Direction } from '../indi/index.ts'
-import { Option, Schema } from 'effect'
+import { parseRecord, stringField } from './json.ts'
 
 export interface Entry {
   readonly v: 1
@@ -16,14 +16,6 @@ export interface EntryContext {
   readonly source: string
   readonly run: string
   readonly now: () => number
-}
-
-const decodeRecord = Schema.decodeUnknownOption(Schema.fromJsonString(Schema.Record(Schema.String, Schema.Unknown)))
-
-function stringField(record: Readonly<Record<string, unknown>>, name: string) {
-  const value = record[name]
-
-  return typeof value === 'string' ? value : undefined
 }
 
 function finite(value: unknown) {
@@ -61,18 +53,18 @@ export function makeEntries({ rig, source, run, now }: EntryContext) {
     system(line: string) {
       systemCount += 1
 
-      const record = decodeRecord(line)
+      const record = parseRecord(line)
 
-      if (Option.isNone(record)) return entry('system', `system:${run}:${systemCount}`, now(), line)
+      if (record === undefined) return entry('system', `system:${run}:${systemCount}`, now(), line)
 
-      const cursor = stringField(record.value, '__CURSOR')
-      const microseconds = finite(record.value['__REALTIME_TIMESTAMP'])
+      const cursor = stringField(record, '__CURSOR')
+      const microseconds = finite(record['__REALTIME_TIMESTAMP'])
 
       return entry(
         'system',
         cursor === undefined ? `system:${run}:${systemCount}` : `system:${cursor}`,
         microseconds === undefined ? now() : Math.round(microseconds / 1000),
-        record.value,
+        record,
       )
     },
 
@@ -86,17 +78,17 @@ export function makeEntries({ rig, source, run, now }: EntryContext) {
       phd2Count += 1
 
       const id = `phd2:${run}:${phd2Count}`
-      const record = decodeRecord(line)
+      const record = parseRecord(line)
 
-      if (Option.isNone(record)) return entry('phd2.unknown', id, now(), line)
+      if (record === undefined) return entry('phd2.unknown', id, now(), line)
 
-      const seconds = finite(record.value['Timestamp'])
+      const seconds = finite(record['Timestamp'])
 
       return entry(
-        `phd2.${stringField(record.value, 'Event') ?? 'unknown'}`,
+        `phd2.${stringField(record, 'Event') ?? 'unknown'}`,
         id,
         seconds === undefined ? now() : Math.round(seconds * 1000),
-        record.value,
+        record,
       )
     },
   }

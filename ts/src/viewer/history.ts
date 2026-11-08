@@ -1,8 +1,4 @@
-import { Option, Schema } from 'effect'
-
-const decodeEntry = Schema.decodeUnknownOption(
-  Schema.fromJsonString(Schema.Struct({ v: Schema.Literal(1), kind: Schema.String, body: Schema.Unknown })),
-)
+import { parseRecord } from '../stream/json.ts'
 
 const problemEvents = new Set(['phd2.StarLost', 'phd2.Alert', 'phd2.CalibrationFailed'])
 
@@ -50,11 +46,11 @@ function classifyWire(subject: string, body: unknown): Classified | undefined {
 }
 
 export function classify(subject: string, text: string): Classified | undefined {
-  const entry = decodeEntry(text)
+  const entry = parseRecord(text)
 
-  if (Option.isNone(entry)) return undefined
+  if (entry === undefined || entry['v'] !== 1 || typeof entry['kind'] !== 'string') return undefined
 
-  const { kind, body } = entry.value
+  const { kind, body } = { kind: entry['kind'], body: entry['body'] }
 
   if (kind === 'wire') return classifyWire(subject, body)
   if (kind === 'system') {
