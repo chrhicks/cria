@@ -29,7 +29,7 @@ const allowed: Record<string, Partial<Record<Rule, readonly [count: number, why:
     'try-catch': [2, 'a config file that cannot be read exits 2, which systemd does not restart; a poll that throws is logged once and tried again on the next poll, so the devices keep their upkeep'],
   },
   'src/viewer/viewer.ts': {
-    'promise-catch': [2, 'a page whose stream fails is logged and closed, and its browser reconnects; a highlights request that fails (a body cut off, a file that cannot be written) is logged and its connection closed'],
+    'promise-catch': [2, 'a page whose stream fails is logged and closed, and its browser reconnects; a highlights request that fails (a body cut off, a file that cannot be written) is logged and answered with the error, or closed when the answer had begun'],
   },
 }
 

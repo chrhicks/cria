@@ -151,7 +151,8 @@ export async function runViewer(): Promise<void> {
     if (url.pathname === '/highlights') {
       highlightsRequest(request, response).catch((error: unknown) => {
         console.error(`rig-stream-viewer: highlights: ${String(error)}`)
-        response.destroy()
+        if (response.headersSent) response.destroy()
+        else answer(response, 500, { error: String(error) })
       })
 
       return
