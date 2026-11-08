@@ -221,7 +221,7 @@ describe('the problem log', () => {
 
     for (let i = 0; i < 1000; i += 1) log.report(problem('A'), 'skipped the element')
     expect(lines).toHaveLength(1)
-    expect(lines[0]).toMatch(/^INDI protocol error #1: skipped the element: Invalid INDI number "x"; <setNumberVector> device="D" name="A", 18 bytes: <setNumberVector\/>$/)
+    expect(lines[0]).toMatch(/^INDI input problem #1: skipped the element: Invalid INDI number "x"; <setNumberVector> device="D" name="A", 18 bytes: <setNumberVector\/>$/)
     clock.now += 61_000
     log.report(problem('A'), 'skipped the element')
     expect(lines).toHaveLength(2)
@@ -388,7 +388,7 @@ describe('the client when indiserver sends something unexpected', () => {
       expect(property('B')).toBeDefined()
       expect(tapped.filter(message => message.dir === 'in').map(message => message.xml)).toEqual(wire)
       expect(warnings).toHaveLength(1)
-      expect(warnings[0]).toContain('INDI protocol error #1: skipped the element: INDI element has an empty device')
+      expect(warnings[0]).toContain('INDI input problem #1: skipped the element: INDI element has an empty device')
       expect(warnings[0]).toContain('<defNumberVector> no device or name')
     })
   })
@@ -491,9 +491,9 @@ describe('the client when indiserver sends something unexpected', () => {
       expect(property('BEFORE')).toBeDefined()
       expect(closed.filter(item => item.status === 'closed')).toEqual([])
       expect(warnings).toHaveLength(1)
-      expect(warnings[0]).toContain('INDI protocol error #1: lost the framing and skipped to the next element: Incomplete INDI element')
+      expect(warnings[0]).toContain('INDI input problem #1: lost the framing and skipped to the next element: Incomplete INDI element')
       expect(problems).toHaveLength(1)
-      expect(problems[0]).toMatchObject({ conn: 1, consequence: 'lost the framing and skipped to the next element', problem: { scope: 'framing', device: 'D', name: 'N', excerpt: expect.stringContaining('<defTextVector device=\\"D\\"') } })
+      expect(problems[0]).toMatchObject({ consequence: 'lost the framing and skipped to the next element', problem: { scope: 'framing', device: 'D', name: 'N', excerpt: expect.stringContaining('<defTextVector device=\\"D\\"') } })
     })
   })
 

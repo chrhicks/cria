@@ -291,10 +291,10 @@ describe('the rig program against a fake INDI server', () => {
     const { tick, logs } = await start([{ id: 'mount', indiDevice: 'ZWO AM5', serial: '/dev/serial/by-id/am5', driver: 'indi_lx200am5', connected: true }])
 
     fake.raw('<setNumberVector device="ZWO AM5" name="GEOGRAPHIC_COORD"><oneNumber name="LAT">1x</oneNumber></setNumberVector>\n')
-    await until('the problem to be logged', async () => (logs.some(line => line.includes('INDI protocol error #1: skipped the element')) ? true : undefined))
+    await until('the problem to be logged', async () => (logs.some(line => line.includes('INDI input problem #1: skipped the element')) ? true : undefined))
     await tick(1)
 
-    expect(logs.filter(line => line.includes('INDI protocol error'))).toHaveLength(1)
+    expect(logs.filter(line => line.includes('INDI input problem'))).toHaveLength(1)
   })
 
   async function settleDefinitions() {

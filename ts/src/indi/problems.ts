@@ -66,7 +66,7 @@ export class ProblemLog {
     return this.line(
       key,
       n =>
-        `INDI protocol error #${n}: ${consequence}: ${reason}; <${tag}> ${where || 'no device or name'}, ${problem.bytes} bytes${problem.utf8 ? '' : ', not valid UTF-8'}: ${excerpt}`,
+        `INDI input problem #${n}: ${consequence}: ${reason}; <${tag}> ${where || 'no device or name'}, ${problem.bytes} bytes${problem.utf8 ? '' : ', not valid UTF-8'}: ${excerpt}`,
     )
   }
 
