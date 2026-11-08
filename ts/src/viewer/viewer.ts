@@ -1,10 +1,11 @@
 import { readFileSync } from 'node:fs'
-import { createServer, type ServerResponse } from 'node:http'
+import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
 import { DeliverPolicy, jetstream, jetstreamManager } from '@nats-io/jetstream'
 import { connect } from '@nats-io/transport-node'
 import { readConfig } from '../config.ts'
 import { brokerSettings, streamName } from '../stream/index.ts'
 import { ViewerSettings } from './config.ts'
+import { makeHighlights } from './highlights.ts'
 import { makeHistory, parseQuery, type HistoryQuery } from './history.ts'
 import { requestUrl } from './url.ts'
 
@@ -15,6 +16,7 @@ export async function runViewer(): Promise<void> {
   const broker = await connect({ ...brokerSettings(config.broker), name: 'rig-stream-viewer', reconnect: false })
   const manager = await jetstreamManager(broker)
   const client = jetstream(broker)
+  const highlights = makeHighlights(config.highlightsFile)
 
   const progressEvery = 100000
 
@@ -95,6 +97,34 @@ export async function runViewer(): Promise<void> {
     }
   }
 
+  async function bodyOf(request: IncomingMessage) {
+    const chunks: Array<Buffer> = []
+
+    for await (const chunk of request) chunks.push(Buffer.from(chunk))
+
+    return Buffer.concat(chunks).toString('utf8')
+  }
+
+  function answer(response: ServerResponse, status: number, data: unknown) {
+    response.writeHead(status, { 'content-type': 'application/json', 'cache-control': 'no-store' })
+    response.end(JSON.stringify(data))
+  }
+
+  async function highlightsRequest(request: IncomingMessage, response: ServerResponse) {
+    if (request.method !== 'POST') {
+      const listed = highlights.list()
+
+      answer(response, listed.status === 'listed' ? 200 : 500, listed.status === 'listed' ? listed.highlights : { error: listed.reason })
+
+      return
+    }
+
+    const added = highlights.add(await bodyOf(request))
+
+    if (added.status === 'saved') answer(response, 200, added.highlight)
+    else answer(response, added.status === 'refused' ? 400 : 500, { error: added.reason })
+  }
+
   createServer((request, response) => {
     if (request.url === '/') {
       response.writeHead(200, { 'content-type': 'text/html; charset=utf-8' })
@@ -114,6 +144,15 @@ export async function runViewer(): Promise<void> {
 
     if (url === undefined) {
       response.writeHead(400).end()
+
+      return
+    }
+
+    if (url.pathname === '/highlights') {
+      highlightsRequest(request, response).catch((error: unknown) => {
+        console.error(`rig-stream-viewer: highlights: ${String(error)}`)
+        response.destroy()
+      })
 
       return
     }

@@ -34,7 +34,10 @@ button:focus-visible, input:focus-visible, .row:focus-visible { outline: 2px sol
 .chip span { font-variant-numeric: tabular-nums }
 .chip[aria-pressed="true"] { background: color-mix(in srgb, var(--tone, var(--hi)) 16%, transparent); border-color: var(--tone, var(--hi)) }
 .gap { width: 8px }
-#range[hidden] { display: none }
+#range[hidden], #marking[hidden], #highlightNote[hidden] { display: none }
+#marks:empty { display: none }
+#marking input { flex: 1 1 200px }
+.row.marked { background: color-mix(in srgb, var(--warn) 12%, transparent) }
 #windows .chip { padding: 1px 10px }
 #hidden:empty { display: none }
 #hidden::before { content: 'Hidden:'; color: var(--mu); font-size: 12px; margin-right: 2px }
@@ -101,6 +104,15 @@ main[hidden], .columns[hidden] { display: none }
       <button id="apply" type="button">Show</button>
     </div>
   </div>
+  <div class="bar chips" id="marks" role="group" aria-label="Highlights"></div>
+  <div class="bar" id="highlightNote" hidden></div>
+  <div class="bar" id="marking" hidden>
+    <span class="k" id="markRange"></span>
+    <input id="markTitle" aria-label="Highlight title" placeholder="Title">
+    <input id="markNote" aria-label="Highlight note" placeholder="Note">
+    <button id="markSave" type="button">Save highlight</button>
+    <button id="markCancel" type="button">Cancel</button>
+  </div>
   <div class="bar">
     <input id="search" type="search" placeholder="Search the window, Enter to run: ABORT, prop:COORD state:Alert who:kernel -debug" aria-label="Search entries">
     <button id="clear" type="button">Clear</button>
@@ -148,6 +160,8 @@ let phase = 'reading'
 let openedAt = 0
 let liveSince = 0
 let events = null
+let highlights = []
+const marking = { start: undefined, end: undefined }
 
 const hash = new URLSearchParams(location.hash.slice(1))
 const filter = {
@@ -329,6 +343,7 @@ function moreOf(view, subject) {
       }),
     )
   }
+  actions.append(action('Mark', () => pick(view.entry.at)))
   actions.append(action('Copy entry', () => void navigator.clipboard?.writeText(JSON.stringify(view.entry, null, 2))))
   more.append(facts, actions, element('pre', '', typeof body?.xml === 'string' ? body.xml.trim() : JSON.stringify(body, null, 2)))
   more.addEventListener('click', event => event.stopPropagation())
@@ -365,6 +380,7 @@ function rowOf(message) {
   row.tabIndex = 0
   row.append(element('span', 'seq', message.seq), time, element('span', 'src', view.label), element('span', 'who', view.who), what, detailOf(view))
   meta.set(row, view)
+  markRow(row)
 
   return row
 }
@@ -521,6 +537,129 @@ function eventsUrl() {
   return `events?${query}`
 }
 
+function highlightAt(at) {
+  return highlights.find(highlight => at >= highlight.from && at <= highlight.to)
+}
+
+function markRow(row) {
+  const highlight = highlightAt(meta.get(row).entry.at)
+
+  row.classList.toggle('marked', highlight !== undefined)
+  row.title = highlight?.title ?? ''
+}
+
+function localInput(ms, roundUp) {
+  const second = Math.floor(ms / 1000) * 1000
+  const when = new Date(roundUp && second < ms ? second + 1000 : second)
+  const pad = number => String(number).padStart(2, '0')
+
+  return `${when.getFullYear()}-${pad(when.getMonth() + 1)}-${pad(when.getDate())}T${pad(when.getHours())}:${pad(when.getMinutes())}:${pad(when.getSeconds())}`
+}
+
+function openHighlight(highlight) {
+  filter.view = 'log'
+  filter.show.clear()
+  filter.hidden.clear()
+  filter.commands = false
+  filter.problems = false
+  filter.changes = false
+  filter.window = 'range'
+  filter.from = localInput(highlight.from, false)
+  filter.to = localInput(highlight.to, true)
+  document.getElementById('from').value = filter.from
+  document.getElementById('to').value = filter.to
+  search.value = highlight.search
+
+  const note = document.getElementById('highlightNote')
+
+  note.replaceChildren(element('b', '', highlight.title), element('span', 'k', highlight.by ? `by ${highlight.by}` : ''), element('span', '', highlight.note))
+  note.hidden = false
+  openEvents()
+}
+
+function drawHighlights(problem) {
+  const marks = document.getElementById('marks')
+
+  if (problem !== undefined) {
+    marks.replaceChildren(element('span', 'k', `Highlights: ${problem}`))
+
+    return
+  }
+
+  marks.replaceChildren(...highlights.toSorted((a, b) => b.from - a.from).map(highlight => {
+    const made = element('button', 'chip')
+
+    made.type = 'button'
+    made.title = [highlight.note, highlight.search === '' ? '' : `search: ${highlight.search}`, highlight.by ? `by ${highlight.by}` : ''].filter(Boolean).join('\n')
+    made.append(element('b', '', highlight.title || 'Highlight'), element('span', '', `${stamp.format(new Date(highlight.from))} ET`))
+    made.addEventListener('click', () => openHighlight(highlight))
+
+    return made
+  }))
+}
+
+async function loadHighlights() {
+  const answer = await fetch('highlights')
+  const data = await answer.json()
+
+  highlights = answer.ok ? data : []
+  drawHighlights(answer.ok ? undefined : data.error)
+  for (const row of rows.querySelectorAll('.row')) markRow(row)
+}
+
+function picked() {
+  const ends = [marking.start, marking.end ?? marking.start].sort((a, b) => a - b)
+
+  return { from: ends[0], to: ends[1] }
+}
+
+function drawMarking() {
+  const bar = document.getElementById('marking')
+  const { from, to } = picked()
+  const at = time => `${stamp.format(new Date(time))} ET`
+
+  bar.hidden = marking.start === undefined
+  if (marking.start === undefined) return
+  document.getElementById('markRange').textContent = marking.end === undefined
+    ? `From ${at(from)}. Press Mark on another row for the other end, or save this moment alone.`
+    : `${at(from)} to ${at(to)}`
+}
+
+function pick(at) {
+  if (marking.start === undefined || marking.end !== undefined) {
+    marking.start = at
+    marking.end = undefined
+  } else marking.end = at
+  drawMarking()
+}
+
+function stopMarking() {
+  marking.start = undefined
+  marking.end = undefined
+  document.getElementById('markTitle').value = ''
+  document.getElementById('markNote').value = ''
+  drawMarking()
+}
+
+document.getElementById('markCancel').addEventListener('click', stopMarking)
+document.getElementById('markSave').addEventListener('click', async () => {
+  const { from, to } = picked()
+  const answer = await fetch('highlights', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ from, to, title: document.getElementById('markTitle').value, note: document.getElementById('markNote').value, search: search.value.trim() }),
+  })
+
+  if (!answer.ok) {
+    document.getElementById('markRange').textContent = `Not saved: ${(await answer.json()).error}`
+
+    return
+  }
+
+  stopMarking()
+  await loadHighlights()
+})
+
 function openEvents() {
   events?.close()
   rows.querySelectorAll('.row').forEach(row => row.remove())
@@ -581,6 +720,7 @@ function openEvents() {
 search.addEventListener('change', openEvents)
 
 document.getElementById('clear').addEventListener('click', () => {
+  document.getElementById('highlightNote').hidden = true
   search.value = ''
   filter.show.clear()
   filter.hidden.clear()
@@ -632,6 +772,7 @@ rows.addEventListener('keydown', event => {
 })
 
 openEvents()
+void loadHighlights()
 setInterval(() => {
   if (deviceSources().join() !== drawnSources) drawChips()
   tickAges()
