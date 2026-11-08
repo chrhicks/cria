@@ -18,14 +18,13 @@ main() {
     esac
   done
 
-  local checkout units enabled programs retired=()
+  local checkout units enabled programs
   case $machine in
     errai)
       checkout=$HOME/dev/personal/cria-ts
       units=(indiserver rig phd2)
       enabled=(indiserver rig)
       programs=(rig)
-      retired=(rig-supervisor rig-stream-client)
       ;;
     thuban)
       checkout=$HOME/dev/personal/cria-run
@@ -46,12 +45,6 @@ main() {
   echo "install: $machine at $(git -C "$checkout" rev-parse --short HEAD)"
 
   (cd "$checkout/ts" && pnpm install --frozen-lockfile --prod)
-
-  for unit in "${retired[@]}"; do
-    [ -e "$HOME/.config/systemd/user/$unit.service" ] || continue
-    systemctl --user disable --now "$unit"
-    rm -f "$HOME/.config/systemd/user/$unit.service"
-  done
 
   mkdir -p "$HOME/.config/systemd/user"
   local unit source target
