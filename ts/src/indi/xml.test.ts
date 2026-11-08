@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import { IndiFramer, parseNumber, serialize, type IndiMessage } from './xml.ts'
+import { factsOfRequest, IndiFramer, parseNumber, serialize, type IndiMessage } from './xml.ts'
 import { Mirror } from './mirror.ts'
 
 // Real traffic from indiserver 2.2.5 with the CCD, telescope, focuser and
@@ -109,7 +109,7 @@ describe('INDI framing for the traffic tap', () => {
     const relayed = '<newNumberVector device="CCD" name="CCD_CONTROLS"><oneNumber name="Gain">100</oneNumber></newNumberVector>'
     const framed = new IndiFramer().frame(Buffer.from(relayed), true).elements
 
-    expect(framed).toEqual([{ message: undefined, xml: relayed }])
+    expect(framed).toEqual([{ message: undefined, facts: { type: 'new', indiDevice: 'CCD', property: 'CCD_CONTROLS', elements: { Gain: 100 } }, xml: relayed }])
   })
 
   it('reads a driver message with its device and text', () => {
@@ -140,5 +140,73 @@ describe('INDI framing for the traffic tap', () => {
 
       expect(split.map(element => element.xml)).toEqual(whole.map(element => element.xml))
     }
+  })
+})
+
+describe('what an element says, for the recording', () => {
+  const factsOf = (xml: string) => new IndiFramer().frame(Buffer.from(xml), true).elements.map(element => element.facts)
+
+  it('reads each kind of element once, from the parse the client uses', () => {
+    expect(
+      factsOf(
+        '<defNumberVector device="Mount" name="COORD" state="Idle" perm="rw" message="ready"><defNumber name="RA" min="0" max="24" step="0.1">5:30</defNumber><defNumber name="DEC" min="-90" max="90" step="1">-10</defNumber></defNumberVector>' +
+          '<setSwitchVector device="Mount" name="TRACK" state="Busy"><oneSwitch name="ON">On</oneSwitch><oneSwitch name="OFF">Off</oneSwitch></setSwitchVector>' +
+          '<setTextVector device="Cam" name="INFO"><oneText name="MODEL">\nASI\n</oneText></setTextVector>' +
+          '<setLightVector device="Cam" name="STATUS" state="Ok"><oneLight name="TEMP">Alert</oneLight></setLightVector>' +
+          '<newNumberVector device="Cam" name="GAIN"><oneNumber name="GAIN">100</oneNumber></newNumberVector>' +
+          '<delProperty device="Mount" name="COORD"/><delProperty device="Mount"/>' +
+          '<message device="Mount" message="[ERROR] bad"/><message message="hello"/>' +
+          '<pingRequest uid="7"/>',
+      ),
+    ).toEqual([
+      { type: 'def', indiDevice: 'Mount', property: 'COORD', state: 'Idle', elements: { RA: 5.5, DEC: -10 }, text: 'ready' },
+      { type: 'set', indiDevice: 'Mount', property: 'TRACK', state: 'Busy', elements: { ON: true, OFF: false } },
+      { type: 'set', indiDevice: 'Cam', property: 'INFO', elements: { MODEL: 'ASI' } },
+      { type: 'set', indiDevice: 'Cam', property: 'STATUS', state: 'Ok', elements: { TEMP: 'Alert' } },
+      { type: 'new', indiDevice: 'Cam', property: 'GAIN', elements: { GAIN: 100 } },
+      { type: 'del', indiDevice: 'Mount', property: 'COORD' },
+      { type: 'del', indiDevice: 'Mount' },
+      { type: 'message', indiDevice: 'Mount', text: '[ERROR] bad' },
+      { type: 'message', text: 'hello' },
+      { type: 'other', tag: 'pingRequest' },
+    ])
+  })
+
+  it('reads a command another client sent as it was written, never as a problem', () => {
+    expect(factsOf('<newSwitchVector device="D" name="N"><oneSwitch name="a">On</oneSwitch><oneSwitch name="b">1</oneSwitch></newSwitchVector><newNumberVector device="D" name="M"><oneNumber name="x">soon</oneNumber></newNumberVector>')).toEqual([
+      { type: 'new', indiDevice: 'D', property: 'N', elements: { a: true, b: '1' } },
+      { type: 'new', indiDevice: 'D', property: 'M', elements: { x: 'soon' } },
+    ])
+  })
+
+  it('names the property of a BLOB without decoding it', () => {
+    expect(factsOf('<setBLOBVector device="Cam" name="CCD1" state="Ok"><oneBLOB name="CCD1" size="3" format=".fits">AAAA</oneBLOB></setBLOBVector>')).toEqual([
+      { type: 'set', indiDevice: 'Cam', property: 'CCD1', state: 'Ok' },
+    ])
+    expect(factsOf('<defBLOBVector device="Cam" name="CCD1" state="Idle" perm="ro"><defBLOB name="CCD1"/></defBLOBVector>')).toEqual([
+      { type: 'def', indiDevice: 'Cam', property: 'CCD1', state: 'Idle', elements: {} },
+    ])
+  })
+
+  it('leaves out the element it could not read and says what went wrong', () => {
+    expect(factsOf('<setNumberVector device="Cam" name="T"><oneNumber name="A">1</oneNumber><oneNumber name="">2</oneNumber></setNumberVector>')).toEqual([
+      { type: 'set', indiDevice: 'Cam', property: 'T', elements: { A: 1 } },
+    ])
+    expect(factsOf('<setNumberVector device="Cam" name="T"><oneNumber name="A">x</oneNumber></setNumberVector>')).toEqual([
+      { type: 'unreadable', tag: 'setNumberVector', indiDevice: 'Cam', property: 'T', text: 'Invalid INDI number "x"' },
+    ])
+    expect(factsOf('<mystery/>')).toEqual([{ type: 'unreadable', tag: 'mystery', text: 'Unknown INDI element <mystery>' }])
+  })
+
+  it('takes the facts of a request from the request', () => {
+    expect(factsOfRequest({ type: 'getProperties' })).toEqual({ type: 'other', tag: 'getProperties' })
+    expect(factsOfRequest({ type: 'getProperties', device: 'Cam', name: 'GAIN' })).toEqual({ type: 'other', tag: 'getProperties', indiDevice: 'Cam', property: 'GAIN' })
+    expect(factsOfRequest({ type: 'pingReply', uid: '7' })).toEqual({ type: 'other', tag: 'pingReply' })
+    expect(factsOfRequest({ type: 'new', kind: 'switch', device: 'Cam', name: 'CONNECTION', values: { CONNECT: true } })).toEqual({
+      type: 'new',
+      indiDevice: 'Cam',
+      property: 'CONNECTION',
+      elements: { CONNECT: true },
+    })
   })
 })

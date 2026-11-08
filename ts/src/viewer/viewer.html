@@ -110,7 +110,10 @@ main[hidden], .columns[hidden] { display: none }
     <div class="chips" id="show" role="group" aria-label="Show only"></div>
     <div class="chips" id="hidden" aria-label="Hidden properties"></div>
   </div>
-  <div class="columns" id="logColumns" aria-hidden="true"><span>seq</span><span>time ET</span><span>src</span><span>who</span><span>what</span><span>detail</span></div>
+  <div class="bar">
+    <span class="k" id="timenote">Window and time column use each entry's own time: when it happened for the journal and PHD2, when the rig program recorded it for INDI and client entries. An entry stored after the window ends is not found.</span>
+  </div>
+  <div class="columns" id="logColumns" aria-hidden="true"><span>seq</span><span title="The entry's own time">time ET</span><span>src</span><span>who</span><span>what</span><span>detail</span></div>
   <div class="columns table" id="tableColumns" aria-hidden="true" hidden><span>who</span><span>property</span><span>latest</span><span class="right">read</span><span class="right">changed</span><span class="right">reads</span><span class="right">changes</span></div>
 </header>
 <p id="empty" hidden></p>
@@ -127,8 +130,9 @@ const search = document.getElementById('search')
 const pauseButton = document.getElementById('pause')
 const clock = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' })
 const stamp = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' })
-const xml = new DOMParser()
-const sources = ['primary', 'guide', 'focuser', 'mount', 'box', 'server', 'other', null, 'system', 'phd2', 'client']
+const fixedSources = ['system', 'phd2', 'client']
+const notSources = new Set([...fixedSources, 'commands', 'problems', 'changes'])
+let drawnSources = ''
 const flags = [['commands', 'Commands'], ['problems', 'Problems'], ['changes', 'Changes only']]
 const windows = [['15 min', '15m', 900000], ['1 hour', '1h', 3600000], ['6 hours', '6h', 21600000], ['24 hours', '24h', 86400000], ['7 days', '7d', 604800000]]
 const counts = new Map()
@@ -176,32 +180,27 @@ function shortNumber(text) {
   return text !== '' && Number.isFinite(value) ? String(Number(value.toFixed(6))) : text
 }
 
-function describeWire(entry, subject) {
-  const device = subject.split('.')[2]
-  const root = xml.parseFromString(entry.body.xml, 'text/xml').documentElement
-  const base = { source: device, who: device, label: entry.body.dir, what: '', state: '', pairs: [], text: '', quiet: false }
+function wireValues(elements) {
+  return Object.entries(elements ?? {}).filter(([, value]) => value !== false).map(([key, value]) => [key, typeof value === 'number' ? shortNumber(String(value)) : value === true ? 'On' : String(value)])
+}
 
-  if (root.querySelector('parsererror') || root.nodeName === 'parsererror') return { ...base, what: 'unreadable', text: entry.body.xml.trim() }
+function describeWire(entry, subject, current) {
+  const body = entry.body
 
-  const tag = root.nodeName
+  if (body.type === undefined) return { source: subject.split('.')[2], who: subject.split('.')[2], label: body.dir, what: '', state: '', pairs: [], text: body.xml.trim(), quiet: true }
 
-  if (tag === 'message') {
-    const text = root.getAttribute('message') ?? ''
+  const shown = current ?? body
+  const base = { source: body.device, who: body.device, label: body.dir, what: body.property ?? body.tag ?? body.type, state: shown.state ?? '', pairs: wireValues(shown.elements), text: '', quiet: false }
 
-    return { ...base, what: 'message', text, quiet: text.includes('[DEBUG]') }
+  switch (body.type) {
+    case 'message': return { ...base, what: 'message', text: body.text ?? '', quiet: (body.text ?? '').includes('[DEBUG]') }
+    case 'new': return { ...base, label: 'cmd' }
+    case 'def': return { ...base, text: base.pairs.length === 0 ? 'defined' : '', quiet: true }
+    case 'set': return base
+    case 'del': return { ...base, text: 'deleted', quiet: true }
+    case 'unreadable': return { ...base, what: 'unreadable', text: body.text ?? '' }
+    default: return { ...base, quiet: true }
   }
-
-  const state = root.getAttribute('state') ?? ''
-  const name = root.getAttribute('name') ?? ''
-  const children = [...root.children].map(child => [child.getAttribute('name') ?? child.nodeName, child.textContent.trim()])
-  const isSwitch = tag.endsWith('SwitchVector')
-  const pairs = children.filter(([, value]) => !isSwitch || value === 'On').map(([key, value]) => [key, shortNumber(value)])
-
-  if (tag.startsWith('new')) return { ...base, label: 'cmd', what: name, pairs }
-  if (tag.startsWith('def')) return { ...base, what: name, state, pairs, text: pairs.length === 0 ? 'defined' : '', quiet: true }
-  if (tag.startsWith('set')) return { ...base, what: name, state, pairs }
-
-  return { ...base, what: name || tag, text: name ? tag : '', quiet: true }
 }
 
 function describeSystem(entry) {
@@ -247,8 +246,8 @@ function describeClient(entry) {
   return { ...base, what: 'connected', pairs: [['connection', String(connection)], ...(version === undefined ? [] : [['version', String(version)]]), ['sources', published.join(', ')]] }
 }
 
-function describe(entry, subject) {
-  if (entry.kind === 'wire') return describeWire(entry, subject)
+function describe(entry, subject, current) {
+  if (entry.kind === 'wire') return describeWire(entry, subject, current)
   if (entry.kind.startsWith('client.')) return describeClient(entry)
 
   return entry.kind === 'system' ? describeSystem(entry) : describePhd2(entry)
@@ -319,10 +318,16 @@ function chip(label, key, pressed, tone, onClick) {
   return made
 }
 
+function deviceSources() {
+  return [...counts.keys()].filter(key => !notSources.has(key)).sort()
+}
+
 function drawChips() {
   const show = document.getElementById('show')
   const hidden = document.getElementById('hidden')
+  const sources = [...deviceSources(), null, ...fixedSources]
 
+  drawnSources = deviceSources().join()
   show.replaceChildren(
     ...sources.map(source => source === null ? element('span', 'gap') : chip(source, source, filter.show.has(source), source, () => {
       if (filter.show.has(source)) filter.show.delete(source)
@@ -524,7 +529,7 @@ function age(from) {
 function groupView(group) {
   const entry = JSON.parse(group.latest.text)
 
-  return { ...describe(entry, group.latest.subject), problem: group.latest.problem, entry }
+  return { ...describe(entry, group.latest.subject, group.current), problem: group.latest.problem, entry }
 }
 
 function groupPasses(group) {
@@ -576,6 +581,7 @@ function updateGroup(message) {
     reads: (known?.reads ?? 0) + 1,
     changes: (known?.changes ?? 0) + (message.differs ? 1 : 0),
     changedAt: message.differs ? message.at : known?.changedAt,
+    current: message.current,
   }
 
   groups.set(message.group, group)
@@ -764,6 +770,7 @@ rows.addEventListener('keydown', event => {
 
 openEvents()
 setInterval(() => {
+  if (deviceSources().join() !== drawnSources) drawChips()
   tickAges()
   showStatus()
   for (const number of document.querySelectorAll('[data-count]')) number.textContent = (counts.get(number.dataset.count) ?? 0).toLocaleString()

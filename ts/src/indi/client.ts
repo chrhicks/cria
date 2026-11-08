@@ -2,7 +2,7 @@ import net from 'node:net'
 import { Mirror, type Property } from './mirror.ts'
 import { ProblemLog } from './problems.ts'
 import type { TrafficTap } from './tap.ts'
-import { IndiFramer, serialize, type IndiRequest, type ProtocolProblem } from './xml.ts'
+import { factsOfRequest, IndiFramer, serialize, type IndiRequest, type ProtocolProblem } from './xml.ts'
 
 export type Values = Readonly<Record<string, number | boolean | string>>
 
@@ -35,7 +35,7 @@ export async function connectIndi(options: IndiClientOptions): Promise<IndiClien
   const transmit = (request: IndiRequest, onWritten?: (error?: Error | null) => void) => {
     const text = serialize(request)
 
-    tap?.message({ conn: connection, dir: 'out', xml: text })
+    tap?.message({ conn: connection, dir: 'out', xml: text, facts: factsOfRequest(request) })
     socket.write(text, onWritten)
   }
 
@@ -72,8 +72,8 @@ export async function connectIndi(options: IndiClientOptions): Promise<IndiClien
   socket.on('data', (chunk: Buffer) => {
     const { elements, stopped } = framer.frame(chunk, tap !== undefined)
 
-    for (const { message, problem, xml } of elements) {
-      tap?.message({ conn: connection, dir: 'in', xml })
+    for (const { message, problem, xml, facts } of elements) {
+      tap?.message({ conn: connection, dir: 'in', xml, facts })
       if (message) {
         if (problem) problems.report(problem, 'left one element out and kept the property')
         if (message.type === 'pingRequest') transmit({ type: 'pingReply', uid: message.uid })

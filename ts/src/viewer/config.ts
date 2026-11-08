@@ -16,7 +16,7 @@ export const ViewerSettings = Schema.Struct({
     2000,
   ),
   maxAgeDays: described(
-    'Days the dev stream keeps messages. Throwaway data: long enough to look back across a few iterations, at about 230 MB a day idle, estimated from the 125 MB measured before the entry format',
+    'Days the dev stream keeps messages. Throwaway data: long enough to look back across a few iterations. 668 MB over 2.3 days (about 290 MB a day) was measured on 2026-11-07 with raw XML only; entries that also carry what the parser read are about 31% bigger (measured on 19,721 wire entries from one idle hour)',
     Schema.Number,
     7,
   ),
