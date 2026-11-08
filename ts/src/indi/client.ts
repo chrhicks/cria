@@ -23,7 +23,6 @@ export interface IndiClient {
   readonly close: () => void
 }
 
-const connection = 1
 const skipped = 'skipped the element'
 const framingLost = 'lost the framing and skipped to the next element'
 const leftOut = 'left one element out and kept the property'
@@ -39,12 +38,12 @@ export async function connectIndi(options: IndiClientOptions): Promise<IndiClien
   const transmit = (request: IndiRequest, onWritten?: (error?: Error | null) => void) => {
     const text = serialize(request)
 
-    tap?.message({ conn: connection, dir: 'out', xml: text, facts: factsOfRequest(request) })
+    tap?.message({ dir: 'out', xml: text, facts: factsOfRequest(request) })
     socket.write(text, onWritten)
   }
 
   const report = (problem: ProtocolProblem, consequence: string) => {
-    tap?.problem({ conn: connection, consequence, problem })
+    tap?.problem({ consequence, problem })
 
     return problems.report(problem, consequence)
   }
@@ -66,7 +65,7 @@ export async function connectIndi(options: IndiClientOptions): Promise<IndiClien
 
   const closed = new Promise<string>(resolve => {
     socket.once('close', () => {
-      tap?.connection({ conn: connection, status: 'closed', error: lastError })
+      tap?.connection({ status: 'closed', error: lastError })
       resolve(lastError)
     })
   })
@@ -76,14 +75,14 @@ export async function connectIndi(options: IndiClientOptions): Promise<IndiClien
     lastError = error.message
   })
   socket.on('connect', () => {
-    tap?.connection({ conn: connection, status: 'connected' })
+    tap?.connection({ status: 'connected' })
     transmit({ type: 'getProperties' })
   })
   socket.on('data', (chunk: Buffer) => {
     const { elements } = framer.frame(chunk, tap !== undefined)
 
     for (const { message, problem, xml, facts } of elements) {
-      tap?.message({ conn: connection, dir: 'in', xml, facts })
+      tap?.message({ dir: 'in', xml, facts })
       if (message) {
         if (problem) report(problem, leftOut)
         if (message.type === 'pingRequest') transmit({ type: 'pingReply', uid: message.uid })

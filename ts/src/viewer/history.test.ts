@@ -7,7 +7,7 @@ function entry(kind: string, body: unknown, at = 1, v = 2) {
 }
 
 function wire(facts: WireFacts, device = 'mount', at = 1) {
-  return entry('wire', { conn: 1, dir: 'in', n: 1, xml: '<raw/>', device, ...facts }, at)
+  return entry('wire', { dir: 'in', n: 1, xml: '<raw/>', device, ...facts }, at)
 }
 
 const mountWire = 'rig-dev.wire.mount.in'
@@ -65,13 +65,13 @@ describe('classify', () => {
   })
 
   it('reads a version 1 wire entry as raw XML under the device in its subject, hyphens included', () => {
-    const old = entry('wire', { conn: 1, dir: 'in', n: 1, xml: '<setNumberVector state="Alert"/>' }, 1, 1)
+    const old = entry('wire', { dir: 'in', n: 1, xml: '<setNumberVector state="Alert"/>' }, 1, 1)
 
     expect(classified('rig-dev.wire.guide-cam.in', old)).toEqual({ source: 'guide-cam', command: false, problem: false, group: undefined, wire: undefined })
   })
 
   it('skips a wire entry without a device anywhere', () => {
-    expect(classified('rig-dev.wire.in', entry('wire', { conn: 1, dir: 'in', n: 1, xml: '<a/>' }, 1, 1))).toBeUndefined()
+    expect(classified('rig-dev.wire.in', entry('wire', { dir: 'in', n: 1, xml: '<a/>' }, 1, 1))).toBeUndefined()
   })
 
   it('skips text that is not an entry', () => {

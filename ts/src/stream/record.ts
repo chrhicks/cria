@@ -50,7 +50,7 @@ export function startRecording(options: {
     connection: connection => {
       broker.publish(
         'rig-dev.client',
-        entries.client('connection', { target: 'indiserver', conn: connection.conn, status: connection.status, ...(connection.status === 'closed' ? { error: connection.error } : {}) }),
+        entries.client('connection', { target: 'indiserver', status: connection.status, ...(connection.status === 'closed' ? { error: connection.error } : {}) }),
       )
     },
   }
