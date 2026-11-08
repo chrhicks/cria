@@ -37,7 +37,7 @@ function fakeBroker() {
 async function open(broker: ReturnType<typeof fakeBroker>) {
   const connected: Array<number> = []
   const publisher = openPublisher(
-    { broker: settings, name: 'test', log: () => {}, onConnected: connection => connected.push(connection) },
+    { broker: () => settings, name: 'test', log: () => {}, retryMs: 0, onConnected: connection => connected.push(connection) },
     () => Promise.resolve(broker.connection),
   )
 
@@ -71,20 +71,102 @@ describe('publisher', () => {
     expect(broker.stored).toEqual(['x'])
   })
 
-  it('fails when the broker refuses the entry for any other reason', async () => {
+  it('waits and sends again when the broker refuses the entry, as when the stream is missing, and says so once', async () => {
     const broker = fakeBroker()
-    const { publisher } = await open(broker)
+    const lines: string[] = []
+    const waits: number[] = []
+    const publisher = openPublisher(
+      { broker: () => settings, name: 'test', log: line => lines.push(line), retryMs: 25, onConnected: () => {} },
+      () => Promise.resolve(broker.connection),
+      ms => {
+        waits.push(ms)
 
-    broker.failures.push(new Error('no responders'))
+        return Promise.resolve()
+      },
+    )
 
-    await expect(publisher.store('subject', entry)).rejects.toThrow('no responders')
+    await publisher.store('subject', entry)
+    lines.length = 0
+    broker.failures.push(new Error('no responders'), new Error('no responders'), new Error('no responders'))
+
+    await publisher.store('subject', entry)
+
+    expect(broker.stored).toEqual(['x', 'x'])
+    expect(waits).toEqual([25, 25, 25])
+    expect(lines).toEqual(['stream: no responders; trying again every 0.025 s', 'stream: working again'])
+  })
+
+  it('keeps trying to reach the broker when connecting fails, and says so once', async () => {
+    const broker = fakeBroker()
+    const lines: string[] = []
+    const attempts: number[] = []
+    const publisher = openPublisher(
+      { broker: () => settings, name: 'test', log: line => lines.push(line), retryMs: 25, onConnected: () => {} },
+      () => {
+        attempts.push(attempts.length)
+
+        return attempts.length < 4 ? Promise.reject(new Error('authorization violation')) : Promise.resolve(broker.connection)
+      },
+      () => Promise.resolve(),
+    )
+
+    await publisher.store('subject', entry)
+
+    expect(attempts).toHaveLength(4)
+    expect(lines.filter(line => line.includes('authorization violation'))).toEqual(['broker connect: authorization violation; trying again every 0.025 s'])
+    expect(broker.stored).toEqual(['x'])
+  })
+
+  it('keeps trying when the broker settings cannot be read yet', async () => {
+    const broker = fakeBroker()
+    const lines: string[] = []
+    let reads = 0
+    const publisher = openPublisher(
+      {
+        broker: () => {
+          reads += 1
+          if (reads < 3) throw new Error('ENOENT: no such file')
+
+          return settings
+        },
+        name: 'test',
+        log: line => lines.push(line),
+        retryMs: 25,
+        onConnected: () => {},
+      },
+      () => Promise.resolve(broker.connection),
+      () => Promise.resolve(),
+    )
+
+    await publisher.store('subject', entry)
+
+    expect(reads).toBe(3)
+    expect(lines[0]).toBe('broker connect: ENOENT: no such file; trying again every 0.025 s')
+  })
+
+  it('drops an entry the connection refuses to take instead of throwing into the caller, and says so once', async () => {
+    const broker = fakeBroker()
+    const lines: string[] = []
+    const refusing = { ...broker.connection, publish: () => { throw new Error('payload too large') } } as unknown as BrokerConnection
+    const publisher = openPublisher(
+      { broker: () => settings, name: 'test', log: line => lines.push(line), retryMs: 25, onConnected: () => {} },
+      () => Promise.resolve(refusing),
+      () => Promise.resolve(),
+    )
+
+    await publisher.store('subject', entry)
+    expect(() => {
+      publisher.publish('wire', entry)
+      publisher.publish('wire', entry)
+    }).not.toThrow()
+    expect(lines.filter(line => line.includes('payload too large'))).toEqual(['broker publish: payload too large; entries it cannot send are dropped'])
   })
 
   it('does not store an entry before the broker has answered', async () => {
     const broker = fakeBroker()
     let answer = (_connection: BrokerConnection) => {}
     const publisher = openPublisher(
-      { broker: settings, name: 'test', log: () => {}, onConnected: () => {} },
+      { broker: () => settings, name: 'test', log: () => {}, retryMs: 0, onConnected: () => {} },
       () => new Promise<BrokerConnection>(resolve => (answer = resolve)),
     )
     let done = false

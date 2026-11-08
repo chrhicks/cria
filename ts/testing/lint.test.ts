@@ -18,12 +18,18 @@ const allowed: Record<string, Partial<Record<Rule, readonly [count: number, why:
     'try-catch': [1, 'an IndiProtocolError from one element becomes a problem the client logs and records, never a throw out of a data handler'],
   },
   'src/stream/json.ts': { 'try-catch': [1, 'a line that is not JSON is kept as text'] },
-  'src/stream/publisher.ts': { 'try-catch': [1, 'an entry the stream has not acknowledged is sent again under the same id; any other error ends the process'] },
+  'src/stream/journal.ts': { 'try-catch': [1, 'a try with only a finally: journalctl is stopped, and a cursor it could not use is forgotten, however the follower ends'] },
+  'src/stream/retry.ts': { 'try-catch': [1, 'a source that throws is logged once and run again after the retry delay'] },
+  'src/stream/publisher.ts': {
+    'try-catch': [3, 'a broker that cannot be reached or an entry it will not take is logged once and tried again (stored entries) or dropped (live entries), never a throw into the INDI socket or the journal follower'],
+  },
   'src/rig/hardware.ts': { 'try-catch': [2, 'a USB device sysfs cannot be read, or a sysfs that is not there, is a device that is not attached'] },
   'src/rig/supervisor.ts': {
     'try-catch': [2, 'a write INDI refuses and a FIFO that cannot be written are logged and tried again on a later poll: one failure must not stop the rig program'],
   },
-  'src/bin/rig.ts': { 'try-catch': [1, 'a config file that cannot be read exits 2, which systemd does not restart'] },
+  'src/bin/rig.ts': {
+    'try-catch': [2, 'a config file that cannot be read exits 2, which systemd does not restart; a poll that throws is logged once and tried again on the next poll, so the devices keep their upkeep'],
+  },
   'src/viewer/viewer.ts': { 'promise-catch': [1, 'a page whose stream fails is logged and closed, and its browser reconnects'] },
 }
 

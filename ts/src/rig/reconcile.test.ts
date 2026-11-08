@@ -158,6 +158,7 @@ describe('the rig file', () => {
         broker: stream.broker,
         journalExclusions: { identifiers: ['sshd', 'sshd-session', 'systemd-logind', 'tailscaled'], unitPrefixes: ['session-'] },
         journalCursorFile: join(homedir(), '.local', 'state', 'rig-stream', 'journal-cursor'),
+        retrySeconds: 5,
         phd2: { host: '127.0.0.1', port: 4400, reconnectSeconds: 5 },
       },
       devices: [

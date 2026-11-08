@@ -13,7 +13,7 @@ Cria is TypeScript on Node 26 that runs the rig's software on errai (the rig PC,
 
 Entry points are `ts/src/bin/{rig,viewer,ensure-stream}.ts`; each unit in `ts/deploy/` runs one of the first two.
 
-When a connection a program depends on is lost, it exits and systemd starts it again with fresh state (`Restart=always`, with a delay that grows on repeated failure). The rig program does this for indiserver and for an unreadable config; the viewer does it for the broker. The one connection it keeps instead of exiting is the broker's, because bring-up must not wait for thuban: the NATS client reconnects by itself, wire entries are dropped while it is away, and journal lines wait for the stream's acknowledgement before the cursor moves.
+When the INDI connection is lost the rig program exits and systemd starts it again with fresh state (`Restart=always`, with a delay that grows on repeated failure); the viewer does the same for the broker. An unreadable config also exits (status 2, which systemd does not restart). Nothing else ends the rig program: a recording source that fails (the journal follower, the broker connection, a stream that is missing) is retried every `retrySeconds` with one log line per change of state, journal lines wait for the stream's acknowledgement before the cursor moves, and wire entries are dropped while the broker is away (the NATS client reconnects by itself, so bring-up never waits for thuban).
 
 ## Layout (`ts/`)
 
