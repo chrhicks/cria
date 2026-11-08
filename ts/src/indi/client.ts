@@ -24,6 +24,9 @@ export interface IndiClient {
 }
 
 const connection = 1
+const skipped = 'skipped the element'
+const framingLost = 'lost the framing and skipped to the next element'
+const leftOut = 'left one element out and kept the property'
 
 export async function connectIndi(options: IndiClientOptions): Promise<IndiClient> {
   const { tap, onMessage } = options
@@ -40,8 +43,14 @@ export async function connectIndi(options: IndiClientOptions): Promise<IndiClien
     socket.write(text, onWritten)
   }
 
+  const report = (problem: ProtocolProblem, consequence: string) => {
+    tap?.problem({ conn: connection, consequence, problem })
+
+    return problems.report(problem, consequence)
+  }
+
   const skip = (problem: ProtocolProblem) => {
-    const logged = problems.report(problem, 'skipped the element')
+    const logged = report(problem, problem.scope === 'framing' ? framingLost : skipped)
 
     if (problem.device === undefined || problem.name === undefined || !/^(def|set)\w+Vector$/.test(problem.tag)) return
     const { device, name } = problem
@@ -71,21 +80,16 @@ export async function connectIndi(options: IndiClientOptions): Promise<IndiClien
     transmit({ type: 'getProperties' })
   })
   socket.on('data', (chunk: Buffer) => {
-    const { elements, stopped } = framer.frame(chunk, tap !== undefined)
+    const { elements } = framer.frame(chunk, tap !== undefined)
 
     for (const { message, problem, xml, facts } of elements) {
       tap?.message({ conn: connection, dir: 'in', xml, facts })
       if (message) {
-        if (problem) problems.report(problem, 'left one element out and kept the property')
+        if (problem) report(problem, leftOut)
         if (message.type === 'pingRequest') transmit({ type: 'pingReply', uid: message.uid })
         else if (message.type === 'message') onMessage?.(message.device, message.text)
         else mirror.apply(message)
-      } else if (problem && problem.scope === 'element') skip(problem)
-    }
-
-    if (stopped) {
-      problems.report(stopped, 'dropped the connection')
-      socket.destroy(new Error(`INDI protocol error: ${stopped.reason}`))
+      } else if (problem) skip(problem)
     }
   })
 

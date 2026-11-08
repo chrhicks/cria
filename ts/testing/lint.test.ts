@@ -15,7 +15,7 @@ type Rule = keyof typeof rules
 
 const allowed: Record<string, Partial<Record<Rule, readonly [count: number, why: string]>>> = {
   'src/indi/xml.ts': {
-    'try-catch': [2, 'an IndiProtocolError from one element or from the framing becomes a problem the client logs, never a throw out of a data handler'],
+    'try-catch': [1, 'an IndiProtocolError from one element becomes a problem the client logs and records, never a throw out of a data handler'],
   },
   'src/stream/json.ts': { 'try-catch': [1, 'a line that is not JSON is kept as text'] },
   'src/stream/publisher.ts': { 'try-catch': [1, 'an entry the stream has not acknowledged is sent again under the same id; any other error ends the process'] },

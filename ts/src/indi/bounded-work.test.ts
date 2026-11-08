@@ -14,10 +14,9 @@ function deliver(wire: Buffer, size: number, framer = new IndiFramer(), keepText
 
     slowest = Math.max(slowest, performance.now() - began)
     results.push(result)
-    if (result.stopped) break
   }
 
-  return { elements: results.flatMap(result => result.elements), stopped: results.find(result => result.stopped)?.stopped, slowest }
+  return { elements: results.flatMap(result => result.elements), slowest }
 }
 
 describe('what is read of a bad element does not depend on how big it is', () => {
@@ -103,6 +102,10 @@ describe('a stream of valid and malformed input, however it is chunked', () => {
           `<?xml version="1.0"?>`,
           `<bogus device="${device}" name="${name}" ${'k="v" '.repeat(Math.floor(random() * 40))}/>`,
           `<defTextVector name="${name}" state="Idle" perm="ro"/>`,
+          `<message device="${device}" message="${word()} > ${word()}"/>`,
+          `<setNumberVector device="${device}" name="${name}" `,
+          `<defTextVector device="${device}" name="${name}" state="Idle" perm="ro"><defText name="t">cut`,
+          `garbage ${word()}`,
         ]),
       )
     }
@@ -117,15 +120,14 @@ describe('a stream of valid and malformed input, however it is chunked', () => {
     for (const seed of [1, 2, 3]) {
       const wire = corpus(seed)
       const results = [1, 7, 64 * 1024, wire.length].map(size => {
-        const { elements, stopped, slowest } = deliver(wire, size, new IndiFramer(), true)
+        const { elements, slowest } = deliver(wire, size, new IndiFramer(), true)
 
         expect(slowest, `chunks of ${size}`).toBeLessThan(250)
 
-        return { elements: summary(elements), stopped }
+        return { elements: summary(elements) }
       })
 
       expect(results[0]!.elements.length).toBeGreaterThan(300)
-      expect(results[0]!.stopped).toBeUndefined()
       for (const result of results) expect(result).toEqual(results[0])
     }
   })

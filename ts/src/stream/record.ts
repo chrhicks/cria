@@ -44,6 +44,7 @@ export function startRecording(options: {
 
       broker.publish(wireSubject(device, message.dir), entries.wire(message, device))
     },
+    problem: problem => broker.publish('rig-dev.client', entries.protocolProblem(problem)),
     connection: connection => {
       broker.publish(
         'rig-dev.client',

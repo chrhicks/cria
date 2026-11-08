@@ -3,7 +3,7 @@ import { FakeIndi, connection } from '../../testing/fake-indi/index.ts'
 import { startIndiServer, type RunningIndiServer } from '../../testing/indiserver.ts'
 import { until } from '../../testing/until.ts'
 import { connectIndi, type IndiClient } from './client.ts'
-import type { TappedConnection, TappedMessage } from './tap.ts'
+import type { TappedConnection, TappedMessage, TrafficTap } from './tap.ts'
 
 let server: RunningIndiServer
 
@@ -15,7 +15,7 @@ afterAll(() => server.stop())
 
 const focuser = 'Focuser Simulator'
 
-async function withClient(use: (client: IndiClient) => Promise<void>, tap?: { message: (message: TappedMessage) => void; connection: (connection: TappedConnection) => void }) {
+async function withClient(use: (client: IndiClient) => Promise<void>, tap?: TrafficTap) {
   const client = await connectIndi({ host: '127.0.0.1', port: server.port, warn: () => {}, ...(tap ? { tap } : {}) })
 
   try {
@@ -49,6 +49,7 @@ describe('INDI client against a real indiserver', () => {
         if (state) states.push(state)
       },
       connection: () => {},
+      problem: () => {},
     }
 
     await withClient(async client => {
@@ -74,7 +75,7 @@ describe('INDI client against a real indiserver', () => {
 
   it('tells the tap about the connection and every element, in the order it saw them', async () => {
     const tapped: Array<TappedConnection | TappedMessage> = []
-    const tap = { message: (message: TappedMessage) => void tapped.push(message), connection: (connection: TappedConnection) => void tapped.push(connection) }
+    const tap = { message: (message: TappedMessage) => void tapped.push(message), connection: (connection: TappedConnection) => void tapped.push(connection), problem: () => {} }
 
     await withClient(async client => {
       await until('CONNECTION', () => client.property(focuser, 'CONNECTION'))
@@ -105,7 +106,7 @@ describe('INDI client when the connection ends', () => {
     await fake.start()
     fake.define(connection('Fake CCD'))
 
-    const client = await connectIndi({ host: '127.0.0.1', port: fake.port, warn: () => {}, tap: { message: () => {}, connection: item => void closed.push(item) } })
+    const client = await connectIndi({ host: '127.0.0.1', port: fake.port, warn: () => {}, tap: { message: () => {}, connection: item => void closed.push(item), problem: () => {} } })
 
     await until('CONNECTION', () => client.property('Fake CCD', 'CONNECTION'))
     await fake.stop()
@@ -136,7 +137,7 @@ describe('asking for everything again', () => {
       host: '127.0.0.1',
       port: fake.port,
       warn: () => {},
-      tap: { connection: () => {}, message: message => void (message.dir === 'in' && message.xml.startsWith('<def') && definitions.push(message.xml)) },
+      tap: { connection: () => {}, problem: () => {}, message: message => void (message.dir === 'in' && message.xml.startsWith('<def') && definitions.push(message.xml)) },
     })
 
     await until('the first definitions', () => definitions.length === 1 || undefined)

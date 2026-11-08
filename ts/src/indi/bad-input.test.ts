@@ -2,7 +2,7 @@ import net from 'node:net'
 import { afterEach, describe, expect, it } from 'vitest'
 import { connectIndi } from './client.ts'
 import { ProblemLog } from './problems.ts'
-import type { TappedConnection, TappedMessage } from './tap.ts'
+import type { TappedConnection, TappedMessage, TappedProblem } from './tap.ts'
 import { IndiFramer } from './xml.ts'
 
 // All names, values and text in this file are invented.
@@ -37,9 +37,8 @@ describe('what the framer and parser do with unexpected input', () => {
   ]
 
   it.each(cases)('skips %s, keeps its bytes, and reads the next element', (_, wire, reason) => {
-    const { elements, stopped } = frame(wire)
+    const { elements } = frame(wire)
 
-    expect(stopped).toBeUndefined()
     expect(elements).toHaveLength(2)
     expect(elements[0]!.message).toBeUndefined()
     expect(elements[0]!.problem).toMatchObject({ scope: 'element', reason: expect.stringMatching(reason) })
@@ -49,9 +48,8 @@ describe('what the framer and parser do with unexpected input', () => {
 
   it('keeps a property whose definition has one element with an empty name, and says it left that element out', () => {
     const wire = '<defSwitchVector device="ZWO AM5" name="ALTITUDE_LIMIT_CONTROL" label="Altitude Limit Control" group="Altitude Limits" state="Ok" perm="rw" rule="OneOfMany" timeout="60" timestamp="2030-01-01T00:00:00"><defSwitch name="ENABLE" label="Enable">On</defSwitch><defSwitch name="" label="">Off</defSwitch><defSwitch name="DISABLE" label="Disable">Off</defSwitch></defSwitchVector>'
-    const { elements, stopped } = frame(wire)
+    const { elements } = frame(wire)
 
-    expect(stopped).toBeUndefined()
     expect(elements[0]!.message).toMatchObject({ type: 'def', vector: { device: 'ZWO AM5', name: 'ALTITUDE_LIMIT_CONTROL', elements: [{ name: 'ENABLE', on: true }, { name: 'DISABLE', on: false }] } })
     expect(elements[0]!.problem).toMatchObject({ scope: 'element', reason: expect.stringMatching(/empty name/), tag: 'defSwitchVector', device: 'ZWO AM5', name: 'ALTITUDE_LIMIT_CONTROL' })
     expect(elements[0]!.xml).toBe(wire)
@@ -114,20 +112,97 @@ describe('what the framer and parser do with unexpected input', () => {
     expect(framer.frame(Buffer.from('...'), true)).toEqual({ elements: [] })
   })
 
-  it('stops, keeping what came before, when an element is cut short and the next one starts', () => {
-    const { elements, stopped } = frame(`${good('Test Focuser', 'FIRST')}<defTextVector device="D" name="N" state="Idle" perm="ro"><defText name="T">v</defText>${text('later')}`)
+  it('reports an element cut short by the next one, and reads that next one', () => {
+    const cut = '<defTextVector device="D" name="N" state="Idle" perm="ro"><defText name="T">v</defText>'
+    const { elements } = frame(`${good('Test Focuser', 'FIRST')}${cut}${text('later')}`)
 
-    expect(elements).toHaveLength(2)
+    expect(elements).toHaveLength(4)
     expect(elements[0]!.message).toMatchObject({ vector: { name: 'FIRST' } })
-    expect(stopped).toMatchObject({ scope: 'stream', reason: expect.stringMatching(/never closed/) })
+    expect(elements[1]!.message).toBeUndefined()
+    expect(elements[1]!.xml).toBe(cut)
+    expect(elements[1]!.problem).toMatchObject({ scope: 'framing', reason: expect.stringMatching(/never closed/), tag: 'defTextVector', device: 'D', name: 'N', bytes: cut.length })
+    expect(elements[2]!.message).toMatchObject({ vector: { device: 'D' } })
+    expect(elements[3]!.message).toMatchObject({ vector: { device: 'Test Focuser' } })
   })
 
-  it('stops at a tag that is not a tag, and reads nothing more', () => {
-    const { elements, stopped, framer } = frame('<1bad device="D">')
+  it('skips a tag that is not a tag up to the next element and reads that', () => {
+    const { elements } = frame('<1bad device="D">stuff</1bad>')
 
-    expect(elements).toHaveLength(0)
-    expect(stopped).toMatchObject({ scope: 'stream', reason: expect.stringMatching(/Malformed INDI element/) })
-    expect(framer.frame(Buffer.from(good()), true)).toMatchObject({ elements: [], stopped })
+    expect(elements).toHaveLength(2)
+    expect(elements[0]!.problem).toMatchObject({ scope: 'framing', reason: expect.stringMatching(/Malformed INDI element/), bytes: 29 })
+    expect(elements[0]!.xml).toBe('<1bad device="D">stuff</1bad>')
+    expect(elements[1]!.message).toMatchObject({ vector: { device: 'Test Focuser' } })
+  })
+
+  it('reads a > inside a quoted attribute value', () => {
+    const wire = '<message device="Test" message="Voltage > threshold"/>'
+    const { elements } = frame(wire)
+
+    expect(elements).toHaveLength(2)
+    expect(elements[0]!.problem).toBeUndefined()
+    expect(elements[0]!.message).toEqual({ type: 'message', device: 'Test', text: 'Voltage > threshold' })
+    expect(elements[0]!.xml).toBe(wire)
+    expect(elements[1]!.message).toMatchObject({ type: 'def' })
+  })
+
+  it('reads a > or a < or the other quote inside a quoted value of an element with children', () => {
+    const wire = `<setTextVector device="D" name="N" state='Ok' message="a > b < c 'd'"><oneText name="T" label='x > "y"'>v</oneText></setTextVector>`
+    const { elements } = frame(wire)
+
+    expect(elements[0]!.problem).toBeUndefined()
+    expect(elements[0]!.message).toMatchObject({ type: 'set', vector: { name: 'N', message: "a > b < c 'd'", elements: [{ name: 'T', value: 'v' }] } })
+    expect(elements[1]!.message).toMatchObject({ type: 'def' })
+  })
+
+  it('finds the next element after a quote that never closes', () => {
+    const bad = '<message device="Test" message="never closed/>'
+    const { elements } = frame(bad)
+
+    expect(elements).toHaveLength(2)
+    expect(elements[0]!.problem).toMatchObject({ scope: 'framing', tag: 'message', device: 'Test', bytes: bad.length })
+    expect(elements[1]!.message).toMatchObject({ type: 'def' })
+  })
+
+  it('reports garbage between elements once, and reads the elements around it', () => {
+    const framer = new IndiFramer()
+    const first = framer.frame(Buffer.from(`${good('Test Focuser', 'A')}\n  \n`), true)
+    const second = framer.frame(Buffer.from(`not xml at all\u0000\u0007 ${'x'.repeat(5000)}`), true)
+    const third = framer.frame(Buffer.from(` ${good('Test Focuser', 'B')}`), true)
+
+    expect(first.elements).toHaveLength(1)
+    expect(second.elements).toHaveLength(0)
+    expect(third.elements).toHaveLength(2)
+    expect(third.elements[0]!.problem).toMatchObject({ scope: 'framing', reason: expect.stringMatching(/outside any INDI element/), bytes: 5018 })
+    expect(third.elements[0]!.problem!.excerpt).toContain('not xml at all')
+    expect(third.elements[1]!.message).toMatchObject({ vector: { name: 'B' } })
+  })
+
+  it('skips stray closing tags and child elements up to the next element that starts a message', () => {
+    const { elements } = frame('<oneNumber name="x">1</oneNumber></defNumberVector><defNumber name="y">2</defNumber>')
+
+    expect(elements).toHaveLength(3)
+    expect(elements[0]!.problem).toMatchObject({ scope: 'element', reason: expect.stringMatching(/Unknown INDI element <oneNumber>/) })
+    expect(elements[1]!.problem).toMatchObject({ scope: 'framing', bytes: '</defNumberVector><defNumber name="y">2</defNumber>'.length })
+    expect(elements[2]!.message).toMatchObject({ vector: { device: 'Test Focuser' } })
+  })
+
+  it('does not wait for a header that never ends once another element starts', () => {
+    const { elements } = frame('<setNumberVector device="Test Focuser" name="POSITION" ')
+
+    expect(elements).toHaveLength(2)
+    expect(elements[0]!.problem).toMatchObject({ scope: 'framing', tag: 'setNumberVector', device: 'Test Focuser', name: 'POSITION' })
+    expect(elements[1]!.message).toMatchObject({ type: 'def' })
+  })
+
+  it('splits nothing when the stream is cut anywhere inside a message that holds a >', () => {
+    const wire = Buffer.from(`<message device="Test" message="Voltage > threshold"/>${good()}`)
+
+    for (let cut = 1; cut < wire.length; cut += 1) {
+      const framer = new IndiFramer()
+      const elements = [...framer.frame(wire.subarray(0, cut), true).elements, ...framer.frame(wire.subarray(cut), true).elements]
+
+      expect(elements.map(element => element.problem), `cut at ${cut}`).toEqual([undefined, undefined])
+    }
   })
 })
 
@@ -248,6 +323,7 @@ describe('the client when indiserver sends something unexpected', () => {
     readonly warnings: string[]
     readonly tapped: TappedMessage[]
     readonly closed: TappedConnection[]
+    readonly problems: TappedProblem[]
     readonly property: (name: string) => unknown
     /** The socket of the nth connection, once it is open. */
     readonly socket: (n: number) => Promise<net.Socket>
@@ -258,7 +334,8 @@ describe('the client when indiserver sends something unexpected', () => {
     const warnings: string[] = []
     const tapped: TappedMessage[] = []
     const closed: TappedConnection[] = []
-    const tap = { message: (message: TappedMessage) => void tapped.push(message), connection: (connection: TappedConnection) => void closed.push(connection) }
+    const problems: TappedProblem[] = []
+    const tap = { message: (message: TappedMessage) => void tapped.push(message), connection: (connection: TappedConnection) => void closed.push(connection), problem: (problem: TappedProblem) => void problems.push(problem) }
 
     const client = await connectIndi({ host: '127.0.0.1', port: fake.port, tap, warn: line => void warnings.push(line) })
 
@@ -268,6 +345,7 @@ describe('the client when indiserver sends something unexpected', () => {
         warnings,
         tapped,
         closed,
+        problems,
         property: name => client.property(deviceName, name),
         socket: async n => {
           await until(() => fake.connections.length >= n)
@@ -402,16 +480,51 @@ describe('the client when indiserver sends something unexpected', () => {
     })
   })
 
-  it('drops the connection and logs why when the framing is lost', async () => {
-    await session(async ({ warnings, closed, socket }) => {
+  it('keeps the connection when the framing is lost, reads what follows, and puts the problem on the tap', async () => {
+    await session(async ({ warnings, closed, problems, property, socket }) => {
+      const first = await socket(1)
+      const cut = '<defTextVector device="D" name="N" state="Idle" perm="ro"><defText name="T">v</defText>'
+
+      first.write(`${good('Test Focuser', 'BEFORE')}${cut}${good('Test Focuser', 'AFTER')}`)
+      await until(() => property('AFTER') !== undefined)
+
+      expect(property('BEFORE')).toBeDefined()
+      expect(closed.filter(item => item.status === 'closed')).toEqual([])
+      expect(warnings).toHaveLength(1)
+      expect(warnings[0]).toContain('INDI protocol error #1: lost the framing and skipped to the next element: Incomplete INDI element')
+      expect(problems).toHaveLength(1)
+      expect(problems[0]).toMatchObject({ conn: 1, consequence: 'lost the framing and skipped to the next element', problem: { scope: 'framing', device: 'D', name: 'N', excerpt: expect.stringContaining('<defTextVector device=\\"D\\"') } })
+    })
+  })
+
+  it('reads the next message after one whose attribute holds a >', async () => {
+    await session(async ({ warnings, property, socket }) => {
       const first = await socket(1)
 
-      first.write(`${good('Test Focuser', 'BEFORE')}<defTextVector device="D" name="N" state="Idle" perm="ro"><defText name="T">v</defText>${text('later').toString()}`)
-      await until(() => warnings.length === 1)
-      await until(() => closed.some(item => item.status === 'closed'))
+      first.write(`<message device="Test Focuser" message="Voltage > threshold"/>${good()}`)
+      await until(() => property('POSITION') !== undefined)
+      expect(warnings).toEqual([])
+    })
+  })
 
-      expect(warnings[0]).toContain('INDI protocol error #1: dropped the connection: Incomplete INDI element')
-      expect(closed.find(item => item.status === 'closed')).toMatchObject({ error: expect.stringContaining('Incomplete INDI element') })
+  it('puts every problem on the tap once for each occurrence, even when the log holds them back', async () => {
+    await session(async ({ warnings, problems, property, socket }) => {
+      const first = await socket(1)
+      const skippedElement = '<defNumberVector device="" name="N" state="Idle" perm="ro"/>'
+      const leftOut = '<defNumberVector device="Test Focuser" name="POSITION" state="Idle" perm="rw"><defNumber name="STEPS" min="0" max="100" step="1">5</defNumber><defNumber name="" min="0" max="1" step="1">0</defNumber></defNumberVector>'
+
+      first.write(skippedElement + skippedElement + leftOut + leftOut + 'garbage')
+      first.write(good('Test Focuser', 'LAST'))
+      await until(() => property('LAST') !== undefined)
+
+      expect(warnings.length).toBeLessThan(5)
+      expect(problems.map(item => item.consequence)).toEqual([
+        'skipped the element',
+        'skipped the element',
+        'left one element out and kept the property',
+        'left one element out and kept the property',
+        'lost the framing and skipped to the next element',
+      ])
     })
   })
 })

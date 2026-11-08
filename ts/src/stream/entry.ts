@@ -1,4 +1,4 @@
-import type { Direction, TappedMessage, WireFacts } from '../indi/index.ts'
+import type { Direction, TappedMessage, TappedProblem, WireFacts } from '../indi/index.ts'
 import { parseRecord, stringField } from './json.ts'
 
 export interface Entry {
@@ -56,6 +56,12 @@ export function makeEntries({ rig, source, run, now }: EntryContext) {
     body,
   })
 
+  const client = (kind: string, body: unknown) => {
+    clientCount += 1
+
+    return entry(`client.${kind}`, `client:${run}:${clientCount}`, now(), body)
+  }
+
   return {
     wire({ conn, dir, xml, facts }: TappedMessage, device: string) {
       const key = `${conn}:${dir}`
@@ -84,10 +90,19 @@ export function makeEntries({ rig, source, run, now }: EntryContext) {
       )
     },
 
-    client(kind: string, body: unknown) {
-      clientCount += 1
+    client,
 
-      return entry(`client.${kind}`, `client:${run}:${clientCount}`, now(), body)
+    protocolProblem({ conn, consequence, problem }: TappedProblem) {
+      const { device, name, ...rest } = problem
+
+      return client('protocol-problem', {
+        target: 'indiserver',
+        conn,
+        consequence,
+        ...rest,
+        ...(device === undefined ? {} : { indiDevice: device }),
+        ...(name === undefined ? {} : { property: name }),
+      })
     },
 
     phd2(line: string) {
