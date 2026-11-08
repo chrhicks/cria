@@ -86,15 +86,15 @@ describe('INDI client against a real indiserver', () => {
     const sent = tapped.filter((item): item is TappedMessage => 'dir' in item && item.dir === 'out')
     const received = tapped.filter((item): item is TappedMessage => 'dir' in item && item.dir === 'in')
 
-    expect(tapped[0]).toEqual({ conn: 1, status: 'connected' })
-    expect(tapped[1]).toEqual({ conn: 1, dir: 'out', xml: '<getProperties version="1.7"/>\n', facts: { type: 'other', tag: 'getProperties' } })
+    expect(tapped[0]).toEqual({ status: 'connected' })
+    expect(tapped[1]).toEqual({ dir: 'out', xml: '<getProperties version="1.7"/>\n', facts: { type: 'other', tag: 'getProperties' } })
     expect(sent[1]?.facts).toEqual({ type: 'new', indiDevice: 'Focuser Simulator', property: 'CONNECTION', elements: { CONNECT: true } })
     expect(received.some(message => message.facts.type === 'def' && message.facts.property === 'CONNECTION')).toBe(true)
     expect(sent.map(message => message.xml.split('\n')[0])).toEqual(['<getProperties version="1.7"/>', '<newSwitchVector device="Focuser Simulator" name="CONNECTION">'])
     expect(received.some(message => message.xml.startsWith('<defSwitchVector device="Focuser Simulator" name="CONNECTION"'))).toBe(true)
 
     await until('the tap to see the socket close', () => tapped.some(item => 'status' in item && item.status === 'closed') || undefined)
-    expect(tapped.at(-1)).toMatchObject({ conn: 1, status: 'closed' })
+    expect(tapped.at(-1)).toMatchObject({ status: 'closed' })
   })
 })
 

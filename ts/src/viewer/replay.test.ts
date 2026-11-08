@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { WireBody } from '../stream/entry.ts'
 import { makeReplay } from './replay.ts'
 
-const body = (facts: Partial<WireBody>): WireBody => ({ conn: 1, dir: 'in', n: 1, xml: '', device: 'mount', type: 'set', ...facts })
+const body = (facts: Partial<WireBody>): WireBody => ({ dir: 'in', n: 1, xml: '', device: 'mount', type: 'set', ...facts })
 
 const track = { indiDevice: 'ZWO AM5', property: 'TRACK' }
 

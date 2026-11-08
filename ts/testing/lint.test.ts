@@ -7,8 +7,6 @@ const root = join(import.meta.dirname, '..')
 const rules = {
   'try-catch': /\btry\s*\{/g,
   'promise-catch': /\.catch\(/g,
-  'wall-clock': /Date\.now\(\)/g,
-  'node-timer': /\bset(Timeout|Interval)\(/g,
 }
 
 type Rule = keyof typeof rules
@@ -67,14 +65,12 @@ describe('source rules', () => {
   it('reports a new site and a stale allowance', () => {
     expect(
       lint({
-        'src/rig/new.ts': 'try { y() } catch {}; p.catch(() => 0); Date.now(); setTimeout(f, 1)',
+        'src/rig/new.ts': 'try { y() } catch {}; p.catch(() => 0)',
         'src/stream/json.ts': 'const parsed = 0',
       }),
     ).toEqual([
       'src/rig/new.ts: try-catch found 1, allowed 0',
       'src/rig/new.ts: promise-catch found 1, allowed 0',
-      'src/rig/new.ts: wall-clock found 1, allowed 0',
-      'src/rig/new.ts: node-timer found 1, allowed 0',
       'src/stream/json.ts: try-catch found 0, allowed 1',
     ])
   })

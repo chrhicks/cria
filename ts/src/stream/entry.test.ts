@@ -9,8 +9,8 @@ function entries() {
 const outer = { v: 2, rig: 'test-rig', source: 'test:stream-client' }
 
 describe('wire entries', () => {
-  const tapped = (conn: number, dir: 'in' | 'out', xml: string, facts: WireFacts): TappedMessage => ({ conn, dir, xml, facts })
-  const set = tapped(1, 'in', '<setSwitchVector device="ZWO AM5" name="TELESCOPE_TRACK_STATE" state="Ok"><oneSwitch name="TRACK_ON">On</oneSwitch></setSwitchVector>', {
+  const tapped = (dir: 'in' | 'out', xml: string, facts: WireFacts): TappedMessage => ({ dir, xml, facts })
+  const set = tapped('in', '<setSwitchVector device="ZWO AM5" name="TELESCOPE_TRACK_STATE" state="Ok"><oneSwitch name="TRACK_ON">On</oneSwitch></setSwitchVector>', {
     type: 'set',
     indiDevice: 'ZWO AM5',
     property: 'TELESCOPE_TRACK_STATE',
@@ -23,21 +23,20 @@ describe('wire entries', () => {
 
     expect(made.wire(set, 'mount')).toEqual({
       ...outer,
-      id: 'wire:run1:1:in:1',
+      id: 'wire:run1:in:1',
       kind: 'wire',
       at: 1000,
-      body: { conn: 1, dir: 'in', n: 1, xml: set.xml, device: 'mount', type: 'set', indiDevice: 'ZWO AM5', property: 'TELESCOPE_TRACK_STATE', state: 'Ok', elements: { TRACK_ON: true } },
+      body: { dir: 'in', n: 1, xml: set.xml, device: 'mount', type: 'set', indiDevice: 'ZWO AM5', property: 'TELESCOPE_TRACK_STATE', state: 'Ok', elements: { TRACK_ON: true } },
     })
-    expect(made.wire(set, 'mount').id).toBe('wire:run1:1:in:2')
-    expect(made.wire({ ...set, dir: 'out' }, 'mount').id).toBe('wire:run1:1:out:1')
-    expect(made.wire({ ...set, conn: 2 }, 'mount').id).toBe('wire:run1:2:in:1')
+    expect(made.wire(set, 'mount').id).toBe('wire:run1:in:2')
+    expect(made.wire({ ...set, dir: 'out' }, 'mount').id).toBe('wire:run1:out:1')
   })
 
   it('read back as a wire body, and a body from before the parse is not one', () => {
     const body = entries().wire(set, 'mount').body
 
     expect(readWireBody(body)?.property).toBe('TELESCOPE_TRACK_STATE')
-    expect(readWireBody({ conn: 1, dir: 'in', n: 1, xml: '<a/>' })).toBeUndefined()
+    expect(readWireBody({ dir: 'in', n: 1, xml: '<a/>' })).toBeUndefined()
     expect(readWireBody('text')).toBeUndefined()
   })
 })
@@ -81,17 +80,17 @@ describe('protocol problem entries', () => {
   it('carry what the parser could not read, under the INDI names the wire entries use', () => {
     const problem = { scope: 'element' as const, reason: 'INDI element has an empty name', tag: 'defSwitchVector', device: 'ZWO AM5', name: 'ALTITUDE_LIMIT_CONTROL', utf8: true, excerpt: '<defSwitchVector/>', bytes: 18 }
 
-    expect(entries().protocolProblem({ conn: 1, consequence: 'skipped the element', problem })).toEqual({
+    expect(entries().protocolProblem({ consequence: 'skipped the element', problem })).toEqual({
       ...outer,
       id: 'client:run1:1',
       kind: 'client.protocol-problem',
       at: 1000,
-      body: { target: 'indiserver', conn: 1, consequence: 'skipped the element', scope: 'element', reason: 'INDI element has an empty name', tag: 'defSwitchVector', utf8: true, excerpt: '<defSwitchVector/>', bytes: 18, indiDevice: 'ZWO AM5', property: 'ALTITUDE_LIMIT_CONTROL' },
+      body: { target: 'indiserver', consequence: 'skipped the element', scope: 'element', reason: 'INDI element has an empty name', tag: 'defSwitchVector', utf8: true, excerpt: '<defSwitchVector/>', bytes: 18, indiDevice: 'ZWO AM5', property: 'ALTITUDE_LIMIT_CONTROL' },
     })
   })
 
   it('leave out the device and property when the problem names none', () => {
-    const { body } = entries().protocolProblem({ conn: 2, consequence: 'lost the framing and skipped to the next element', problem: { scope: 'framing', reason: 'Text outside any INDI element', tag: '', utf8: true, excerpt: 'xx', bytes: 2 } })
+    const { body } = entries().protocolProblem({ consequence: 'lost the framing and skipped to the next element', problem: { scope: 'framing', reason: 'Text outside any INDI element', tag: '', utf8: true, excerpt: 'xx', bytes: 2 } })
 
     expect(body).not.toHaveProperty('indiDevice')
     expect(body).not.toHaveProperty('property')

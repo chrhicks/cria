@@ -9,8 +9,6 @@ import type { ProtocolProblem, WireFacts } from './xml.ts'
 export type Direction = 'in' | 'out'
 
 export interface TappedMessage {
-  /** The TCP session, counted from 1 by the client. */
-  readonly conn: number
   readonly dir: Direction
   /**
    * The wire text of one top-level element as the client saw it, not
@@ -22,14 +20,13 @@ export interface TappedMessage {
 }
 
 export interface TappedProblem {
-  readonly conn: number
   readonly consequence: string
   readonly problem: ProtocolProblem
 }
 
 export type TappedConnection =
-  | { readonly conn: number; readonly status: 'connected' }
-  | { readonly conn: number; readonly status: 'closed'; readonly error: string }
+  | { readonly status: 'connected' }
+  | { readonly status: 'closed'; readonly error: string }
 
 /**
  * Contract: returns at once, never throws, does no I/O. A broken tap must not be

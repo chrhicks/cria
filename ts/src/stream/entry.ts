@@ -12,7 +12,6 @@ export interface Entry {
 }
 
 export interface WireBody extends WireFacts {
-  readonly conn: number
   readonly dir: Direction
   readonly n: number
   readonly xml: string
@@ -63,13 +62,12 @@ export function makeEntries({ rig, source, run, now }: EntryContext) {
   }
 
   return {
-    wire({ conn, dir, xml, facts }: TappedMessage, device: string) {
-      const key = `${conn}:${dir}`
-      const n = (wireCounts.get(key) ?? 0) + 1
+    wire({ dir, xml, facts }: TappedMessage, device: string) {
+      const n = (wireCounts.get(dir) ?? 0) + 1
 
-      wireCounts.set(key, n)
+      wireCounts.set(dir, n)
 
-      return entry('wire', `wire:${run}:${key}:${n}`, now(), { conn, dir, n, xml, device, ...facts })
+      return entry('wire', `wire:${run}:${dir}:${n}`, now(), { dir, n, xml, device, ...facts })
     },
 
     system(line: string) {
@@ -92,12 +90,11 @@ export function makeEntries({ rig, source, run, now }: EntryContext) {
 
     client,
 
-    protocolProblem({ conn, consequence, problem }: TappedProblem) {
+    protocolProblem({ consequence, problem }: TappedProblem) {
       const { device, name, ...rest } = problem
 
       return client('protocol-problem', {
         target: 'indiserver',
-        conn,
         consequence,
         ...rest,
         ...(device === undefined ? {} : { indiDevice: device }),
