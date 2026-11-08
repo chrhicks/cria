@@ -236,6 +236,25 @@ describe('commands from the stream', () => {
     expect(answers.map(answer => answer.property)).toEqual(['TELESCOPE_ABORT_MOTION', 'EQUATORIAL_EOD_COORD', 'NOTE'])
   })
 
+  it('writes a Stop that is late, for another run or a repeat of an id, and still checks its values', async () => {
+    const { answers, commands } = setup()
+    const stop = { property: 'TELESCOPE_ABORT_MOTION', values: { ABORT: true } }
+
+    await send(commands, 'mount', { ...stop, at: clock - 10 * maxAge })
+    await send(commands, 'mount', { ...stop, run: 'run-0' })
+    await commands.receive('mount', JSON.stringify({ id: 'again', run, at: clock, by: 'test', ...stop }))
+    await commands.receive('mount', JSON.stringify({ id: 'again', run, at: clock, by: 'test', ...stop }))
+    await send(commands, 'mount', { property: 'TELESCOPE_ABORT_MOTION', values: { ABORT: 'yes' } })
+
+    expect(answers.map(answer => [answer.result, answer.reason])).toEqual([
+      ['written', undefined],
+      ['written', undefined],
+      ['written', undefined],
+      ['written', undefined],
+      ['refused', 'ABORT must be true or false'],
+    ])
+  })
+
   it('names the camera and the mount stop properties', async () => {
     const { answers, commands } = setup()
 

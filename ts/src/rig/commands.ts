@@ -93,12 +93,14 @@ export function createCommands({ config, run, now, indi, answer, log }: CommandD
   let waiting: Promise<void> = Promise.resolve()
 
   function refusal(device: RigDevice, command: Command): string | undefined {
-    if (command.run !== run) return 'meant for another run of the rig program'
+    if (!isStop(command.property)) {
+      if (command.run !== run) return 'meant for another run of the rig program'
 
-    const age = now() - command.at
+      const age = now() - command.at
 
-    if (age > config.commandMaxAgeMs) return `sent ${Math.round(age / 1000)} s ago, older than the ${config.commandMaxAgeMs / 1000} s a command may be`
-    if (age < -config.commandMaxAgeMs) return `dated ${Math.round(-age / 1000)} s ahead of this clock`
+      if (age > config.commandMaxAgeMs) return `sent ${Math.round(age / 1000)} s ago, older than the ${config.commandMaxAgeMs / 1000} s a command may be`
+      if (age < -config.commandMaxAgeMs) return `dated ${Math.round(-age / 1000)} s ahead of this clock`
+    }
 
     const property = indi.property(device.indiDevice, command.property)
 
@@ -151,10 +153,10 @@ export function createCommands({ config, run, now, indi, answer, log }: CommandD
 
       const command = decoded.value
 
+      if (isStop(command.property)) return write(device, command)
+
       if (seen.has(command.id)) return refuse('this id was already seen in this run')
       seen.add(command.id)
-
-      if (isStop(command.property)) return write(device, command)
 
       waiting = waiting.then(() => write(device, command))
 
