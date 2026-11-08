@@ -4,7 +4,7 @@ import { readEntry } from './history.ts'
 import { viewOf } from './view.ts'
 
 function entry(kind: string, body: unknown, extra: Record<string, unknown> = {}) {
-  return readEntry(JSON.stringify({ v: 2, id: 'x', rig: 'r', kind, at: 1, source: 'errai:rig', body, ...extra }))!
+  return readEntry(JSON.stringify({ v: 2, id: 'x', rig: 'r', run: 'r1', kind, at: 1, source: 'errai:rig', body, ...extra }))!
 }
 
 function wire(facts: WireFacts, dir: 'in' | 'out' = 'in') {

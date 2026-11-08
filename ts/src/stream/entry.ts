@@ -5,6 +5,7 @@ export interface Entry {
   readonly v: 2
   readonly id: string
   readonly rig: string
+  readonly run: string
   readonly kind: string
   readonly at: number
   readonly source: string
@@ -49,6 +50,7 @@ export function makeEntries({ rig, source, run, now }: EntryContext) {
     v: 2,
     id,
     rig,
+    run,
     kind,
     at,
     source,
