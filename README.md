@@ -38,6 +38,16 @@ It refuses, with a reason, a command for a device that is not in the rig file, a
 
 The rig file's refusal of motion and exposure properties is unchanged: the rig file never starts one, only a command does.
 
+## Measuring frames
+
+A program that needs a frame's plate solve or star size, not the frame itself, saves it to the measure folder (`measure.folder` in the rig file) and publishes to `rig-dev.command.measure` the body `{ id, by, file, measure, remove }`: `file` a plain frame name in that folder, `measure` one or both of `solve` and `stars`, `remove` whether to delete the frame afterwards. The rig program runs ASTAP on errai, one request at a time, and answers with a `client.measure` entry:
+
+- `{ id, by, file, result: 'measured', seconds, solve?, stars?, header, remove }`. `solve` is `{ solved: true, raDegrees, decDegrees, wcs }` with ASTAP's WCS keys (centre, rotation, CD matrix, scale), or `{ solved: false, reason }`. `stars` is `{ measured: true, hfd, count }` or `{ measured: false, reason }`. `header` carries the frame's time, exposure, optics, focuser, sensor and mount cards, never site cards.
+- `{ id, by, file, result: 'refused', reason }` for a name that is not a plain frame in the folder, a missing frame, an unreadable header, or a rig file without `measure`.
+- `{ id, by, file, result: 'not removed', reason }` after a measured answer, when the frame could not be deleted.
+
+The measured answer is stored with an acknowledgement before the frame is removed, so a frame is only ever deleted once its result is on the stream.
+
 ## Test
 
 You need Node 26, pnpm and libindi with `indiserver` and `indi_simulator_focus`.

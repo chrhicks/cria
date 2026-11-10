@@ -77,6 +77,25 @@ const Device = Schema.Struct({
   }),
 )
 
+const absolutePath = Schema.String.check(Schema.isPattern(/^\//, { expected: 'an absolute path' }))
+
+export const MeasureSettings = Schema.Struct({
+  folder: absolutePath.annotate({ description: 'The folder the main camera saves frames to when a program wants them measured instead of kept (UPLOAD_DIR). The rig program measures a frame here only when asked, and removes it only once its result is on the stream' }),
+  astap: absolutePath.annotate({ description: 'The ASTAP command-line program (astap_cli) on this machine. The same build Vela used on thuban, copied from there so both solve alike' }),
+  catalog: absolutePath.annotate({ description: "The folder holding ASTAP's star catalog (D05 on errai, copied from thuban)" }),
+  workDir: absolutePath.annotate({ description: 'A folder where ASTAP writes its solution files; each is read and removed right after the solve' }),
+  astapLimitSeconds: described(
+    'How long one ASTAP run may take before the answer says it ran out of time. On errai (2026-11-09) a solved alignment frame took 0.37 to 0.40 s and a frame with no solution 2.8 s, so 30 s means ASTAP is stuck, not slow',
+    positiveInteger,
+    30,
+  ),
+  analyseSnr: described(
+    'The signal to noise a star needs to be counted when a frame is measured for focus. On the 10-31 autofocus runs, 10 found the same best position as 30 with two to three times the stars, and 30 found under 6 stars once a frame was 150 steps out of focus (Vela replay, 2026-11-09)',
+    Schema.Finite.check(Schema.isGreaterThan(0)),
+    10,
+  ),
+})
+
 export const RigFile = Schema.Struct({
   indiHost: described('Where indiserver listens: the rig program works on errai, next to indiserver, so bring-up never depends on thuban or the broker', Schema.NonEmptyString, '127.0.0.1'),
   indiPort: described('indiserver port', positiveInteger, 7624),
@@ -99,6 +118,7 @@ export const RigFile = Schema.Struct({
     }),
   ),
   stream: StreamSettings,
+  measure: Schema.optionalKey(MeasureSettings.annotate({ description: 'Measuring frames on errai with ASTAP. Without it, measure requests are refused' })),
 })
 
 type WantedProperties = Readonly<Record<string, Readonly<Record<string, WantedValue>>>>
