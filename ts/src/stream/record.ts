@@ -14,6 +14,7 @@ import { wireDeviceId, wireSubject } from './subjects.ts'
 export interface Recording {
   readonly run: string
   readonly client: (kind: string, body: unknown) => void
+  readonly storeClient: (kind: string, body: unknown) => Promise<void>
   readonly tap: TrafficTap
   readonly running: Promise<unknown>
 }
@@ -78,5 +79,5 @@ export function startRecording(options: {
     ),
   ])
 
-  return { run, client: (kind, body) => broker.publish('rig-dev.client', entries.client(kind, body)), tap, running }
+  return { run, client: (kind, body) => broker.publish('rig-dev.client', entries.client(kind, body)), storeClient: (kind, body) => broker.store('rig-dev.client', entries.client(kind, body)), tap, running }
 }
