@@ -101,6 +101,7 @@ export const RigFile = Schema.Struct({
   indiPort: described('indiserver port', positiveInteger, 7624),
   fifo: Schema.optionalKey(Schema.NonEmptyString.annotate({ description: "The FIFO indiserver reads driver commands from. Default: indi.fifo in XDG_RUNTIME_DIR, where indiserver.service makes it" })),
   pollMs: described('How often the rig program compares INDI with this file', positiveInteger, 5_000),
+  nudgeLeaseMs: described('How long a nudge keeps the mount moving after the last word from the page holding it, in milliseconds', positiveInteger, 1_000),
   settlePolls: described('Polls in a row a device must look the same before the rig program acts on it: a USB device can show in sysfs before it can be opened, and a restarted driver takes a moment to define its devices', positiveInteger, 2),
   fifoGapMs: described('Between any two lines written to the FIFO, so indiserver has dropped a stopped driver before the next start. The rig program holds the FIFO open for its whole life, so indiserver never sees a writer close; before that, on errai 2026-11-07 17:07 ET, a start written right after another line opened while indiserver had the FIFO closed and failed with ENXIO', Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)), 1_000),
   backoffMs: described('Wait before the next try after the 1st, 2nd and later failure, for a write that did not take and for a driver restart', Schema.Array(positiveInteger).check(Schema.isMinLength(1, { expected: 'at least one wait' })), [10_000, 30_000, 60_000]),
