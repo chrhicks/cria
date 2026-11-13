@@ -145,6 +145,7 @@ describe('the rig file', () => {
       indiPort: 7624,
       fifo: '/run/user/1000/indi.fifo',
       pollMs: 5000,
+      nudgeLeaseMs: 1000,
       settlePolls: 2,
       fifoGapMs: 1000,
       minRestartGapMs: 20_000,

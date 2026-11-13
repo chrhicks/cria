@@ -36,6 +36,8 @@ Other tools ask the rig program to write an INDI property by publishing to `rig-
 
 It refuses, with a reason, a command for a device that is not in the rig file, a property INDI has not defined, or a property the rig file keeps (including `CONNECTION`, its properties and its `onConnect`), because the rig program would write it back within one poll. Anything else is written through the INDI link. A write INDI does not take is answered refused with the error. Every command gets exactly one `client.command` entry, `{ id, by, device, property, result: 'written' | 'refused', reason? }`. Whether the driver did anything is on the wire like the rest; a command with no visible effect is unknown and is never sent again.
 
+A nudge moves the mount for as long as its sender holds it. `{ id, by, nudge, rate }` (`nudge` one of `north`, `south`, `east`, `west`; `rate` an element of the mount's `TELESCOPE_SLEW_RATE`) sets the rate, then turns on that direction of `TELESCOPE_MOTION_NS` or `TELESCOPE_MOTION_WE`, and is answered like any command. While the button is down the sender publishes `{ id, by, hold: <nudge id> }` more often than `nudgeLeaseMs`; holds are not answered or logged. `{ id, by, release: <nudge id> }` turns the motion off and is answered. When no hold arrives within `nudgeLeaseMs` (1,000 by default) the rig program turns the motion off and logs it, so a page, a broker link or a Vela that goes away mid-press never leaves the mount moving. One nudge moves at a time; a new one stops the one before.
+
 The rig file's refusal of motion and exposure properties is unchanged: the rig file never starts one, only a command does.
 
 ## Measuring frames
