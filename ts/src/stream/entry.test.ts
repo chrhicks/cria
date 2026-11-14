@@ -111,6 +111,7 @@ describe('PHD2 entries', () => {
   })
 
   it('keep a line it cannot read as it came', () => {
+    expect(entries().phd2('{"jsonrpc":"2.0","result":0,"id":"vela-1"}')).toMatchObject({ kind: 'phd2.reply', body: { result: 0, id: 'vela-1' } })
     expect(entries().phd2('not json')).toEqual({ ...outer, id: 'phd2:run1:1', kind: 'phd2.unknown', at: 1000, body: 'not json' })
   })
 })

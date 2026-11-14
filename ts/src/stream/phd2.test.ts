@@ -33,9 +33,9 @@ function follow(port: number) {
   const statuses: Array<Phd2Status> = []
 
   stop = new AbortController()
-  const done = followPhd2({ host: '127.0.0.1', port, reconnectSeconds }, line => lines.push(line), status => statuses.push(status), stop.signal)
+  const phd2 = followPhd2({ host: '127.0.0.1', port, reconnectSeconds }, line => lines.push(line), status => statuses.push(status), stop.signal)
 
-  return { lines, statuses, done }
+  return { lines, statuses, done: phd2.running, send: phd2.send }
 }
 
 async function until(condition: () => boolean) {
@@ -43,6 +43,23 @@ async function until(condition: () => boolean) {
 }
 
 describe('following PHD2', () => {
+  it('sends a line to PHD2 while connected, and says it could not when PHD2 is away', async () => {
+    const { port, written } = await listen(client => void client.write(`${version}\r\n`))
+    const { lines, done, send } = follow(port)
+
+    expect(send('{"method":"get_app_state","id":"a"}')).toBe(false)
+
+    await until(() => lines.length === 1)
+
+    expect(send('{"method":"get_app_state","id":"a"}')).toBe(true)
+
+    await until(() => written.length === 1)
+    stop.abort()
+    await done
+
+    expect(written).toEqual(['{"method":"get_app_state","id":"a"}\r\n'])
+  })
+
   it('publishes each event as one raw line and writes nothing back', async () => {
     const { port, written } = await listen(client => {
       client.write(`${version}\r\n${appState.slice(0, 10)}`)

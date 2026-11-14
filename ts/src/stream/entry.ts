@@ -115,7 +115,7 @@ export function makeEntries({ rig, source, run, now }: EntryContext) {
       const seconds = finite(record['Timestamp'])
 
       return entry(
-        `phd2.${stringField(record, 'Event') ?? 'unknown'}`,
+        `phd2.${stringField(record, 'Event') ?? ('jsonrpc' in record ? 'reply' : 'unknown')}`,
         id,
         seconds === undefined ? now() : Math.round(seconds * 1000),
         record,

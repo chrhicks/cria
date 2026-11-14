@@ -3,6 +3,7 @@ import { makeAstap } from '../measure/astap.ts'
 import { readHeader } from '../measure/fits.ts'
 import { createMeasure, fileExists, followMeasure, removeFile, type MeasureAnswer } from '../measure/measure.ts'
 import { createCommands, followCommands } from '../rig/commands.ts'
+import { createGuiderCommands, guiderDevice } from '../rig/guider-commands.ts'
 import type { RigConfig } from '../rig/config.ts'
 import { writeFifo } from '../rig/fifo.ts'
 import { defaultRigFile, readRigFile, wireIdsOf } from '../rig/file.ts'
@@ -80,4 +81,4 @@ async function reconcile() {
   }
 }
 
-await Promise.all([reconcile(), recording.running, followCommands({ settings: config.stream, devices: config.devices.map(device => device.id), commands, log }), followMeasure({ settings: config.stream, measure, log })])
+await Promise.all([reconcile(), recording.running, followCommands({ settings: config.stream, devices: config.devices.map(device => device.id), commands, guider: { device: guiderDevice, receive: createGuiderCommands({ send: recording.sendPhd2, answer: answer => recording.client('command', answer), log }).receive }, log }), followMeasure({ settings: config.stream, measure, log })])
