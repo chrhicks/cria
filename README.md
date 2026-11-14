@@ -38,6 +38,8 @@ It refuses, with a reason, a command for a device that is not in the rig file, a
 
 A nudge moves the mount for as long as its sender holds it. `{ id, by, nudge, rate }` (`nudge` one of `north`, `south`, `east`, `west`; `rate` an element of the mount's `TELESCOPE_SLEW_RATE`) sets the rate, then turns on that direction of `TELESCOPE_MOTION_NS` or `TELESCOPE_MOTION_WE`, and is answered like any command. While the button is down the sender publishes `{ id, by, hold: <nudge id> }` more often than `nudgeLeaseMs`; holds are not answered or logged. `{ id, by, release: <nudge id> }` turns the motion off and is answered. When no hold arrives within `nudgeLeaseMs` (1,000 by default) the rig program turns the motion off and logs it, so a page, a broker link or a Vela that goes away mid-press never leaves the mount moving. One nudge moves at a time; a new one stops the one before.
 
+A guider command on `rig-dev.command.phd2`, `{ id, by, method, params? }`, is passed to PHD2 as a JSON-RPC line with the same `id` and answered with a `client.command` entry (`device: 'phd2'`, `property` the method; `refused` when PHD2 is not connected). PHD2's reply is the `phd2.reply` entry with that `id`; the rig program does not read it.
+
 The rig file's refusal of motion and exposure properties is unchanged: the rig file never starts one, only a command does.
 
 ## Measuring frames

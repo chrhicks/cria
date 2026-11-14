@@ -206,8 +206,8 @@ export function createCommands({ config, indi, answer, log, schedule }: CommandD
   }
 }
 
-export function followCommands(options: { readonly settings: StreamSettings; readonly devices: ReadonlyArray<string>; readonly commands: Commands; readonly log: (line: string) => void }) {
-  const { settings, devices, commands, log } = options
+export function followCommands(options: { readonly settings: StreamSettings; readonly devices: ReadonlyArray<string>; readonly commands: Commands; readonly guider: { readonly device: string; readonly receive: (payload: string) => void }; readonly log: (line: string) => void }) {
+  const { settings, devices, commands, guider, log } = options
 
   return keepRunning({
     name: 'commands',
@@ -224,6 +224,13 @@ export function followCommands(options: { readonly settings: StreamSettings; rea
           },
         })
       }
+
+      connection.subscribe(`rig-dev.command.${guider.device}`, {
+        callback: (error, message) => {
+          if (error) log(`commands: ${error.message}`)
+          else guider.receive(message.string())
+        },
+      })
 
       return connection.closed()
     },

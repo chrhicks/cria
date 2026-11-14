@@ -17,6 +17,7 @@ export interface Recording {
   readonly storeClient: (kind: string, body: unknown) => Promise<void>
   readonly tap: TrafficTap
   readonly running: Promise<unknown>
+  readonly sendPhd2: (line: string) => boolean
 }
 
 export function startRecording(options: {
@@ -62,6 +63,15 @@ export function startRecording(options: {
     },
   }
 
+  const phd2 = followPhd2(
+      settings.phd2,
+      line => broker.publish('rig-dev.phd2', entries.phd2(line)),
+      status => {
+        log(`phd2 ${JSON.stringify(status)}`)
+        connectionEntry({ target: 'phd2', ...status })
+      },
+    )
+
   const running = Promise.all([
     keepRunning({
       name: 'journal',
@@ -69,15 +79,8 @@ export function startRecording(options: {
       log,
       run: healthy => followJournal(settings.journalExclusions, settings.journalCursorFile, line => broker.store('rig-dev.system', entries.system(line)), 'journalctl', healthy),
     }),
-    followPhd2(
-      settings.phd2,
-      line => broker.publish('rig-dev.phd2', entries.phd2(line)),
-      status => {
-        log(`phd2 ${JSON.stringify(status)}`)
-        connectionEntry({ target: 'phd2', ...status })
-      },
-    ),
+    phd2.running,
   ])
 
-  return { run, client: (kind, body) => broker.publish('rig-dev.client', entries.client(kind, body)), storeClient: (kind, body) => broker.store('rig-dev.client', entries.client(kind, body)), tap, running }
+  return { run, client: (kind, body) => broker.publish('rig-dev.client', entries.client(kind, body)), storeClient: (kind, body) => broker.store('rig-dev.client', entries.client(kind, body)), tap, running, sendPhd2: phd2.send }
 }
