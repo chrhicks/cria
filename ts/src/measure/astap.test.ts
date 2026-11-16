@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { fieldHeightDegrees, readSolution, readStars } from './astap.ts'
+import { analyseArguments, fieldHeightDegrees, readSolution, readStars } from './astap.ts'
 
 describe("reading ASTAP's answers", () => {
   it('reads the centre and the whole WCS of a solved frame', () => {
@@ -11,6 +11,10 @@ describe("reading ASTAP's answers", () => {
   it('gives the reason when the frame did not solve', () => {
     expect(readSolution('PLTSOLVD=F\nERROR=Not enough stars.')).toEqual({ solved: false, reason: 'Not enough stars.' })
     expect(readSolution('PLTSOLVD=F')).toEqual({ solved: false, reason: 'no solution' })
+  })
+
+  it('asks for every star with the signal asked for, past the 500 ASTAP stops at by itself', () => {
+    expect(analyseArguments('/spool/measure/autofocus_light_030.fits', { analyseSnr: 10, analyseLimit: 10000 })).toEqual(['-f', '/spool/measure/autofocus_light_030.fits', '-analyse', '10', '-s', '10000'])
   })
 
   it('reads the star size and count of a focus measurement', () => {
