@@ -12,6 +12,7 @@ export interface AstapSettings {
   readonly workDir: string
   readonly astapLimitSeconds: number
   readonly analyseSnr: number
+  readonly analyseLimit: number
 }
 
 export const wcsKeys = ['CRVAL1', 'CRVAL2', 'CRPIX1', 'CRPIX2', 'CDELT1', 'CDELT2', 'CROTA1', 'CROTA2', 'CD1_1', 'CD1_2', 'CD2_1', 'CD2_2'] as const
@@ -65,6 +66,8 @@ export function fieldHeightDegrees(header: ReadonlyMap<string, HeaderValue>): nu
   return Number.isFinite(height) && height > 0 ? (2 * Math.atan(height / 2) * 180) / Math.PI : undefined
 }
 
+export const analyseArguments = (path: string, { analyseSnr, analyseLimit }: Pick<AstapSettings, 'analyseSnr' | 'analyseLimit'>) => ['-f', path, '-analyse', String(analyseSnr), '-s', String(analyseLimit)]
+
 const errorText = (error: unknown) => (error instanceof Error ? error.message : String(error))
 
 export function makeAstap(settings: AstapSettings): Astap {
@@ -92,7 +95,7 @@ export function makeAstap(settings: AstapSettings): Astap {
 
     async stars(path) {
       try {
-        const { stdout } = await run(settings.astap, ['-f', path, '-analyse', String(settings.analyseSnr)], limit)
+        const { stdout } = await run(settings.astap, analyseArguments(path, settings), limit)
 
         return readStars(stdout)
       } catch (error) {

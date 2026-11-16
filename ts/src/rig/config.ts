@@ -94,6 +94,11 @@ export const MeasureSettings = Schema.Struct({
     Schema.Finite.check(Schema.isGreaterThan(0)),
     10,
   ),
+  analyseLimit: described(
+    "The most stars ASTAP takes when it measures a frame for focus, set above any frame's star count so every star with the signal asked for is used",
+    positiveInteger,
+    10000,
+  ),
 })
 
 export const RigFile = Schema.Struct({
