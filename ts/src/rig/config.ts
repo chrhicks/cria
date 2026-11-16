@@ -95,7 +95,7 @@ export const MeasureSettings = Schema.Struct({
     10,
   ),
   analyseLimit: described(
-    "The most stars ASTAP takes when it measures a frame for focus, set above any frame's star count so every star with the signal asked for is used",
+    'The most stars ASTAP takes when it measures a frame for focus',
     positiveInteger,
     10000,
   ),
