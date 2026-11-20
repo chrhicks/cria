@@ -44,11 +44,12 @@ The rig file's refusal of motion and exposure properties is unchanged: the rig f
 
 ## Measuring frames
 
-A program that needs a frame's plate solve or star size, not the frame itself, saves it to the measure folder (`measure.folder` in the rig file) and publishes to `rig-dev.command.measure` the body `{ id, by, file, measure, remove }`: `file` a plain frame name in that folder, `measure` one or both of `solve` and `stars`, `remove` whether to delete the frame afterwards. The rig program runs ASTAP on errai, one request at a time, and answers with a `client.measure` entry:
+A program that needs a frame's plate solve or star size, not the frame itself, saves it to the measure folder (`measure.folder` in the rig file) and publishes to `rig-dev.command.measure` the body `{ id, by, file, measure, remove, keep? }`: `file` a plain frame name in that folder, `measure` one or both of `solve` and `stars`, `remove` whether to delete the frame afterwards, `keep` (default false) whether to move the frame, and its `.fits.json` sidecar if the capture wrote one, into `measure.keepFolder` (the camera's normal spool, which Vela's keeper copies and checks) once the answer is stored, instead of deleting it. The rig program runs ASTAP on errai, one request at a time, and answers with a `client.measure` entry:
 
 - `{ id, by, file, result: 'measured', seconds, solve?, stars?, header, remove }`. `solve` is `{ solved: true, raDegrees, decDegrees, wcs }` with ASTAP's WCS keys (centre, rotation, CD matrix, scale), or `{ solved: false, reason }`. `stars` is `{ measured: true, hfd, count }` or `{ measured: false, reason }`. `header` carries the frame's time, exposure, optics, focuser, sensor and mount cards, never site cards.
 - `{ id, by, file, result: 'refused', reason }` for a name that is not a plain frame in the folder, a missing frame, an unreadable header, or a rig file without `measure`.
 - `{ id, by, file, result: 'not removed', reason }` after a measured answer, when the frame could not be deleted.
+- `{ id, by, file, result: 'not kept', reason }` after a measured answer, when a `keep` request's frame could not be moved (the frame stays in the measure folder); a `keep` request is refused when the rig file has no `measure.keepFolder`.
 
 The measured answer is stored with an acknowledgement before the frame is removed, so a frame is only ever deleted once its result is on the stream.
 

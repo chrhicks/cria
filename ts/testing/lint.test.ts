@@ -37,7 +37,7 @@ const allowed: Record<string, Partial<Record<Rule, readonly [count: number, why:
   },
   'src/measure/fits.ts': { 'try-catch': [1, 'a try with only a finally: the frame is closed however reading its header ends'] },
   'src/measure/measure.ts': {
-    'try-catch': [2, 'a frame whose header cannot be read is answered as refused, and one that cannot be removed as not removed; the next request is still measured'],
+    'try-catch': [3, 'a frame whose header cannot be read is answered as refused, one that cannot be removed as not removed and one that cannot be moved as not kept; the next request is still measured'],
     'promise-catch': [1, 'a request that throws is logged and the queue goes on to the next one; its frame stays in the measure folder'],
   },
   'src/viewer/viewer.ts': {

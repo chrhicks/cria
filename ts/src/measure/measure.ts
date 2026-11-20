@@ -1,4 +1,4 @@
-import { stat, rm } from 'node:fs/promises'
+import { stat, rm, rename } from 'node:fs/promises'
 import { join } from 'node:path'
 import { connect } from '@nats-io/transport-node'
 import { Option, Schema } from 'effect'
@@ -21,10 +21,11 @@ const Request = Schema.Struct({
   file: Schema.String,
   measure: Schema.Array(Schema.Literals(['solve', 'stars'])).check(Schema.isMinLength(1, { expected: 'at least one of solve and stars' })),
   remove: Schema.Boolean,
+  keep: Schema.optionalKey(Schema.Boolean),
 })
 
 export type MeasureAnswer =
-  | { readonly id: string; readonly by: string; readonly file: string; readonly result: 'refused' | 'not removed'; readonly reason: string }
+  | { readonly id: string; readonly by: string; readonly file: string; readonly result: 'refused' | 'not removed' | 'not kept'; readonly reason: string }
   | {
       readonly id: string
       readonly by: string
@@ -34,16 +35,18 @@ export type MeasureAnswer =
       readonly solve?: Solve
       readonly stars?: Stars
       readonly header: Readonly<Record<string, HeaderValue>>
-      readonly remove: 'after this entry' | 'kept'
+      readonly remove: 'after this entry' | 'kept' | 'moved to the spool'
     }
 
 export interface MeasureDependencies {
   readonly folder: string | undefined
+  readonly keepFolder: string | undefined
   readonly astap: Astap | undefined
   readonly readHeader: (path: string) => Promise<ReadonlyMap<string, HeaderValue>>
   readonly store: (answer: MeasureAnswer) => Promise<void>
   readonly answer: (answer: MeasureAnswer) => void
   readonly remove: (path: string) => Promise<void>
+  readonly move: (from: string, to: string) => Promise<void>
   readonly exists: (path: string) => Promise<boolean>
   readonly now: () => number
   readonly log: (line: string) => void
@@ -55,9 +58,21 @@ export const fileExists = (path: string) => stat(path).then(found => found.isFil
 
 export const removeFile = (path: string) => rm(path)
 
+export const moveFile = (from: string, to: string) => rename(from, to)
+
+export const sidecarName = (file: string) => `${file}.json`
+
 export function createMeasure(dependencies: MeasureDependencies) {
-  const { folder, astap, readHeader, store, answer, remove, exists, now, log } = dependencies
+  const { folder, keepFolder, astap, readHeader, store, answer, remove, move, exists, now, log } = dependencies
   let queue: Promise<void> = Promise.resolve()
+
+  async function keepFrame(from: string, to: string) {
+    if (await exists(to)) throw new Error(`${to} is already in the spool`)
+
+    await move(from, to)
+
+    if (await exists(sidecarName(from))) await move(sidecarName(from), sidecarName(to))
+  }
 
   async function measure(request: typeof Request.Type) {
     const heard = { id: request.id, by: request.by, file: request.file }
@@ -68,6 +83,8 @@ export function createMeasure(dependencies: MeasureDependencies) {
 
     if (folder === undefined || astap === undefined) return refuse('measure is not set up in the rig file')
     if (!frameName.test(request.file)) return refuse('not a frame name in the measure folder')
+
+    if (request.keep === true && keepFolder === undefined) return refuse('keeping a frame is not set up in the rig file')
 
     const path = join(folder, request.file)
 
@@ -86,8 +103,19 @@ export function createMeasure(dependencies: MeasureDependencies) {
     const stars = request.measure.includes('stars') ? await astap.stars(path) : undefined
     const kept = Object.fromEntries(headerKeys.filter(key => header.has(key)).map(key => [key, header.get(key)!]))
 
-    await store({ ...heard, result: 'measured', seconds: Math.round(now() - started) / 1000, ...(solve && { solve }), ...(stars && { stars }), header: kept, remove: request.remove ? 'after this entry' : 'kept' })
+    await store({ ...heard, result: 'measured', seconds: Math.round(now() - started) / 1000, ...(solve && { solve }), ...(stars && { stars }), header: kept, remove: request.keep === true ? 'moved to the spool' : request.remove ? 'after this entry' : 'kept' })
     log(`rig: measure ${request.id} from ${request.by}: ${request.file} ${solve === undefined ? '' : solve.solved ? 'solved' : `not solved (${solve.reason})`}${stars === undefined ? '' : stars.measured ? ` ${stars.count} stars` : ` no stars (${stars.reason})`}`)
+
+    if (request.keep === true && keepFolder !== undefined) {
+      try {
+        await keepFrame(path, join(keepFolder, request.file))
+      } catch (error) {
+        log(`rig: measure ${request.id}: ${request.file} not kept: ${errorText(error)}`)
+        answer({ ...heard, result: 'not kept', reason: errorText(error) })
+      }
+
+      return
+    }
 
     if (!request.remove) return
 
@@ -108,7 +136,7 @@ export function createMeasure(dependencies: MeasureDependencies) {
         const heard = { id: (record && stringField(record, 'id')) || '', by: (record && stringField(record, 'by')) || '', file: (record && stringField(record, 'file')) || '' }
 
         log(`rig: measure ${heard.id || '(no id)'} refused: not a measure request`)
-        answer({ ...heard, result: 'refused', reason: 'not a measure request: it needs id, by, file, measure (solve, stars) and remove' })
+        answer({ ...heard, result: 'refused', reason: 'not a measure request: it needs id, by, file, measure (solve, stars) and remove, and may carry keep' })
 
         return Promise.resolve()
       }
