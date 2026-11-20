@@ -1,7 +1,7 @@
 import { setTimeout as delay } from 'node:timers/promises'
 import { makeAstap } from '../measure/astap.ts'
 import { readHeader } from '../measure/fits.ts'
-import { createMeasure, fileExists, followMeasure, removeFile, type MeasureAnswer } from '../measure/measure.ts'
+import { createMeasure, fileExists, followMeasure, moveFile, removeFile, type MeasureAnswer } from '../measure/measure.ts'
 import { createCommands, followCommands } from '../rig/commands.ts'
 import { createGuiderCommands, guiderDevice } from '../rig/guider-commands.ts'
 import type { RigConfig } from '../rig/config.ts'
@@ -44,11 +44,13 @@ const commands = createCommands({
 const measuring = config.measure
 const measure = createMeasure({
   folder: measuring?.folder,
+  keepFolder: measuring?.keepFolder,
   astap: measuring === undefined ? undefined : makeAstap(measuring),
   readHeader,
   store: (answer: MeasureAnswer) => recording.storeClient('measure', answer),
   answer: (answer: MeasureAnswer) => recording.client('measure', answer),
   remove: removeFile,
+  move: moveFile,
   exists: fileExists,
   now: Date.now,
   log,

@@ -81,6 +81,7 @@ const absolutePath = Schema.String.check(Schema.isPattern(/^\//, { expected: 'an
 
 export const MeasureSettings = Schema.Struct({
   folder: absolutePath.annotate({ description: 'The folder the main camera saves frames to when a program wants them measured instead of kept (UPLOAD_DIR). The rig program measures a frame here only when asked, and removes it only once its result is on the stream' }),
+  keepFolder: Schema.optionalKey(absolutePath.annotate({ description: "The folder the main camera saves kept frames to (UPLOAD_DIR for a normal run, Vela's frames.spoolDir), on the same filesystem as the measure folder. A measure request with keep moves its frame and sidecar here once the answer is published. Without it, a request with keep is refused" })),
   astap: absolutePath.annotate({ description: 'The ASTAP command-line program (astap_cli) on this machine. The same build Vela used on thuban, copied from there so both solve alike' }),
   catalog: absolutePath.annotate({ description: "The folder holding ASTAP's star catalog (D05 on errai, copied from thuban)" }),
   workDir: absolutePath.annotate({ description: 'A folder where ASTAP writes its solution files; each is read and removed right after the solve' }),

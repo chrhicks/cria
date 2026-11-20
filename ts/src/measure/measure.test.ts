@@ -16,7 +16,7 @@ const solved: Astap = {
   stars: async () => ({ measured: true, hfd: 3.2, count: 488 }),
 }
 
-function setup(overrides: Partial<MeasureDependencies> = {}) {
+function setup(overrides: Partial<MeasureDependencies> = {}, present: ReadonlyArray<string> = ['/spool/measure/polar-align_light_013.fits']) {
   const events: string[] = []
   const stored: MeasureAnswer[] = []
   const answered: MeasureAnswer[] = []
@@ -24,6 +24,7 @@ function setup(overrides: Partial<MeasureDependencies> = {}) {
 
   const measure = createMeasure({
     folder: '/spool/measure',
+    keepFolder: '/spool/frames',
     astap: solved,
     readHeader: async () => header,
     store: async answer => {
@@ -32,7 +33,8 @@ function setup(overrides: Partial<MeasureDependencies> = {}) {
     },
     answer: answer => void answered.push(answer),
     remove: async path => void events.push(`remove ${path}`),
-    exists: async path => path === '/spool/measure/polar-align_light_013.fits',
+    move: async (from, to) => void events.push(`move ${from} ${to}`),
+    exists: async path => present.includes(path),
     now: () => (clock += 390),
     log: () => {},
     ...overrides,
@@ -114,6 +116,66 @@ describe('measuring a frame on the rig computer', () => {
     await measure.receive(request())
 
     expect(answered).toEqual([{ id: 'vela-1', by: 'vela', file: 'polar-align_light_013.fits', result: 'not removed', reason: 'EACCES' }])
+  })
+
+  it('moves the frame and its sidecar into the spool after the answer is stored when asked to keep it', async () => {
+    const { measure, events, stored } = setup({}, ['/spool/measure/polar-align_light_013.fits', '/spool/measure/polar-align_light_013.fits.json'])
+
+    await measure.receive(request({ keep: true }))
+
+    expect(events).toEqual([
+      'store',
+      'move /spool/measure/polar-align_light_013.fits /spool/frames/polar-align_light_013.fits',
+      'move /spool/measure/polar-align_light_013.fits.json /spool/frames/polar-align_light_013.fits.json',
+    ])
+    expect(stored[0]).toMatchObject({ result: 'measured', remove: 'moved to the spool' })
+  })
+
+  it('moves only the frame when the capture wrote no sidecar', async () => {
+    const { measure, events } = setup()
+
+    await measure.receive(request({ keep: true }))
+
+    expect(events).toEqual(['store', 'move /spool/measure/polar-align_light_013.fits /spool/frames/polar-align_light_013.fits'])
+  })
+
+  it('removes the frame as before when keep is false', async () => {
+    const { measure, events } = setup({}, ['/spool/measure/polar-align_light_013.fits', '/spool/measure/polar-align_light_013.fits.json'])
+
+    await measure.receive(request({ keep: false }))
+
+    expect(events).toEqual(['store', 'remove /spool/measure/polar-align_light_013.fits'])
+  })
+
+  it('leaves the frame in place and says so when it could not be moved', async () => {
+    const { measure, events, answered } = setup({
+      move: async () => {
+        throw new Error('EXDEV')
+      },
+    })
+
+    await measure.receive(request({ keep: true }))
+
+    expect(events).toEqual(['store'])
+    expect(answered).toEqual([{ id: 'vela-1', by: 'vela', file: 'polar-align_light_013.fits', result: 'not kept', reason: 'EXDEV' }])
+  })
+
+  it('does not overwrite a frame of the same name already in the spool', async () => {
+    const { measure, events, answered } = setup({}, ['/spool/measure/polar-align_light_013.fits', '/spool/frames/polar-align_light_013.fits'])
+
+    await measure.receive(request({ keep: true }))
+
+    expect(events).toEqual(['store'])
+    expect(answered[0]).toMatchObject({ result: 'not kept' })
+  })
+
+  it('refuses a request to keep when no spool folder is set up', async () => {
+    const { measure, events, answered } = setup({ keepFolder: undefined })
+
+    await measure.receive(request({ keep: true }))
+
+    expect(events).toEqual([])
+    expect(answered).toEqual([{ id: 'vela-1', by: 'vela', file: 'polar-align_light_013.fits', result: 'refused', reason: 'keeping a frame is not set up in the rig file' }])
   })
 
   it('refuses a name that is not a plain frame in the measure folder', async () => {
